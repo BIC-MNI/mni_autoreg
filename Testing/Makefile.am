@@ -10,7 +10,7 @@ built_PATH = $(minctraccdir):$(extradir)
 # path to the shell interpreter.
 TESTS_ENVIRONMENT = PATH=$(built_PATH):$(PATH) $(SHELL)
 
-TESTS = linear-1 linear-2 linear-3 nonlinear-2 nonlinear-3
+TESTS = linear-1 linear-2 linear-3 nonlinear-2 nonlinear-3 nonlinear-4
 
 EXTRA_DIST = $(TESTS) tps.xfm tps.tag
 
