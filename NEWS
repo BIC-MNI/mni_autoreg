@@ -1,5 +1,13 @@
 CHANGES to the MNI_AutoReg package...
 
+Release 0.98j
+-------------
+
+* Build process changed: third-party libraries will no longer be
+  searched for in /usr/local and ${prefix} by default.  Specify
+  the directories to search using --with-build-path.
+
+
 Release 0.98i
 -------------
 

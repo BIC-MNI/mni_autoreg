@@ -1,3 +1,11 @@
+2001-01-25  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* configure.in: Do not automatically add lib and include
+	directories from /usr/local and ${prefix}.  Add configure flag
+	--with-build-path to allow specifying extra locations for the
+	compiler to look.
+	Set VERSION to 0.98j.
+
 2000-05-19  Steve ROBBINS  <stever@bic.mni.mcgill.ca>
 
 	* autogen.sh: run `autoheader' before `automake'.  In order for

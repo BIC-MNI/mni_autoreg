@@ -7,6 +7,10 @@
     searched, but --with-xxx flags must take precedence
   - should we search /usr/local by default?
 
+  - the --with-build-path flag is enabled, 
+    still need to update the build docs
+
+
 * use ICBM150 data as default model?
 
 * configure probe for Getopt::Tabular

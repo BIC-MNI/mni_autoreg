@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script
 
 AC_INIT(minctracc/Include/minctracc.h)
-AM_INIT_AUTOMAKE(mni_autoreg, 0.98i)
+AM_INIT_AUTOMAKE(mni_autoreg, 0.98j)
 AM_CONFIG_HEADER(config.h)
 
 #------------------------------------------------------------------------
@@ -162,25 +162,15 @@ dnl AC_CHECK_LIB(ucb, random)
 # We'll need to look for a slew of third-party libraries: NetCDF,
 # and MNI libraries minc, and volume_io.
 #
-# These are often installed into /usr/local/{include,lib}, 
-# or ${prefix}/{include,lib}, so we'll add these to the search paths
-# for the C preprocessor and the linker.
-#
-if test "$GCC" != yes; then
-    mni_dirs=/usr/local
-else
-    # GCC will search in /usr/local by default
-    mni_dirs=
-fi
-if test "$prefix" != NONE -a "$prefix" != /usr/local; then
-    mni_dirs="$prefix $mni_dirs"
-fi
-
-for d in $mni_dirs; do
+AC_ARG_WITH(build-path,[
+  --with-build-path[=DIR] use DIR/include DIR/lib
+],[
+for d in `echo $withval | tr : ' '`; do
     test -d $d/include && MNI_CPPFLAGS="$MNI_CPPFLAGS -I$d/include"
     test -d $d/include/volume_io && MNI_CPPFLAGS="$MNI_CPPFLAGS -I$d/include/volume_io"
     test -d $d/lib && MNI_LDFLAGS="$MNI_LDFLAGS -L$d/lib"
 done
+])
 
 smr_CHECK_LIB(netcdf,, [NetCDF library], ncopen, netcdf.h, 
 $MNI_LDFLAGS, $MNI_CPPFLAGS)
