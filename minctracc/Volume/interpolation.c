@@ -16,7 +16,6 @@
 
 #define VOL_NDIMS 3
 
-/* #include "minctracc.h" */
 
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : trilinear_interpolant
@@ -328,4 +327,5 @@ public int nearest_neighbour_interpolant(Volume volume,
    return TRUE;
 
 }
+
 

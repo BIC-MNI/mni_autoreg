@@ -58,10 +58,7 @@ public void init_lattice(Volume d1,
     limits[VOL_NDIMS];
 
   float
-    t,
-    sxx,syy,szz,
-    sxy,syz,sxz,
-    sx,sy,sz,si; 
+    t;
 
   int 
     vol1,vol2,
@@ -72,8 +69,13 @@ public void init_lattice(Volume d1,
     min2_col,   max2_col,
     min2_slice, max2_slice;
 
-  Real thickness1[3],thickness2[3];
-  int sizes1[3],sizes2[3];
+  Real 
+    thickness1[3],thickness2[3];
+  int 
+    sizes1[3],sizes2[3];
+  Real
+    mask_value,
+    position[3];
 
   get_volume_sizes(d1, sizes1 );
   get_volume_separations(d1, thickness1 );
@@ -127,18 +129,36 @@ public void init_lattice(Volume d1,
 
 	convert_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
 
-	fill_Point( voxel, tx, ty, tz );
-
-	INTERPOLATE_VOXEL_VALUE( d1, &voxel, &voxel_value ); 
+	position[X] = tx;
+	position[Y] = ty;
+	position[Z] = tz;
 	
-	if (voxel_value > globals->threshold) {
-	  if (r > max1_row) max1_row = r; 
-	  if (r < min1_row) min1_row = r;
-	  if (c > max1_col) max1_col = c; 
-	  if (c < min1_col) min1_col = c;
-	  if (s > max1_slice) max1_slice = s; 
-	  if (s < min1_slice) min1_slice = s;
-	}
+	if (voxel_is_within_volume( d1, position ) ) {
+
+	  if (m1 != NULL) {
+	    GET_VOXEL_3D( mask_value, m1 , ROUND( tx ), ROUND( ty ), ROUND( tz ) ); 
+	  }
+	  else
+	    mask_value = 1.0;
+	  
+	  if (mask_value > 0.0) {	                /* should be fill_value  */
+	    
+	    fill_Point( voxel, tx, ty, tz );
+	    
+	    INTERPOLATE_VOXEL_VALUE( d1, &voxel, &voxel_value ); 
+	    
+	    if (voxel_value > globals->threshold) {
+	      if (r > max1_row) max1_row = r; 
+	      if (r < min1_row) min1_row = r;
+	      if (c > max1_col) max1_col = c; 
+	      if (c < min1_col) min1_col = c;
+	      if (s > max1_slice) max1_slice = s; 
+	      if (s < min1_slice) min1_slice = s;
+	    }
+	    
+	  } /* if mask_value > 0.0 */
+	} /* if voxel within volume */
+
 	ADD_POINT_VECTOR( col, col, col_step );
 	
       }
@@ -153,6 +173,8 @@ public void init_lattice(Volume d1,
       (max1_slice < min1_slice)) {
     print_error("Cannot calculate size of volume 1\n.", __FILE__, __LINE__, 0,0,0,0,0 );
   }
+
+
 
 				/* build default sampling lattice info
 				   on second data set (d2)               */
@@ -196,21 +218,40 @@ public void init_lattice(Volume d1,
 
       SCALE_POINT( col, row, 1.0); /* init first col position */
       for_inclusive(c,0,limits[X]) {
-
-	convert_world_to_voxel(d2, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
-
-	fill_Point( voxel, tx, ty, tz );
-
-	INTERPOLATE_VOXEL_VALUE( d2, &voxel, &voxel_value ); 
 	
-	if (voxel_value > globals->threshold) {
-	  if (r > max2_row) max2_row = r; 
-	  if (r < min2_row) min2_row = r;
-	  if (c > max2_col) max2_col = c; 
-	  if (c < min2_col) min2_col = c;
-	  if (s > max2_slice) max2_slice = s; 
-	  if (s < min2_slice) min2_slice = s;
-	}
+	convert_world_to_voxel(d2, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
+	
+	position[X] = tx;
+	position[Y] = ty;
+	position[Z] = tz;
+	
+	if (voxel_is_within_volume( d2, position ) ) {
+
+	  if (m2 != NULL) {
+	    GET_VOXEL_3D( mask_value, m2 , ROUND( tx ), ROUND( ty ), ROUND( tz ) ); 
+	  }
+	  else
+	    mask_value = 1.0;
+	  
+	  if (mask_value > 0.0) {	                /* should be fill_value  */
+	    
+	    fill_Point( voxel, tx, ty, tz );
+	    
+	    INTERPOLATE_VOXEL_VALUE( d2, &voxel, &voxel_value ); 
+	    
+	    if (voxel_value > globals->threshold) {
+	      if (r > max2_row) max2_row = r; 
+	      if (r < min2_row) min2_row = r;
+	      if (c > max2_col) max2_col = c; 
+	      if (c < min2_col) min2_col = c;
+	      if (s > max2_slice) max2_slice = s; 
+	      if (s < min2_slice) min2_slice = s;
+	    }
+
+	  } /* if mask_value > 0.0 */
+	} /* if voxel within volume */
+
+
 	ADD_POINT_VECTOR( col, col, col_step );
 	
       }

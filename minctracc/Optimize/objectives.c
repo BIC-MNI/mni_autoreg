@@ -9,11 +9,13 @@
 
 
 #include <def_mni.h>
-
-#define VOL_NDIMS 3
+#include <limits.h>
 
 #include "minctracc.h"
+#include <recipes.h>
+#include <def_segment_table.h>
 
+extern Segment_Table *segment_table;
 
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : xcorr_objective
@@ -28,6 +30,7 @@
 @OUTPUT     : none
 
 @RETURNS    : the normalized cross correlation value (min=0.0 max = 1.0)
+              0.0 means perfect fit!
 
 @DESCRIPTION: this routine does volumetric subsampling in world space.
               These world coordinates are mapped back into each 
@@ -71,15 +74,14 @@ public float xcorr_objective(Volume d1,
     slice,
     row,
     col,
-    col2,
+    pos2,
     voxel;
 
   double
     tx,ty,tz;
   int
-    indices[3],
     xi,yi,zi,
-    flip_flag,r,c,s;
+    r,c,s;
 
   Real
     position[3],
@@ -100,8 +102,6 @@ public float xcorr_objective(Volume d1,
   fill_Vector( slice_step, 0.0,              0.0,              globals->step[Z] );
 
   fill_Point( starting_position, globals->start[X], globals->start[Y], globals->start[Z]);
-
-  flip_flag = FALSE;
 
   s1 = s2 = s3 = 0.0;
   count1 = count2 = 0;
@@ -145,10 +145,10 @@ public float xcorr_objective(Volume d1,
 	    value1 = CONVERT_VOXEL_TO_VALUE( d1, voxel_value);
 
 	    
-	    do_linear_transformation_point(&col2, globals->trans_info.transformation.trans_data, 
+	    do_linear_transformation_point(&pos2, globals->trans_info.transformation.trans_data, 
 					   &col);
 	    
-	    convert_world_to_voxel(d2, Point_x(col2), Point_y(col2), Point_z(col2), &tx, &ty, &tz);
+	    convert_world_to_voxel(d2, Point_x(pos2), Point_y(pos2), Point_z(pos2), &tx, &ty, &tz);
 	    
 	    position[X] = tx;
 	    position[Y] = ty;
@@ -192,7 +192,7 @@ public float xcorr_objective(Volume d1,
     } /* for r */
   } /* for s */
 
-  result = s1 / (fsqrt(s2)*fsqrt(s3));
+  result = 1.0 - s1 / (fsqrt(s2)*fsqrt(s3));
 
   if (globals->flags.debug) printf ("%7d %7d -> %10.8f\n",count1,count2,result);
   
@@ -201,13 +201,473 @@ public float xcorr_objective(Volume d1,
 }
 
 
-public float zscore_objective(Volume d1,
-			      Volume d2,
-			      Volume m1,
-			      Volume m2, 
-			      Arg_Data *globals)
+public float ssc_objective(Volume d1,
+			   Volume d2,
+			   Volume m1,
+			   Volume m2, 
+			   Arg_Data *globals)
 {
+  Vector
+    vector_step,
+    slice_step,
+    row_step,
+    col_step;
+
+  Point 
+    starting_position,
+    slice,
+    row,
+    col,
+    pos2,
+    voxel;
+
+  double
+    tx,ty,tz;
+  int
+    xi,yi,zi,
+    r,c,s;
+
+  Real
+    position[3],
+    value1, value2,
+    voxel_value,
+    mask_value;
+  
+  float 
+    result;				/* the result */
+  int 
+    count1, count2,
+    greater;
+  unsigned  long
+    zero_crossings;
+
+
+  fill_Vector( row_step,   globals->step[X], 0.0,              0.0 );
+  fill_Vector( col_step,   0.0,              globals->step[Y], 0.0 );
+  fill_Vector( slice_step, 0.0,              0.0,              globals->step[Z] );
+
+  fill_Point( starting_position, globals->start[X], globals->start[Y], globals->start[Z]);
+
+  greater = TRUE;
+  zero_crossings = count1 = count2 = 0;
+
+
+  /* ------------------------  count along rows (fastest=col) first ------------------- */
+
+
+  for_inclusive(s,0,globals->count[Z]) {
+
+    SCALE_VECTOR( vector_step, slice_step, s);
+    ADD_POINT_VECTOR( slice, starting_position, vector_step );
+
+    for_inclusive(r,0,globals->count[Y]) {
+      
+      SCALE_VECTOR( vector_step, row_step, r);
+      ADD_POINT_VECTOR( row, slice, vector_step );
+      
+      SCALE_POINT( col, row, 1.0); /* init first col position */
+      for_inclusive(c,0,globals->count[X]) {
+	
+	convert_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
+	
+	position[X] = tx;
+	position[Y] = ty;
+	position[Z] = tz;
+	
+	if (voxel_is_within_volume( d1, position ) ) {
+	  count1++;
+	  fill_Point( voxel, tx, ty, tz );
+
+	  if (m1 != NULL) {
+	    xi = ROUND( tx );
+	    yi = ROUND( ty );
+	    zi = ROUND( tz );
+	    
+	    GET_VOXEL_3D( mask_value, m1 , xi, yi, zi ); 
+	  }
+	  else
+	    mask_value = 1.0;
+	  
+	  
+	  if (mask_value > 0.0) {	                /* should be fill_value  */
+	    INTERPOLATE_VOXEL_VALUE( d1, &voxel, &voxel_value ); 
+	    value1 = CONVERT_VOXEL_TO_VALUE( d1, voxel_value);
+
+	    
+	    do_linear_transformation_point(&pos2, globals->trans_info.transformation.trans_data, 
+					   &col);
+	    
+	    convert_world_to_voxel(d2, Point_x(pos2), Point_y(pos2), Point_z(pos2), &tx, &ty, &tz);
+	    
+	    position[X] = tx;
+	    position[Y] = ty;
+	    position[Z] = tz;
+	    
+	    if (voxel_is_within_volume( d2, position ) ) {
+	      count2++;
+	      fill_Point( voxel, tx, ty, tz );
+	      
+	      if (m2 != NULL) {
+		xi = ROUND( tx );
+		yi = ROUND( ty );
+		zi = ROUND( tz );
+		
+		GET_VOXEL_3D( mask_value, m2 , xi, yi, zi ); 
+	      }
+	      else
+		mask_value = 1.0;
+	      
+	      if (mask_value > 0.0) {	                /* should be fill_value  */
+		
+		INTERPOLATE_VOXEL_VALUE( d2, &voxel, &voxel_value ); 
+		value2 = CONVERT_VOXEL_TO_VALUE( d1, voxel_value);
+		
+		if (!((greater && value1>value2) || (!greater && value1<value2))) {
+		  greater = !greater;
+		  zero_crossings++;
+		}
+		
+	      } /* if mask_value, on volume 2 */
+	    } /* if voxel in volume two */
+	  } /* if mask_value, on volume 1 */
+	} /* if voxel in volume one */
+	
+	ADD_POINT_VECTOR( col, col, col_step );
+	
+      } /* for c */
+    } /* for r */
+  } /* for s */
+
+  /* ------------------------  count along cols second  --(fastest=row)--------------- */
+
+  for_inclusive(s,0,globals->count[Z]) {
+
+    SCALE_VECTOR( vector_step, slice_step, s);
+    ADD_POINT_VECTOR( slice, starting_position, vector_step );
+
+    for_inclusive(c,0,globals->count[X]) {
+      
+      SCALE_VECTOR( vector_step, col_step, c);
+      ADD_POINT_VECTOR( col, slice, vector_step );
+      
+      SCALE_POINT( row, col, 1.0); /* init first row position */
+
+      for_inclusive(r,0,globals->count[Y]) {
+
+	
+	convert_world_to_voxel(d1, Point_x(row), Point_y(row), Point_z(row), &tx, &ty, &tz);
+	
+	position[X] = tx;
+	position[Y] = ty;
+	position[Z] = tz;
+	
+	if (voxel_is_within_volume( d1, position ) ) {
+	  count1++;
+	  fill_Point( voxel, tx, ty, tz );
+
+	  if (m1 != NULL) {
+	    xi = ROUND( tx );
+	    yi = ROUND( ty );
+	    zi = ROUND( tz );
+	    
+	    GET_VOXEL_3D( mask_value, m1 , xi, yi, zi ); 
+	  }
+	  else
+	    mask_value = 1.0;
+	  
+	  
+	  if (mask_value > 0.0) {	                /* should be fill_value  */
+	    INTERPOLATE_VOXEL_VALUE( d1, &voxel, &voxel_value ); 
+	    value1 = CONVERT_VOXEL_TO_VALUE( d1, voxel_value);
+
+	    
+	    do_linear_transformation_point(&pos2, globals->trans_info.transformation.trans_data, 
+					   &col);
+	    
+	    convert_world_to_voxel(d2, Point_x(pos2), Point_y(pos2), Point_z(pos2), &tx, &ty, &tz);
+	    
+	    position[X] = tx;
+	    position[Y] = ty;
+	    position[Z] = tz;
+	    
+	    if (voxel_is_within_volume( d2, position ) ) {
+	      count2++;
+	      fill_Point( voxel, tx, ty, tz );
+	      
+	      if (m2 != NULL) {
+		xi = ROUND( tx );
+		yi = ROUND( ty );
+		zi = ROUND( tz );
+		
+		GET_VOXEL_3D( mask_value, m2 , xi, yi, zi ); 
+	      }
+	      else
+		mask_value = 1.0;
+	      
+	      if (mask_value > 0.0) {	                /* should be fill_value  */
+		
+		INTERPOLATE_VOXEL_VALUE( d2, &voxel, &voxel_value ); 
+		value2 = CONVERT_VOXEL_TO_VALUE( d1, voxel_value);
+		
+		if (!((greater && value1>value2) || (!greater && value1<value2))) {
+		  greater = !greater;
+		  zero_crossings++;
+		}
+		
+	      } /* if mask_value, on volume 2 */
+	    } /* if voxel in volume two */
+	  } /* if mask_value, on volume 1 */
+	} /* if voxel in volume one */
+	
+	ADD_POINT_VECTOR( row, row, row_step );
+	
+      } /* for c */
+    } /* for r */
+  } /* for s */
+
+
+
+
+  /* ------------------------  count along slices last ------------------------ */
+
+
+  for_inclusive(c,0,globals->count[X]) {
+    
+    SCALE_VECTOR( vector_step, col_step, c);
+    ADD_POINT_VECTOR( col, starting_position, vector_step );
+
+    for_inclusive(r,0,globals->count[Y]) {
+      
+      SCALE_VECTOR( vector_step, row_step, r);
+      ADD_POINT_VECTOR( row, col, vector_step );
+      
+      SCALE_POINT( slice, row, 1.0); /* init first col position */
+
+      for_inclusive(s,0,globals->count[Z]) {
+	
+	convert_world_to_voxel(d1, Point_x(slice), Point_y(slice), Point_z(slice), &tx, &ty, &tz);
+	
+	position[X] = tx;
+	position[Y] = ty;
+	position[Z] = tz;
+	
+	if (voxel_is_within_volume( d1, position ) ) {
+	  count1++;
+	  fill_Point( voxel, tx, ty, tz );
+
+	  if (m1 != NULL) {
+	    xi = ROUND( tx );
+	    yi = ROUND( ty );
+	    zi = ROUND( tz );
+	    
+	    GET_VOXEL_3D( mask_value, m1 , xi, yi, zi ); 
+	  }
+	  else
+	    mask_value = 1.0;
+	  
+	  
+	  if (mask_value > 0.0) {	                /* should be fill_value  */
+	    INTERPOLATE_VOXEL_VALUE( d1, &voxel, &voxel_value ); 
+	    value1 = CONVERT_VOXEL_TO_VALUE( d1, voxel_value);
+
+	    
+	    do_linear_transformation_point(&pos2, globals->trans_info.transformation.trans_data, 
+					   &col);
+	    
+	    convert_world_to_voxel(d2, Point_x(pos2), Point_y(pos2), Point_z(pos2), &tx, &ty, &tz);
+	    
+	    position[X] = tx;
+	    position[Y] = ty;
+	    position[Z] = tz;
+	    
+	    if (voxel_is_within_volume( d2, position ) ) {
+	      count2++;
+	      fill_Point( voxel, tx, ty, tz );
+	      
+	      if (m2 != NULL) {
+		xi = ROUND( tx );
+		yi = ROUND( ty );
+		zi = ROUND( tz );
+		
+		GET_VOXEL_3D( mask_value, m2 , xi, yi, zi ); 
+	      }
+	      else
+		mask_value = 1.0;
+	      
+	      if (mask_value > 0.0) {	                /* should be fill_value  */
+		
+		INTERPOLATE_VOXEL_VALUE( d2, &voxel, &voxel_value ); 
+		value2 = CONVERT_VOXEL_TO_VALUE( d1, voxel_value);
+		
+		if (!((greater && value1>value2) || (!greater && value1<value2))) {
+		  greater = !greater;
+		  zero_crossings++;
+		}
+		
+	      } /* if mask_value, on volume 2 */
+	    } /* if voxel in volume two */
+	  } /* if mask_value, on volume 1 */
+	} /* if voxel in volume one */
+	
+	ADD_POINT_VECTOR( slice, slice, slice_step );
+	
+      } /* for c */
+    } /* for r */
+  } /* for s */
+
+
+  result = -1.0 * (float)zero_crossings;
+
+  if (globals->flags.debug) printf ("%7d %7d -> %10.8f\n",count1,count2,result);
+
+  return (result);
+  
 }
+
+public float zscore_objective(Volume d1,
+			   Volume d2,
+			   Volume m1,
+			   Volume m2, 
+			   Arg_Data *globals)
+{
+  Vector
+    vector_step,
+    slice_step,
+    row_step,
+    col_step;
+
+  Point 
+    starting_position,
+    slice,
+    row,
+    col,
+    pos2,
+    voxel;
+
+  double
+    tx,ty,tz;
+  int
+    xi,yi,zi,
+    r,c,s;
+
+  Real
+    position[3],
+    value1, value2,
+    voxel_value,
+    mask_value;
+  
+  Real
+    z2_sum;
+  float 
+    result;				/* the result */
+  int 
+    count1,count2,count3;
+
+
+  fill_Vector( row_step,   globals->step[X], 0.0,              0.0 );
+  fill_Vector( col_step,   0.0,              globals->step[Y], 0.0 );
+  fill_Vector( slice_step, 0.0,              0.0,              globals->step[Z] );
+
+  fill_Point( starting_position, globals->start[X], globals->start[Y], globals->start[Z]);
+
+  z2_sum = 0.0;
+  count1 = count2 = count3 = 0;
+
+  for_inclusive(s,0,globals->count[Z]) {
+
+    SCALE_VECTOR( vector_step, slice_step, s);
+    ADD_POINT_VECTOR( slice, starting_position, vector_step );
+
+    for_inclusive(r,0,globals->count[Y]) {
+      
+      SCALE_VECTOR( vector_step, row_step, r);
+      ADD_POINT_VECTOR( row, slice, vector_step );
+      
+      SCALE_POINT( col, row, 1.0); /* init first col position */
+      for_inclusive(c,0,globals->count[X]) {
+	
+	convert_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
+	
+	position[X] = tx;
+	position[Y] = ty;
+	position[Z] = tz;
+	
+	if (voxel_is_within_volume( d1, position ) ) {
+	  count1++;
+	  fill_Point( voxel, tx, ty, tz );
+
+	  if (m1 != NULL) {
+	    xi = ROUND( tx );
+	    yi = ROUND( ty );
+	    zi = ROUND( tz );
+	    
+	    GET_VOXEL_3D( mask_value, m1 , xi, yi, zi ); 
+	  }
+	  else
+	    mask_value = 1.0;
+	  
+	  
+	  if (mask_value > 0.0) {	                /* should be fill_value  */
+	    INTERPOLATE_VOXEL_VALUE( d1, &voxel, &voxel_value ); 
+	    value1 = CONVERT_VOXEL_TO_VALUE( d1, voxel_value);
+
+	    
+	    do_linear_transformation_point(&pos2, globals->trans_info.transformation.trans_data, 
+					   &col);
+	    
+	    convert_world_to_voxel(d2, Point_x(pos2), Point_y(pos2), Point_z(pos2), &tx, &ty, &tz);
+	    
+	    position[X] = tx;
+	    position[Y] = ty;
+	    position[Z] = tz;
+	    
+	    if (voxel_is_within_volume( d2, position ) ) {
+	      count2++;
+	      fill_Point( voxel, tx, ty, tz );
+	      
+	      if (m2 != NULL) {
+		xi = ROUND( tx );
+		yi = ROUND( ty );
+		zi = ROUND( tz );
+		
+		GET_VOXEL_3D( mask_value, m2 , xi, yi, zi ); 
+	      }
+	      else
+		mask_value = 1.0;
+	      
+	      if (mask_value > 0.0) {	                /* should be fill_value  */
+		
+		INTERPOLATE_VOXEL_VALUE( d2, &voxel, &voxel_value ); 
+		value2 = CONVERT_VOXEL_TO_VALUE( d1, voxel_value);
+		
+		if (ABS(value1) > globals->threshold || ABS(value2) > globals->threshold ) {
+		  count3++;
+		  z2_sum +=  (value1-value2)*(value1-value2);
+		} 
+		
+	      } /* if mask_value, on volume 2 */
+	    } /* if voxel in volume two */
+	  } /* if mask_value, on volume 1 */
+	} /* if voxel in volume one */
+	
+	ADD_POINT_VECTOR( col, col, col_step );
+	
+      } /* for c */
+    } /* for r */
+  } /* for s */
+
+  if (count3 > 0)
+    result = fsqrt(z2_sum) / count3;
+  else
+    result = fsqrt(z2_sum);
+
+  if (globals->flags.debug) printf ("%7d %7d %7d -> %10.8f\n",count1,count2,count3,result);
+  
+  return (result);
+  
+}
+
+
 
 public float vr_objective(Volume d1,
 			  Volume d2,
@@ -215,13 +675,211 @@ public float vr_objective(Volume d1,
 			  Volume m2, 
 			  Arg_Data *globals)
 {
-}
+  Vector
+    vector_step,
+    slice_step,
+    row_step,
+    col_step;
 
-public float ssc_objective(Volume d1,
-			   Volume d2,
-			   Volume m1,
-			   Volume m2, 
-			   Arg_Data *globals)
-{
+  Point 
+    starting_position,
+    slice,
+    row,
+    col,
+    pos2,
+    voxel;
+
+  double
+    tx,ty,tz;
+  int
+    xi,yi,zi,
+    r,c,s;
+
+  Real
+    position[3],
+    value1, value2,
+    voxel_value1,
+    voxel_value2,
+    mask_value;
+  
+  float
+    rat,
+    total_variance,
+    *limits,
+    *rat_sum,
+    *rat2_sum,
+    *var;
+  unsigned long
+    total_count,
+    *count3;
+
+  float 
+    result;				/* the result */
+  int 
+    index,i,count1,count2;
+
+
+				/* build segmentation info!  */
+
+  rat_sum  = vector(1,segment_table->groups);
+  rat2_sum = vector(1,segment_table->groups);
+  var      = vector(1,segment_table->groups);
+  limits   = vector(1,segment_table->groups);
+
+  ALLOC(count3, (segment_table->groups+1));
+
+				/* build lattice info */
+
+  fill_Vector( row_step,   globals->step[X], 0.0,              0.0 );
+  fill_Vector( col_step,   0.0,              globals->step[Y], 0.0 );
+  fill_Vector( slice_step, 0.0,              0.0,              globals->step[Z] );
+
+  fill_Point( starting_position, globals->start[X], globals->start[Y], globals->start[Z]);
+
+				/* init running sums and counters. */
+  for_inclusive( i, 1, segment_table->groups) {
+    rat_sum[i] = 0.0;
+    rat2_sum[i] = 0.0;
+    count3[i]   = 0;
+    var[i] = 0.0;
+  }
+  count1 = count2 = 0;
+
+				/* loop through each node of lattice */
+  for_inclusive(s,0,globals->count[Z]) {
+
+    SCALE_VECTOR( vector_step, slice_step, s);
+    ADD_POINT_VECTOR( slice, starting_position, vector_step );
+
+    for_inclusive(r,0,globals->count[Y]) {
+      
+      SCALE_VECTOR( vector_step, row_step, r);
+      ADD_POINT_VECTOR( row, slice, vector_step );
+      
+      SCALE_POINT( col, row, 1.0); /* init first col position */
+      for_inclusive(c,0,globals->count[X]) {
+	
+	convert_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
+	
+	position[X] = tx;
+	position[Y] = ty;
+	position[Z] = tz;
+	
+	if (voxel_is_within_volume( d1, position ) ) {
+	  count1++;
+	  fill_Point( voxel, tx, ty, tz );
+
+	  if (m1 != NULL) {
+	    xi = ROUND( tx );
+	    yi = ROUND( ty );
+	    zi = ROUND( tz );
+	    
+	    GET_VOXEL_3D( mask_value, m1 , xi, yi, zi ); 
+	  }
+	  else
+	    mask_value = 1.0;
+	  
+	  
+	  if (mask_value > 0.0) {	                /* should be fill_value  */
+	    INTERPOLATE_VOXEL_VALUE( d1, &voxel, &voxel_value1 ); 
+	    value1 = CONVERT_VOXEL_TO_VALUE( d1, voxel_value1);
+
+	    
+	    do_linear_transformation_point(&pos2, globals->trans_info.transformation.trans_data, 
+					   &col);
+	    
+	    convert_world_to_voxel(d2, Point_x(pos2), Point_y(pos2), Point_z(pos2), &tx, &ty, &tz);
+	    
+	    position[X] = tx;
+	    position[Y] = ty;
+	    position[Z] = tz;
+	    
+	    if (voxel_is_within_volume( d2, position ) ) {
+	      count2++;
+	      fill_Point( voxel, tx, ty, tz );
+	      
+	      if (m2 != NULL) {
+		xi = ROUND( tx );
+		yi = ROUND( ty );
+		zi = ROUND( tz );
+		
+		GET_VOXEL_3D( mask_value, m2 , xi, yi, zi ); 
+	      }
+	      else
+		mask_value = 1.0;
+	      
+	      if (mask_value > 0.0) {	                /* should be fill_value  */
+		
+		INTERPOLATE_VOXEL_VALUE( d2, &voxel, &voxel_value2 ); 
+		value2 = CONVERT_VOXEL_TO_VALUE( d1, voxel_value2);
+		
+		if (ABS(value1) > globals->threshold && ABS(value2) > globals->threshold ) {
+
+		  index = (*segment_table->segment)( voxel_value1, segment_table);
+
+		  if (index>0) {
+		    count3[index]++;
+		    rat = value1 / value2;
+		    rat_sum[index] += rat;
+		    rat2_sum[index] +=  rat*rat;
+		  }
+		  else {
+		    print_error("Cannot segment voxel value %d into one of %d groups.", 
+				__FILE__, __LINE__, voxel_value1,segment_table->groups,0,0,0 );
+		    exit(EXIT_FAILURE);
+
+		  }
+		} 
+		
+	      } /* if mask_value, on volume 2 */
+	    } /* if voxel in volume two */
+	  } /* if mask_value, on volume 1 */
+	} /* if voxel in volume one */
+	
+	ADD_POINT_VECTOR( col, col, col_step );
+	
+      } /* for c */
+    } /* for r */
+  } /* for s */
+
+
+  total_variance = 0.0;
+  total_count = 0;
+
+  for_inclusive( index, 1, segment_table->groups) {
+    if (count3[index] > 1) 
+      total_count += count3[index];
+  }
+
+  if (total_count > 1) {
+    for_inclusive( index, 1, segment_table->groups) {
+      if (count3[index] > 1) {
+	var[index]  = ((double)count3[index]*rat2_sum[index] - rat_sum[index]*rat_sum[index]) / 
+	  ((double)count3[index]*((double)count3[index]-1.0));
+	
+	total_variance += ((double)count3[index]/(double)total_count) * var[index];
+      }
+      else
+	var[index] = 0.0;
+    }
+  }
+  else
+    total_variance = FLT_MAX;
+
+  result = total_variance;
+
+  if (globals->flags.debug) printf ("%7d %7d %7d -> %10.8f\n",count1,count2,count3[1],result);
+
+  free_vector(rat_sum,  1, segment_table->groups);
+  free_vector(rat2_sum, 1, segment_table->groups);
+  free_vector(var,      1, segment_table->groups);
+  free_vector(limits,   1, segment_table->groups);
+
+  FREE(count3);
+
+
+
+  return (result);
+  
 }
 

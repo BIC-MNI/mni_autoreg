@@ -44,6 +44,10 @@ Wed May 26 13:05:44 EST 1993 lc
 #include "minctracc.h"
 #include "globals.h"
 #include <recipes.h>
+#include <limits.h>
+
+public void save_volume(Volume d, char *filename);
+
 
 /*************************************************************************/
 main ( argc, argv )
@@ -59,13 +63,16 @@ main ( argc, argv )
   Linear_Transformation 
     *lt;
   int 
-    sizes[3],i,j;
+    sizes[3],msizes[3],i,j;
   Real
-    step[3];
+    min_value, max_value, step[3];
   float 
-    **the_matrix,  **inv_matrix;
+    obj_func_val, **the_matrix,  **inv_matrix;
+
+  FILE *ofd;
 
   prog_name     = argv[0];	
+
 
   /* Call ParseArgv to interpret all command line args */
   if (ParseArgv(&argc, argv, argTable, 0) || (argc!=4)) {
@@ -75,6 +82,7 @@ main ( argc, argv )
     (void) fprintf(stderr,"       %s [-help]\n\n", prog_name);
     exit(EXIT_FAILURE);
   }
+
 
   main_args.filenames.data  = argv[1];	/* set up necessary file names */
   main_args.filenames.model = argv[2];
@@ -110,7 +118,11 @@ main ( argc, argv )
   DEBUG_PRINT1 ( "Model filename      = %s\n", main_args.filenames.model);
   DEBUG_PRINT1 ( "Data mask filename  = %s\n", main_args.filenames.mask_data);
   DEBUG_PRINT1 ( "Model mask filename = %s\n", main_args.filenames.mask_model);
-  DEBUG_PRINT1 ( "Output filename     = %s\n\n", main_args.filenames.output_trans);
+  DEBUG_PRINT1 ( "Output filename     = %s\n", main_args.filenames.output_trans);
+  if (main_args.filenames.matlab_file != NULL)
+    DEBUG_PRINT1 ( "Matlab filename     = %s\n\n",main_args.filenames.matlab_file );
+  if (main_args.filenames.measure_file != NULL)
+    DEBUG_PRINT1 ( "Measure filename    = %s\n\n",main_args.filenames.measure_file );
   DEBUG_PRINT  ( "Objective function  = ");
   if (main_args.obj_function == xcorr_objective) {
     DEBUG_PRINT1("cross correlation (threshold = %f)\n",main_args.threshold);
@@ -131,6 +143,7 @@ main ( argc, argv )
 	}
 	else {
 	  DEBUG_PRINT("unknown!\n");
+	  (void) fprintf(stderr,"Unknown objective function requested.\n");
 	  exit(EXIT_FAILURE);
 	}
 
@@ -174,21 +187,60 @@ main ( argc, argv )
   ALLOC( data, 1 );		/* read in source data and target model */
   ALLOC( model, 1 );
   status = input_volume( main_args.filenames.data, &data );
-  status = input_volume( main_args.filenames.model, &model );
-
-  get_volume_sizes(data, sizes);
+  if (status != OK)
+    print_error("Cannot input volume '%s'",
+		__FILE__, __LINE__,main_args.filenames.data,0,0,0,0);
   get_volume_separations(data, step);
+  get_volume_sizes(data, sizes);
+  get_volume_range(data, &min_value, &max_value);
+  if (mask_data != NULL) {
+    get_volume_sizes(mask_data, msizes);
+    if (! (sizes[0]==msizes[0] && sizes[1]==msizes[1] && sizes[2]==msizes[2]) ) {
+      print_error("Data and mask must have the same voxel sampling",
+		  __FILE__, __LINE__,0,0,0,0,0);
+    }
+  }
   DEBUG_PRINT3 ( "Source volume %3d cols by %3d rows by %d slices\n",
 		 sizes[X], sizes[Y], sizes[Z]);
   DEBUG_PRINT3 ( "Source voxel = %8.3f %8.3f %8.3f\n", 
 		 step[X], step[Y], step[Z]);
-  get_volume_sizes(model, sizes);
+  DEBUG_PRINT2 ( "min/max value= %8.3f %8.3f\n", min_value, max_value);
+  get_volume_voxel_range(data, &min_value, &max_value);
+  DEBUG_PRINT2 ( "min/max voxel= %8.3f %8.3f\n\n", min_value, max_value);
+
+
+
+  status = input_volume( main_args.filenames.model, &model );
+  if (status != OK)
+    print_error("Cannot input volume '%s'",
+		__FILE__, __LINE__,main_args.filenames.model,0,0,0,0);
   get_volume_separations(model, step);
+  get_volume_sizes(model, sizes);
+  get_volume_range(model, &min_value, &max_value);
+  if (mask_model != NULL) {
+    get_volume_sizes(mask_model, msizes);
+    if (! (sizes[0]==msizes[0] && sizes[1]==msizes[1] && sizes[2]==msizes[2]) ) {
+      print_error("Model and mask must have the same voxel sampling",
+		  __FILE__, __LINE__,0,0,0,0,0);
+    }
+  }
   DEBUG_PRINT3 ( "Target volume %3d cols by %3d rows by %d slices\n",
 		 sizes[X], sizes[Y], sizes[Z]);
-  DEBUG_PRINT3 ( "Target voxel = %8.3f %8.3f %8.3f\n\n", 
+  DEBUG_PRINT3 ( "Target voxel = %8.3f %8.3f %8.3f\n", 
 		 step[X], step[Y], step[Z]);
+  DEBUG_PRINT2 ( "min/max value= %8.3f %8.3f\n", min_value, max_value);
+  get_volume_voxel_range(model, &min_value, &max_value);
+  DEBUG_PRINT2 ( "min/max voxel= %8.3f %8.3f\n\n", min_value, max_value);
+
   
+  if (data->n_dimensions!=3) {
+    print_error ("File %s has %d dimensions.  Only 3 dims supported.", 
+		 __FILE__, __LINE__, main_args.filenames.data, data->n_dimensions,0,0,0);
+  }
+  if (model->n_dimensions!=3) {
+    print_error ("File %s has %d dimensions.  Only 3 dims supported.", 
+		 __FILE__, __LINE__, main_args.filenames.model, model->n_dimensions,0,0,0);
+  }
 
 
   /* ===========================  translate initial transformation matrix into 
@@ -230,11 +282,88 @@ main ( argc, argv )
 		main_args.trans_info.scales[2] );
 
 
-
 				/* do not do any optimization if the transformation
 				   requested is the Principal Axes Transformation 
 				   then:
 		                   =======   do linear fitting =============== */
+
+  if (main_args.filenames.measure_file != NULL) {
+
+    init_lattice( data, model, mask_data, mask_model, &main_args );
+
+
+    if (main_args.smallest_vol == 1) {
+      DEBUG_PRINT("Source volume is smallest\n");
+    }
+    else {
+      DEBUG_PRINT("Target volume is smallest\n");
+    }
+    DEBUG_PRINT3 ( "Lattice step size  = %8.3f %8.3f %8.3f\n",
+		  main_args.step[0],main_args.step[1],main_args.step[2]);
+    DEBUG_PRINT3 ( "Lattice start      = %8.3f %8.3f %8.3f\n",
+		  main_args.start[0],main_args.start[1],main_args.start[2]);
+    DEBUG_PRINT3 ( "Lattice count      = %8d %8d %8d\n\n",
+		  main_args.count[0],main_args.count[1],main_args.count[2]);
+
+
+    status = open_file(  main_args.filenames.measure_file, WRITE_FILE, BINARY_FORMAT,  &ofd );
+    if ( status != OK ) 
+      print_error ("filename `%s' cannot be opened.", 
+		   __FILE__, __LINE__, main_args.filenames.measure_file, 0,0,0,0);
+
+				/* do zscore and reload */
+
+    main_args.obj_function = zscore_objective;
+    obj_func_val = measure_fit( data, model, mask_data, mask_model, &main_args );
+    (void)fprintf (ofd, "%f - zscore\n",obj_func_val);
+    (void)fflush(ofd);
+    DEBUG_PRINT1 ( "%f - zscore\n",obj_func_val);
+    
+    /*  save_volume(data,"data_z.mnc");save_volume(model,"model_z.mnc"); */
+    delete_volume(data);  
+    delete_volume(model);  
+    status = input_volume( main_args.filenames.data, &data );
+    status = input_volume( main_args.filenames.model, &model );
+
+				/* do xcorr   */
+
+    main_args.obj_function = xcorr_objective;
+    obj_func_val = measure_fit( data, model, mask_data, mask_model, &main_args );
+    (void)fprintf (ofd, "%f - xcorr\n",obj_func_val);
+    (void)fflush(ofd);
+    DEBUG_PRINT1 ( "%f - xcorr\n",obj_func_val);
+
+    delete_volume(data);  
+    delete_volume(model);  
+
+				/* do var_ratio */
+
+    main_args.obj_function = vr_objective;
+    obj_func_val = measure_fit( data, model, mask_data, mask_model, &main_args );
+    (void)fprintf (ofd, "%f - var_ratio\n",obj_func_val);
+    (void)fflush(ofd);
+    DEBUG_PRINT1 ( "%f - var_ratio\n",obj_func_val);
+
+    delete_volume(data);  
+    delete_volume(model);  
+
+				/* do ssc / zero-crossings */
+
+    main_args.obj_function = ssc_objective;
+    obj_func_val = measure_fit( data, model, mask_data, mask_model, &main_args );
+    (void)fprintf (ofd, "%f - ssc\n",obj_func_val);
+    (void)fflush(ofd);
+    DEBUG_PRINT1 ( "%f - ssc\n",obj_func_val);
+
+
+    status = close_file(ofd);
+    if ( status != OK ) 
+      print_error ("filename `%s' cannot be closed.", 
+		   __FILE__, __LINE__, main_args.filenames.measure_file, 0,0,0,0);
+
+    return( status );
+
+  }
 
   if (main_args.trans_info.transform_type != TRANS_PAT) {
     
@@ -425,7 +554,9 @@ public int get_transformation(char *dst, char *key, char *nextArg)
 @GLOBALS    : 
 @CALLS      : 
 @CREATED    : Wed May 26 13:05:44 EST 1993 Collins Collins
-@MODIFIED   : 
+@MODIFIED   : Wed Jun 16 13:21:18 EST 1993 LC
+    added: set of main_args.filenames.mask_model and .mask_data
+
 ---------------------------------------------------------------------------- */
 public int get_mask_file(char *dst, char *key, char *nextArg)
 {     /* ARGSUSED */
@@ -436,11 +567,13 @@ public int get_mask_file(char *dst, char *key, char *nextArg)
     ALLOC( mask_model, 1 );
     status = input_volume( nextArg, &mask_model );
     dst = nextArg;
+    main_args.filenames.mask_model = nextArg;
   }
   else {
     ALLOC( mask_data, 1);
     status = input_volume( nextArg, &mask_data );
     dst = nextArg;
+    main_args.filenames.mask_data = nextArg;
   }
 
   if (status != OK)
@@ -459,5 +592,45 @@ public void print_error(char *s, char * d1, int d2, int d3, int d4, int d5, int 
   (void) fprintf(stderr, "Error in %s in file %s, line %d\n",prog_name,d1,d2);
   (void) fprintf(stderr, "   %s\n", s, d3,d4,d5,d6,d7);
   exit(EXIT_FAILURE);
+}
+
+
+
+public void save_volume(Volume d, char *filename)
+{
+  Minc_file minc_fp;
+  Real vox,val,min_val,max_val;
+  int i,j,k,sizes[3];
+  Status status;
+
+  get_volume_sizes(d, sizes);
+  min_val = FLT_MAX;
+  max_val = -FLT_MAX;
+
+  for_less(i,0,sizes[0])
+    for_less(j,0,sizes[1])
+      for_less(k,0,sizes[2]){
+	GET_VOXEL_3D(vox, data, i,j,k);
+	val = CONVERT_VOXEL_TO_VALUE(d, vox);
+
+	if (val < min_val)
+	  min_val = val;
+	else
+	  if (val > max_val)
+	    max_val = val;
+
+      }
+
+
+  minc_fp = initialize_minc_output(filename, 3, d->dimension_names, d->sizes,
+                                   d->nc_data_type, FALSE, min_val, max_val,
+                                   &(d->voxel_to_world_transform));
+
+  status = output_minc_volume(minc_fp, d);
+
+  if (status == OK)
+    close_minc_output(minc_fp);
+  else
+    print_error("problems writing  volume `%s'.",__FILE__, __LINE__, filename,0,0,0,0);
 
 }

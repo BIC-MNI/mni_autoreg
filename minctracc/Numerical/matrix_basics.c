@@ -963,7 +963,7 @@ public void rotation_to_homogeneous(int ndim, float **rotation,
 @NAME       : angles_to_homogeneous
 @INPUT      : ndim    - number of dimensions
               angles - Numerical recipes array (1 to ndim)
-                 for rotation angles about origin. 
+                 for rotation angles (in radians) about origin. 
 @OUTPUT     : transformation - Numerical recipes matrix (1 to ndim+1 by
                  1 to ndim+1) specifying the transformation for homogeneous 
                  coordinates. To apply this transformation, a point
@@ -996,12 +996,12 @@ public void angles_to_homogeneous(int ndim, float *angles,
    if (ndim==2 || ndim==3) {
 
      if (ndim==2)
-       nr_rotzf(rot_matrix,*angles * DEG_TO_RAD);
+       nr_rotzf(rot_matrix,*angles );
      else
        make_rots(rot_matrix, 
-		 (float)(angles[0]*DEG_TO_RAD),
-		 (float)(angles[1]*DEG_TO_RAD),
-		 (float)(angles[2]*DEG_TO_RAD));
+		 (float)(angles[0]),
+		 (float)(angles[1]),
+		 (float)(angles[2]));
 
      /* Construct  matrix */
      for (i=1; i<=size; i++) {

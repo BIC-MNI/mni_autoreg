@@ -30,8 +30,8 @@ extern void
 
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : vol_to_cov - get covariance and cog of volume.
-@INPUT      : d1:
-                one volume of data (already in memory).
+@INPUT      : d1: one volume of data (already in memory).
+	      m1: its corresponding mask volume
 	      kernel_size:
                 size of resampling kernel
 	        
@@ -53,7 +53,7 @@ extern void
 @MODIFIED   : Thu May 27 16:50:50 EST 1993 lc
                  rewrite for minc files and david's library
 ---------------------------------------------------------------------------- */
-public Boolean vol_to_cov(Volume d1, float *centroid, float **covar, Arg_Data *globals)
+public Boolean vol_to_cov(Volume d1, Volume m1, float *centroid, float **covar, Arg_Data *globals)
 {
 
   Vector
@@ -87,6 +87,10 @@ public Boolean vol_to_cov(Volume d1, float *centroid, float **covar, Arg_Data *g
     thickness[3];
   int
     sizes[3];
+
+  Real
+    mask_value,
+    position[3];
 
   get_volume_separations(d1, thickness);
   get_volume_sizes(d1, sizes);
@@ -139,24 +143,38 @@ public Boolean vol_to_cov(Volume d1, float *centroid, float **covar, Arg_Data *g
 
 	convert_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
 
-	fill_Point( voxel, tx, ty, tz );
-
-/*	trilinear_interpolant( d1, &voxel, &voxel_value );*/
-
-	INTERPOLATE_VOXEL_VALUE( d1, &voxel, &voxel_value ); 
+	position[X] = tx;
+	position[Y] = ty;
+	position[Z] = tz;
 	
-	sx +=  Point_x(col) * voxel_value;
-	sy +=  Point_y(col) * voxel_value;
-	sz +=  Point_z(col) * voxel_value;
+	if (voxel_is_within_volume( d1, position ) ) {
 
-	si += voxel_value;
+	  if (m1 != NULL) {
+	    GET_VOXEL_3D( mask_value, m1 , ROUND( tx ), ROUND( ty ), ROUND( tz ) ); 
+	  }
+	  else
+	    mask_value = 1.0;
+	
+	  if (mask_value > 0.0) {	                /* should be fill_value  */
 
+	    fill_Point( voxel, tx, ty, tz );
+
+	    INTERPOLATE_VOXEL_VALUE( d1, &voxel, &voxel_value ); 
+	
+	    sx +=  Point_x(col) * voxel_value;
+	    sy +=  Point_y(col) * voxel_value;
+	    sz +=  Point_z(col) * voxel_value;
+	    
+	    si += voxel_value;
+	    
+	  } /* if mask_value > 0.0 */
+	} /* if voxel within volume */
+	
 	ADD_POINT_VECTOR( col, col, col_step );
 	
       }
     }
   }
-
 
   if (si!=0.0) {
     centroid[1] = sx/ si;
@@ -296,11 +314,11 @@ private  Boolean init_transformation(
   kern = MIN( kx, ky);
   kern = MIN( kern, kz);
   
-  if (! vol_to_cov(d1, c1, cov1, globals ) ) {
+  if (! vol_to_cov(d1, m1, c1, cov1, globals ) ) {
     print_error("Cannot calculate the COG of volume 1\n.", __FILE__, __LINE__, 0,0,0,0,0 );
     return(FALSE);
   }
-  if (! vol_to_cov(d2, c2, cov2, globals ) ) {
+  if (! vol_to_cov(d2, m2, c2, cov2, globals ) ) {
     print_error("Cannot calculate the COG of volume 2\n.", __FILE__, __LINE__, 0,0,0,0,0 );
     return(FALSE);
   }
@@ -431,8 +449,10 @@ private  Boolean init_transformation(
       (void) printf("\n");
     }
     
-    (void) printf ("rotation angles are: %f %f %f\n",angles[1]*180/PI,angles[2]*180/PI,
-		   angles[3]*180/PI);
+    (void) printf ("rotation angles are: %f %f %f\n",
+		   angles[1]*RAD_TO_DEG,
+		   angles[2]*RAD_TO_DEG,
+		   angles[3]*RAD_TO_DEG);
   }
 
   free_matrix(cov1,      1,3,1,3); 
@@ -529,7 +549,7 @@ public Boolean init_params(Volume d1,
     
     for_less( i, 0, 3 ) {
       if (globals->trans_flags.estimate_rots)
-	globals->trans_info.rotations[i]    = ang[i+1]*RAD_TO_DEG;
+	globals->trans_info.rotations[i]    = ang[i+1];
       else
 	globals->trans_info.rotations[i]    = 0.0;
       
@@ -568,7 +588,7 @@ public Boolean init_params(Volume d1,
       cov1 = matrix(1,3,1,3); 
       c1   = vector(1,3);
       
-      if (! vol_to_cov(d1, c1, cov1, globals ) ) {
+      if (! vol_to_cov(d1, m1,  c1, cov1, globals ) ) {
 	print_error("Cannot calculate the COG of volume 1\n.", 
 		    __FILE__, __LINE__, 0,0,0,0,0 );
 	return(FALSE);
@@ -584,6 +604,7 @@ public Boolean init_params(Volume d1,
 				   globals->trans_info.center,
 				   globals->trans_info.translations,
 				   globals->trans_info.scales,
+				   globals->trans_info.shears,
 				   globals->trans_info.rotations);
 
 				/* do we need to replace anything?
@@ -607,7 +628,7 @@ public Boolean init_params(Volume d1,
       
       for_less( i, 0, 3 ) {
 	if (globals->trans_flags.estimate_rots)
-	  globals->trans_info.rotations[i]    = ang[i+1]*RAD_TO_DEG;
+	  globals->trans_info.rotations[i]    = ang[i+1];
 	else
 	  globals->trans_info.rotations[i]    = 0.0;
 	
@@ -643,6 +664,7 @@ public Boolean init_params(Volume d1,
 			      globals->trans_info.center,
 			      globals->trans_info.translations,
 			      globals->trans_info.scales,
+			      globals->trans_info.shears,
 			      globals->trans_info.rotations);
   
 

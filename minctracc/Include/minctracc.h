@@ -120,6 +120,8 @@ typedef struct {
   char *mask_data;
   char *mask_model;
   char *output_trans;
+  char *measure_file;
+  char *matlab_file;
 } Program_Filenames;
 
 
@@ -129,6 +131,7 @@ typedef struct {
   int transform_type;		/* type of transformation to optimize */
   double center[3];		/* parameters corresponding to trans matrix */
   double scales[3];
+  double shears[3];
   double rotations[3];
   double translations[3];
   int invert_mapping_flag;		/* true if input transform maps model to source */
@@ -341,10 +344,16 @@ public float ssc_objective(Volume d1,
 			   Volume m2, 
 			   Arg_Data *globals);
 
+public void print_error(char *s, char * d1, int d2, int d3, int d4, int d5, int d6, int d7);
 
+public float measure_fit(Volume d1,
+			 Volume d2,
+			 Volume m1,
+			 Volume m2, 
+			 Arg_Data *globals);
 
 Arg_Data main_args = {
-  {NULL,NULL,NULL,NULL,NULL},	/* filenames           */
+  {NULL,NULL,NULL,NULL,NULL,NULL,NULL},	/* filenames           */
   {1,FALSE},			/* verbose, debug      */
   {				/* transformation info */
     TRUE,			/*   do default Principal Axis Transformation start */
@@ -352,12 +361,13 @@ Arg_Data main_args = {
     TRANS_PROCRUSTES,		/*   default type      */
     {0.0, 0.0, 0.0},		/*   center            */
     {1.0, 1.0, 1.0},		/*   scale             */
+    {0.0, 0.0, 0.0},		/*   shears            */
     {0.0, 0.0, 0.0},		/*   rotations         */
     {0.0, 0.0, 0.0},		/*   translations      */
     FALSE},			/*   invert_mapping_flag                  */
   trilinear_interpolant,	/* use trilinear interpolation by default */
   xcorr_objective,              /* use cross-correlation by default       */
-  OPT_SIMPLEX,                  /* use simplex optimizatino strategy      */
+  OPT_SIMPLEX,                  /* use simplex optimization strategy      */
   {4.0,4.0,4.0},		/* default step sizes for lattice         */
   {0.0,0.0,0.0},		/* default start for lattice, reset in init_lattice */
   {0,0,0},                      /* default number of element in lattice, also reset */

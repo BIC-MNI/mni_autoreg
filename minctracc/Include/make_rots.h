@@ -23,16 +23,19 @@ public void build_transformation_matrix(double lt[3][4],
 					double *center,
 					double *translations,
 					double *scales,
+					double *shears,
 					double *rotations);
 
 public void build__inverse_transformation_matrix(double lt[3][4], 
 						 double *center,
 						 double *translations,
 						 double *scales,
+						 double *shears,
 						 double *rotations);
 
 public Boolean extract_parameters_from_matrix(double lt[3][4], 
 					   double *center,
 					   double *translations,
 					   double *scales,
+					   double *shears,
 					   double *rotations);

@@ -8,7 +8,7 @@ Volume  model      = NULL;
 Volume  data       = NULL;
 
 
-double  ftol         =  0.0001;
+double  ftol         =  0.005;
 double  simplex_size = 20.0;
 
 int  invert_mapping_flag = FALSE;
@@ -111,6 +111,15 @@ static ArgvInfo argTable[] = {
   {"-simplex", ARGV_FLOAT, (char *) 0, 
      (char *) &simplex_size,
      "Radius of simplex volume."},
+
+  {NULL, ARGV_HELP, NULL, NULL,
+     "Options for measurement comparison."},
+  {"-matlab", ARGV_STRING, (char *) 0, 
+     (char *) &main_args.filenames.matlab_file,
+     "Output selected objective function value curves."},
+  {"-measure", ARGV_STRING, (char *) 0, 
+     (char *) &main_args.filenames.measure_file,
+     "Output value of each obj. func. for given x-form."},
 
   {NULL, ARGV_HELP, NULL, NULL,
      "Options for 3D lattice (default = target)."},
