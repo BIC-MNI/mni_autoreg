@@ -14,17 +14,26 @@
               express or implied warranty.
 
 @MODIFIED   : $Log: optimize.c,v $
-@MODIFIED   : Revision 1.15  1996-03-25 10:33:15  louis
-@MODIFIED   : modifications apply to the implementation of mutual information
-@MODIFIED   : and the constraints of using byte-only data and 256 groups.
+@MODIFIED   : Revision 1.16  1996-05-02 19:39:12  louis
+@MODIFIED   : fixed the matrix inversion bug.  When source and target volumes were
+@MODIFIED   : swapped, the call to fit_function, to get a value for final_corr,
+@MODIFIED   : rebuilt the inverse registration matrix.  And this, just before the
+@MODIFIED   : matrix was to be written out to disk.
 @MODIFIED   :
-@MODIFIED   : also, I now call  get_volume_data_type() to get the volume data type.
+@MODIFIED   : Now, the matrix is correctly computed, after the last call to
+@MODIFIED   : fit_function.
 @MODIFIED   :
-@MODIFIED   : also, calls to set initial_corr and final_corr are done in
-@MODIFIED   : optimize_linear_transformation() instead of calling xcorr_fitting_fn
-@MODIFIED   : in main(), so that the user-selected obj-fn is used to measure
-@MODIFIED   : the before and after fit.
-@MODIFIED   :
+ * Revision 1.15  1996/03/25  10:33:15  louis
+ * modifications apply to the implementation of mutual information
+ * and the constraints of using byte-only data and 256 groups.
+ *
+ * also, I now call  get_volume_data_type() to get the volume data type.
+ *
+ * also, calls to set initial_corr and final_corr are done in
+ * optimize_linear_transformation() instead of calling xcorr_fitting_fn
+ * in main(), so that the user-selected obj-fn is used to measure
+ * the before and after fit.
+ *
  * Revision 1.14  1996/03/07  13:25:19  louis
  * small reorganisation of procedures and working version of non-isotropic
  * smoothing.
@@ -79,9 +88,10 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 1.15 1996-03-25 10:33:15 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 1.16 1996-05-02 19:39:12 louis Exp $";
 #endif
 
+#include <config.h>
 #include <volume_io.h>
 #include <print_error.h>
 #include <amoeba.h>
@@ -110,7 +120,7 @@ extern   Real     initial_corr, final_corr;
 
 /* external calls: */
 
-public  BOOLEAN  perform_amoeba(amoeba_struct  *amoeba );
+public  BOOLEAN  perform_amoeba(amoeba_struct  *amoeba, int *num_funks );
 public  void  initialize_amoeba(
     amoeba_struct     *amoeba,
     int               n_parameters,
@@ -406,8 +416,9 @@ public BOOLEAN optimize_simplex(Volume d1,
     max_iters = 400;
     iteration_number = 0;
 				/* do the ameoba optimization */
-    while ( iteration_number<max_iters && perform_amoeba(&the_amoeba) )
-      iteration_number++;
+    while ( iteration_number<max_iters && perform_amoeba(&the_amoeba, &iteration_number) ) 
+      /* empty */ ;
+
     
     if (globals->flags.debug) {
       
@@ -442,7 +453,6 @@ public BOOLEAN optimize_simplex(Volume d1,
       globals->trans_info.scales[2] = globals->trans_info.scales[0];
     }
     
-
     for_less( i, 0, 3 ) {		/* set translations */
       trans[i] = globals->trans_info.translations[i]; 
       rots[i]  = globals->trans_info.rotations[i];
@@ -450,6 +460,7 @@ public BOOLEAN optimize_simplex(Volume d1,
       cent[i]  = globals->trans_info.center[i];
       shear[i] = globals->trans_info.shears[i];
     }
+
 
     if (globals->flags.debug) {
       print("after parameter optimization\n");
@@ -516,10 +527,19 @@ public BOOLEAN replace_volume_data_with_ubyte(Volume data)
   
   free_volume_data( data );	/* get rid of original data */
 
-  data->data = tmp_vol->data;
+   /* 
+   * BLEAGHH!! This is an evil and nasty hack, made worse by the fact that
+   * we have to support two versions of Volume_io for it to work!  (At
+   * least this is done by the VOXEL_DATA hack^H^H^H^Hmacro, in <config.h>.)
+   * -GPW 96/04/34
+   */
+
+  VOXEL_DATA (data) = VOXEL_DATA (tmp_vol);
+  
   set_volume_type(data, NC_BYTE, FALSE, 0.0, 0.0);
 
-  tmp_vol->data = NULL;
+  VOXEL_DATA (tmp_vol) = NULL;  /* is this really necessary?!?!? */
+
 
   return(TRUE);
 }
@@ -564,6 +584,14 @@ public BOOLEAN optimize_linear_transformation(Volume d1,
   Data_types
     data_type;
   float *p;
+  Transform
+    *mat;
+
+  double trans[3];
+  double cent[3];
+  double rots[3];
+  double scale[3];
+  double shear[6];
 
 
   stat = TRUE;
@@ -770,6 +798,26 @@ public BOOLEAN optimize_linear_transformation(Volume d1,
   final_corr = fit_function(p);
 
   FREE(p);
+
+  /*--------- set up final transformation matrix ------------------*/
+
+  if (get_transform_type(globals->trans_info.transformation) == CONCATENATED_TRANSFORM) {
+    mat = get_linear_transform_ptr(
+	   get_nth_general_transform(globals->trans_info.transformation,0));
+  }
+  else
+    mat = get_linear_transform_ptr(globals->trans_info.transformation);
+  
+  for_less( i, 0, 3 ) {		/* set translations */
+    trans[i] = globals->trans_info.translations[i]; 
+    rots[i]  = globals->trans_info.rotations[i];
+    scale[i] = globals->trans_info.scales[i];
+    cent[i]  = globals->trans_info.center[i];
+    shear[i] = globals->trans_info.shears[i];
+  }
+
+  build_transformation_matrix(mat, cent, trans, scale, shear, rots);
+
 
           /* ----------------finish up parameter/matrix manipulations ------*/
 
