@@ -16,7 +16,10 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 96.16  2002-12-13 21:18:20  lenezet
+@MODIFIED   : Revision 96.17  2003-02-04 06:08:45  stever
+@MODIFIED   : Add support for correlation coefficient and sum-of-squared difference.
+@MODIFIED   :
+@MODIFIED   : Revision 96.16  2002/12/13 21:18:20  lenezet
 @MODIFIED   :
 @MODIFIED   : A memory leak has been repaired
 @MODIFIED   :
@@ -302,7 +305,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.16 2002-12-13 21:18:20 lenezet Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.17 2003-02-04 06:08:45 stever Exp $";
 #endif
 
 #include <config.h>		/* MAXtype and MIN defs                      */
@@ -2390,6 +2393,13 @@ private BOOLEAN build_lattices(Real spacing,
       case NONLIN_OPTICALFLOW:
 	Gsqrt_features[i] = 0;
 	break;
+      case NONLIN_CORRCOEFF:
+	Gsqrt_features[i] = (Real)Glen;
+	break;
+      case NONLIN_SQDIFF:
+	Gsqrt_features[i] = (Real)Glen;
+	break;
+
       default:
 	print_error_and_line_num("Objective function %d not supported in build_lattices",
                                  __FILE__, __LINE__,Gglobals->features.obj_func[i]);

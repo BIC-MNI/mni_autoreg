@@ -14,7 +14,10 @@
               express or implied warranty.
 
 @MODIFIED   : $Log: optimize.c,v $
-@MODIFIED   : Revision 96.9  2002-11-20 21:39:16  lenezet
+@MODIFIED   : Revision 96.10  2003-02-04 06:08:46  stever
+@MODIFIED   : Add support for correlation coefficient and sum-of-squared difference.
+@MODIFIED   :
+@MODIFIED   : Revision 96.9  2002/11/20 21:39:16  lenezet
 @MODIFIED   :
 @MODIFIED   : Fix the code to take in consideration the direction cosines especially in the grid transform.
 @MODIFIED   : Add an option to choose the maximum expected deformation magnitude.
@@ -134,7 +137,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 96.9 2002-11-20 21:39:16 lenezet Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 96.10 2003-02-04 06:08:46 stever Exp $";
 #endif
 
 #include <config.h>
@@ -195,7 +198,9 @@ public void add_speckle_to_volume(Volume d1,
 
 public Status do_non_linear_optimization(Arg_Data *globals);
 
-
+public void normalize_data_to_match_target(Volume d1, Volume m1, Real thresh1,
+                                           Volume d2, Volume m2, Real thresh2,
+                                           Arg_Data *globals);
 
 
 public void parameters_to_vector_quater(double *trans, 

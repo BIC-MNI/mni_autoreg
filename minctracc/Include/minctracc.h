@@ -17,7 +17,10 @@
 
 @CREATED    : Thu May 20 14:20:21 EST 1993 Louis Collins
 @MODIFIED   : $Log: minctracc.h,v $
-@MODIFIED   : Revision 96.7  2002-11-20 21:38:02  lenezet
+@MODIFIED   : Revision 96.8  2003-02-04 06:08:44  stever
+@MODIFIED   : Add support for correlation coefficient and sum-of-squared difference.
+@MODIFIED   :
+@MODIFIED   : Revision 96.7  2002/11/20 21:38:02  lenezet
 @MODIFIED   :
 @MODIFIED   : Fix the code to take in consideration the direction cosines especially in the grid transform.
 @MODIFIED   : Add an option to choose the maximum expected deformation magnitude.
@@ -110,6 +113,8 @@
 public int get_transformation(char *dst, char *key, char *nextArg);
 
 public int get_mask_file(char *dst, char *key, char *nextArg);
+
+public int get_nonlinear_objective(char *dst, char *key, char *nextArg);
 
 public int get_feature_volumes(char *dst, char *key, int argc, char **argv);
 

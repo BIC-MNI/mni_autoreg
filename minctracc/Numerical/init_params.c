@@ -17,7 +17,10 @@
 @CREATED    : Thu May 27 16:50:50 EST 1993
                   
 @MODIFIED   :  $Log: init_params.c,v $
-@MODIFIED   :  Revision 96.4  2002-12-13 21:16:30  lenezet
+@MODIFIED   :  Revision 96.5  2003-02-04 06:08:45  stever
+@MODIFIED   :  Add support for correlation coefficient and sum-of-squared difference.
+@MODIFIED   :
+@MODIFIED   :  Revision 96.4  2002/12/13 21:16:30  lenezet
 @MODIFIED   :  nonlinear in 2D has changed. The option -2D-non-lin is no more necessary. The grid transform has been adapted to feet on the target volume whatever is size. The Optimization is done on the dimensions for which "count" is greater than 1.
 @MODIFIED   :
 @MODIFIED   :  Revision 96.3  2002/08/14 19:54:26  lenezet
@@ -92,7 +95,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 96.4 2002-12-13 21:16:30 lenezet Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 96.5 2003-02-04 06:08:45 stever Exp $";
 #endif
 
 
@@ -540,7 +543,7 @@ private  BOOLEAN init_transformation(
   }
 
   if (!stat || !vol_cov(d1, m1, c1, cov1, step ) ) {
-    print_error_and_line_num("%s", __FILE__, __LINE__,"Cannot calculate the COG or COV of volume 1\n." );
+    print_error_and_line_num("%s", __FILE__, __LINE__,"Cannot calculate the COG or COV of volume 1.\n" );
     return(FALSE);
   }
 
@@ -549,7 +552,7 @@ private  BOOLEAN init_transformation(
 
   if (flags->estimate_trans || flags->estimate_rots || flags->estimate_scale) {
     if (! vol_to_cov(d2, m2, c2, cov2, step ) ) {
-      print_error_and_line_num("%s", __FILE__, __LINE__,"Cannot calculate the COG or COV of volume 2\n." );
+      print_error_and_line_num("%s", __FILE__, __LINE__,"Cannot calculate the COG or COV of volume 2.\n" );
       return(FALSE);
     }
     if (verbose>0) print ("COG of v2: %f %f %f\n",c2[1],c2[2],c2[3]);

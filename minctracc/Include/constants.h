@@ -36,11 +36,23 @@
 # define TRANS_ROT 0
 # define TRANS_QUAT 1
 
+/* Nonlinear optimization objective function: 
+ * XCORR = normalized cross-correlation
+ * DIFF = negative average absolute intensity difference
+ * LABEL = average label agreement 
+ * CHAMFER = 1 - (average distance)/20
+ * OPTICALFLOW = intensity difference objective with gradient-based optimizer
+ * CORRCOEFF = correlation coefficient
+ * SQDIFF = negative squared intensity difference
+ */
+
 #define NONLIN_XCORR          0
 #define NONLIN_DIFF           1
 #define NONLIN_LABEL          2
 #define NONLIN_CHAMFER        3
 #define NONLIN_OPTICALFLOW    4
+#define NONLIN_CORRCOEFF      5
+#define NONLIN_SQDIFF         6
 
 #define OPT_SIMPLEX       0
 

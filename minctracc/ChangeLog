@@ -1,3 +1,25 @@
+2003-02-03  Steve M. Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* Optimize/sub_lattice.c (go_get_samples_with_offset): 
+	* Optimize/do_nonlinear.c (build_lattices): 
+	* Optimize/switch_obj_func.c: Add support for NONLIN_CORRCOEFF
+	and NONLIN_SQDIFF.
+
+	* Include/globals.h (argTable): Change -nonlinear to ARGV_FUNC.
+
+	* Include/minctracc.h: 
+	* Main/minctracc.c (get_nonlinear_objective): New function to 
+	handle "-nonlinear".
+
+	* Include/constants.h: Add NONLIN_CORRCOEFF and NONLIN_SQDIFF.
+
+	* Optimize/optimize.c: Declare normalize_data_to_match_target().
+
+	* Include/quaternion.h: Do not declare static function
+	normalize_quat() in public header.
+
+	* Makefile.am (includes): Add quaternion.h.
+
 2002-10-25  Steve M. Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* Extra_progs/Makefile.am (LDADD): Put libminctracc_optimize.a after

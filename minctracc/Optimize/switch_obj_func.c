@@ -19,7 +19,10 @@
 
 @CREATED    : 
 @MODIFIED   : $Log: switch_obj_func.c,v $
-@MODIFIED   : Revision 96.2  1997-11-12 21:07:43  louis
+@MODIFIED   : Revision 96.3  2003-02-04 06:08:46  stever
+@MODIFIED   : Add support for correlation coefficient and sum-of-squared difference.
+@MODIFIED   :
+@MODIFIED   : Revision 96.2  1997/11/12 21:07:43  louis
 @MODIFIED   : added support for chamfer distance local objective function
 @MODIFIED   :
  * Revision 96.1  1997/11/03  20:05:41  louis
@@ -46,6 +49,7 @@
 ---------------------------------------------------------------------------- */
 
 	switch (obj_func) {
+	float tmp;
 	case NONLIN_XCORR:
 	  s1 += *a1++ * sample; /* compute correlation */
 	  s3 += sample * sample;
@@ -66,6 +70,17 @@
              s1 += sample;         /* add the distance */
              number_of_nonzero_samples++;
           }
+	  break;
+	case NONLIN_CORRCOEFF:
+	    s1 += *a1;
+	    s2 += sample;
+	    s3 += (*a1) * (*a1);
+	    s4 += sample * sample;
+	    s5 += *a1++ * sample;
+	    break;
+	case NONLIN_SQDIFF:
+	  tmp = *a1++ - sample;
+	  s1 += tmp*tmp;
 	  break;
 	default:
 	  print_error_and_line_num("Objective function %d not supported in go_get_samples_with_offset",__FILE__, __LINE__,obj_func);

@@ -51,7 +51,7 @@
  */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/quaternion.c,v 96.1 2002-10-25 17:42:52 lenezet Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/quaternion.c,v 96.2 2003-02-04 06:08:45 stever Exp $";
 #endif
 #include <volume_io/internal_volume_io.h>
 #define SQR(a) (a)*(a)
@@ -237,7 +237,7 @@ void build_rotmatrix(float **m, double *quat){
 /* from a rotation matrix this program give a quaternion associate to the rotation */
 
 void extract_quaternions(float **m, double *quat){
- double T,max,indice;
+ double max,indice;
  double a[4];
  int i;
 

@@ -203,8 +203,8 @@ static ArgvInfo argTable[] = {
 
   {NULL, ARGV_HELP, NULL, NULL,
      "\nNon-linear transformation information:"},
-  {"-nonlinear", ARGV_CONSTANT, (char *) TRANS_NONLIN, (char *) &main_args.trans_info.transform_type,
-     "recover nonlinear deformation field."}, 
+  {"-nonlinear", ARGV_FUNC, (char*)get_nonlinear_objective, NULL,
+      "recover nonlinear deformation field.  Optional arg sets objective function."},
   {"-2D-non-lin", ARGV_CONSTANT, (char *) 2, (char *) &number_dimensions,
      "Estimate the non-lin fit on a 2D slice only."},
   {"-3D-non-lin", ARGV_CONSTANT, (char *) 3, (char *) &number_dimensions,

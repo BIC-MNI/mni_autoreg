@@ -14,9 +14,12 @@
                                     to create a sublattice defined on the target.
      
 @CREATED    : Mon Nov  3, 1997 , Louis Collins
-@VERSION    : $Id: sub_lattice.c,v 1.7 2002-12-13 21:18:20 lenezet Exp $
+@VERSION    : $Id: sub_lattice.c,v 1.8 2003-02-04 06:08:46 stever Exp $
 @MODIFIED   : $Log: sub_lattice.c,v $
-@MODIFIED   : Revision 1.7  2002-12-13 21:18:20  lenezet
+@MODIFIED   : Revision 1.8  2003-02-04 06:08:46  stever
+@MODIFIED   : Add support for correlation coefficient and sum-of-squared difference.
+@MODIFIED   :
+@MODIFIED   : Revision 1.7  2002/12/13 21:18:20  lenezet
 @MODIFIED   :
 @MODIFIED   : A memory leak has been repaired
 @MODIFIED   :
@@ -256,14 +259,13 @@ public float go_get_samples_with_offset(
      Real  dx, Real  dy, Real dz,  /* the local displacement to apply  */
      int obj_func,                 /* the type of obj function req'd   */
      int len,                      /* number of sub-lattice nodes      */
-     float sqrt_s1,                /* normalization factor for obj func*/
+     float normalization,                /* normalization factor for obj func*/
      float *a1,                    /* feature value for (x,y,z) nodes  */
      BOOLEAN use_nearest_neighbour) /* interpolation flag              */
 {
   float
-    tmp,
     sample, r,
-    s1,s3;			/* to store the sums for f1,f2,f3 */
+    s1,s2,s3,s4,s5;		   /* accumulators for inner loop */
   int 
     sizes[3],
     ind0, ind1, ind2, 
@@ -297,9 +299,7 @@ public float go_get_samples_with_offset(
   f_scale = data->real_value_scale;
 
 
-  s1 = 0.0;
-  s3 = 0.0;
-
+  s1 = s2 = s3 = s4 = s5 = 0.0;
   ++a1;                         /* inc pointer, so that we are pointing to
                                    the first feature value, corresponding
                                    to the first sub-lattice point x,y,z   */
@@ -691,31 +691,31 @@ public float go_get_samples_with_offset(
 
   case NONLIN_XCORR:            /* use standard normalized cross-correlation 
                                    where 0.0 < r < 1.0, where 1.0 is best*/
-    if ( sqrt_s1 < 0.001 && s3 < 0.00001) {
+    if ( normalization < 0.001 && s3 < 0.00001) {
       r = 1.0;
     }
     else {
-      if ( sqrt_s1 < 0.001 || s3 < 0.00001) {
+      if ( normalization < 0.001 || s3 < 0.00001) {
 	r = 0.0;
       }
       else {
-	r = s1 / (sqrt_s1*sqrt((double)s3));
+	r = s1 / (normalization*sqrt((double)s3));
       }
     }
     /* r = 1.0 - r;                 now, 0 is best                   */
     break;
 
-  case NONLIN_DIFF:             /* sqrt_s1 stores the number of samples in
+  case NONLIN_DIFF:             /* normalization stores the number of samples in
                                    the sub-lattice 
                                    s1 stores the sum of the magnitude of
                                    the differences*/
 
-    r = -s1 / sqrt_s1;	        /* r = average intensity difference ; with
+    r = -s1 / normalization;	/* r = average intensity difference ; with
                                    -max(intensity range) < r < 0,
                                    where 0 is best                  */
     break;
   case NONLIN_LABEL:
-    r = s1 / sqrt_s1;           /* r = average label agreement,
+    r = s1 / normalization;           /* r = average label agreement,
                                    s1 stores the number of similar labels
                                    0 < r < 1.0                      
                                    where 1.0 is best                */
@@ -740,6 +740,34 @@ public float go_get_samples_with_offset(
                                    flag to indicate that there were no
                                    samples used for the chamfer */
     break;
+  case NONLIN_CORRCOEFF:
+      {
+	  /* Accumulators:
+	   * s1 = sum of source image values
+	   * s2 = sum of target image values
+	   * s3 = sum of squared source image values
+	   * s4 = sum of squared target image values
+	   * s5 = sum of source*target values
+	   *
+	   * normalization = #values considered
+	   */
+	  double mean_s = s1 / normalization;
+	  double mean_t = s2 / normalization;
+	  double var_s = s3 / normalization - mean_s*mean_s;
+	  double var_t = s4 / normalization - mean_t*mean_t;
+	  double covariance = s5 / normalization - mean_s*mean_t;
+
+	  r = covariance / sqrt( var_s*var_t );
+      }
+      break;
+	  
+  case NONLIN_SQDIFF:           /* normalization stores the number of samples 
+				   in the sub-lattice.
+                                   s1 stores the sum of the squared intensity
+				   differences */
+    r = -s1 / normalization;
+    break;
+
   default:
     print_error_and_line_num("Objective function %d not supported in go_get_samples_with_offset",__FILE__, __LINE__,obj_func);
   }

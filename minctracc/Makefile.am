@@ -29,6 +29,7 @@ includes = \
 	Include/objectives.h \
 	Include/point_vector.h \
 	Include/quad_max_fit.h \
+	Include/quaternion.h \
 	Include/rotmat_to_ang.h \
 	Include/segment_table.h \
 	Include/stats.h \

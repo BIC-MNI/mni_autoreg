@@ -13,7 +13,10 @@
 
    @CREATED    : February 3, 1992 - louis collins
    @MODIFIED   : $Log: minctracc.c,v $
-   @MODIFIED   : Revision 96.8  2002-12-13 21:16:11  lenezet
+   @MODIFIED   : Revision 96.9  2003-02-04 06:08:44  stever
+   @MODIFIED   : Add support for correlation coefficient and sum-of-squared difference.
+   @MODIFIED   :
+   @MODIFIED   : Revision 96.8  2002/12/13 21:16:11  lenezet
    @MODIFIED   : nonlinear in 2D has changed. The option -2D-non-lin is no more necessary. The grid transform has been adapted to feet on the target volume whatever is size. The Optimization is done on the dimensions for which "count" is greater than 1.
    @MODIFIED   :
    @MODIFIED   : Revision 96.7  2002/11/20 21:38:31  lenezet
@@ -115,7 +118,7 @@ Wed May 26 13:05:44 EST 1993 lc
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.8 2002-12-13 21:16:11 lenezet Exp $";
+static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.9 2003-02-04 06:08:44 stever Exp $";
 #endif
 
 #include <config.h>
@@ -123,15 +126,26 @@ static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autore
 #include <minctracc.h>
 #include <globals.h>
 
-       Real initial_corr, final_corr;
-static char *default_dim_names[N_DIMENSIONS] =
-                  { MIzspace, MIyspace, MIxspace };
+
+/* objective function for nonlinear optimization.
+ * Set in get_nonlinear_objective().
+ */
+static int obj_func0 = -1;
+
+Real initial_corr, final_corr;
+static char *default_dim_names[N_DIMENSIONS] = 
+    { MIzspace, MIyspace, MIxspace };
+
+/* Why are these declared here?  They aren't apparently used.
+ * -smr
+ */
 static   const STRING      TRANSFORM_FILE_HEADER = "MNI Transform File";
 static   const STRING      LINEAR_TYPE = "Linear";
 static   const STRING      TYPE_STRING = "Transform_Type";
 static   const STRING      LINEAR_TRANSFORM_STRING = "Linear_Transform";
 static   const STRING      GRID_TRANSFORM_STRING = "Grid_Transform";
 static   const STRING      DISPLACEMENT_VOLUME = "Displacement_Volume";
+
 
 /*************************************************************************/
 int main ( int argc, char* argv[] )
@@ -385,7 +399,7 @@ int main ( int argc, char* argv[] )
 	 for the first two volumes */
 
       if (main_args.trans_info.transform_type == TRANS_NONLIN)
-	DEBUG_PRINT( "This run will use sub-lattice correlation between the two input vols.\n");
+	DEBUG_PRINT1( "This run will use sub-lattice correlation (type %d) between the two input vols.\n", obj_func0);
     }
   else 
     {
@@ -484,7 +498,7 @@ int main ( int argc, char* argv[] )
   main_args.features.thresh_data[0]     = main_args.threshold[0];
   main_args.features.thresh_model[0]    = main_args.threshold[1];
   if (main_args.trans_info.use_magnitude) {
-    main_args.features.obj_func[0]        = NONLIN_XCORR;
+    main_args.features.obj_func[0]        = obj_func0;
   } 
   else {
     main_args.features.obj_func[0]        = NONLIN_OPTICALFLOW;    
@@ -981,6 +995,42 @@ public int get_feature_volumes(char *dst, char *key, int argc, char **argv)
   
 }
 
+
+/* Command line argument "-nonlinear" may be followed by an optional
+ * string e.g. "xcorr" to specify the objective function.  If no
+ * objective is specified, the default is xcorr.
+ *
+ * If nextArg is used to specify the objective function, return 1
+ * to inform ParseArgv to skip that argument; else return 0.
+ */
+public int get_nonlinear_objective(char *dst, char *key, char* nextArg)
+{
+    main_args.trans_info.transform_type = TRANS_NONLIN;
+
+    if (nextArg == NULL) {
+	obj_func0 = NONLIN_XCORR;
+	return 0;
+    }
+
+    if (strcmp( "xcorr", nextArg ) == 0 ) {
+	obj_func0 = NONLIN_XCORR;
+    } else if (strcmp( "diff", nextArg ) == 0 ) {
+	obj_func0 = NONLIN_DIFF;
+    } else if (strcmp( "label", nextArg ) == 0 ) {
+	obj_func0 = NONLIN_LABEL;
+    } else if (strcmp( "chamfer", nextArg ) == 0 ) {
+	obj_func0 = NONLIN_CHAMFER;
+    } else if (strcmp( "corrcoeff", nextArg ) == 0 ) {
+	obj_func0 = NONLIN_CORRCOEFF;
+    } else if (strcmp( "sqdiff", nextArg ) == 0 ) {
+	obj_func0 = NONLIN_SQDIFF;
+    } else {
+	obj_func0 = NONLIN_XCORR;
+	return 0;
+    }
+
+    return 1;
+}
 
 
 int free_features(Feature_volumes *features)
