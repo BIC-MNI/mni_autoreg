@@ -8,7 +8,7 @@
 
 #include <math.h>
 #include <stdio.h>
-#include "def_kernel.h"
+#include "kernel.h"
 
 #define public
 #define private static

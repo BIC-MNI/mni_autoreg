@@ -19,7 +19,7 @@
                  from code originally written for blur_grad working on .iff files.
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-#include <def_mni.h>
+#include <mni.h>
 #include <blur_support.h>
 #include <recipes.h>
 
@@ -28,6 +28,7 @@ int ms_volume_reals_flag;
 
 public Status blur3D_volume(Volume data,
 			    float fwhm, 
+			    char *infile,
 			    char *outfile, 
 			    int ndim, int kernel_type, char *history)
 { 
@@ -189,6 +190,7 @@ public Status blur3D_volume(Volume data,
 	
 	*f_ptr++ = dat_vecto2[vindex]/array_size_pow2;
 	
+
 	
       }
       
@@ -428,7 +430,9 @@ public Status blur3D_volume(Volume data,
 
   sprintf(full_outfilename,"%s_blur.mnc",outfile);
 
-  status = output_volume(full_outfilename, FALSE, data, history);
+  status = output_modified_volume(full_outfilename, NC_UNSPECIFIED, FALSE, 
+				  min_val, max_val, data, infile, history, 
+				  (minc_output_options *)NULL);
 
 
   if (status != OK)

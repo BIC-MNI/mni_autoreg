@@ -47,17 +47,18 @@
         rewrite using mnc files and David Macdonald's libmni.a
    ---------------------------------------------------------------------------- */
 
-#include <def_mni.h>
+#include <mni.h>
 #include <ParseArgv.h>
 #include <minc.h>
 #include <mincblur.h>
-#include <def_kernel.h>
+#include <kernel.h>
 #include <time_stamp.h>
 
 char *prog_name;
 int  debug;
 int  verbose;
 int 
+  apodize_data_flg,
   kernel_type,
   dimensions,
   gradonlyflg,
@@ -65,8 +66,14 @@ int
 double   
   fwhm,
   standard;
+int clobber_flag = FALSE;
 
 extern int ms_volume_reals_flag;
+
+public void apodize_data(Volume data, 
+			 double xramp1,double xramp2,
+			 double yramp1,double yramp2,
+			 double zramp1,double zramp2);
 
 
 static ArgvInfo argTable[] = {
@@ -86,8 +93,14 @@ static ArgvInfo argTable[] = {
      "Create only the blurred volume."},
   {"-grad_only", ARGV_CONSTANT, (char *) TRUE, (char *) &gradonlyflg, 
      "Create only the gradient volumes."},
+  {"-no_apodize", ARGV_CONSTANT, (char *) FALSE, (char *) &apodize_data_flg, 
+     "Do not apodize the data before blurring."},
   {"-no_reals", ARGV_CONSTANT, (char *) FALSE, (char *) &ms_volume_reals_flag, 
      "Do not write out the real (float) data."},
+  {"-no_clobber", ARGV_CONSTANT, (char *) FALSE, (char *) &clobber_flag,
+     "Do not overwrite output file (default)."},
+  {"-clobber", ARGV_CONSTANT, (char *) TRUE, (char *) &clobber_flag,
+     "Overwrite output file."},
   {NULL, ARGV_HELP, NULL, NULL,
      "Options for logging progress. Default = -verbose."},
   {"-verbose", ARGV_CONSTANT, (char *) TRUE, (char *) &verbose,
@@ -125,9 +138,10 @@ main (int argc, char *argv[] )
   int
     sizes[3];
   char *history;
-  
+  char *tname;
+
   /* set default values */
-  ms_volume_reals_flag = TRUE;
+  apodize_data_flg = ms_volume_reals_flag = TRUE;
   prog_name = argv[0];
   gradonlyflg = bluronlyflg = FALSE;
   fwhm = standard = 0.0;
@@ -158,6 +172,16 @@ main (int argc, char *argv[] )
   infilename  = argv[1];	/* set up necessary file names */
   outfilename = argv[2]; 
 
+  ALLOC(tname, strlen(outfilename)+strlen("_blur.mnc"));
+  tname = strcat(tname,outfilename);
+  tname = strcat(tname,"_blur.mnc");
+
+  if (!clobber_flag && file_exists(tname)) {
+    print ("File %s exists.\n",tname);
+    print ("Use -clobber to overwrite.\n");
+    return ERROR;
+  }
+
 				/* check to see if the output file can be written */
   status = open_file( outfilename , WRITE_FILE, BINARY_FORMAT,  &ofd );
   if ( status != OK ) 
@@ -177,7 +201,8 @@ main (int argc, char *argv[] )
   /*             create blurred volume first                                    */
   /******************************************************************************/
   
-  status = input_volume(infilename, default_dim_names, FALSE, &data);
+  status = input_volume(infilename, 3, default_dim_names, NC_UNSPECIFIED,
+			FALSE, 0.0, 0.0, TRUE, &data, (minc_input_options *)NULL);
   if ( status != OK )
     print_error("problems reading `%s'.\n",__FILE__, __LINE__,infilename);
     
@@ -201,9 +226,16 @@ main (int argc, char *argv[] )
 		 __FILE__, __LINE__, infilename, data->n_dimensions);
   }
 
+
+  if (apodize_data_flg) {
+     apodize_data(data, fwhm, fwhm, fwhm, fwhm, fwhm, fwhm );
+  }
+
+
   if (bluronlyflg || !gradonlyflg) {
     status = blur3D_volume(data,
 			   fwhm,
+			   infilename,
 			   outfilename,
 			   dimensions,kernel_type,history);
     
@@ -228,7 +260,7 @@ main (int argc, char *argv[] )
       if (status!=OK)
 	 print_error("Error opening <%s>.",__FILE__, __LINE__, blur_datafile);
       
-      gradient3D_volume(ifd,data,outfilename,dimensions,history);
+      gradient3D_volume(ifd,data,infilename,outfilename,dimensions,history);
       
       status = close_file(ifd);
       if (status!=OK)

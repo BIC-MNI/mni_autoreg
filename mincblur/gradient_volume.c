@@ -18,13 +18,14 @@
                  from code originally written for blur_grad working on .iff files.
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-#include <def_mni.h>
+#include <mni.h>
 #include <blur_support.h>
 #include <recipes.h>
 
 
 public Status gradient3D_volume(FILE *ifd, 
 				Volume data, 
+				char *infile,
 				char *outfile, 
 				int ndim,
 				char *history)
@@ -202,7 +203,8 @@ public Status gradient3D_volume(FILE *ifd,
   sprintf(full_outfilename,"%s_dx.mnc",outfile);
 
 
-  status = output_volume(full_outfilename, FALSE, data, history);
+  status = output_modified_volume(full_outfilename, NC_UNSPECIFIED, FALSE, 
+				  min_val, max_val, data, infile, history, NULL);
 
   if (status != OK)
     print_error("problems writing dx gradient data...\n",__FILE__, __LINE__);
@@ -314,7 +316,9 @@ public Status gradient3D_volume(FILE *ifd,
 
   sprintf(full_outfilename,"%s_dy.mnc",outfile);
 
-  status = output_volume(full_outfilename, FALSE, data, history);
+  status = output_modified_volume(full_outfilename, NC_UNSPECIFIED, FALSE, 
+				  min_val, max_val, data, infile, history, NULL);
+
 
   if (status != OK)
     print_error("problems writing dy gradient data...",__FILE__, __LINE__);
@@ -434,7 +438,8 @@ public Status gradient3D_volume(FILE *ifd,
 
   sprintf(full_outfilename,"%s_dz.mnc",outfile);
 
-  status = output_volume(full_outfilename, FALSE, data, history);
+  status = output_modified_volume(full_outfilename, NC_UNSPECIFIED, FALSE, 
+				  min_val, max_val, data, infile, history, NULL);
 
   if (status != OK)
     print_error("problems writing dz gradient data...",__FILE__, __LINE__);

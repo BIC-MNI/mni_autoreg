@@ -1,4 +1,4 @@
-#include <def_standard.h>
+#include <standard.h>
 #include <ms_iffheader.h>
 
 /************************************************************/

@@ -22,4 +22,4 @@ public void  make_kernel(float *kern, float vsize, float fwhm, int size, int typ
 #define Y  1
 #define Z  0
 
-#include "def_kernel.h"
+#include "kernel.h"

@@ -7,11 +7,13 @@
 
 public Status blur3D_volume(Volume data,
 			    float kernel1, 
+			    char *infile, 
 			    char *outfile, 
 			    int ndim, int kernel_type, char *history);
 
 public Status gradient3D_volume(FILE *ifd, 
 				Volume data, 
+				char *infile, 
 				char *outfile, 
 				int ndim,
 				char *history);
