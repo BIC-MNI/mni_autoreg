@@ -14,11 +14,19 @@
               express or implied warranty.
 
 @MODIFIED   : $Log: optimize.c,v $
-@MODIFIED   : Revision 1.9  1995-02-22 08:56:06  louis
-@MODIFIED   : Montreal Neurological Institute version.
-@MODIFIED   : compiled and working on SGI.  this is before any changes for SPARC/
-@MODIFIED   : Solaris.
+@MODIFIED   : Revision 1.10  1995-03-17 11:15:35  louis
+@MODIFIED   : added prototype for amoeba2 in optimize.c - I think that Greg may
+@MODIFIED   : have changed the call from amoeba2 to amoeba so that he could take
+@MODIFIED   : advantage of the amoeba routine in librecipes.  I don't think he
+@MODIFIED   : knew that there are small differences between the original NR amoeba
+@MODIFIED   : and the version I use.  So I put it back to the way it was, or in
+@MODIFIED   : any case, to the way that works.
 @MODIFIED   :
+ * Revision 1.9  1995/02/22  08:56:06  louis
+ * Montreal Neurological Institute version.
+ * compiled and working on SGI.  this is before any changes for SPARC/
+ * Solaris.
+ *
  * Revision 1.8  94/04/26  12:54:33  louis
  * updated with new versions of make_rots, extract2_parameters_from_matrix 
  * that include proper interpretation of skew.
@@ -37,7 +45,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 1.9 1995-02-22 08:56:06 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 1.10 1995-03-17 11:15:35 louis Exp $";
 #endif
 
 #include <volume_io.h>
@@ -73,6 +81,9 @@ public Status do_non_linear_optimization(Volume d1,
 					 Volume m1,
 					 Volume m2, 
 					 Arg_Data *globals);
+
+int amoeba2(float **p, float y[], int ndim, float ftol, float (*funk)(), int *nfunk);
+
 
 extern Arg_Data main_args;
 
@@ -172,6 +183,7 @@ public float fit_function(float *params)
   Transform *mat;
   int i;
   float r;
+
 
   double trans[3];
   double cent[3];
@@ -352,7 +364,7 @@ public BOOLEAN optimize_simplex(Volume d1,
       
     }
 	
-    amoeba(p,y,ndim,local_ftol,fit_function,&nfunk);
+    amoeba2(p,y,ndim,local_ftol,fit_function,&nfunk);
     
     (void)print("after %d iterations\n",nfunk);
     
