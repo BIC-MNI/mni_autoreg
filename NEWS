@@ -1,5 +1,12 @@
 CHANGES to the MNI_AutoReg package...
 
+Release 0.98r
+-------------
+
+* Fixed COV bug (lenezet)
+* Fixed make check bug with direction cosines
+* added epm-header.in for binary package building
+
 Release 0.98q
 -------------
 

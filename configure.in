@@ -251,7 +251,8 @@ if test "$old_volumeio" = yes; then
 fi
 
 
-AC_OUTPUT(make_model
+AC_OUTPUT(epm-header 
+make_model
 Makefile
 Proglib/Makefile
 make_phantom/Makefile

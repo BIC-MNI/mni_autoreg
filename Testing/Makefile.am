@@ -29,9 +29,9 @@ aux_testfiles = \
 	ellipse3_dxyz.mnc \
 	ellipse4_dxyz.mnc \
 	warped_ellipse4_dxyz.mnc \
-	ellipse0_slice_x.mnc\
-	ellipse0_slice_y.mnc\
-	ellipse0_slice_z.mnc\
+	ellipse0_slice_x.mnc \
+	ellipse0_slice_y.mnc \
+	ellipse0_slice_z.mnc \
 	test1.xfm \
 	test2.xfm \
 	test3.xfm 
@@ -94,7 +94,10 @@ warped_ellipse4_dxyz.mnc: warped_ellipse4.mnc
 	../mincblur/mincblur -clobber -gradient -fwhm 6 warped_ellipse4.mnc warped_ellipse4
 
 ellipse4.mnc: Makefile.am ellipse0.mnc
-	mincresample -clobber -dircos 0.891006529493696 0 0.453990489327253 0 1 0 -0.453990489327253 0 0.891006529493696\
+	mincresample -clobber \
+        -xdircos 0.891006529493696 0 0.453990489327253 \
+        -ydircos 0 1 0 \
+        -zdircos -0.453990489327253 0 0.891006529493696 \
 	ellipse0.mnc $@
 
 ellipse4_dxyz.mnc: ellipse4.mnc

@@ -17,7 +17,12 @@
 @CREATED    : Thu May 27 16:50:50 EST 1993
                   
 @MODIFIED   :  $Log: init_params.c,v $
-@MODIFIED   :  Revision 96.8  2004-02-12 05:54:27  rotor
+@MODIFIED   :  Revision 96.9  2004-03-12 05:16:09  rotor
+@MODIFIED   :   * fixed COV bug in init_params (lenezet)
+@MODIFIED   :   * added epm-header.in for binary packaging
+@MODIFIED   :   * Fixed -dircos problem in test cases
+@MODIFIED   :
+@MODIFIED   :  Revision 96.8  2004/02/12 05:54:27  rotor
 @MODIFIED   :   * removed public/private defs
 @MODIFIED   :
 @MODIFIED   :  Revision 96.7  2004/01/27 00:28:03  lenezet
@@ -105,7 +110,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 96.8 2004-02-12 05:54:27 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 96.9 2004-03-12 05:16:09 rotor Exp $";
 #endif
 
 
@@ -207,7 +212,7 @@ BOOLEAN vol_cog(Volume d1, Volume m1, float *centroid, double *step)
      Point_z(scaled_directions[i]) = Point_z(directions[i]) * local_step[i];
    }
 
-  fill_Point( starting_position, start[0], start[1], start[2]);
+  fill_Point( starting_position, wstart[0], wstart[1], wstart[2]);
   
 				/* calculate centroids */
 
@@ -346,7 +351,7 @@ BOOLEAN vol_cov(Volume d1, Volume m1, float *centroid, float **covar, double *st
    }
 
   
-  fill_Point( starting_position, start[0], start[1], start[2]);
+  fill_Point( starting_position, wstart[0], wstart[1], wstart[2]);
   
   si = 0.0;
   sxx = syy = szz = 0.0;

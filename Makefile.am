@@ -14,9 +14,10 @@ SUBDIRS = \
 	Testing
 
 EXTRA_DIST = $(m4_files) \
-	BUGS FAQ INSTALL.quick ORIGIN TESTING \
+	BUGS FAQ INSTALL.quick ORIGIN README.TESTING \
 	Doc/howto_add_obj_fn Doc/howto_add_opt_fn \
-	make_model.in 
+	make_model.in \
+        epm-header.in
 
 m4_files = \
 	m4/mni_REQUIRE_LIB.m4 \

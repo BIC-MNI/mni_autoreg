@@ -1,0 +1,10 @@
+%product mni-autoreg
+%copyright 1993-2004 Louis Collins
+%vendor McConnell Brain Imaging Centre
+%packager Andrew Janke <rotor@cmr.uq.edu.au>
+%license COPYING
+%readme README
+%description MINC registration package
+%version @VERSION@
+%requires netcdf
+%requires minc
