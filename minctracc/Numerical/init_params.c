@@ -17,10 +17,21 @@
 @CREATED    : Thu May 27 16:50:50 EST 1993
                   
 @MODIFIED   :  $Log: init_params.c,v $
-@MODIFIED   :  Revision 1.9  1994-04-26 12:54:19  louis
-@MODIFIED   :  updated with new versions of make_rots, extract2_parameters_from_matrix 
-@MODIFIED   :  that include proper interpretation of skew.
+@MODIFIED   :  Revision 1.10  1994-06-02 20:16:01  louis
+@MODIFIED   :  made modifications to allow deformations to be calulated in 2D on slices.
+@MODIFIED   :  changes had to be made in set_up_lattice, init_lattice when defining
+@MODIFIED   :  the special case of a single slice....
+@MODIFIED   :  Build_default_deformation_field also had to reflect these changes.
+@MODIFIED   :  do_non-linear-optimization also had to check if one of dimensions had
+@MODIFIED   :  a single element.
+@MODIFIED   :  All these changes were made, and slightly tested.  Another type of
+@MODIFIED   :  deformation strategy will be necessary (to replace the deformation
+@MODIFIED   :  perpendicular to the surface, since it does not work well).
 @MODIFIED   :
+ * Revision 1.9  94/04/26  12:54:19  louis
+ * updated with new versions of make_rots, extract2_parameters_from_matrix 
+ * that include proper interpretation of skew.
+ * 
  * Revision 1.8  94/04/06  11:48:37  louis
  * working linted version of linear + non-linear registration based on Lvv
  * operator working in 3D
@@ -35,7 +46,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 1.9 1994-04-26 12:54:19 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 1.10 1994-06-02 20:16:01 louis Exp $";
 #endif
 
 
@@ -117,7 +128,7 @@ BOOLEAN vol_to_cov(Volume d1, Volume m1, float *centroid, float **covar, double 
     true_value;
 
   int
-    count[3];
+    i,count[3];
   double 
     start[3],
     local_step[3];
@@ -129,18 +140,19 @@ BOOLEAN vol_to_cov(Volume d1, Volume m1, float *centroid, float **covar, double 
   set_up_lattice(d1, step,
 		 start, count, local_step, directions);
 
-/*
-print ("in vol to cov\n");
-print ("start = %8.2f %8.2f %8.2f \n",start[0],start[1],start[2]);
-print ("count = %8d %8d %8d \n",count[0],count[1],count[2]);
-print ("step  = %8.2f %8.2f %8.2f \n",local_step[0],local_step[1],local_step[2]);
+  if (main_args.flags.debug) {
+    print ("in vol to cov\n");
+    print ("start = %8.2f %8.2f %8.2f \n",start[0],start[1],start[2]);
+    print ("count = %8d %8d %8d \n",count[0],count[1],count[2]);
+    print ("step  = %8.2f %8.2f %8.2f \n",local_step[0],local_step[1],local_step[2]);
+    
+    for_less(i,0,3)
+      print ("direct= %8.2f %8.2f %8.2f \n",
+	     Point_x(directions[i]),
+	     Point_y(directions[i]),
+	     Point_z(directions[i]));
+  }
 
-for_less(i,0,3)
-  print ("direct= %8.2f %8.2f %8.2f \n",
-	 Point_x(directions[i]),
-	 Point_y(directions[i]),
-	 Point_z(directions[i]));
-*/
 
   fill_Point( starting_position, start[0], start[1], start[2]);
   

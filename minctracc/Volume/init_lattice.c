@@ -28,10 +28,25 @@
 
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   :  $Log: init_lattice.c,v $
-@MODIFIED   :  Revision 1.7  1994-04-06 11:48:35  louis
-@MODIFIED   :  working linted version of linear + non-linear registration based on Lvv
-@MODIFIED   :  operator working in 3D
+@MODIFIED   :  Revision 1.8  1994-06-02 20:16:00  louis
+@MODIFIED   :  made modifications to allow deformations to be calulated in 2D on slices.
+@MODIFIED   :  changes had to be made in set_up_lattice, init_lattice when defining
+@MODIFIED   :  the special case of a single slice....
+@MODIFIED   :  Build_default_deformation_field also had to reflect these changes.
+@MODIFIED   :  do_non-linear-optimization also had to check if one of dimensions had
+@MODIFIED   :  a single element.
+@MODIFIED   :  All these changes were made, and slightly tested.  Another type of
+@MODIFIED   :  deformation strategy will be necessary (to replace the deformation
+@MODIFIED   :  perpendicular to the surface, since it does not work well).
 @MODIFIED   :
+
+
+made change to init lattice to not change start when there is only 1 slice.
+
+ * Revision 1.7  94/04/06  11:48:35  louis
+ * working linted version of linear + non-linear registration based on Lvv
+ * operator working in 3D
+ * 
  * Revision 1.6  94/02/21  16:35:29  louis
  * version before feb 22 changes
  * 
@@ -42,7 +57,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/init_lattice.c,v 1.7 1994-04-06 11:48:35 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/init_lattice.c,v 1.8 1994-06-02 20:16:00 louis Exp $";
 #endif
 
 
@@ -71,11 +86,11 @@ extern Arg_Data main_args;
 */
 
 public void set_up_lattice(Volume data, 
-			    double *user_step, /* user requested spacing for lattice */
-			    double *start,     /* world starting position of lattice */
-			    int    *count,     /* number of steps in each direction */
-			    double *step,      /* step size in each direction */
-			    VectorR directions[])/* array of vector directions for each index*/
+			   double *user_step, /* user requested spacing for lattice */
+			   double *start,     /* world starting position of lattice */
+			   int    *count,     /* number of steps in each direction */
+			   double *step,      /* step size in each direction */
+			   VectorR directions[])/* array of vector directions for each index*/
 {
   int 
     sizes[3], 
@@ -128,6 +143,7 @@ public void set_up_lattice(Volume data,
     num_steps = ABS(num_steps);
 
     count[i] = ROUND(num_steps);
+    if (count[i] == 0) count[i] = 1;
     
 				/* this is the offset for the start of the
 				   lattice from the corner of the volume 
@@ -145,13 +161,18 @@ public void set_up_lattice(Volume data,
     else
       sign = -1.0;
 
-    start_voxel[i] = sign*((-0.5)  	/* to get to the edge of the voxel,
+    if (sizes[i]>1) {
+      start_voxel[i] = sign*((-0.5)  	/* to get to the edge of the voxel,
                                            since the voxel's  coordinates is at its center */
-
-                    + (offset[i]/separations[i]) /* the offset to edge of lattice */
-
-		    + step[i]/(2*separations[i]));/* the offset to the center of the 
+			     
+			     + (offset[i]/separations[i]) /* the offset to edge of lattice */
+			     
+			     + step[i]/(2*separations[i]));/* the offset to the center of the 
 						    lattice voxel */
+    }
+    else {
+      start_voxel[i] = 0.0;
+    }
     
   }
 				/* get the world start.  */
@@ -291,7 +312,7 @@ public void init_lattice(Volume d1,
 	    }
 	  }    
 	  else {
-	    if (globals->flags.debug && globals->flags.verbose>2) {
+	    if (globals->flags.debug && globals->flags.verbose>3) {
 	      print ("%3d %3d %3d : %12.5f %12.5f %12.5f -> %12.5f\n",c,r,s,
 		      Point_x(col), Point_y(col), Point_z(col),true_value);
 	    }
@@ -317,6 +338,7 @@ public void init_lattice(Volume d1,
     print ("row lim   %d %d\n",min1_row, max1_row);
     print ("col lim   %d %d\n",min1_col, max1_col);
     print ("volume =  %d\n",vol1);
+
   }
 
   if ((max1_row < min1_row) || (max1_col < min1_col) || 
