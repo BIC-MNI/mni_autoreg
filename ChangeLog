@@ -1,3 +1,16 @@
+2000-04-07  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* configure.in: consistently quote variables in `test "$var" = val'
+	constructs to avoid the shell error in the case that the variable
+	value has spaces or is the null string.
+
+2000-04-06  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* Testing/Makefile.am (check_DATA): use to specify the auxiliary
+	data files needed for `make check' rather than having the tests
+	depend on the data files.  This ensures the data files are ONLY
+	built if `make check' is run, and not built for, e.g. `make dist'.
+
 2000-04-05  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* BUGS: remove note about minctracc/Optimize/super_sample_def.c

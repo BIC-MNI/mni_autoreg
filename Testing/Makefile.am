@@ -29,7 +29,8 @@ aux_testfiles = \
 	test2.xfm \
 	test3.xfm
 
-$(TESTS): $(aux_testfiles)
+check_DATA = $(aux_testfiles)
+
 CLEANFILES = $(aux_testfiles) \
 	linear-1.log linear-2.log linear-3.log \
 	nonlinear-2.log

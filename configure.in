@@ -50,7 +50,7 @@ else
     AC_MSG_CHECKING(Perl version)
 
     # The perl command will exit with status zero if
-    #  (i) $PERL is found, and executable, and
+    #  (i) $PERL is found, is executable, and
     # (ii) the perl version is NOT < 5.002
     #
     if $PERL -e 'exit ($] < 5.002)'; then
@@ -62,7 +62,7 @@ else
     fi
 fi
 
-AM_CONDITIONAL(PERLGOOD, test x$PERL != x)
+AM_CONDITIONAL(PERLGOOD, test x"$PERL" != x)
 
 
 # -----------------------------------------------------------------
@@ -103,7 +103,7 @@ AC_MSG_RESULT($CC_ANSI)
 if test $CC_ANSI = no; then
     AC_MSG_CHECKING(for alternative C compiler)
     AC_CHECK_PROGS(ALTCC, acc gcc, none)
-    if test $ALTCC = none; then
+    if test "$ALTCC" = none; then
 	AC_MSG_ERROR(An ANSI-compliant C compiler is required to build the 
 		     MNI AutoReg package)
     else
@@ -166,13 +166,13 @@ dnl AC_CHECK_LIB(ucb, random)
 # or ${prefix}/{include,lib}, so we'll add these to the search paths
 # for the C preprocessor and the linker.
 #
-if test x$GCC != xyes; then
+if test "$GCC" != yes; then
     mni_dirs=/usr/local
 else
     # GCC will search in /usr/local by default
     mni_dirs=
 fi
-if test x$prefix != xNONE -a x$prefix != x/usr/local; then
+if test "$prefix" != NONE -a "$prefix" != /usr/local; then
     mni_dirs="$prefix $mni_dirs"
 fi
 
@@ -227,7 +227,7 @@ AC_TRY_COMPILE( [#include <volume_io.h>],
 		AC_DEFINE(VOLIO_HAVE_VOLUME_ARRAY_DATA, 1, [Volume data stored in array.data]),
 		autoreg_test=fail )
 
-if test $autoreg_test = "fail"; then
+if test $autoreg_test = fail; then
     old_volumeio=yes
     autoreg_test="volume->data"
     AC_TRY_COMPILE( [#include <volume_io.h>], 
@@ -237,7 +237,7 @@ if test $autoreg_test = "fail"; then
 fi
 
 AC_MSG_RESULT($autoreg_test)
-if test $autoreg_test = "fail"; then
+if test $autoreg_test = fail; then
     AC_MSG_ERROR(Cannot determine how to access raw data in a volume.)
 fi
 
@@ -254,7 +254,7 @@ AC_TRY_COMPILE( [#include <volume_io.h>],
 		AC_DEFINE( VOLIO_HAVE_2ARG_FORMAT_TIME, 1, [format_time takes 2 arguments] ),
 		autoreg_test=fail )
 
-if test $autoreg_test = "fail"; then
+if test $autoreg_test = fail; then
     old_volumeio=yes
     autoreg_test="3"
     AC_TRY_COMPILE( [#include <volume_io.h>], 
@@ -264,7 +264,7 @@ if test $autoreg_test = "fail"; then
 fi
 
 AC_MSG_RESULT($autoreg_test)
-if test $autoreg_test = "fail"; then
+if test $autoreg_test = fail; then
     AC_MSG_ERROR(Cannot determine arguments to format_time.)
 fi
 
@@ -278,7 +278,7 @@ AC_TRY_COMPILE( [#include <volume_io.h>],
 		AC_DEFINE( VOLIO_HAVE_2ARG_DELETE_DIMENSION_NAMES, 1, [function takes 2 arguments] ),
 		autoreg_test=fail )
 
-if test $autoreg_test = "fail"; then
+if test $autoreg_test = fail; then
     old_volumeio=yes
     autoreg_test="1"
     AC_TRY_COMPILE( [#include <volume_io.h>], 
@@ -288,18 +288,18 @@ if test $autoreg_test = "fail"; then
 fi
 
 AC_MSG_RESULT($autoreg_test)
-if test $autoreg_test = "fail"; then
+if test $autoreg_test = fail; then
     AC_MSG_ERROR(Cannot determine arguments to delete_dimension_names.)
 fi
 
-if test x$save_CPPFLAGS = xunset; then
+if test "$save_CPPFLAGS" = unset; then
     unset CPPFLAGS
 else
     CPPFLAGS="$save_CPPFLAGS"
 fi
 
-if test x$old_volumeio = xyes; then
-    AC_MSG_WARN([you seem to have an ancient version of Volume_io; please upgrade])
+if test "$old_volumeio" = yes; then
+    AC_MSG_WARN([you seem to have an ancient version of Volume_io; please upgrade to MINC 0.7 or later])
 fi
 
 

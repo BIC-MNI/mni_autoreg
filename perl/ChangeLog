@@ -1,3 +1,7 @@
+2000-04-06  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* removed all traces of `animal' from mritotal script.
+
 2000-03-21  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* mritotal.in (CreateInfoText): removed statement that `mritotal'

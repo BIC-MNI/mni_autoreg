@@ -46,7 +46,7 @@
 # the same copyright as above.
 # --------------------------------------------------------------------
 
-# $Id: mritotal.in,v 1.6 2000-03-23 15:12:29 stever Exp $
+# $Id: mritotal.in,v 1.7 2000-04-07 13:53:31 stever Exp $
 
 require 5.001;
 
@@ -265,6 +265,15 @@ sub SetupArgTables
       print "Program $ProgramName, built from:\n$LongVersion\n";
       exit;
    }
+
+   # Table entries: an array ref per option; the array entries are 
+   # as follows:
+   #   name
+   #   type 
+   #   num_values
+   #   option_data
+   #   help_string (optional)
+   #   arg_desc (optional)
 
    # Default args -- the defaults from Startup.pm, plus "-version"
 
@@ -1658,13 +1667,13 @@ sub SetupNLFits
    #                optimization (a value of 0 will give -no_super).
 
    # XXX currently the 'threshold' value is unused because there's only
-   # one of them -- animal needs two values!  (seems pretty pointless
+   # one of them -- nonlinear mode needs two values!  (seems pretty pointless
    # to threshold at a hard-coded absolute value of 0.075, anyways...)
 
    @nl_fits = 
       ( { level       => '16',
          description => "level 16 nonlinear: $blurs{'16'}mm intensity fit, no masks",
-         program     => 'animal',
+         program     => 'minctracc',
          volume      => "BASE_$blurs{'16'}_blur.mnc",
          inputxfm    => undef,    # filled in later!
          outputxfm   => "BASE_16_nl.xfm",
@@ -1683,7 +1692,7 @@ sub SetupNLFits
          supersample => 2 },
        { level       => '8',
          description => "level 8 nonlinear: $blurs{'8'}mm intensity fit, no masks",
-         program     => 'animal',
+         program     => 'minctracc',
          volume      => "BASE_$blurs{'8'}_blur.mnc",
          inputxfm    => "BASE_16_nl.xfm",
          outputxfm   => "BASE_8_nl.xfm",
@@ -1702,7 +1711,7 @@ sub SetupNLFits
          supersample => 2 },
        { level       => '4a',
          description => "level 4 nonlinear: $blurs{'4a'}mm intensity fit, target masked",
-         program     => 'animal',
+         program     => 'minctracc',
          source      => "BASE_headcrop_$blurs{'4a'}_blur.mnc",
          target      => "BASE_$blurs{'4a'}_blur.mnc",
          inputxfm    => "BASE_8_nlcrop.xfm",
@@ -1722,7 +1731,7 @@ sub SetupNLFits
          supersample => 0 },
        { level       => '4b',
          description => "level 4b nonlinear: $blurs{'4b'}mm gradient fit, target masked",
-         program     => 'animal',
+         program     => 'minctracc',
          source      => "BASE_headcrop_$blurs{'4b'}_dxyz.mnc",
          target      => "BASE_$blurs{'4b'}_dxyz.mnc",
          inputxfm    => "BASE_4_nl.xfm",
@@ -1742,7 +1751,7 @@ sub SetupNLFits
          supersample => 0 },
        { level       => '2',
          description => "level 2 nonlinear: $blurs{'2'}mm gradient fit, target masked",
-         program     => 'animal',
+         program     => 'minctracc',
          source      => "BASE_headcrop_$blurs{'2'}_dxyz.mnc",
          target      => "BASE_$blurs{'2'}_dxyz.mnc",
          inputxfm    => "BASE_4b_nl.xfm",
@@ -1976,13 +1985,11 @@ sub minctracc
       push (@options, "-tol", $tolerance) if defined $tolerance;
       push (@options, "-simplex", $simplex) if defined $simplex;
 
-      if ($program eq 'animal')
+      if ($type eq 'nonlinear')
       {
-	 push (@options, '-nonlinear');
          push (@options, '-quadratic') if $optimizer eq 'quadratic';
 
-         my $param;
-         for $param (qw(sub_lattice similarity 
+         for my $param (qw(sub_lattice similarity 
                         iterations weight stiffness))
          {
             push (@options, "-$param", $fit->{$param})
@@ -2271,7 +2278,7 @@ sub perform_fit
    {
       &check_scale ($in_xfm, $out_xfm);
    }
-   elsif ($program eq 'minctracc' or $program eq 'animal')
+   elsif ($program eq 'minctracc')
    {
       &minctracc ($source, $model, $fit, $in_xfm, $out_xfm);
    }

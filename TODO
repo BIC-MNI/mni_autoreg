@@ -1,10 +1,19 @@
+* configure and --with-xxx:
+  - if a --with flag is given, the computed -L/dir options should appear
+    up front, certainly before -L/usr/local/include
+  - if --prefix is given, $prefix/lib and $prefix/include should be
+    searched, but --with-xxx flags must take precedence
+  - should we search /usr/local by default?
+
 * use ICBM150 data as default model?
 
 * configure probe for Getopt::Tabular
 
-* split minctracc/Optimize/super_sample_def.c
-
 * fix warnings during alpha compilation
   (Proglib/ParseArgv.c)
+
+* it would be handy to be able to pass `-verbose 3' on to minctracc,
+  but the handing of -verbose and -debug is currently done by some perl library
+  code; maybe it could be triggered on -debug?  But what level to set?
 
 
