@@ -15,7 +15,10 @@
 
 @CREATED    : Mon May 22 14:14:50 MET DST 1995
 @MODIFIED   : $Log: quad_max_fit.c,v $
-@MODIFIED   : Revision 96.3  2002-03-26 14:15:41  stever
+@MODIFIED   : Revision 96.4  2004-02-13 00:16:48  rotor
+@MODIFIED   :  * removed public/private defs
+@MODIFIED   :
+@MODIFIED   : Revision 96.3  2002/03/26 14:15:41  stever
 @MODIFIED   : Update includes to <volume_io/foo.h> style.
 @MODIFIED   :
 @MODIFIED   : Revision 96.2  2000/03/15 08:42:43  stever
@@ -72,11 +75,11 @@ extern int stat_quad_semi;
 
     /* local prototypes */
 
-private BOOLEAN negative_2D_definite(deriv_2D_struct *c);
-private BOOLEAN negative_3D_definite(deriv_3D_struct *c);
-private BOOLEAN positive_3D_semidefinite(deriv_3D_struct *c);
-private BOOLEAN positive_3D_definite(deriv_3D_struct *c);
-private void    estimate_2D_derivatives(Real r[3][3], 
+static BOOLEAN negative_2D_definite(deriv_2D_struct *c);
+static BOOLEAN negative_3D_definite(deriv_3D_struct *c);
+static BOOLEAN positive_3D_semidefinite(deriv_3D_struct *c);
+static BOOLEAN positive_3D_definite(deriv_3D_struct *c);
+static void    estimate_2D_derivatives(Real r[3][3], 
 					deriv_2D_struct *c);	     
 
 /* this procedure will return TRUE with the dx,dy,dz (offsets) that 
@@ -85,7 +88,7 @@ private void    estimate_2D_derivatives(Real r[3][3],
    r[u][v][w] is negative definite
    in which case, the function will return FALSE.                         */
 
-public BOOLEAN return_3D_disp_from_quad_fit(Real r[3][3][3], 
+BOOLEAN return_3D_disp_from_quad_fit(Real r[3][3][3], 
 					    Real *dispu, 
 					    Real *dispv, 
 					    Real *dispw)	
@@ -269,7 +272,7 @@ public BOOLEAN return_3D_disp_from_quad_fit(Real r[3][3][3],
        represented in r[][][], and return FALSE */
 
 
-public BOOLEAN return_3D_disp_from_min_quad_fit(Real r[3][3][3], 
+BOOLEAN return_3D_disp_from_min_quad_fit(Real r[3][3][3], 
 						Real *dispu, 
 						Real *dispv, 
 						Real *dispw)	
@@ -371,7 +374,7 @@ public BOOLEAN return_3D_disp_from_min_quad_fit(Real r[3][3][3],
   return(FALSE);
 }
 
-public BOOLEAN return_2D_disp_from_quad_fit(Real r[3][3], /* the values used in the quad fit */
+BOOLEAN return_2D_disp_from_quad_fit(Real r[3][3], /* the values used in the quad fit */
 					    Real *dispu, /* the displacements returned */
 					    Real *dispv)	
 {
@@ -441,7 +444,7 @@ public BOOLEAN return_2D_disp_from_quad_fit(Real r[3][3], /* the values used in 
    to given small neighborhood of values stored in r[u][v][w]. 
  ********************************************************************/
 
-public void estimate_3D_derivatives(Real r[3][3][3], 
+void estimate_3D_derivatives(Real r[3][3][3], 
 				    deriv_3D_struct *d) 
 
 {
@@ -535,7 +538,7 @@ public void estimate_3D_derivatives(Real r[3][3][3],
 /*0.70710678*/
 #define INV_SQRT3 1.0
 /*0.57735027*/
-public void estimate_3D_derivatives_weighted(Real r[3][3][3], 
+void estimate_3D_derivatives_weighted(Real r[3][3][3], 
 					     deriv_3D_struct *d) 
 
 {
@@ -640,7 +643,7 @@ public void estimate_3D_derivatives_weighted(Real r[3][3][3],
 /* the procedure above 'smooths' the derivative estimates,
    the procedure here will use the minimum amount of info
    to estimate the derivatives */
-public void estimate_3D_derivatives_new(Real r[3][3][3], 
+void estimate_3D_derivatives_new(Real r[3][3][3], 
 					deriv_3D_struct *d) 
 
 {
@@ -659,7 +662,7 @@ public void estimate_3D_derivatives_new(Real r[3][3][3],
 
 
 
-private void estimate_2D_derivatives(Real r[3][3], 
+static void estimate_2D_derivatives(Real r[3][3], 
 				     deriv_2D_struct *d)
 
 {
@@ -702,7 +705,7 @@ private void estimate_2D_derivatives(Real r[3][3],
 
    strang p 338, if A is neg def, then (-A) if pos def.
 */
-private BOOLEAN negative_3D_definite(deriv_3D_struct *c)
+static BOOLEAN negative_3D_definite(deriv_3D_struct *c)
 
 {
 
@@ -726,7 +729,7 @@ private BOOLEAN negative_3D_definite(deriv_3D_struct *c)
       | uw vw ww |                                                     
       \          /            strang, p 331                            */
 
-private BOOLEAN positive_3D_definite(deriv_3D_struct *c)
+static BOOLEAN positive_3D_definite(deriv_3D_struct *c)
 {
   return ((c->uu > 0.0) &&
 
@@ -738,7 +741,7 @@ private BOOLEAN positive_3D_definite(deriv_3D_struct *c)
 	  );
 }
 
-private BOOLEAN positive_3D_semidefinite(deriv_3D_struct *c)
+static BOOLEAN positive_3D_semidefinite(deriv_3D_struct *c)
 {
 
   return ((c->uu > -SMALL_EPS) &&
@@ -756,7 +759,7 @@ private BOOLEAN positive_3D_semidefinite(deriv_3D_struct *c)
 	  );
 }
 
-private BOOLEAN negative_2D_definite(deriv_2D_struct *c)
+static BOOLEAN negative_2D_definite(deriv_2D_struct *c)
 
 {
 
@@ -800,7 +803,7 @@ private BOOLEAN negative_2D_definite(deriv_2D_struct *c)
 	 the curvature directions only.  */
 
 
-public BOOLEAN return_principal_directions(Real r[3][3][3],
+BOOLEAN return_principal_directions(Real r[3][3][3],
 					   Real dir_1[3],
 					   Real dir_2[3],
 					   Real *r_K,
@@ -1011,7 +1014,7 @@ public BOOLEAN return_principal_directions(Real r[3][3][3],
 */
 
 
-public BOOLEAN return_2D_principal_directions(Real r[3][3],
+BOOLEAN return_2D_principal_directions(Real r[3][3],
 					      Real norm[3],
 					      Real tang[3],
 					      Real *K,
@@ -1061,7 +1064,7 @@ public BOOLEAN return_2D_principal_directions(Real r[3][3],
 }
 		
 			
-public Real return_Lvv(Real r[3][3][3],
+Real return_Lvv(Real r[3][3][3],
 		       Real eps)
      
 {
@@ -1122,7 +1125,7 @@ public Real return_Lvv(Real r[3][3][3],
 */
 
 
-public BOOLEAN return_local_eigen(Real r[3][3][3],
+BOOLEAN return_local_eigen(Real r[3][3][3],
 				  Real dir_1[3],
 				  Real dir_2[3],
 				  Real dir_3[3],
@@ -1231,7 +1234,7 @@ public BOOLEAN return_local_eigen(Real r[3][3][3],
 
 */
 
-public BOOLEAN return_local_eigen_from_hessian(Real r[3][3][3],
+BOOLEAN return_local_eigen_from_hessian(Real r[3][3][3],
 					       Real dir_1[3],
 					       Real dir_2[3],
 					       Real dir_3[3],

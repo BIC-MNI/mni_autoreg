@@ -68,7 +68,10 @@
 
 @CREATED    : Feb 9, 1992 lc
 @MODIFIED   :  $Log: rotmat_to_ang.c,v $
-@MODIFIED   :  Revision 96.2  2002-03-26 14:15:41  stever
+@MODIFIED   :  Revision 96.3  2004-02-13 00:17:15  rotor
+@MODIFIED   :   * removed public/private defs
+@MODIFIED   :
+@MODIFIED   :  Revision 96.2  2002/03/26 14:15:41  stever
 @MODIFIED   :  Update includes to <volume_io/foo.h> style.
 @MODIFIED   :
 @MODIFIED   :  Revision 96.1  1997/11/03 19:59:49  louis
@@ -114,7 +117,7 @@ Tue Jun  8 08:44:59 EST 1993 LC
 
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/rotmat_to_ang.c,v 96.2 2002-03-26 14:15:41 stever Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/rotmat_to_ang.c,v 96.3 2004-02-13 00:17:15 rotor Exp $";
 #endif
 
 
@@ -129,7 +132,7 @@ extern char *prog_name;
 
 
 
-public BOOLEAN rotmat_to_ang(float **rot, float *ang)
+BOOLEAN rotmat_to_ang(float **rot, float *ang)
 {
 
    float 

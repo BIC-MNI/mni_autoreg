@@ -15,7 +15,10 @@
 
 @CREATED    : February 23, 1996
 @MODIFIED   : $Log: stats.c,v $
-@MODIFIED   : Revision 1.4  2002-12-13 21:16:31  lenezet
+@MODIFIED   : Revision 1.5  2004-02-13 00:17:15  rotor
+@MODIFIED   :  * removed public/private defs
+@MODIFIED   :
+@MODIFIED   : Revision 1.4  2002/12/13 21:16:31  lenezet
 @MODIFIED   : nonlinear in 2D has changed. The option -2D-non-lin is no more necessary. The grid transform has been adapted to feet on the target volume whatever is size. The Optimization is done on the dimensions for which "count" is greater than 1.
 @MODIFIED   :
 @MODIFIED   : Revision 1.3  2002/03/26 14:15:42  stever
@@ -30,14 +33,14 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/stats.c,v 1.4 2002-12-13 21:16:31 lenezet Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/stats.c,v 1.5 2004-02-13 00:17:15 rotor Exp $";
 #endif
 
 #include <volume_io/internal_volume_io.h>
 #include <config.h>
 #include <stats.h>
 
-public void init_stats(stats_struct *stat,
+void init_stats(stats_struct *stat,
 		  char         title[])
 {
 
@@ -55,13 +58,13 @@ public void init_stats(stats_struct *stat,
   stat->max_val            = -DBL_MAX;
 }
 
-public void deinit_stats( stats_struct *stat )
+void deinit_stats( stats_struct *stat )
 {
   FREE (stat->name);
 }
 
 
-public void tally_stats(stats_struct *stat,
+void tally_stats(stats_struct *stat,
 		   Real         val)
 {
   stat->count++;
@@ -71,7 +74,7 @@ public void tally_stats(stats_struct *stat,
   if (val<stat->min_val) stat->min_val = val;
 }
 
-private void calc_stats(stats_struct *stat)
+static void calc_stats(stats_struct *stat)
 {
   if (stat->count>0) {
     stat->mean = stat->sum / (Real)stat->count;
@@ -89,7 +92,7 @@ private void calc_stats(stats_struct *stat)
   }
 }
 
-public void report_stats(stats_struct *stat)
+void report_stats(stats_struct *stat)
 {
   if (stat != (stats_struct *)NULL) {
     if (stat->count>0) {
@@ -112,38 +115,38 @@ public void report_stats(stats_struct *stat)
   }
 }
 
-public void stat_title(void)
+void stat_title(void)
 {
   print ("Statistics report:\n");
   print ("%14s %12s %12s %12s %12s %12s %12s\n","variable name","mean","std","rms","min","max","cnt");
 }
 
 
-public Real stat_get_mean(stats_struct *stat)
+Real stat_get_mean(stats_struct *stat)
 {
   calc_stats(stat);
   return(stat->mean);
 }
 
-public Real stat_get_rms(stats_struct *stat)
+Real stat_get_rms(stats_struct *stat)
 {
   calc_stats(stat);
   return(stat->rms);
 }
 
-public Real stat_get_standard_deviation(stats_struct *stat)
+Real stat_get_standard_deviation(stats_struct *stat)
 {
   calc_stats(stat);
   return(stat->standard_deviation);
 }
 
-public Real stat_get_variance(stats_struct *stat)
+Real stat_get_variance(stats_struct *stat)
 {
   calc_stats(stat);
   return(stat->variance);
 }
 
-public int stat_get_count(stats_struct *stat)
+int stat_get_count(stats_struct *stat)
 {
   return(stat->count);
 }
