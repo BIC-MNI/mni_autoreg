@@ -16,7 +16,11 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 96.9  2000-03-16 21:47:06  stever
+@MODIFIED   : Revision 96.10  2000-05-15 16:10:29  louis
+@MODIFIED   : Changed Min_deriv constant from 0.02 to 0.06, since .02 was too low,
+@MODIFIED   : permitting estimation of deformation vectors based on noise.
+@MODIFIED   :
+@MODIFIED   : Revision 96.9  2000/03/16 21:47:06  stever
 @MODIFIED   : re-enable dumping per-iteration warps, for debugging
 @MODIFIED   :
 @MODIFIED   : Revision 96.8  2000/03/15 08:42:46  stever
@@ -270,7 +274,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.9 2000-03-16 21:47:06 stever Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.10 2000-05-15 16:10:29 louis Exp $";
 #endif
 
 #include <config.h>		/* MAXtype and MIN defs                      */
@@ -1874,7 +1878,7 @@ outputs:
 Based on Horn and Schunck Artificial Intell 17 (1981) 185-203
 */
 
-#define Min_deriv  0.02
+#define Min_deriv  0.06
 
 private Real get_optical_flow_vector(Real threshold1, 
 				     Real source_coord[],
