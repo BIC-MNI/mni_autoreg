@@ -30,14 +30,13 @@ private void build_mask(Volume vol, Real mask_f[3][3][3], Real mask_b[3][3][3]);
 @CREATED    : Nov 2, 1998 Louis
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public Status compute_chamfer(Volume chamfer) 
+public Status compute_chamfer(Volume chamfer, Real max_val)
 {
 
    Real
       mask_f[3][3][3],
       mask_b[3][3][3],
-      steps[MAX_DIMENSIONS],
-      zero, min, max_val, edge,
+      zero, min,
       vox_min, vox_max,
       val, val2;
    int
@@ -47,11 +46,6 @@ public Status compute_chamfer(Volume chamfer)
    
    progress_struct 
       progress;
-   
-   Status 
-      stat;
-
-   stat = OK;
    
    get_volume_sizes(chamfer, sizes);
 
@@ -83,17 +77,8 @@ public Status compute_chamfer(Volume chamfer)
 
    build_mask(chamfer, mask_f, mask_b);
 
-                                /* figure out the maximum possible distance */
-   get_volume_separations(chamfer, steps);
-   edge = sqrt(sizes[0]*steps[0]*sizes[0]*steps[0] + 
-               sizes[1]*steps[1]*sizes[1]*steps[1]);
-
-   max_val = sqrt(sizes[2]*steps[2]*sizes[2]*steps[2] + edge*edge);
-
-   max_val = 50.0;
    set_volume_real_range(chamfer, 0.0, max_val);
-   
-   zero =CONVERT_VALUE_TO_VOXEL(chamfer,0.0);
+   zero = CONVERT_VALUE_TO_VOXEL(chamfer,0.0);
 
    if (verbose) initialize_progress_report( &progress, TRUE, sizes[0], 
                                            "forward pass");
