@@ -139,9 +139,6 @@ if (ind0==40 && ind1==32 && ind2==32) {
    
    if (verbose) terminate_progress_report( &progress );
 
-   return (OK);
-
-   
 
    if (verbose) initialize_progress_report( &progress, TRUE, sizes[0], 
                                            "reverse pass");
