@@ -16,26 +16,30 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 1.8  1994-06-17 10:29:20  louis
-@MODIFIED   : this version has both a simplex method and convolution method 
-@MODIFIED   : working to find the best local offset for a given lattice node.
+@MODIFIED   : Revision 1.9  1994-06-18 12:29:12  louis
+@MODIFIED   : temporary version.  trying to find previously working simplex
+@MODIFIED   : method.
 @MODIFIED   :
-@MODIFIED   : The simplex method works well, is stable and yields good results.
-@MODIFIED   : The convolution method also works, but the discretization of the 
-@MODIFIED   : possible deformed vector yields results that are not always stable.
-@MODIFIED   :
-@MODIFIED   : The conv technique is only 2 times faster than the simplex method, 
-@MODIFIED   : and therefore does not warrent further testing....
-@MODIFIED   :
-@MODIFIED   : I will now modify the simplex method:
-@MODIFIED   :    - use nearest neighbour interpolation only for the moving lattice
-@MODIFIED   :    - use tri-cubic for the non-moving lattice
-@MODIFIED   :    - swap the moving and stable grids.  now the source grid moves,
-@MODIFIED   :      the target (deformed) grid should move to increase the effective
-@MODIFIED   :      resolution of the deformation vector (over the linear interpolant
-@MODIFIED   :      limit).
-@MODIFIED   :
-@MODIFIED   :
+ * Revision 1.8  94/06/17  10:29:20  louis
+ * this version has both a simplex method and convolution method 
+ * working to find the best local offset for a given lattice node.
+ * 
+ * The simplex method works well, is stable and yields good results.
+ * The convolution method also works, but the discretization of the 
+ * possible deformed vector yields results that are not always stable.
+ * 
+ * The conv technique is only 2 times faster than the simplex method, 
+ * and therefore does not warrent further testing....
+ * 
+ * I will now modify the simplex method:
+ *    - use nearest neighbour interpolation only for the moving lattice
+ *    - use tri-cubic for the non-moving lattice
+ *    - swap the moving and stable grids.  now the source grid moves,
+ *      the target (deformed) grid should move to increase the effective
+ *      resolution of the deformation vector (over the linear interpolant
+ *      limit).
+ * 
+ * 
  * Revision 1.7  94/06/15  09:46:47  louis
  * non-working version using FFT for local def.
  *
@@ -81,7 +85,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 1.8 1994-06-17 10:29:20 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 1.9 1994-06-18 12:29:12 louis Exp $";
 #endif
 
 
@@ -1577,13 +1581,11 @@ private Real optimize_3D_deformation_for_single_node(Real spacing,
        */   
     
     
-    if (ndim > 2) {
-      numsteps = 6;
-      len = (numsteps + 1) * (numsteps + 1) * (numsteps + 1);
-    }
-    else {
-      numsteps = 7;
-      len = (numsteps + 1) * (numsteps + 1);
+    numsteps = 7;
+
+    len = numsteps+1; 
+    for_less(i,1,ndim) {
+      len *= (numsteps+1);
     }
 
     Glen = len;
@@ -1598,13 +1600,14 @@ private Real optimize_3D_deformation_for_single_node(Real spacing,
     TY = vector(1,len);
     TZ = vector(1,len);
 
+				/* get the node point in the source volume taking   */
+				/* into consideration the warp from neighbours      */
 
     general_inverse_transform_point(Gglobals->trans_info.transformation, 
 				    tx,  ty,  tz,
 				    &xp, &yp, &zp);
 
-				/* build the lattice of points, in the source volume */
-				/* taking into consideration the warp from neighbours */
+				/* build a lattice of points, in the source volume  */
     build_source_lattice(xp, yp, zp, 
 			 SX,    SY,    SZ,
 			 spacing*3, spacing*3, spacing*3, /* lattice size= 1.5*fwhm */
@@ -1612,12 +1615,13 @@ private Real optimize_3D_deformation_for_single_node(Real spacing,
 			 ndim);
     
 				/* map this lattice forward into the target space,
-				   using the current transformation. */
+				   using the current transformation, in order to 
+				   build a deformed lattice */
     build_target_lattice(SX,SY,SZ,
 			 TX,TY,TZ,
 			 len);
 
-				/* build the source lattice (without warp),
+				/* build the source lattice (without local neighbour warp),
 				   that will be used in the optimization below */
     build_source_lattice(src_x, src_y, src_z,
 			 SX,    SY,    SZ,
@@ -1625,12 +1629,12 @@ private Real optimize_3D_deformation_for_single_node(Real spacing,
 			 numsteps+1,  numsteps+1,  numsteps+1,
 			 ndim);
     
-    go_get_samples(Gd2_dxyz, TX,TY,TZ, Ga2xyz, len, 3);
+    go_get_samples(Gd1_dxyz, SX,SY,SZ, Ga1xyz, len, 3);
 
 /*
-    go_get_samples(Gd1_dxyz, SX,SY,SZ, Ga1xyz, len, 3);
- for_inclusive(i,1,len) print ("%d: %7.2f %7.2f %7.2f %7.2f %7.2f %7.2f \n",i, 
-                               SX[i], SY[i], SZ[i],TX[i], TY[i], TZ[i]);
+  go_get_samples(Gd2_dxyz, TX,TY,TZ, Ga2xyz, len, 3);
+  for_inclusive(i,1,len) print ("%d: %7.2f %7.2f %7.2f %7.2f %7.2f %7.2f \n",i, 
+                                 SX[i], SY[i], SZ[i],TX[i], TY[i], TZ[i]);
 
 */
 
@@ -2151,12 +2155,16 @@ public void go_get_samples_with_offset(Volume data,
     point;
 
   for_inclusive(c,1,len) {
-    convert_3D_world_to_voxel(data, (Real)x[c]-dx, (Real)y[c]-dy, (Real)z[c]-dz, 
+    convert_3D_world_to_voxel(data, (Real)x[c]+dx, (Real)y[c]+dy, (Real)z[c]+dz, 
 			      &Point_x(point), &Point_y(point), &Point_z(point));
-    if (inter_type==3)
-      flag = tricubic_interpolant(data,  &point , &val);
-    else
-      flag = trilinear_interpolant(data,  &point , &val);
+    if (inter_type==0)
+      flag = nearest_neighbour_interpolant(data,  &point , &val);
+    else {
+      if (inter_type==3)
+	flag = tricubic_interpolant(data,  &point , &val);
+      else
+	flag = trilinear_interpolant(data,  &point , &val);
+    }
     if (flag)
       samples[c] = (float)val;
     else
@@ -2314,19 +2322,48 @@ private Real cost_fn(float x, float y, float z, Real max_length)
   return(d);
 }
 
-private float xcorr_fitting_function(float *x)
+private float xcorr_fitting_function(float *d)
 
 {
    float
       similarity,cost, r;
+   Real 
+     pos[3],voxel;
+   int size[3],c;
+
+/*   go_get_samples_with_offset(Gd2_dxyz, TX,TY,TZ,
+			      Ga2xyz, d[1], d[2], d[3],
+			      Glen, 0);
+*/
+
+   get_volume_sizes(Gd2_dxyz, size);
 
 
-   go_get_samples_with_offset(Gd1_dxyz, SX,SY,SZ,
-			      Ga1xyz, x[1], x[2], x[3],
-			      Glen, 1);
+   for_inclusive(c,1,Glen) {
+     pos[0] = TX[c]+d[1];
+     pos[1] = TY[c]+d[2];
+     pos[2] = TZ[c]+d[3];
+     convert_3D_world_to_voxel(Gd2_dxyz, 
+			       (Real)(TX[c]+d[1]),(Real)(TY[c]+d[2]),(Real)(TZ[c]+d[3]), 
+			       &pos[0], &pos[1], &pos[2]);
+
+     if (pos[0]<-0.5 || pos[0]>=size[0]-0.5 ||
+	 pos[1]<-0.5 || pos[1]>=size[1]-0.5 ||
+	 pos[2]<-0.5 || pos[2]>=size[2]-0.5) {
+
+       Ga2xyz[c] = 0.0;
+     }
+     else {
+       GET_VOXEL_3D(voxel, Gd2_dxyz, (int)(pos[0]+0.5), (int)(pos[1]+0.5), (int)(pos[2]+0.5));
+       Ga2xyz[c] = Gd2_dxyz->real_value_scale * voxel + Gd2_dxyz->real_value_translation;
+     }
+   }
 
 
-   cost = (float)cost_fn(x[1], x[2], x[3], 2*Gspacing);
+
+
+
+   cost = (float)cost_fn(d[1], d[2], d[3], 2*Gspacing);
    similarity = calc_scalar_correlation(Ga1xyz, Ga2xyz, Glen);
 
    r = 1.0 - similarity*similarity_cost_ratio + cost*(1.0-similarity_cost_ratio);
