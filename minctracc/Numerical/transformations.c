@@ -16,7 +16,10 @@
 @CREATED    : Tue Nov 16 14:51:04 EST 1993 lc
                     based on transformations.c from fit_vol
 @MODIFIED   : $Log: transformations.c,v $
-@MODIFIED   : Revision 1.11  1995-09-11 12:37:16  louis
+@MODIFIED   : Revision 1.12  2004-02-12 16:22:43  louis
+@MODIFIED   :  * removed public/private defs
+@MODIFIED   :
+@MODIFIED   : Revision 1.11  1995/09/11 12:37:16  louis
 @MODIFIED   : All refs to numerical recipes routines have been replaced.
 @MODIFIED   : this is an updated working version - corresponds to mni_reg-0.1g
 @MODIFIED   :
@@ -60,7 +63,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/transformations.c,v 1.11 1995-09-11 12:37:16 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/transformations.c,v 1.12 2004-02-12 16:22:43 louis Exp $";
 #endif
 
 
@@ -73,23 +76,23 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 
 #define NUMBER_TRIES 10
 
-public void build_default_deformation_field(Arg_Data *globals);
+void build_default_deformation_field(Arg_Data *globals);
 
 
-public void set_up_lattice(Volume data, 
+void set_up_lattice(Volume data, 
 			    double *user_step, /* user requested spacing for lattice */
 			    double *start,     /* world starting position of lattice */
 			    int    *count,     /* number of steps in each direction */
 			    double *step,      /* step size in each direction */
 			    VectorR directions[]);/* array of vector directions for each index*/
 
-public int tricubic_interpolant(Volume volume, 
+ int tricubic_interpolant(Volume volume, 
                                 PointR *coord, double *result);
 
 extern Arg_Data main_args;
 
 
-public General_transform *get_linear_part_of_transformation(General_transform *trans)
+ General_transform *get_linear_part_of_transformation(General_transform *trans)
 {
   General_transform *result,*concated,*current_lin;
   int i;
