@@ -20,7 +20,12 @@
 
 @CREATED    : 
 @MODIFIED   : $Log: super_sample_def.c,v $
-@MODIFIED   : Revision 96.2  1997-11-12 21:07:43  louis
+@MODIFIED   : Revision 96.3  2000-04-05 04:38:25  stever
+@MODIFIED   : * Reordered code in super_sample_def.c so that it compiles with
+@MODIFIED   :   GCC under IRIX 5.3.
+@MODIFIED   : * set VERSION to 0.98i.
+@MODIFIED   :
+@MODIFIED   : Revision 96.2  1997/11/12 21:07:43  louis
 @MODIFIED   : no changes, other than rcsid...
 @MODIFIED   :
  * Revision 96.1  1997/11/03  15:06:29  louis
@@ -49,7 +54,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/super_sample_def.c,v 96.2 1997-11-12 21:07:43 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/super_sample_def.c,v 96.3 2000-04-05 04:38:25 stever Exp $";
 #endif
 
 #include <config.h>
@@ -358,10 +363,9 @@ public void create_super_sampled_data_volumes_by2(General_transform *orig_deform
 #define MY_CUBIC_05(a1,a2,a3,a4)  \
    ( ( -(a1) + 9*(a2) + 9*(a3) -(a4) ) / 16.0 )
 
-public void interpolate_super_sampled_data_by2(
-			       General_transform *orig_deformation,
-			       General_transform *super_sampled,
-			       int dim)
+private void interpolate_super_sampled_data_by2_dim3( 
+    General_transform *orig_deformation,
+    General_transform *super_sampled )
 {
   Volume
     orig_vol,
@@ -380,15 +384,6 @@ public void interpolate_super_sampled_data_by2(
     value1, value2, value3, v1,v2,v3,v4,v5,v6;
   progress_struct
     progress;
-
-  if (orig_deformation->type != GRID_TRANSFORM || super_sampled->type != GRID_TRANSFORM) {
-    print_error_and_line_num("interpolate_super_sampled_data_by2 not called with GRID_TRANSFORM",
-			     __FILE__, __LINE__);
-  }
-
-  if (dim==2) 
-    interpolate_super_sampled_data(orig_deformation,super_sampled,dim);
-  else {
 
     orig_vol = orig_deformation->displacement_volume;
     super_vol= super_sampled->displacement_volume;
@@ -1255,7 +1250,25 @@ public void interpolate_super_sampled_data_by2(
     } /* index[ orig_xyzv[Z+1] ] */
 
     terminate_progress_report( &progress );
-    
-  }
 
 }
+
+
+public void interpolate_super_sampled_data_by2(
+    General_transform *orig_deformation,
+    General_transform *super_sampled,
+    int dim)
+{
+    if (orig_deformation->type != GRID_TRANSFORM || super_sampled->type != GRID_TRANSFORM) {
+	print_error_and_line_num("interpolate_super_sampled_data_by2 not called with GRID_TRANSFORM",
+				 __FILE__, __LINE__);
+    }
+
+    if (dim == 2) {
+	interpolate_super_sampled_data(orig_deformation,super_sampled,dim);
+    } else {
+	interpolate_super_sampled_data_by2_dim3( orig_deformation, super_sampled );
+    }
+}
+
+

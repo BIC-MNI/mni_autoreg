@@ -1,3 +1,11 @@
+2000-04-05  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* Optimize/super_sample_def.c
+	(interpolate_super_sampled_data_by2): moved main body of function
+	into `interpolate_super_sampled_data_by2_dim3' in order to avoid
+	having to branch around an enormous amount of code, as GCC on IRIX
+	5.3 couldn't handle it.
+
 2000-03-16  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* Volume/interpolation.c (point_not_masked,
