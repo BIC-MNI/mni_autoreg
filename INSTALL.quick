@@ -35,7 +35,7 @@ for example using
 
 If configure does not find the required libraries, give optional flags
 on the configure command line.  The simplest case is when all the
-optional stuff is in the same hierarchy; the --prefix option suffices.
+optional stuff is in the same hierarchy: the --prefix option suffices.
 At the MNI, for instance, we keep home-grown software under
 /usr/local/mni, so here we run `configure' like this:
 
@@ -66,9 +66,9 @@ and will look for
 
 	model files		in $datadir/mni_autoreg
 
-These directories can all be set at configure time; by default, they
-are /usr/local/etc/mni_autoreg, /usr/local/lib/mni_autoreg, and
-/usr/local/share/mni_autoreg, respectively.
+These directories can all be set at configure time; by default, 
+they are $prefix/etc/mni_autoreg, $prefix/lib/mni_autoreg, and
+$prefix/share/mni_autoreg, respectively ($prefix defaults to /usr/local).
 
 Note that if you feel like setting ALL of these (e.g., to install
 MNI_AutoReg to /tmp or your home directory), you're generally better

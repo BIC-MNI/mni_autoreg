@@ -1,7 +1,12 @@
+2000-03-26  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* tagged as release-0_98h.
+
 2000-03-07  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
 
-	* BUGS, FAQ, INSTALL.quick, ORIGIN, README, TESTING: minor updates, such
-	as replacing Greg by Louis, changing version numbers, dates, etc.
+	* BUGS, FAQ, INSTALL.quick, ORIGIN, README, TESTING: minor
+ 	updates, such as replacing Greg by Louis, changing version
+ 	numbers, dates, etc.
 
 	* make_model.in: new.  Renamed from make_model; generated so that
 	proper version information can be included.
