@@ -17,13 +17,26 @@
 
 @CREATED    : 
 @MODIFIED   : $Log: amoeba.c,v $
-@MODIFIED   : Revision 1.2  1995-09-14 09:56:02  louis
-@MODIFIED   : removed the call to numerically_close and replaced it with the same
-@MODIFIED   : terminating condition as used in the previous version of amoeba, so
-@MODIFIED   : that the same termination tolerance can be used.
+@MODIFIED   : Revision 1.3  1996-03-25 10:33:15  louis
+@MODIFIED   : changed perform_amoeba() so that it counts the actual number of
+@MODIFIED   : objective function evaluations instead of the number of calls to
+@MODIFIED   : perform_amoeba().  (the previous version was underestimating the
+@MODIFIED   : number of function calls by a factor of 1.8-2.0!)
 @MODIFIED   :
-@MODIFIED   : Also removed the warning message "No improvement after X steps..."
-@MODIFIED   :
+ * Revision 1.2  1995/09/14  09:56:02  louis
+ * removed the call to numerically_close and replaced it with the same
+ * terminating condition as used in the previous version of amoeba, so
+ * that the same termination tolerance can be used.
+ *
+ * Also removed the warning message "No improvement after X steps..."
+ *
+ * Revision 1.2  1995/09/14  09:56:02  louis
+ * removed the call to numerically_close and replaced it with the same
+ * terminating condition as used in the previous version of amoeba, so
+ * that the same termination tolerance can be used.
+ *
+ * Also removed the warning message "No improvement after X steps..."
+ *
  * Revision 1.1  1995/09/07  10:05:11  louis
  * Initial revision
  *
@@ -73,7 +86,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/amoeba.c,v 1.2 1995-09-14 09:56:02 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/amoeba.c,v 1.3 1996-03-25 10:33:15 louis Exp $";
 #endif
 
 
@@ -83,6 +96,8 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #define  FLIP_RATIO      1.0
 #define  CONTRACT_RATIO  0.5
 #define  STRETCH_RATIO   2.0
+
+extern int FLAG_HAHA;
 
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : numerically_close
@@ -309,7 +324,7 @@ private  Real  try_amoeba(
     return( y_try );
 }
 
-#define  N_STEPS_NO_IMPROVEMENT  10
+#define  N_STEPS_NO_IMPROVEMENT  6
 
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : perform_amoeba
@@ -328,7 +343,7 @@ private  Real  try_amoeba(
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 public  BOOLEAN  perform_amoeba(
-    amoeba_struct  *amoeba )
+    amoeba_struct  *amoeba, int *num_funks )
 {
     int     i, j, low, high, next_high;
     Real    y_try, y_save;
@@ -370,6 +385,8 @@ public  BOOLEAN  perform_amoeba(
     tol = 2.0 * ABS(amoeba->values[high]-amoeba->values[low]) /
       (ABS(amoeba->values[high]) + ABS(amoeba->values[low]));
 
+if (FLAG_HAHA) print ("(%f)",tol);
+
     if (tol < amoeba->tolerance)
    {
         ++amoeba->n_steps_no_improvement;
@@ -382,14 +399,18 @@ public  BOOLEAN  perform_amoeba(
         amoeba->n_steps_no_improvement = 0;
 
     y_try = try_amoeba( amoeba, amoeba->sum, high, -FLIP_RATIO );
+    (*num_funks)++;
 
-    if( y_try <= amoeba->values[low] )
+    if( y_try <= amoeba->values[low] ) {
         y_try = try_amoeba( amoeba, amoeba->sum, high, STRETCH_RATIO );
+	(*num_funks)++;
+      }
     else if( y_try >= amoeba->values[next_high] )
     {
         y_save = amoeba->values[high];
         y_try = try_amoeba( amoeba, amoeba->sum, high, CONTRACT_RATIO );
-
+	(*num_funks)++;
+	
         if( y_try >= y_save )
         {
             for_less( i, 0, amoeba->n_parameters+1 )
@@ -404,6 +425,7 @@ public  BOOLEAN  perform_amoeba(
 
                     amoeba->values[i] = get_function_value( amoeba,
                                                   amoeba->parameters[i] );
+		    (*num_funks)++;
                 }
             }
 
