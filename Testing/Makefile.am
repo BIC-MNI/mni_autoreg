@@ -14,7 +14,7 @@ TEST_LIST = \
 
 
 
-test: banner $(TEST_LIST)
+check-local: banner $(TEST_LIST)
 	@echo "Tests completed successfully."
 
 clean:
@@ -38,10 +38,10 @@ object2.mnc: mincresample.test
 
 object1_dxyz.mnc: object1.mnc
 	../mincblur/mincblur -clobber -gradient -fwhm 6 object1.mnc object1
-	
+
 object2_dxyz.mnc: object2.mnc
 	../mincblur/mincblur -clobber -gradient -fwhm 6 object2.mnc object2
-	
+
 # program tests -----------------------------------------------
 
 mess.mincblur:
@@ -98,7 +98,7 @@ mess.param2xfm:
 param2xfm.test: mess.param2xfm param2xfm.act
 
 param2xfm.act:
-	../minctracc/param2xfm -center 0 0 0 -rot -4 7 10 -trans 5 2 -6 \
+	../minctracc/Extra_progs/param2xfm -center 0 0 0 -rot -4 7 10 -trans 5 2 -6 \
 		-clobber test.xfm 
 	cat test.xfm
 	touch $@
@@ -117,7 +117,7 @@ xfm2param.act: test.xfm
 	@echo ""
 	@echo "The following should give rotations of -4,7,10;"
 	@echo "translations of 5,2,-6"
-	../minctracc/xfm2param test.xfm
+	../minctracc/Extra_progs/xfm2param test.xfm
 	touch $@
 	@echo "xfm2param successful"
 	@echo ""
@@ -132,13 +132,13 @@ mess.minctracc:
 minctracc.test: mess.minctracc minctracc.act
 
 minctracc.act: object1_dxyz.mnc object2_dxyz.mnc
-	../minctracc/minctracc -identity object1_dxyz.mnc object2_dxyz.mnc \
+	../minctracc/Main/minctracc -identity object1_dxyz.mnc object2_dxyz.mnc \
 		 -est_center -debug -simplex 10 -lsq6 -step 8 8 8 \
 		-clobber output.xfm 
 	@echo ""
 	@echo "Minctracc should have found rotations close to -4,7,10;"
 	@echo "and translations  close to 5,2,-6"
-	../minctracc/xfm2param -center 0 0 0 output.xfm
+	../minctracc/Extra_progs/xfm2param -center 0 0 0 output.xfm
 	touch $@
 	@echo "minctracc successful"
 	@echo ""
@@ -153,7 +153,7 @@ volume_cog.test: mess.volumecog volume_cog.act
 
 volume_cog.act: object1.mnc
 	@echo "The object's center of gravity should be 0,0,0"
-	../minctracc/volume_cog object1.mnc
+	../minctracc/Extra_progs/volume_cog object1.mnc
 	touch $@
 	@echo "volume_cog successful"
 	@echo ""
@@ -170,7 +170,7 @@ xcorr_vol.act: object1.mnc object2.mnc
 	@echo "The volume correlation of object1 and object2 should"
 	@echo "be 0.723"
 	@echo "running...."
-	../minctracc/xcorr_vol object1.mnc object2.mnc
+	../minctracc/Extra_progs/xcorr_vol object1.mnc object2.mnc
 	touch $@
 	@echo "xcorr_vol successful"
 	@echo ""

@@ -5,6 +5,7 @@
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
+#include <config.h>
 #include <volume_io.h>
 #include <print_error.h>
 

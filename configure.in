@@ -1,28 +1,27 @@
 dnl Process this file with autoconf to produce a configure script
+
 AC_INIT(minctracc/Include/minctracc.h)
-AC_CONFIG_AUX_DIR(ac_config_aux)
+AM_INIT_AUTOMAKE(mni_autoreg, 0.98h)
+AM_CONFIG_HEADER(config.h)
 
-#------------------------------------------------------------------------
-# Get the canonical-form machine-company-os (used below)
-#------------------------------------------------------------------------
-AC_CANONICAL_HOST
-
-
-#------------------------------------------------------------------------
-# Define the configuration header (config.h)
-#------------------------------------------------------------------------
-AC_CONFIG_HEADER(config.h)
-
-
-#------------------------------------------------------------------------
-# Create version.h, containing the package version number (from VERSION),
-# and compilation user, host, date, and time.
-#------------------------------------------------------------------------
-AC_MSG_RESULT(getting info for version.h)
-version=`cat VERSION`
-if test $? -ne 0 ; then 
-  AC_MSG_ERROR(unable to read VERSION)
+# If prefix is set, use it to set CPPFLAGS and LDFLAGS.
+# This helps when probing for libraries, later on, in the common case
+# that the 3rd party libraries are also installed in the place where
+# this package is going.
+#
+if test "$prefix" != "NONE"; then
+    if test "$CPPFLAGS" = "" -a -d "${prefix}/include"; then
+        CPPFLAGS="-I${prefix}/include"
+    fi
+    if test "$LDFLAGS" = "" -a -d "${prefix}/lib"; then
+        LDFLAGS="-L${prefix}/lib"
+    fi
 fi
+
+#------------------------------------------------------------------------
+# Define symbols specifying the package version number,
+# compilation user, host, date, and time.
+#------------------------------------------------------------------------
 
 # The terminology here is a little icky: what most people think of as
 # "host" (ie. the current machine name) is called "machine", because
@@ -31,195 +30,26 @@ fi
 # think should be called "system", so that's what I call it in
 # version.h.  Still, kind of ugly.
 
-time=`date +%T`
+AC_CANONICAL_HOST
 year=`date | awk '{print $NF}'`        # ugh -- SunOS "date" has no %Y
 date=`date +%m-%d`
-date="$year-$date"
-user=`logname`
-machine=`hostname`
 
-AC_SUBST(version)
-AC_SUBST(time)
-AC_SUBST(date)
-AC_SUBST(user)
-AC_SUBST(machine)
-AC_SUBST(host)
+AC_DEFINE_UNQUOTED(MNI_AUTOREG_COMPILE_TIME,"`date +%T`",[Configure Time])
+AC_DEFINE_UNQUOTED(MNI_AUTOREG_COMPILE_DATE,"$year-$date",[Configure Date])
+AC_DEFINE_UNQUOTED(MNI_AUTOREG_COMPILE_USER,"`logname`",[Configure User])
+AC_DEFINE_UNQUOTED(MNI_AUTOREG_COMPILE_HOST,"`hostname`",[Configure Host])
+AC_DEFINE_UNQUOTED(MNI_AUTOREG_COMPILE_SYSTEM,"$host",[Configure System])
+
 
 
 #------------------------------------------------------------------------
-# Look for netCDF, MINC, and VolumeIO headers and libraries.  
-# The locations (directories only) will go in NETCDF_INCLUDE,
-# NETCDF_LIB, MINC_INCLUDE, MINC_LIB, VOLUMEIO_INCLUDE, and
-# VOLUMEIO_LIB.  Since these might be set by the user before
-# running the configure script, we first have to check if 
-# any of them are defined, and if so make sure that the 
-# appropriate files actually exist in the specified directories.
+# Checks for compiler toolset.
 #------------------------------------------------------------------------
-
-dnl MNI_REQUIRE_FILE(varname,filename)
-dnl this macro looks for a given filename in a directory named
-dnl in the *variable* given by varname; if the variable is not
-dnl empty and the file is not found in it, bomb immediately
-AC_DEFUN(MNI_REQUIRE_FILE,[
-if test -n "$$1" -a ! -r "$$1/$2"; then
-  AC_MSG_ERROR($2 not found in $1 (=$$1))
-fi])
-
-dnl MNI_REQUIRE_FILE_EXT(varname,basename,exts)
-dnl similar to the MNI_REQUIRE_FILE, but the file is given as a 
-dnl basename and a list of extensions; each extension is tested,
-dnl and we only bomb if no version of the file is found (N.B.
-dnl the extensions must include dots, to allow for empty extensions
-
-AC_DEFUN(MNI_REQUIRE_FILE_EXT,[
-if test -n "$$1"; then
-  found=no
-  for ext in $3; do
-    if test -r "$$1/$2$ext"; then
-      found=yes
-    fi
-  done
-  if test "$found" = "no"; then
-    AC_MSG_ERROR($2 not found in any guise in $1 (=$$1))
-  fi
-fi])
-  
-
-MNI_REQUIRE_FILE(NETCDF_INCLUDE,netcdf.h)
-MNI_REQUIRE_FILE(MINC_INCLUDE,minc.h)
-MNI_REQUIRE_FILE(VOLUMEIO_INCLUDE,volume_io.h)
-
-if test -z "$LIBEXTS"; then LIBEXTS=".a .so"; fi
-
-MNI_REQUIRE_FILE_EXT(NETCDF_LIB,libnetcdf,$LIBEXTS)
-MNI_REQUIRE_FILE_EXT(MINC_LIB,libminc,$LIBEXTS)
-MNI_REQUIRE_FILE_EXT(VOLUMEIO_LIB,libvolume_io,$LIBEXTS)
-
-
-
-# Now do the actual searching (for any cases where the
-# {NETCDF,MINC,VOLUMEIO}_{INCLUDE,LIB} variable wasn't supplied)
-
-dnl MNI_CHECK_FILE_EXT(varname,dir,basename,exts)
-dnl if contents of varname are empty, then we look for basename + each of
-dnl exts in dir; if found, set varname to dir
-AC_DEFUN(MNI_CHECK_FILE,[
-if test -z "$$1"; then
-  for ext in $4; do
-    if test -r "$2/$3$ext"; then
-      $1=$2
-    fi
-  done
-fi])
-
-AC_MSG_CHECKING(for auxiliary packages (netCDF MINC Volume_IO))
-TOPDIR=`pwd`
-AC_SUBST(TOPDIR)
-for testdir in $TOPDIR/.. $prefix /usr/local
-do
-
-  # Look for each header or lib file, but only if we don't already
-  # have a location for it -- eg. if the user supplied NETCDF_INCLUDE
-  # through the environment, we don't try to override it here
-  # (note, though, that we did check above that the value they supplied 
-  # was correct!)
-
-  MNI_CHECK_FILE(NETCDF_INCLUDE,$testdir/include,netcdf,.h)
-  MNI_CHECK_FILE(NETCDF_LIB,$testdir/lib,libnetcdf,$LIBEXTS)
-
-  MNI_CHECK_FILE(MINC_INCLUDE,$testdir/include,minc,.h)
-  MNI_CHECK_FILE(MINC_LIB,$testdir/lib,libminc,$LIBEXTS)
-
-  MNI_CHECK_FILE(VOLUMEIO_INCLUDE,$testdir/include,volume_io,.h)
-  MNI_CHECK_FILE(VOLUMEIO_INCLUDE,$testdir/include/volume_io,volume_io,.h)
-  MNI_CHECK_FILE(VOLUMEIO_LIB,$testdir/lib,libvolume_io,$LIBEXTS)
-
-done
-
-dnl MNI_CHECK_EMPTY_VAR(varname,desc)
-
-AC_DEFUN(MNI_CHECK_EMPTY_VAR,[
-if test -z "$$1"; then
-  AC_MSG_ERROR(couldn't find $2 (try setting \$$1))
-fi])
-
-# Now check to see if any of the directory variables weren't defined;
-# if so, that means the corresponding file wasn't found
-
-MNI_CHECK_EMPTY_VAR(NETCDF_INCLUDE,"netCDF header")
-MNI_CHECK_EMPTY_VAR(NETCDF_LIB,"netCDF library")
-MNI_CHECK_EMPTY_VAR(MINC_INCLUDE,"MINC header")
-MNI_CHECK_EMPTY_VAR(MINC_LIB,"MINC library")
-MNI_CHECK_EMPTY_VAR(VOLUMEIO_INCLUDE,"Volume_io header")
-MNI_CHECK_EMPTY_VAR(VOLUMEIO_LIB,"Volume_io library")
-
-# Now construct include and library paths that have just exactly the
-# directories we need (no duplicates).  The echo statements just print out
-# the directories one per line; the awk script keeps track of which have
-# been seen before and prints out the unique ones with a "-I" appended.
-
-INCLUDEDIRS=`(echo "$VOLUMEIO_INCLUDE" ; echo "$MINC_INCLUDE" ; echo "$NETCDF_INCLUDE") | awk '{ if (!seen[[$1]]) { printf "-I" $1 " " }; seen[[$1]]=1 }'`
-LIBDIRS=`(echo "$VOLUMEIO_LIB" ; echo "$MINC_LIB" ; echo "$NETCDF_LIB") | awk '{ if (!seen[[$1]]) { printf "-L" $1 " " }; seen[[$1]]=1 }'`
-
-AC_SUBST(INCLUDEDIRS)
-AC_SUBST(LIBDIRS)
-AC_MSG_RESULT(found them all)
-#echo "INCLUDEDIRS=\"$INCLUDEDIRS\""
-#echo "LIBDIRS=\"$LIBDIRS\""
-
-
-#------------------------------------------------------------------------
-# See if we have the latest version of Volume_io (based on RCS id 
-# in volume_io.h)
-#------------------------------------------------------------------------
-
-AC_MSG_CHECKING(revision of volume_io.h)
-vio_hdr="$VOLUMEIO_INCLUDE/volume_io.h"
-
-# This bit of awk magic sort-of emulates the RCS command `ident', by
-# looking for lines with "Header:" in them, and then getting the token two
-# tokens after "Header:". (This works because Dave puts "$Header: /private-cvsroot/registration/mni_autoreg/Attic/configure.in,v 1.2 2000-01-25 19:22:27 louis Exp $" instead
-# of, say, "$Id: configure.in,v 1.2 2000-01-25 19:22:27 louis Exp $" into his source files.)
-
-# A Note to Aspriring Shell Hackers: trying to match on a literal dollar
-# sign in the regexps below doesn't work very well.  I think the problem is
-# mainly that various shells -- yes, even various /bin/sh's -- do different
-# things with $, \$, \\$, etc.  in singly-quoted strings.  The fact that $
-# is magic both to the shell and in regexp's is a little bit scary, so I
-# avoid the issue entirely.
-
-vio_ver=`awk '/Header:/ { i = 1; while ($i !~ /Header:/) { i++; } print $(i+2)}' $vio_hdr`
-
-if test -z "$vio_ver"; then
-  AC_MSG_RESULT(unknown)
-  AC_MSG_WARN([you seem to have an ancient version of Volume_io; if you have problems compiling, please upgrade])
-else
-  AC_MSG_RESULT($vio_ver)
-  case $vio_ver in
-    1.[[1-5]]) AC_MSG_WARN([you have an old version of Volume_io; if you have problems compiling, please upgrade]) ;;
-    1.6) AC_MSG_RESULT([you have the version distributed with MINC 0.3 -- no problem!]) ;;
-    *) AC_MSG_RESULT([you have an up-to-date version -- excellent!]) ;
-       AC_DEFINE(HAVE_RECENT_VOLUME_IO,1) ;;
-  esac
-fi
-
-#------------------------------------------------------------------------
-# Look for ranlib
-#------------------------------------------------------------------------
+AC_PROG_CC
+AC_PROG_INSTALL
+AC_PROG_LN_S
+AC_PROG_MAKE_SET
 AC_PROG_RANLIB
-
-#------------------------------------------------------------------------
-# Look for groff or nroff
-#------------------------------------------------------------------------
-AC_CHECK_PROGS(NROFF, groff nroff, true)
-NROFF_FLAGS=-man
-if test $NROFF = groff; then NROFF_FLAGS="$NROFF_FLAGS -Tascii"; fi
-AC_SUBST(NROFF_FLAGS)
-
-#------------------------------------------------------------------------
-# Look for make or gmake
-#------------------------------------------------------------------------
-AC_CHECK_PROGS(MAKE, make gmake)
 
 #------------------------------------------------------------------------
 # Look for perl (and make sure it's the right version)
@@ -232,59 +62,24 @@ AC_SUBST(PERL)
 if test "$PERL" = no; then
   AC_MSG_WARN(The mritotal script will not run since Perl 5 is not found. 
    You must install Perl 5 before installing MNI AutoReg.)
-  PERL=""
+  PERL=
 else
   AC_MSG_CHECKING(Perl version)
 
-  $PERL -e 'exit ($] < 5.002)'
-
-  if test $? -eq 1 ; then
-    AC_MSG_RESULT(pre-5.002)
-    AC_MSG_WARN(Perl 5.002 (or greater) is required--you will not be able to run mritotal)
-    PERL=""
-  else
+  # The perl command will exit with status zero if
+  #  (i) $PERL is found, and executable, and
+  # (ii) the perl version is NOT < 5.002
+  #
+  if $PERL -e 'exit ($] < 5.002)'; then
     AC_MSG_RESULT(5.002 or later--good)
+  else
+    AC_MSG_RESULT(unacceptable)
+    AC_MSG_WARN(Perl 5.002 (or greater) is required--you will not be able to run mritotal)
+    PERL=
   fi
 fi
 
-
-#------------------------------------------------------------------------
-# See if the user supplied values for various directories; if not, 
-# set them to their defaults.
-#------------------------------------------------------------------------
-
-if test -z "$BINDIR"; then
-  BINDIR="$prefix/bin"
-fi
-if test -z "$SCRIPTDIR"; then
-  SCRIPTDIR="$prefix/bin"
-fi
-if test -z "$PERLLIBDIR"; then
-  if test -n "$PERL"; then 
-    PERLLIBDIR=`$PERL -MConfig -e 'exit 1 unless $Config{installsitelib};' -e 'print $Config{installsitelib};'`
-    if test $? -gt 0 -o -z "$PERLLIBDIR" ; then
-      AC_MSG_WARN(Perl appears to be improperly installed; you won't be able to run mritotal until you fix it and re-run configure)
-      PERL=""
-      PERLLIBDIR=""
-    fi
-  fi
-fi
-if test -z "$CONFIGDIR"; then
-  CONFIGDIR="$prefix/etc/mni_autoreg"
-fi
-if test -z "$MAN1DIR"; then
-  MAN1DIR="$prefix/man/man1"
-fi
-if test -z "$MODELDIR"; then
-  MODELDIR="$prefix/lib/model"
-fi
-
-AC_SUBST(BINDIR)
-AC_SUBST(SCRIPTDIR)
-AC_SUBST(PERLLIBDIR)
-AC_SUBST(CONFIGDIR)
-AC_SUBST(MAN1DIR)
-AC_SUBST(MODELDIR)
+AM_CONDITIONAL(PERLGOOD, test x$PERL != x)
 
 
 # -----------------------------------------------------------------
@@ -293,9 +88,11 @@ AC_SUBST(MODELDIR)
 # in order to override gcc.
 # -----------------------------------------------------------------
 
-case "$host_os" in
-  irix*) if test -z "$CC"; then CC=cc; fi ;;
-esac
+dnl SMR: removed this, since released automake does not
+dnl handle dependency tracking with IRIX cc.
+#case "$host_os" in
+#  irix*) if test -z "$CC"; then CC=cc; fi ;;
+#esac
 
 
 # -----------------------------------------------------------------
@@ -303,9 +100,7 @@ esac
 # make sure it supports prototypes, void, enum, and signed char
 # properly (can't trust __STDC__).
 # -----------------------------------------------------------------
- 
-CFLAGS=$OPT
-AC_PROG_CC
+
 cc_flagged=`echo "$CC $CFLAGS $CPPFLAGS" |sed 's/ +/ /;s/ *$//'`
 AC_MSG_CHECKING(that \"$cc_flagged\" has enough ANSI in it)
 AC_CACHE_VAL(autoreg_cv_cc_ansi, [
@@ -336,67 +131,132 @@ fi
 #------------------------------------------------------------------------
 # Check that we have some required header files (and macros in them)
 #------------------------------------------------------------------------
-AC_REQUIRE_CPP
-AC_MSG_CHECKING(for some semi-standard C macros)
-found=""
-AC_EGREP_CPP(DBL_MAX, [#include <float.h>
-DBL_MAX], dbl_max_in_float=no, dbl_max_in_float=yes)
+AC_HEADER_STDC
+AC_CHECK_HEADERS(float.h limits.h malloc.h)
 
-if test $dbl_max_in_float = yes ; then
-  AC_DEFINE(HAVE_FLOAT_H)
-# echo DBL_MAX
-  found="${found}DBL_MAX "
+# We need to know extreme values for various data types
+# On POSIX systems, these are defined in <float.h> (floats, doubles,
+# and long doubles) and in <limits.h> for integer types.
+#
+# Some older systems might have similar macros defined in
+# <values.h>, so we check for that, too.
+#
+if test $ac_cv_header_limits_h = no \
+     -o $ac_cv_header_float_h = no; then
+	AC_CHECK_HEADER(values.h, , 
+			AC_MSG_ERROR(either limits.h or values.h is required.))
 fi
 
-#kill -STOP $$
-AC_EGREP_CPP(MAXDOUBLE, [#include <values.h>
-MAXDOUBLE], maxdouble_in_values=no, maxdouble_in_values=yes)
-if test $maxdouble_in_values = yes ; then
-  AC_DEFINE(HAVE_VALUES_H)
-  if test $dbl_max_in_float = no ; then
-    AC_DEFINE(NEED_VALUES_H)
-#   echo MAXDOUBLE
-    found="${found}MAXDOUBLE "
-  fi
-fi
-
-AC_EGREP_CPP(EXIT_FAILURE, [#include <stdlib.h>
-EXIT_FAILURE], have_exit_failure=no, have_exit_failure=yes)
-if test $have_exit_failure = yes ; then
-  AC_DEFINE(HAVE_EXIT_FAILURE)
-# echo EXIT_FAILURE
-  found="${found}EXIT_FAILURE "
-fi
-
-# Attempt to find M_PI (this is needed for the Volume_io macro RAD_TO_DEG).
-# First we just try in <math.h>.
-AC_EGREP_CPP(M_PI, [#include <math.h>
-M_PI], have_m_pi=no, have_m_pi=yes)
-if test $have_m_pi = no ; then
-  AC_MSG_WARN(M_PI not found -- will use own version)
-  AC_DEFINE(NEED_PI)
-else
-  found="${found}M_PI "
-fi
-
-AC_MSG_RESULT(found: $found)
 
 #------------------------------------------------------------------------
-# Set up libraries
+# Checks for typedefs, structures, and compiler characteristics.
+#------------------------------------------------------------------------
+AC_C_INLINE
+AC_C_CONST
+AC_TYPE_SIZE_T
+
+#------------------------------------------------------------------------
+# Checks for libraries.
 #------------------------------------------------------------------------
 AC_CHECK_LIB(c, xdr_long,:,AC_CHECK_LIB(sun, xdr_long))
 AC_CHECK_LIB(c_s, main)
 AC_CHECK_LIB(ucb, random)
 
+smr_CHECK_LIB(netcdf,,
+[NetCDF library], ncopen, netcdf.h)
+if test "$netcdf_LIBS" = ""; then
+    AC_MSG_ERROR([Required library NetCDF not found!])
+fi
+
+smr_CHECK_LIB(minc,,
+[MNI medical image library], miicv_create, minc.h, 
+$netcdf_LIBS, $netcdf_CFLAGS)
+if test "$minc_LIBS" = ""; then
+    AC_MSG_ERROR([Required library minc not found!])
+fi
+
+smr_CHECK_LIB(volumeio,volume_io,
+[MNI Volume IO library], input_volume, volume_io.h,
+[$netcdf_LIBS $minc_LIBS -lm],[$netcdf_CFLAGS $minc_CFLAGS])
+if test "$volumeio_LIBS" = ""; then
+    AC_MSG_ERROR([Required library volume_io not found!])
+fi
+
+INCLUDEDIRS="$volumeio_CFLAGS $minc_CFLAGS $netcdf_CFLAGS"
+LIBDIRS="$volumeio_LIBS $minc_LIBS $netcdf_LIBS"
+
+AC_SUBST(INCLUDEDIRS)
+AC_SUBST(LIBDIRS)
+
+#------------------------------------------------------------------------
+# See if we have the latest version of Volume_io (based on RCS id 
+# in volume_io.h)
+#------------------------------------------------------------------------
+
+AC_MSG_CHECKING(revision of volume_io.h)
+save_CPPFLAGS="$CPPFLAGS"
+save_LIBS="$LIBS"
+CPPFLAGS="$CPPFLAGS $INCLUDEDIRS"
+LIBS="$LIBS $LIBDIRS -lvolume_io -lminc -lnetcdf -lm"
+
+dnl This bit of magic was borrowed from XEmacs via FVWM.
+dnl If the program compiles and runs, we run again with a dummy argument
+dnl that outputs the RCSID revision number.
+AC_TRY_RUN([
+    #include <string.h>
+    #include <volume_io.h>
+    int main(int c, char **v) {
+	char* s = strstr(volume_io_rcsid,"volume_io.h,v ");
+	char* t;
+	if ( s == NULL ) return 1;
+	s += 14;
+	t = strchr(s,' ');
+	if ( t == NULL ) return 2;
+	*t = 0;
+	if ( c > 1 ) printf("%s\n", s);
+	return 0;
+    }],
+    [vio_ver=`./conftest dummy_arg`],
+    [AC_MSG_RESULT(unknown)
+     AC_MSG_ERROR([Ancient version of Volume_io; please upgrade.])])
+
+CPPFLAGS="$save_CPPFLAGS"
+LIBS="$save_LIBS"
+
+if test x$vio_ver = x; then
+    AC_MSG_RESULT(unknown)
+    AC_MSG_WARN([you seem to have an ancient version of Volume_io; if you have problems compiling, please upgrade])
+else
+    AC_MSG_RESULT($vio_ver)
+    case $vio_ver in
+    	1.[[1-5]]) AC_MSG_WARN([you have an old version of Volume_io; if you have problems compiling, please upgrade]) ;;
+    	1.6) AC_MSG_RESULT([you have the version distributed with MINC 0.3 -- no problem!]) ;;
+    	*) AC_MSG_RESULT([you have an up-to-date version -- excellent!]) ;
+           AC_DEFINE(HAVE_RECENT_VOLUME_IO,1,
+                [Volume_io version is more recent than that distributed with MINC 0.3]) ;;
+    esac
+fi
 
 
 #------------------------------------------------------------------------
-# Check os type (should match netcdf os type)
+# Checks for library functions.
 #------------------------------------------------------------------------
-dnl AC_CANONICAL_HOST
-changequote(<<, >>)dnl
-OS_TYPE=`echo $host_os | sed 's/^\([^0-9\]*\)[0-9].*$/\1/'`
-changequote([, ])dnl
-AC_SUBST(OS_TYPE)
+AC_FUNC_VPRINTF
+AC_CHECK_FUNCS(strtod strtol)
 
-AC_OUTPUT(Makefile.include version.h)
+
+AC_OUTPUT(Makefile
+Proglib/Makefile
+make_phantom/Makefile
+mincbbox/Makefile
+mincblur/Makefile
+minctracc/Makefile
+minctracc/Files/Makefile
+minctracc/Main/Makefile
+minctracc/Numerical/Makefile
+minctracc/Optimize/Makefile
+minctracc/Volume/Makefile
+minctracc/Extra_progs/Makefile
+perl/Makefile
+Testing/Makefile
+)

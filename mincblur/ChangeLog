@@ -1,0 +1,6 @@
+Fri Jan 28 11:05:33 2000  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* apodize_data.c: 
+	* fft.c: include <config.h> to get public/private defines.
+
+	

@@ -1,0 +1,14 @@
+Fri Jan 28 11:06:45 2000  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* Makefile.am: perl helper files (*.pl, *.pm) are installed into 
+	the package libdir by default; this allows non-root to install 
+	by simply setting the --prefix at configure time.
+
+	* autocrop.in: 
+	* mritoself.in:
+	* mritotal.in: add package libdir to perl's search path, in order
+	to find the *.pl and *.pm files.	
+
+	* version.c: include <config.h> rather than "../version.h" to get
+	the version strings.
+

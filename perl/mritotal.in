@@ -47,9 +47,11 @@
 # the same copyright as above.
 # --------------------------------------------------------------------
 
-# $Id: mritotal.in,v 1.1 2000-01-19 14:10:31 louis Exp $
+# $Id: mritotal.in,v 1.2 2000-01-28 16:21:48 stever Exp $
 
 require 5.001;
+
+use lib "@LIBDIR@";
 
 use Startup;
 use Getopt::Tabular qw(GetOptions SpoofGetOptions);

@@ -44,7 +44,10 @@
 	      recurrence relation ) to increase speed.
 
 @MODIFIED   : $Log: fft.c,v $
-@MODIFIED   : Revision 96.0  1996-08-21 18:22:24  louis
+@MODIFIED   : Revision 96.1  2000-01-28 16:21:35  stever
+@MODIFIED   : Revamped configure process
+@MODIFIED   :
+@MODIFIED   : Revision 96.0  1996/08/21 18:22:24  louis
 @MODIFIED   : Release of MNI_AutoReg version 0.96
 @MODIFIED   :
  * Revision 9.6  1996/08/21  18:22:17  louis
@@ -69,10 +72,11 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/fft.c,v 96.0 1996-08-21 18:22:24 louis Rel $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/fft.c,v 96.1 2000-01-28 16:21:35 stever Exp $";
 #endif
 
 
+#include <config.h>
 #include <math.h>
 
 #define PI2 6.28318530717959

@@ -1,3 +1,69 @@
+Fri Jan 28 10:39:10 2000  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* configure.in: revamped for automake.  Searching for required
+	libraries (netcdf, minc, and volume_io) is completely redone using
+	macros in acinclude.m4.  These macros are from the package
+	smr_macros, available from http://www.cs.mcgill.ca/~stever/software or
+	ftp://ftp.slac.stanford.edu/users/langston/autoconf.  These macros
+	enable commandline arguments to configure, rather than relying on
+	environment variables to specify the location of the libraries and
+	their include files.  Checking the volume_io revision done using a
+	C program, rather than relying on awk regular expressions.  All of
+	the code to handle setting BINDIR, etc, via environment variables
+	is gone; we rely on standard autoconf --prefix, --bindir and the
+	like.  In detail: CONFIGDIR is set to $(sysconfdir)/mni_autoreg,
+	and MODELDIR is set to $(libdir)/model, hence the defaults are the
+	same as before, only the mechanism for non-default behaviour is
+	changed.  Handling of "semi-standard C macros" such as DBL_MAX
+	simplified by moving most of the logic to config.h.bot.
+
+	* */Makefile.am:
+	* acinclude.m4:
+	* config.h.bot: added.  These are sources to generate the Makefiles,
+	and config.h.
+
+	* mincblur/mincblur.1:
+	* minctracc/minctracc.1:
+	* perl/autocrop.1:
+	* perl/mritoself.1:
+	* perl/mritotal.1: renamed from corresponding '.man1' files.
+
+	* configure:
+	* config.h.in:
+	* */Makefile: removed.  These are built files, hence unnecessary
+	to track in CVS.
+
+	* Makefile.bottom:
+	* Makefile.include.in: removed.  These are obsoleted by the
+	automake-constructed makefiles.
+	
+	* VERSION: removed.  Version is now set in configure.in.
+	* version.h.in: removed.  Version info moved into config.h.
+
+	* AUTHORS: renamed from CONTACT.
+	* COPYING: renamed from COPYRIGHT.
+	* NEWS: renamed from CHANGES.  
+	These renamings were done to adhere to GNU coding standards.
+
+Fri Jan 28 00:35:41 2000  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* perl/autocrop.in: add @LIBDIR@ to perl's search path.
+
+	* perl/version.c: include config.h instead of ../version.h.
+
+	* mincblur/fft.c: 
+	* mincblur/apodize_data.c: include <config.h>, because definitions
+	of public and private were moved there.  The defines used to be
+	done on the compiler the command line.
+
+	* ac_config_aux/config.guess:
+	* ac_config_aux/config.sub:
+	* ac_config_aux/install-sh: removed.  These scripts will be recreated
+	by running 'automake --add-missing', so they need not be checked into
+	the CVS repository.
+
+	* */Makefile.am: new.
+	
 2000-01-27  Steve ROBBINS  <stever@bic.mni.mcgill.ca>
 
 	* VERSION: set to 0.98g.
@@ -16,4 +82,3 @@ Wed Jan 19 22:23:46 2000  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* ChangeLog:
 	* */.cvsignore: new.
-

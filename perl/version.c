@@ -1,8 +1,8 @@
 /*
- * Program to write out the macros defined in version.h.
+ * Program to write out the build information.
  */
 
-#include "../version.h"
+#include "config.h"
 
 int main (void)
 {
