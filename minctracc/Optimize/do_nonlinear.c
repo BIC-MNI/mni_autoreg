@@ -16,7 +16,10 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 96.8  2000-03-15 08:42:46  stever
+@MODIFIED   : Revision 96.9  2000-03-16 21:47:06  stever
+@MODIFIED   : re-enable dumping per-iteration warps, for debugging
+@MODIFIED   :
+@MODIFIED   : Revision 96.8  2000/03/15 08:42:46  stever
 @MODIFIED   : Code cleanup: all functions prototyped (except ParseArgs.c), no useless declarations, etc
 @MODIFIED   :
 @MODIFIED   : Revision 96.7  2000/01/18 18:53:37  louis
@@ -267,7 +270,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.8 2000-03-15 08:42:46 stever Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.9 2000-03-16 21:47:06 stever Exp $";
 #endif
 
 #include <config.h>		/* MAXtype and MIN defs                      */
@@ -318,7 +321,8 @@ static stats_struct
 float	
   *Gsqrt_features,		/* normalization const for correlation       */
   **Ga1_features,		/* samples in source sub-lattice             */
-  *TX, *TY, *TZ,		/* sample sub-lattice positions in target    */
+  *TX, *TY, *TZ;		/* sample sub-lattice positions in target    */
+static float
   *SX, *SY, *SZ;		/* sample sub-lattice positions in source    */
 
 int 
@@ -1426,6 +1430,8 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 			additional_mag, (Real)(mean_disp_mag+std));
       }
     } /* if (iters< iteration_limit-1) */
+    /* if (FALSE) ends here */
+
 
 				/* reset the next iteration's warp. */
 
@@ -1434,7 +1440,7 @@ public Status do_non_linear_optimization(Arg_Data *globals)
     init_the_volume_to_zero(additional_mag);
 
     if (globals->flags.debug && 
-	globals->flags.verbose == 3 && FALSE)
+	globals->flags.verbose == 3) /* Why the FALSE? */
       save_data(globals->filenames.output_trans, 
 		iters+1, iteration_limit, 
 		globals->trans_info.transformation);

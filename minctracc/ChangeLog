@@ -1,3 +1,8 @@
+2000-03-16  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* Optimize/do_nonlinear.c: declare SX, SY, SZ static.  Re-enable
+	dumping of per-iteration warps, when debugging and verbose == 3.
+
 2000-03-15  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* */*: ensure all functions properly prototyped.  Compiles cleanly
