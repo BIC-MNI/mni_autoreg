@@ -1,3 +1,7 @@
+2004-02-04  patricia Le Nezet <lenezet@bic.mni.mcgill.ca>
+
+	* fixed direction cosines problems
+
 2002-03-26  Steve M. Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* configure.in: Updated to conform to autoconf 2.5x.  Use the BIC
