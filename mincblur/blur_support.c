@@ -14,10 +14,10 @@
 
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : muli_vects
-@INPUT      : s1 - a numerical recipes array containing real,imag,real,imag
-              s2 - a numerical recipes array containing real,imag,real,imag
+@INPUT      : s1 - a zero offset array containing real,imag,real,imag
+              s2 - a zero offset array containing real,imag,real,imag
               n  - the number of complex pairs to be multiplied
-@OUTPUT     : r  - the result of the multiplication, a numerical recipes array 
+@OUTPUT     : r  - the result of the multiplication, a zero offset array 
 	           containing real,imag,real,imag
 @RETURNS    : nothing
 @DESCRIPTION: 
@@ -172,7 +172,7 @@ public float rect_dist(float c, float fwhm, float mu, float x)
 
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : make_kernel_FT
-@INPUT      : kern - a numerical recipes array containing real,imag,real,imag
+@INPUT      : kern - a zero offset array containing real,imag,real,imag
                      in which will be stored the kernel for the dirivitive
 	      size - the number of complex numbers in the kernel array
 @OUTPUT     : 
@@ -209,7 +209,7 @@ public void make_kernel_FT(float *kern, int size, float vsize)
 
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : make_kernel
-@INPUT      : kern - a numerical recipes array containing real,imag,real,imag
+@INPUT      : kern - a zero offset array containing real,imag,real,imag
                      in which will be stored the Gaussian kernel for convolution
 	      vsize- the size (in mm) of the sample along the kern array
 	      fwhm - full-width-half-maximum of gaussian (in mm)
@@ -219,7 +219,7 @@ public void make_kernel_FT(float *kern, int size, float vsize)
 @DESCRIPTION: 
 
    note that kern (the convolution kernel) goes into the array so that the
-   peak is at kern[1] (remember unit offset for numerical recipes), with the
+   peak is at kern[1] (remember unit offset), with the
    positive half of the kernel running from kern[1] to kern[n/2] and the
    negative half running from kern[array_size_pow2 - n/2] to kern[array_size_pow2]:
 

@@ -42,10 +42,29 @@
 		 int  verbose    - prints out running info
 
    @CALLS      : 
+   @COPYRIGHT  :
+              Copyright 1995 Louis Collins, McConnell Brain Imaging Centre, 
+              Montreal Neurological Institute, McGill University.
+              Permission to use, copy, modify, and distribute this
+              software and its documentation for any purpose and without
+              fee is hereby granted, provided that the above copyright
+              notice appear in all copies.  The author and McGill University
+              make no representations about the suitability of this
+              software for any purpose.  It is provided "as is" without
+              express or implied warranty.
    @CREATED    : January 25, 1992 louis louis (Original using .iff files)
-   @MODIFIED   : Wed Jun 23 09:04:34 EST 1993 Louis Collins
+   @MODIFIED   : $Log: mincblur.c,v $
+   @MODIFIED   : Revision 1.12  1995-09-18 06:45:42  louis
+   @MODIFIED   : this file is a working version of mincblur.  All references to numerical
+   @MODIFIED   : recipes routines have been removed.  This version is included in the
+   @MODIFIED   : package mni_reg-0.1i
+   @MODIFIED   :
+   Wed Jun 23 09:04:34 EST 1993 Louis Collins
         rewrite using mnc files and David Macdonald's libmni.a
    ---------------------------------------------------------------------------- */
+#ifndef lint
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/mincblur.c,v 1.12 1995-09-18 06:45:42 louis Exp $";
+#endif
 
 #include <volume_io.h>
 #include <ParseArgv.h>
@@ -112,7 +131,7 @@ main (int argc, char *argv[] )
 
   if (standard==0.0 && fwhm==0.0 && 
       fwhm_3D[0]==-DBL_MAX && fwhm_3D[1]==-DBL_MAX && fwhm_3D[2]==-DBL_MAX ) {
-    print_error ("Must specify either -fwhm, -3D_fwhm or -standard on command line.", 
+    print_error_and_line_num ("Must specify either -fwhm, -3D_fwhm or -standard on command line.", 
 		 __FILE__, __LINE__);
   }
 
@@ -138,13 +157,13 @@ main (int argc, char *argv[] )
 				/* check to see if the output file can be written */
   status = open_file( outfilename , WRITE_FILE, BINARY_FORMAT,  &ofd );
   if ( status != OK ) 
-    print_error ("filename `%s' cannot be opened.", __FILE__, __LINE__, outfilename);
+    print_error_and_line_num ("filename `%s' cannot be opened.", __FILE__, __LINE__, outfilename);
   status = close_file(ofd);
   remove(outfilename);   
 
 
   if (gradonlyflg  && !ms_volume_reals_flag) {
-    print_error ("Must allow reals to be written to be able to calculate gradients.", 
+    print_error_and_line_num ("Must allow reals to be written to be able to calculate gradients.", 
 		 __FILE__, __LINE__);
   }
   
@@ -158,7 +177,7 @@ main (int argc, char *argv[] )
     status = input_volume(infilename, 3, default_dim_names, NC_UNSPECIFIED,
 			  FALSE, 0.0, 0.0, TRUE, &data, (minc_input_options *)NULL);
     if ( status != OK )
-      print_error("problems reading `%s'.\n",__FILE__, __LINE__,infilename);
+      print_error_and_line_num("problems reading `%s'.\n",__FILE__, __LINE__,infilename);
     
     get_volume_sizes(data, sizes);
     get_volume_separations(data, step);
@@ -176,7 +195,7 @@ main (int argc, char *argv[] )
     }
     
     if (data->n_dimensions!=3) {
-      print_error ("File %s has %d dimensions.  Only 3 dims supported.", 
+      print_error_and_line_num ("File %s has %d dimensions.  Only 3 dims supported.", 
 		   __FILE__, __LINE__, infilename, data->n_dimensions);
     }
     
@@ -209,7 +228,7 @@ main (int argc, char *argv[] )
       
       status = open_file( blur_datafile ,READ_FILE, BINARY_FORMAT,  &ifd );
       if (status!=OK)
-	 print_error("Error opening <%s>.",__FILE__, __LINE__, blur_datafile);
+	 print_error_and_line_num("Error opening <%s>.",__FILE__, __LINE__, blur_datafile);
       
       if (!curveonlyflg)
 	gradient3D_volume(ifd,data,infilename,outfilename,dimensions,
@@ -221,7 +240,7 @@ main (int argc, char *argv[] )
 
       status = close_file(ifd);
       if (status!=OK)
-	 print_error("Error closing <%s>.",__FILE__, __LINE__, blur_datafile);
+	 print_error_and_line_num("Error closing <%s>.",__FILE__, __LINE__, blur_datafile);
     }
       /*************************************************************************/
       /*           calculate magnitude of gradient                             */

@@ -17,12 +17,32 @@
 @CALLS      : stuff from volume_support.c and libmni.a
 @CREATED    : Wed Jun 23 09:04:34 EST 1993  Louis Collins 
                  from code originally written for blur_grad working on .iff files.
-@MODIFIED   : 
+@COPYRIGHT  :
+              Copyright 1995 Louis Collins, McConnell Brain Imaging Centre, 
+              Montreal Neurological Institute, McGill University.
+              Permission to use, copy, modify, and distribute this
+              software and its documentation for any purpose and without
+              fee is hereby granted, provided that the above copyright
+              notice appear in all copies.  The author and McGill University
+              make no representations about the suitability of this
+              software for any purpose.  It is provided "as is" without
+              express or implied warranty.
+
+@MODIFIED   : $Log: blur_volume.c,v $
+@MODIFIED   : Revision 1.11  1995-09-18 06:45:42  louis
+@MODIFIED   : this file is a working version of mincblur.  All references to numerical
+@MODIFIED   : recipes routines have been removed.  This version is included in the
+@MODIFIED   : package mni_reg-0.1i
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
+
+#ifndef lint
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/blur_volume.c,v 1.11 1995-09-18 06:45:42 louis Exp $";
+#endif
+
 #include <volume_io.h>
 #include "blur_support.h"
 #include <limits.h>
-#include <recipes.h>
 
 extern int debug;
 
@@ -53,8 +73,9 @@ public Status blur3D_volume(Volume data,
     total_voxels,		
     vector_size_data,		/* original size of row, col or slice vector        */
     kernel_size_data,		/* original size of kernel vector                   */
-    array_size_pow2;		/* actual size of vector/kernel data used in FFT    */
+    array_size_pow2,		/* actual size of vector/kernel data used in FFT    */
 				/* routines - needs to be a power of two            */
+    array_size;
   int   
     data_offset;		/* offset required to place original data (size n)  */
 				/*  into array (size m=2^n) so that data is centered*/
@@ -145,10 +166,12 @@ if (debug) print("before blur min/max = %f %f\n", min_val, max_val);
 		 remember that ffts require arrays 2^n in length                          */
   
   array_size_pow2  = next_power_of_two(vector_size_data+kernel_size_data+1);
-
-  dat_vector = vector(0,2*array_size_pow2+1); /* allocate 2*, since each point is a    */
-  dat_vecto2 = vector(0,2*array_size_pow2+1); /* complex number for FFT, and the plus 1*/
-  kern       = vector(0,2*array_size_pow2+1); /* is for Num. Rec. FFT routines         */
+  array_size = 2*array_size_pow2+1;  /* allocate 2*, since each point is a    */
+				     /* complex number for FFT, and the plus 1*/
+				     /* is for the zero offset FFT routine    */
+  ALLOC(dat_vector, array_size);
+  ALLOC(dat_vecto2, array_size);
+  ALLOC(kern,       array_size);
 
   /*--------------------------------------------------------------------------------------*/
   /*                get ready to start up the transformation.                             */
@@ -164,7 +187,7 @@ if (debug) print("before blur min/max = %f %f\n", min_val, max_val);
   /*    1st calculate kern array for gaussian kernel*/
   
   make_kernel(kern,(float)(ABS(steps[X])),fwhmx,array_size_pow2,kernel_type);
-  four1(kern,array_size_pow2,1);
+  fft1(kern,array_size_pow2,1);
   
   /*    calculate offset for original data to be placed in vector            */
   
@@ -191,9 +214,9 @@ if (debug) print("before blur min/max = %f %f\n", min_val, max_val);
 	dat_vector[1 +2*(col+data_offset)  ] = *f_ptr++;
       }
       
-      four1(dat_vector,array_size_pow2,1);
+      fft1(dat_vector,array_size_pow2,1);
       muli_vects(dat_vecto2,dat_vector,kern,array_size_pow2);
-      four1(dat_vecto2,array_size_pow2,-1);
+      fft1(dat_vecto2,array_size_pow2,-1);
       
       f_ptr = fdata + slice*slice_size + row*sizes[X];
       for (col=0; col< sizes[X]; col++) {        /* put the row back */
@@ -211,9 +234,9 @@ if (debug) print("before blur min/max = %f %f\n", min_val, max_val);
     update_progress_report( &progress, slice+1 );
   }
   
-  free_vector(dat_vector, 0,2*array_size_pow2+1); 
-  free_vector(dat_vecto2, 0,2*array_size_pow2+1); 
-  free_vector(kern      , 0,2*array_size_pow2+1); 
+  FREE(dat_vector);
+  FREE(dat_vecto2);
+  FREE(kern);
 
 
   
@@ -237,15 +260,18 @@ if (debug) print("before blur min/max = %f %f\n", min_val, max_val);
 		 remember that ffts require arrays 2^n in length                          */
   
   array_size_pow2  = next_power_of_two(vector_size_data+kernel_size_data+1);
+  array_size = 2*array_size_pow2+1;  /* allocate 2*, since each point is a    */
+				     /* complex number for FFT, and the plus 1*/
+				     /* is for the zero offset FFT routine    */
   
-  dat_vector = vector(0,2*array_size_pow2+1); /* allocate 2*, since each point is a    */
-  dat_vecto2 = vector(0,2*array_size_pow2+1); /* complex number for FFT, and the plus 1*/
-  kern       = vector(0,2*array_size_pow2+1); /* is for Num. Rec. FFT routines         */
+  ALLOC(dat_vector, array_size);
+  ALLOC(dat_vecto2, array_size);
+  ALLOC(kern,       array_size);
   
   /*    1st calculate kern array for gaussian kernel*/
   
   make_kernel(kern,(float)(ABS(steps[Y])),fwhmy,array_size_pow2,kernel_type);
-  four1(kern,array_size_pow2,1);
+  fft1(kern,array_size_pow2,1);
   
   /*    calculate offset for original data to be placed in vector            */
   
@@ -277,9 +303,9 @@ if (debug) print("before blur min/max = %f %f\n", min_val, max_val);
       }
       
       
-      four1(dat_vector,array_size_pow2,1);
+      fft1(dat_vector,array_size_pow2,1);
       muli_vects(dat_vecto2,dat_vector,kern,array_size_pow2);
-      four1(dat_vecto2,array_size_pow2,-1);
+      fft1(dat_vecto2,array_size_pow2,-1);
       
       f_ptr = fdata + slice*slice_size + col;
       for (row=0; row< sizes[Y]; row++) {        /* put the col back */
@@ -298,9 +324,9 @@ if (debug) print("before blur min/max = %f %f\n", min_val, max_val);
     
   }
   
-  free_vector(dat_vector, 0,2*array_size_pow2+1); 
-  free_vector(dat_vecto2, 0,2*array_size_pow2+1); 
-  free_vector(kern      , 0,2*array_size_pow2+1); 
+  FREE(dat_vector);
+  FREE(dat_vecto2);
+  FREE(kern);
   
   
   
@@ -324,10 +350,13 @@ if (debug) print("before blur min/max = %f %f\n", min_val, max_val);
 		 remember that ffts require arrays 2^n in length                          */
   
   array_size_pow2  = next_power_of_two(vector_size_data+kernel_size_data+1);
-  
-  dat_vector = vector(0,2*array_size_pow2+1); /* allocate 2*, since each point is a    */
-  dat_vecto2 = vector(0,2*array_size_pow2+1); /* complex number for FFT, and the plus 1*/
-  kern       = vector(0,2*array_size_pow2+1); /* is for Num. Rec. FFT routines         */
+  array_size = 2*array_size_pow2+1;  /* allocate 2*, since each point is a    */
+				     /* complex number for FFT, and the plus 1*/
+				     /* is for the zero offset FFT routine    */
+
+  ALLOC(dat_vector, array_size); 
+  ALLOC(dat_vecto2, array_size); 
+  ALLOC(kern,       array_size); 
   
   max_val = -FLT_MAX;
   min_val = FLT_MAX;
@@ -337,7 +366,7 @@ if (debug) print("before blur min/max = %f %f\n", min_val, max_val);
     /*    1st calculate kern array for gaussian kernel*/
     
     make_kernel(kern,(float)(ABS(steps[Z])),fwhmz,array_size_pow2,kernel_type);
-    four1(kern,array_size_pow2,1);
+    fft1(kern,array_size_pow2,1);
     
     /*    calculate offset for original data to be placed in vector            */
     
@@ -359,9 +388,9 @@ if (debug) print("before blur min/max = %f %f\n", min_val, max_val);
 	  f_ptr += slice_size;
 	}
 	
-	four1(dat_vector,array_size_pow2,1);
+	fft1(dat_vector,array_size_pow2,1);
 	muli_vects(dat_vecto2,dat_vector,kern,array_size_pow2);
-	four1(dat_vecto2,array_size_pow2,-1);
+	fft1(dat_vecto2,array_size_pow2,-1);
 	
 	f_ptr = fdata + col*col_size + row;
 	
@@ -403,20 +432,20 @@ if (debug) print("before blur min/max = %f %f\n", min_val, max_val);
   
 if (debug) print("after  blur min/max = %f %f\n", min_val, max_val);
   
-  free_vector(dat_vector, 0,2*array_size_pow2+1); 
-  free_vector(dat_vecto2, 0,2*array_size_pow2+1); 
-  free_vector(kern      , 0,2*array_size_pow2+1); 
+  FREE(dat_vector);
+  FREE(dat_vecto2);
+  FREE(kern);
   
   
   if (ms_volume_reals_flag) {
     sprintf(full_outfilename,"%s_reals",outfile);
     status = open_file(full_outfilename, WRITE_FILE, BINARY_FORMAT, &ofp);
     if (status != OK) 
-      print_error("problems opening blurred reals data...",__FILE__, __LINE__);
+      print_error_and_line_num("problems opening blurred reals data...",__FILE__, __LINE__);
     else {
       status = io_binary_data(ofp,WRITE_FILE, fdata, sizeof(float), total_voxels);
       if (status != OK) 
-	print_error("problems writing blurred reals data...",__FILE__, __LINE__);
+	print_error_and_line_num("problems writing blurred reals data...",__FILE__, __LINE__);
     }
     close_file(ofp);
   }
@@ -446,7 +475,7 @@ if (debug) print("after  blur min/max = %f %f\n", min_val, max_val);
 
 
   if (status != OK)
-    print_error("problems writing blurred data...",__FILE__, __LINE__);
+    print_error_and_line_num("problems writing blurred data...",__FILE__, __LINE__);
 
   return(status);
 

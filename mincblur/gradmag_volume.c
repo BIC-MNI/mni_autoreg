@@ -1,15 +1,35 @@
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : gradmag_volume.c
 @INPUT      : infilename - base file name of data
-@OUTPUT     : (none)
+              history    - a comment referring to volume's history
+@OUTPUT     : a gradient magnitude minc volume, saved to disk.
 @RETURNS    : error status
-@DESCRIPTION: 
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
-@CREATED    : 
-@MODIFIED   : 
+@DESCRIPTION: calculates the gradient magnitude of three
+              parital derivative volumes.
+@COPYRIGHT  :
+              Copyright 1995 Louis Collins, McConnell Brain Imaging Centre, 
+              Montreal Neurological Institute, McGill University.
+              Permission to use, copy, modify, and distribute this
+              software and its documentation for any purpose and without
+              fee is hereby granted, provided that the above copyright
+              notice appear in all copies.  The author and McGill University
+              make no representations about the suitability of this
+              software for any purpose.  It is provided "as is" without
+              express or implied warranty.
+
+@CREATED    : some time in 1993
+@MODIFIED   : $Log: gradmag_volume.c,v $
+@MODIFIED   : Revision 1.10  1995-09-18 06:45:42  louis
+@MODIFIED   : this file is a working version of mincblur.  All references to numerical
+@MODIFIED   : recipes routines have been removed.  This version is included in the
+@MODIFIED   : package mni_reg-0.1i
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
+
+#ifndef lint
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/gradmag_volume.c,v 1.10 1995-09-18 06:45:42 louis Exp $";
+#endif
+
 #include <sys/types.h>
 #include <stdlib.h>
 #include <stdio.h>

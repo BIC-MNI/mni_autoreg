@@ -16,11 +16,31 @@
 @CALLS      : stuff from volume_support.c and libmni.a
 @CREATED    : Wed Jun 23 09:04:34 EST 1993  Louis Collins 
                  from code originally written for blur_grad working on .iff files.
-@MODIFIED   : 
+@COPYRIGHT  :
+              Copyright 1995 Louis Collins, McConnell Brain Imaging Centre, 
+              Montreal Neurological Institute, McGill University.
+              Permission to use, copy, modify, and distribute this
+              software and its documentation for any purpose and without
+              fee is hereby granted, provided that the above copyright
+              notice appear in all copies.  The author and McGill University
+              make no representations about the suitability of this
+              software for any purpose.  It is provided "as is" without
+              express or implied warranty.
+
+@MODIFIED   : $Log: gradient_volume.c,v $
+@MODIFIED   : Revision 1.12  1995-09-18 06:45:42  louis
+@MODIFIED   : this file is a working version of mincblur.  All references to numerical
+@MODIFIED   : recipes routines have been removed.  This version is included in the
+@MODIFIED   : package mni_reg-0.1i
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
+
+#ifndef lint
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/gradient_volume.c,v 1.12 1995-09-18 06:45:42 louis Exp $";
+#endif
+
 #include <volume_io.h>
 #include "blur_support.h"
-#include <recipes.h>
 #include <limits.h>
 
 extern int debug;
@@ -48,8 +68,10 @@ public Status gradient3D_volume(FILE *ifd,
   int				
     total_voxels,		
     vector_size_data,		/* original size of row, col or slice vector        */
-    array_size_pow2;		/* actual size of vector/kernel data used in FFT    */
+    array_size_pow2,		/* actual size of vector/kernel data used in FFT    */
 				/* routines - needs to be a power of two            */
+    array_size;
+
   int   
     data_offset;		/* offset required to place original data (size n)  */
 				/*  into array (size m=2^n) so that data is centered*/
@@ -126,10 +148,13 @@ public Status gradient3D_volume(FILE *ifd,
 		 remember that ffts require arrays 2^n in length                          */
   
   array_size_pow2  = next_power_of_two(vector_size_data);
+  array_size = 2*array_size_pow2+1;  /* allocate 2*, since each point is a    */
+				     /* complex number for FFT, and the plus 1*/
+				     /* is for the zero offset FFT routine    */
 
-  dat_vector = vector(0,2*array_size_pow2+1); /* allocate 2*, since each point is a    */
-  dat_vecto2 = vector(0,2*array_size_pow2+1); /* complex number for FFT, and the plus 1*/
-  kern       = vector(0,2*array_size_pow2+1); /* is for Num. Rec. FFT routines         */
+  ALLOC(dat_vector, array_size);
+  ALLOC(dat_vecto2, array_size);
+  ALLOC(kern      , array_size);
   
   /*    1st calculate kern array for FT of 1st derivitive */
   
@@ -166,9 +191,9 @@ public Status gradient3D_volume(FILE *ifd,
 	dat_vector[1 +2*(col+data_offset)  ] = *f_ptr++;
       }
       
-      four1(dat_vector,array_size_pow2,1);
+      fft1(dat_vector,array_size_pow2,1);
       muli_vects(dat_vecto2,dat_vector,kern,array_size_pow2);
-      four1(dat_vecto2,array_size_pow2,-1);
+      fft1(dat_vecto2,array_size_pow2,-1);
       
       f_ptr = fdata + slice*slice_size + row*sizes[X];
       for (col=0; col< sizes[X]; col++) {        /* put the row back */
@@ -189,9 +214,9 @@ public Status gradient3D_volume(FILE *ifd,
     update_progress_report( &progress, slice+1 );
   }
   
-  free_vector(dat_vector, 0,2*array_size_pow2+1); 
-  free_vector(dat_vecto2, 0,2*array_size_pow2+1); 
-  free_vector(kern      , 0,2*array_size_pow2+1); 
+  FREE(dat_vector);
+  FREE(dat_vecto2);
+  FREE(kern      );
     
 
   f_ptr = fdata;
@@ -221,7 +246,7 @@ public Status gradient3D_volume(FILE *ifd,
 				  min_val, max_val, data, infile, history, NULL);
 
   if (status != OK)
-    print_error("problems writing dx gradient data...\n",__FILE__, __LINE__);
+    print_error_and_line_num("problems writing dx gradient data...\n",__FILE__, __LINE__);
 
 
   
@@ -248,10 +273,13 @@ public Status gradient3D_volume(FILE *ifd,
 		 remember that ffts require arrays 2^n in length                          */
   
   array_size_pow2  = next_power_of_two(vector_size_data);
+  array_size = 2*array_size_pow2+1;  /* allocate 2*, since each point is a    */
+				     /* complex number for FFT, and the plus 1*/
+				     /* is for the zero offset FFT routine    */
   
-  dat_vector = vector(0,2*array_size_pow2+1); /* allocate 2*, since each point is a    */
-  dat_vecto2 = vector(0,2*array_size_pow2+1); /* complex number for FFT, and the plus 1*/
-  kern       = vector(0,2*array_size_pow2+1); /* is for Num. Rec. FFT routines         */
+  ALLOC(dat_vector, array_size);
+  ALLOC(dat_vecto2, array_size);
+  ALLOC(kern      , array_size);
   
   /*    1st calculate kern array for FT of 1st derivitive */
   
@@ -292,9 +320,9 @@ public Status gradient3D_volume(FILE *ifd,
       }
       
       
-      four1(dat_vector,array_size_pow2,1);
+      fft1(dat_vector,array_size_pow2,1);
       muli_vects(dat_vecto2,dat_vector,kern,array_size_pow2);
-      four1(dat_vecto2,array_size_pow2,-1);
+      fft1(dat_vecto2,array_size_pow2,-1);
       
       f_ptr = fdata + slice*slice_size + col;
       for (row=0; row< sizes[Y]; row++) {        /* put the col back */
@@ -316,9 +344,9 @@ public Status gradient3D_volume(FILE *ifd,
     
   }
   
-  free_vector(dat_vector, 0,2*array_size_pow2+1); 
-  free_vector(dat_vecto2, 0,2*array_size_pow2+1); 
-  free_vector(kern      , 0,2*array_size_pow2+1); 
+  FREE(dat_vector);
+  FREE(dat_vecto2);
+  FREE(kern      );
   
   f_ptr = fdata;
   
@@ -349,7 +377,7 @@ public Status gradient3D_volume(FILE *ifd,
 
 
   if (status != OK)
-    print_error("problems writing dy gradient data...",__FILE__, __LINE__);
+    print_error_and_line_num("problems writing dy gradient data...",__FILE__, __LINE__);
   
   
   /*--------------------------------------------------------------------------------------*/
@@ -370,11 +398,14 @@ public Status gradient3D_volume(FILE *ifd,
 		 remember that ffts require arrays 2^n in length                          */
   
   array_size_pow2  = next_power_of_two(vector_size_data);
+  array_size = 2*array_size_pow2+1;  /* allocate 2*, since each point is a    */
+				     /* complex number for FFT, and the plus 1*/
+				     /* is for the zero offset FFT routine    */
   
-  dat_vector = vector(0,2*array_size_pow2+1); /* allocate 2*, since each point is a    */
-  dat_vecto2 = vector(0,2*array_size_pow2+1); /* complex number for FFT, and the plus 1*/
-  kern       = vector(0,2*array_size_pow2+1); /* is for Num. Rec. FFT routines         */
-  
+  ALLOC(dat_vector, array_size);
+  ALLOC(dat_vecto2, array_size);
+  ALLOC(kern      , array_size);
+
   if (ndim==1 || ndim==3) {
     
     /*    1st calculate kern array for FT of 1st derivitive */
@@ -407,9 +438,9 @@ public Status gradient3D_volume(FILE *ifd,
 	  f_ptr += slice_size;
 	}
 	
-	four1(dat_vector,array_size_pow2,1);
+	fft1(dat_vector,array_size_pow2,1);
 	muli_vects(dat_vecto2,dat_vector,kern,array_size_pow2);
-	four1(dat_vecto2,array_size_pow2,-1);
+	fft1(dat_vecto2,array_size_pow2,-1);
 	
 	f_ptr = fdata + col*col_size + row;
 	
@@ -445,9 +476,9 @@ public Status gradient3D_volume(FILE *ifd,
   }
   
   
-  free_vector(dat_vector, 0,2*array_size_pow2+1); 
-  free_vector(dat_vecto2, 0,2*array_size_pow2+1); 
-  free_vector(kern      , 0,2*array_size_pow2+1); 
+  FREE(dat_vector);
+  FREE(dat_vecto2);
+  FREE(kern      );
   
   
 /* set up the correct info to copy the data back out in mnc */
@@ -480,7 +511,7 @@ public Status gradient3D_volume(FILE *ifd,
 				  min_val, max_val, data, infile, history, NULL);
 
   if (status != OK)
-    print_error("problems writing dz gradient data...",__FILE__, __LINE__);
+    print_error_and_line_num("problems writing dz gradient data...",__FILE__, __LINE__);
 
 
 
