@@ -17,11 +17,16 @@
 @CREATED    : Thu May 27 16:50:50 EST 1993
                   
 @MODIFIED   :  $Log: init_params.c,v $
-@MODIFIED   :  Revision 1.11  1995-02-22 08:56:06  louis
-@MODIFIED   :  Montreal Neurological Institute version.
-@MODIFIED   :  compiled and working on SGI.  this is before any changes for SPARC/
-@MODIFIED   :  Solaris.
+@MODIFIED   :  Revision 1.12  1995-03-17 10:59:35  louis
+@MODIFIED   :  corrected a memory bug - I was freeing two centroid vectors that were
+@MODIFIED   :  not supposed to be freed in init_transformation.  These variables are
+@MODIFIED   :  freed in the calling procedure init_params.
 @MODIFIED   :
+ * Revision 1.11  1995/02/22  08:56:06  louis
+ * Montreal Neurological Institute version.
+ * compiled and working on SGI.  this is before any changes for SPARC/
+ * Solaris.
+ *
  * Revision 1.10  94/06/02  20:16:01  louis
  * made modifications to allow deformations to be calulated in 2D on slices. 
  * changes had to be made in set_up_lattice, init_lattice when defining
@@ -51,12 +56,12 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 1.11 1995-02-22 08:56:06 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 1.12 1995-03-17 10:59:35 louis Exp $";
 #endif
 
 
 #include <volume_io.h>
-#include <recipes.h>
+#include "recipes.h"
 
 #include "constants.h"
 #include "arg_data.h"
@@ -521,8 +526,6 @@ private  BOOLEAN init_transformation(
   free_matrix(R2,        1,3,1,3); 
   free_matrix(R,         1,3,1,3); 
   free_matrix(Rinv,      1,3,1,3); 
-  free_vector(c1,        1,3);
-  free_vector(c2,        1,3);
   free_vector(angles,    1,3);
   
   return(TRUE);
@@ -583,10 +586,10 @@ public BOOLEAN init_params(Volume d1,
 				   then assume them all to be true, otherwise leave
 				   them as set on the command line. */
 
-    if (globals->filenames.measure_file!=NULL)
+    if (globals->filenames.measure_file!="")
 
     if ((globals->trans_info.transform_type==TRANS_PAT) || 
-	!(globals->filenames.measure_file!=NULL ||
+	!(globals->filenames.measure_file!="" ||
 	  globals->trans_flags.estimate_center ||
 	  globals->trans_flags.estimate_scale  ||
 	  globals->trans_flags.estimate_rots   ||
@@ -598,6 +601,27 @@ public BOOLEAN init_params(Volume d1,
       globals->trans_flags.estimate_trans = TRUE;
     }
     
+print ("first alloc...\n");
+
+    trans = matrix(1,4,1,4);
+    rots = matrix(1,4,1,4);
+    ang = vector(1,3);
+    c1 = vector(1,3);
+    c2 = vector(1,3);
+    sc = vector(1,3);
+
+
+print ("first free...\n");
+
+    free_matrix(trans,1,4,1,4);
+    free_matrix(rots,1,4,1,4);
+    free_vector(ang,1,3);
+    free_vector(c1,1,3);
+    free_vector(c2,1,3);
+    free_vector(sc,1,3);
+
+print ("second alloc...\n");
+
     trans = matrix(1,4,1,4);
     rots = matrix(1,4,1,4);
     ang = vector(1,3);
