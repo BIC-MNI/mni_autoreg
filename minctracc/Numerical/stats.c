@@ -15,7 +15,10 @@
 
 @CREATED    : February 23, 1996
 @MODIFIED   : $Log: stats.c,v $
-@MODIFIED   : Revision 1.3  2002-03-26 14:15:42  stever
+@MODIFIED   : Revision 1.4  2002-12-13 21:16:31  lenezet
+@MODIFIED   : nonlinear in 2D has changed. The option -2D-non-lin is no more necessary. The grid transform has been adapted to feet on the target volume whatever is size. The Optimization is done on the dimensions for which "count" is greater than 1.
+@MODIFIED   :
+@MODIFIED   : Revision 1.3  2002/03/26 14:15:42  stever
 @MODIFIED   : Update includes to <volume_io/foo.h> style.
 @MODIFIED   :
 @MODIFIED   : Revision 1.2  2000/03/15 08:42:44  stever
@@ -27,7 +30,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/stats.c,v 1.3 2002-03-26 14:15:42 stever Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/stats.c,v 1.4 2002-12-13 21:16:31 lenezet Exp $";
 #endif
 
 #include <volume_io/internal_volume_io.h>
@@ -38,8 +41,10 @@ public void init_stats(stats_struct *stat,
 		  char         title[])
 {
 
-  ALLOC ( stat->name, strlen( title )+1 );
+  /*  ALLOC ( stat->name, strlen( title )+1 ); */
+
   (void) strcpy( stat->name, title);
+
   stat->mean	           = 0.0;
   stat->standard_deviation = 0.0;
   stat->rms	           = 0.0;
@@ -49,6 +54,12 @@ public void init_stats(stats_struct *stat,
   stat->min_val            = DBL_MAX;
   stat->max_val            = -DBL_MAX;
 }
+
+public void deinit_stats( stats_struct *stat )
+{
+  FREE (stat->name);
+}
+
 
 public void tally_stats(stats_struct *stat,
 		   Real         val)

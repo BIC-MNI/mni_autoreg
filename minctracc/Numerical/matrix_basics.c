@@ -24,7 +24,10 @@
 
 @CREATED    : January 31, 1992 (Peter Neelin)
 @MODIFIED   :  $Log: matrix_basics.c,v $
-@MODIFIED   :  Revision 96.2  2002-03-26 14:15:40  stever
+@MODIFIED   :  Revision 96.3  2002-12-13 21:16:30  lenezet
+@MODIFIED   :  nonlinear in 2D has changed. The option -2D-non-lin is no more necessary. The grid transform has been adapted to feet on the target volume whatever is size. The Optimization is done on the dimensions for which "count" is greater than 1.
+@MODIFIED   :
+@MODIFIED   :  Revision 96.2  2002/03/26 14:15:40  stever
 @MODIFIED   :  Update includes to <volume_io/foo.h> style.
 @MODIFIED   :
 @MODIFIED   :  Revision 96.1  1997/11/03 19:59:49  louis
@@ -77,7 +80,7 @@ Fri Jun  4 14:10:34 EST 1993 LC
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/matrix_basics.c,v 96.2 2002-03-26 14:15:40 stever Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/matrix_basics.c,v 96.3 2002-12-13 21:16:30 lenezet Exp $";
 #endif
 
 #include <volume_io/internal_volume_io.h>
@@ -347,6 +350,9 @@ public void raw_invertmatrix(int n, float **mat, float **mat_invert)
     for (j=1; j<=n; ++j) {
       mat_invert[i][j] = Rinv[i-1][j-1];
     }
+
+  FREE2D( Rmat );
+  FREE2D( Rinv );
 
 /*
 			       this is the old inversion code

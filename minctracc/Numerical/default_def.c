@@ -35,7 +35,10 @@
       created by removing build_default_deformation_field from 
       transformations.c
 @MODIFIED   : $Log: default_def.c,v $
-@MODIFIED   : Revision 96.4  2002-11-20 21:38:49  lenezet
+@MODIFIED   : Revision 96.5  2002-12-13 21:16:30  lenezet
+@MODIFIED   : nonlinear in 2D has changed. The option -2D-non-lin is no more necessary. The grid transform has been adapted to feet on the target volume whatever is size. The Optimization is done on the dimensions for which "count" is greater than 1.
+@MODIFIED   :
+@MODIFIED   : Revision 96.4  2002/11/20 21:38:49  lenezet
 @MODIFIED   :
 @MODIFIED   : Fix the code to take in consideration the direction cosines especially in the grid transform.
 @MODIFIED   : Add an option to choose the maximum expected deformation magnitude.
@@ -366,7 +369,8 @@ private void append_new_default_deformation_field(Arg_Data *globals)
   
   /* build a vector volume to store the Grid Transform */
   
-  ALLOC(new_field,1);
+   /*  ALLOC(new_field,1); not needed since create volume allocs it
+       internally and returns a pointer*/
 
   if (globals->flags.debug) { print ("In append_new_default_deformation_field...\n"); }
   
@@ -487,14 +491,19 @@ private void append_new_default_deformation_field(Arg_Data *globals)
 	  }
   
               /* build the new GRID_TRANSFORM */
-  ALLOC(grid_trans, 1);
+
+  ALLOC(grid_trans, 1); 
+
   create_grid_transform(grid_trans, new_field);
 
               /* append the deforamation to the current transformation */
   concat_general_transforms(globals->trans_info.transformation, grid_trans, 
 			    globals->trans_info.transformation);
   
-  delete_volume(new_field);
+
+  delete_general_transform(grid_trans);
+
+
 
   
 }

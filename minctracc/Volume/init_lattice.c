@@ -28,7 +28,10 @@
 
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   :  $Log: init_lattice.c,v $
-@MODIFIED   :  Revision 96.4  2002-11-20 21:39:18  lenezet
+@MODIFIED   :  Revision 96.5  2002-12-13 21:18:45  lenezet
+@MODIFIED   :  nonlinear in 2D has changed. The option -2D-non-lin is no more necessary. The grid transform has been adapted to feet on the target volume whatever is size. The Optimization is done on the dimensions for which "count" is greater than 1.
+@MODIFIED   :
+@MODIFIED   :  Revision 96.4  2002/11/20 21:39:18  lenezet
 @MODIFIED   :
 @MODIFIED   :  Fix the code to take in consideration the direction cosines especially in the grid transform.
 @MODIFIED   :  Add an option to choose the maximum expected deformation magnitude.
@@ -85,7 +88,7 @@ made change to init lattice to not change start when there is only 1 slice.
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/init_lattice.c,v 96.4 2002-11-20 21:39:18 lenezet Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/init_lattice.c,v 96.5 2002-12-13 21:18:45 lenezet Exp $";
 #endif
 
 #include <config.h>
@@ -273,7 +276,10 @@ public void set_up_lattice(Volume data,       /* in: volume  */
 				/* get the voxel position of the lattice start,
 				   in voxel coordinates of the data volume  */
     
-  for_less(i,0,MAX_DIMENSIONS) start_voxel[i] = 0.0;
+  for_less(i,0,MAX_DIMENSIONS) {
+    start_voxel[i] = 0.0;
+    start[i] = 0.0;
+  }
   
   
 
@@ -313,7 +319,7 @@ public void set_up_lattice(Volume data,       /* in: volume  */
   convert_voxel_to_world(data, start_voxel, &wstart[X], &wstart[Y], &wstart[Z]);
 
   for_less(i,0,N_DIMENSIONS)
-    start[i] = start_world[i];
+    start[xyzv[i]] = start_world[xyzv[i]];
   
 				/* get direction vectors*/
   for_less(i,0,N_DIMENSIONS) {
@@ -329,7 +335,7 @@ public void set_up_lattice(Volume data,       /* in: volume  */
     print ("       for lattice volume:\n");
     print ("sizes: %7d %7d %7d\n",count[X],count[Y],count[Z]);
     print ("steps: %7.2f %7.2f %7.2f\n",step[X],step[Y],step[Z]);
-    print ("start: %7.2f %7.2f %7.2f %7.2f <- in volume order\n",start[0],start[1],start[2],start[3]);
+    print ("starts:%7.2f %7.2f %7.2f %7.2f %7.2f <- in volume order\n",starts[0],starts[1],starts[2],starts[3],starts[4]);
     print ("wstart:%7.2f %7.2f %7.2f\n",wstart[X],wstart[Y],wstart[Z]);
     print ("dir_x: %7.2f %7.2f %7.2f\n",directions[X].coords[X],
 	                                directions[X].coords[Y],

@@ -13,7 +13,10 @@
 
    @CREATED    : February 3, 1992 - louis collins
    @MODIFIED   : $Log: minctracc.c,v $
-   @MODIFIED   : Revision 96.7  2002-11-20 21:38:31  lenezet
+   @MODIFIED   : Revision 96.8  2002-12-13 21:16:11  lenezet
+   @MODIFIED   : nonlinear in 2D has changed. The option -2D-non-lin is no more necessary. The grid transform has been adapted to feet on the target volume whatever is size. The Optimization is done on the dimensions for which "count" is greater than 1.
+   @MODIFIED   :
+   @MODIFIED   : Revision 96.7  2002/11/20 21:38:31  lenezet
    @MODIFIED   :
    @MODIFIED   : Fix the code to take in consideration the direction cosines especially in the grid transform.
    @MODIFIED   : Add an option to choose the maximum expected deformation magnitude.
@@ -112,7 +115,7 @@ Wed May 26 13:05:44 EST 1993 lc
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.7 2002-11-20 21:38:31 lenezet Exp $";
+static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.8 2002-12-13 21:16:11 lenezet Exp $";
 #endif
 
 #include <config.h>
@@ -123,7 +126,12 @@ static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autore
        Real initial_corr, final_corr;
 static char *default_dim_names[N_DIMENSIONS] =
                   { MIzspace, MIyspace, MIxspace };
-
+static   const STRING      TRANSFORM_FILE_HEADER = "MNI Transform File";
+static   const STRING      LINEAR_TYPE = "Linear";
+static   const STRING      TYPE_STRING = "Transform_Type";
+static   const STRING      LINEAR_TRANSFORM_STRING = "Linear_Transform";
+static   const STRING      GRID_TRANSFORM_STRING = "Grid_Transform";
+static   const STRING      DISPLACEMENT_VOLUME = "Displacement_Volume";
 
 /*************************************************************************/
 int main ( int argc, char* argv[] )
@@ -148,8 +156,9 @@ int main ( int argc, char* argv[] )
   Real
     obj_func_val;
   float quat4;
-
+  
   prog_name     = argv[0];	
+
 
   /* Call ParseArgv to interpret all command line args (returns TRUE if error) */
   parse_flag = ParseArgv(&argc, argv, argTable, 0);
@@ -239,6 +248,7 @@ int main ( int argc, char* argv[] )
 
 
 				/* make a copy of the original transformation */
+
   ALLOC(main_args.trans_info.orig_transformation,1);
   copy_general_transform(main_args.trans_info.transformation,
 			 main_args.trans_info.orig_transformation);
@@ -365,13 +375,9 @@ int main ( int argc, char* argv[] )
   }
 
 
-  ALLOC( data, 1 );		/* read in source data and target model */
-  ALLOC( model, 1 );
-  ALLOC(data_dx, 1); ALLOC(data_dy,   1);
-  ALLOC(data_dz, 1); ALLOC(data_dxyz, 1);
-  ALLOC(model_dx,1); ALLOC(model_dy,  1);
-  ALLOC(model_dz,1); ALLOC(model_dxyz,1);
   
+
+
   if (main_args.trans_info.use_magnitude) 
     {
       /* non-linear optimization is based on the correlation of a local
@@ -391,14 +397,17 @@ int main ( int argc, char* argv[] )
 	DEBUG_PRINT( "This run will use optical flow.\n");
     }
 
+  ALLOC(data,1);
+
   status = input_volume( main_args.filenames.data, 3, default_dim_names, 
 			 NC_UNSPECIFIED, FALSE, 0.0, 0.0,
 			 TRUE, &data, (minc_input_options *)NULL );
+
   if (status != OK)
     print_error_and_line_num("Cannot input volume '%s'",
 			     __FILE__, __LINE__,main_args.filenames.data);
   data_dxyz = data;
-    
+ 
   status = input_volume( main_args.filenames.model, 3, default_dim_names, 
 			 NC_UNSPECIFIED, FALSE, 0.0, 0.0,
 			 TRUE, &model, (minc_input_options *)NULL );
@@ -406,7 +415,7 @@ int main ( int argc, char* argv[] )
     print_error_and_line_num("Cannot input volume '%s'",
 			     __FILE__, __LINE__,main_args.filenames.model);
   model_dxyz = model;
-
+ 
 
   get_volume_separations(data, step);
   get_volume_sizes(data, sizes);
@@ -645,7 +654,11 @@ int main ( int argc, char* argv[] )
 
   }
 
+
+
+
   /* ===========================   write out transformation =============== */
+
 
   status = output_transform_file(main_args.filenames.output_trans,
 				 comments,
@@ -656,6 +669,18 @@ int main ( int argc, char* argv[] )
 		__FILE__, __LINE__);
     exit(EXIT_FAILURE);
   }
+  else {
+    print ("successful write\n");
+  }
+
+
+  
+  delete_general_transform(main_args.trans_info.transformation);
+  FREE(main_args.trans_info.transformation);
+  delete_general_transform(main_args.trans_info.orig_transformation);
+  FREE(main_args.trans_info.orig_transformation);
+  free_features (&(main_args.features));
+
 
   return( status );
 }
@@ -786,7 +811,7 @@ public int get_mask_file(char *dst, char *key, char *nextArg)
   Status status;
 
   if (strncmp ( "-model_mask", key, 2) == 0) {
-    ALLOC( mask_model, 1 );
+    /*    ALLOC( mask_model, 1 );*/
     status = input_volume( nextArg, 3, default_dim_names, 
 			  NC_UNSPECIFIED, FALSE, 0.0, 0.0,
 			  TRUE, &mask_model, (minc_input_options *)NULL );
@@ -794,7 +819,7 @@ public int get_mask_file(char *dst, char *key, char *nextArg)
     main_args.filenames.mask_model = nextArg;
   }
   else {
-    ALLOC( mask_data, 1);
+    /*    ALLOC( mask_data, 1);*/
     status = input_volume( nextArg, 3, default_dim_names, 
 			  NC_UNSPECIFIED, FALSE, 0.0, 0.0,
 			  TRUE, &mask_data, (minc_input_options *)NULL );
@@ -956,6 +981,30 @@ public int get_feature_volumes(char *dst, char *key, int argc, char **argv)
   
 }
 
+
+
+int free_features(Feature_volumes *features)
+{
+
+
+  if (*(features->data)       != (Volume)NULL) {delete_volume(*(features->data));      } FREE(features->data); 
+  if (*(features->model)      != (Volume)NULL) {delete_volume(*(features->model));     } FREE(features->model); 
+
+  if (*(features->data_mask)  != (Volume)NULL) {delete_volume(*(features->data_mask)); } FREE(features->data_mask); 
+  if (*(features->model_mask) != (Volume)NULL) {delete_volume(*(features->model_mask));} FREE(features->model_mask); 
+
+  FREE(features->data_name);
+  FREE(features->model_name);
+  FREE(features->mask_data_name);
+  FREE(features->mask_model_name);
+  FREE(features->obj_func);
+  FREE(features->weight);
+  FREE(features->thresh_data);
+  FREE(features->thresh_model);
+
+}
+
+
 int allocate_a_new_feature(Feature_volumes *features)
 {
 
@@ -965,8 +1014,9 @@ int allocate_a_new_feature(Feature_volumes *features)
   main_args.features.number_of_features++;    
 
   if (i==0) {
+
     ALLOC(features->data,1);
-    ALLOC(features->model,1);
+    ALLOC(features->model,1); 
     ALLOC(features->data_name, 1);
     ALLOC(features->model_name, 1);
     ALLOC(features->data_mask,1);

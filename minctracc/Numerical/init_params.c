@@ -17,7 +17,10 @@
 @CREATED    : Thu May 27 16:50:50 EST 1993
                   
 @MODIFIED   :  $Log: init_params.c,v $
-@MODIFIED   :  Revision 96.3  2002-08-14 19:54:26  lenezet
+@MODIFIED   :  Revision 96.4  2002-12-13 21:16:30  lenezet
+@MODIFIED   :  nonlinear in 2D has changed. The option -2D-non-lin is no more necessary. The grid transform has been adapted to feet on the target volume whatever is size. The Optimization is done on the dimensions for which "count" is greater than 1.
+@MODIFIED   :
+@MODIFIED   :  Revision 96.3  2002/08/14 19:54:26  lenezet
 @MODIFIED   :   quaternion option added for the rotation
 @MODIFIED   :
 @MODIFIED   :  Revision 96.2  2002/03/26 14:15:40  stever
@@ -89,7 +92,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 96.3 2002-08-14 19:54:26 lenezet Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 96.4 2002-12-13 21:16:30 lenezet Exp $";
 #endif
 
 
@@ -114,14 +117,13 @@ public BOOLEAN rotmat_to_ang(float **rot, float *ang);
 public int point_not_masked(Volume volume, 
 			    Real wx, Real wy, Real wz);
 
-public void set_up_lattice(Volume data, 
-			   double *user_step, /* user requested spacing for lattice */
-			   double *start,     /* world starting position of lattice */
-			   int    *count,     /* number of steps in each direction */
-			   double *step,      /* step size in each direction */
-			   VectorR directions[]); /* array of vector directions for each index*/
-
-
+public void set_up_lattice(Volume data,       /* in: volume  */
+			   double *user_step, /* in: user requested spacing for lattice */
+			   double *start,     /* out:world starting position of lattice  in volume dircos coords*/
+			   double *wstart,     /* out:world starting position of lattice */
+			   int    *count,     /* out:number of steps in each direction */
+			   double *step,      /* out:step size in each direction */
+			   VectorR directions[]);/* out: vector directions for each index*/
 
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -171,19 +173,19 @@ BOOLEAN vol_cog(Volume d1, Volume m1, float *centroid, double *step)
     true_value;
 
   int
-    count[3];
+    count[ MAX_DIMENSIONS];
   double 
-    start[3],
-    local_step[3];
+    start[MAX_DIMENSIONS],
+    wstart[ MAX_DIMENSIONS],
+    local_step[ MAX_DIMENSIONS];
   VectorR
-    directions[3];  
+    directions[ MAX_DIMENSIONS];  
 
 				/* build default sampling lattice info
 				   on the data set (d1)               */
-  set_up_lattice(d1, step,
-		 start, count, local_step, directions);
+  set_up_lattice(d1, step,start, wstart, count, local_step, directions);
 
-  fill_Point( starting_position, start[0], start[1], start[2]);
+  fill_Point( starting_position, wstart[0], wstart[1], wstart[2]);
   
 				/* calculate centroids */
 
@@ -192,21 +194,23 @@ BOOLEAN vol_cog(Volume d1, Volume m1, float *centroid, double *step)
   sz = 0.0;
   si = 0.0;
 
-  for_less(s,0,count[SLICE_IND]) {
+
+  for_less(s,0,(int)(count[SLICE_IND]*abs(step[SLICE_IND]))) {
 
     SCALE_VECTOR( vector_step, directions[SLICE_IND], s);
     ADD_POINT_VECTOR( slice, starting_position, vector_step );
 
-    for_less(r,0,count[ROW_IND]) {
+    for_less(r,0,(int)(count[ROW_IND]*abs(step[ROW_IND]))) {
 
       SCALE_VECTOR( vector_step, directions[ROW_IND], r);
       ADD_POINT_VECTOR( row, slice, vector_step );
 
       SCALE_POINT( col, row, 1.0); /* init first col position */
-      for_less(c,0,count[COL_IND]) {
+      for_less(c,0,(int)(count[COL_IND]*abs(step[COL_IND]))) {
 
 	
 	convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
+
 
 	fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
 	
@@ -215,6 +219,7 @@ BOOLEAN vol_cog(Volume d1, Volume m1, float *centroid, double *step)
 	  
 	  if (INTERPOLATE_TRUE_VALUE( d1, &voxel, &true_value )) {
 	    
+
 	    sx +=  Point_x(col) * true_value;
 	    sy +=  Point_y(col) * true_value;
 	    sz +=  Point_z(col) * true_value;
@@ -230,6 +235,7 @@ BOOLEAN vol_cog(Volume d1, Volume m1, float *centroid, double *step)
       }
     }
   }
+
 
   if (si!=0.0) {
     centroid[1] = sx/ si;
@@ -300,6 +306,7 @@ BOOLEAN vol_cov(Volume d1, Volume m1, float *centroid, float **covar, double *st
     count[3];
   double 
     start[3],
+    wstart[3],
     local_step[3];
   VectorR
     directions[3];  
@@ -307,7 +314,7 @@ BOOLEAN vol_cov(Volume d1, Volume m1, float *centroid, float **covar, double *st
 				/* build default sampling lattice info
 				   on the data set (d1)               */
   set_up_lattice(d1, step,
-		 start, count, local_step, directions);
+		 start, wstart, count, local_step, directions);
 
   fill_Point( starting_position, start[0], start[1], start[2]);
   
@@ -317,18 +324,18 @@ BOOLEAN vol_cov(Volume d1, Volume m1, float *centroid, float **covar, double *st
     
 				/* now calculate variances and co-variances */
 
-  for_less(s,0,count[SLICE_IND]) {
+  for_less(s,0,(int)(count[SLICE_IND]*ABS(step[SLICE_IND]))) {
     
     SCALE_VECTOR( vector_step, directions[SLICE_IND], s);
     ADD_POINT_VECTOR( slice, starting_position, vector_step );
     
-    for_less(r,0,count[ROW_IND]) {
+    for_less(r,0,(int)(count[ROW_IND]*ABS(step[ROW_IND]))) {
       
       SCALE_VECTOR( vector_step, directions[ROW_IND], r);
       ADD_POINT_VECTOR( row, slice, vector_step );
       
       SCALE_POINT( col, row, 1.0); /* init first col position */
-      for_less(c,0,count[COL_IND]) {
+      for_less(c,0,(int)(count[COL_IND]*ABS(step[COL_IND]))) {
 	
 	
 	convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
@@ -401,6 +408,7 @@ BOOLEAN vol_to_cov(Volume d1, Volume m1, float *centroid, float **covar, double 
     i,count[3];
   double 
     start[3],
+    wstart[3],
     local_step[3];
   VectorR
     directions[3];  
@@ -408,7 +416,7 @@ BOOLEAN vol_to_cov(Volume d1, Volume m1, float *centroid, float **covar, double 
   if (main_args.flags.debug) {
 
     set_up_lattice(d1, step,
-		   start, count, local_step, directions);
+		   start, wstart, count, local_step, directions);
 
     print ("in vol to cov\n");
     print ("start = %8.2f %8.2f %8.2f \n",start[0],start[1],start[2]);
