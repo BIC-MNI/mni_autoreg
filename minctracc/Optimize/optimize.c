@@ -14,7 +14,10 @@
               express or implied warranty.
 
 @MODIFIED   : $Log: optimize.c,v $
-@MODIFIED   : Revision 96.4  2000-02-16 22:09:36  stever
+@MODIFIED   : Revision 96.5  2000-05-05 17:57:04  louis
+@MODIFIED   : addes volume intensity normalization code
+@MODIFIED   :
+@MODIFIED   : Revision 96.4  2000/02/16 22:09:36  stever
 @MODIFIED   : fine tuning basic nonlinear tests
 @MODIFIED   :
 @MODIFIED   : Revision 96.3  2000/02/15 19:02:08  stever
@@ -117,7 +120,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 96.4 2000-02-16 22:09:36 stever Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 96.5 2000-05-05 17:57:04 louis Exp $";
 #endif
 
 #include <config.h>
@@ -1182,6 +1185,18 @@ public BOOLEAN optimize_non_linear_transformation(Arg_Data *globals)
     }
 
   }
+
+  if (!globals->trans_info.use_magnitude) { /* then we are doing optical flow */
+    normalize_data_to_match_target(globals->features.data[0],
+				   globals->features.data_mask[0],
+				   &globals->threshold[0],
+				   globals->features.model[0],
+				   globals->features.model_mask[0],
+				   &globals->threshold[1],
+				   globals);
+				   
+  }
+
 	   /* ---------------- call requested optimization strategy ---------*/
 
   stat = ( do_non_linear_optimization(globals)==OK );
