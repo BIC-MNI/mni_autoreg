@@ -1,3 +1,16 @@
+2002-03-26  Steve M. Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* configure.in: Updated to conform to autoconf 2.5x.  Use the BIC
+	standard macros in directory m4; these need to be checked out from
+	repository 'mni-acmacros'.
+
+	* acinclude.m4: Removed.
+
+	* autogen.sh: Invoke aclocal with "-I m4" option.	
+
+	* Makefile.am: Invoke aclocal with "-I m4" option.  Distribute
+	the m4/*.m4 files.
+
 2001-02-16  Steve ROBBINS  <stever@bic.mni.mcgill.ca>
 
 	* configure.in: Set VERSION to 0.98k.

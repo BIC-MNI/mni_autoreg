@@ -1,8 +1,28 @@
 dnl Process this file with autoconf to produce a configure script
 
-AC_INIT(minctracc/Include/minctracc.h)
+AC_PREREQ(2.50)
+
+AC_INIT
 AM_INIT_AUTOMAKE(mni_autoreg, 0.98k)
+
+
+AC_CONFIG_SRCDIR(minctracc/Include/minctracc.h)
 AM_CONFIG_HEADER(config.h)
+
+# Add extra include or link directories.
+# Some files include internal volume_io headers as <foo.h>
+# rather than <volume_io/foo.h>.  We fiddle with the build path
+# to support that.  This is a modified version of smr_WITH_BUILD_PATH
+#
+AC_ARG_WITH([build-path],
+[  --with-build-path=DIR   build using DIR/include and DIR/lib],
+[
+    for d in `echo $withval | tr : ' '`; do
+        test -d $d/include && CPPFLAGS="$CPPFLAGS -I$d/include"
+        test -d $d/include/volume_io && CPPFLAGS="$CPPFLAGS -I$d/include/volume_io"
+        test -d $d/lib && LDFLAGS="$LDFLAGS -L$d/lib"
+    done
+])
 
 #------------------------------------------------------------------------
 # Define symbols specifying the package version number,
@@ -14,7 +34,7 @@ AM_CONFIG_HEADER(config.h)
 # "host" is coopted by autoconf's AC_CANONICAL_HOST macro.  It's 
 # used to identify the system, e.g. "mips-sgi-irix5.3" -- which *I*
 # think should be called "system", so that's what I call it in
-# version.h.  Still, kind of ugly.
+# perl/version.c.  Still, kind of ugly.
 
 AC_CANONICAL_HOST
 year=`date | awk '{print $NF}'`        # ugh -- SunOS "date" has no %Y
@@ -25,7 +45,6 @@ AC_DEFINE_UNQUOTED(MNI_AUTOREG_COMPILE_DATE,"$year-$date",[Configure Date])
 AC_DEFINE_UNQUOTED(MNI_AUTOREG_COMPILE_USER,"`logname`",[Configure User])
 AC_DEFINE_UNQUOTED(MNI_AUTOREG_COMPILE_HOST,"`hostname`",[Configure Host])
 AC_DEFINE_UNQUOTED(MNI_AUTOREG_COMPILE_SYSTEM,"$host",[Configure System])
-
 
 
 #------------------------------------------------------------------------
@@ -83,6 +102,7 @@ dnl handle dependency tracking with IRIX cc.
 # make sure it supports prototypes, void, enum, and signed char
 # properly (can't trust __STDC__).
 # -----------------------------------------------------------------
+
 
 cc_flagged=`echo "$CC $CFLAGS $CPPFLAGS" |sed 's/ +/ /;s/ *$//'`
 AC_MSG_CHECKING(that \"$cc_flagged\" has enough ANSI in it)
@@ -149,62 +169,18 @@ AC_CHECK_FUNCS(strtod strtol vprintf,
 # Checks for libraries.
 #------------------------------------------------------------------------
 
-# 2000-02-19 - smr
-# - these libraries look like cruft
-#   must find out just exactly why these are needed...
-# - xdr_long, for instance is not used in any code here
-# - using libucb is often just asking for trouble
-#
-dnl AC_CHECK_LIB(c, xdr_long,:,AC_CHECK_LIB(sun, xdr_long))
-dnl AC_CHECK_LIB(c_s, main)
-dnl AC_CHECK_LIB(ucb, random)
-
 # We'll need to look for a slew of third-party libraries: NetCDF,
 # and MNI libraries minc, and volume_io.
 #
-AC_ARG_WITH(build-path,[
-  --with-build-path[=DIR] use DIR/include DIR/lib
-],[
-for d in `echo $withval | tr : ' '`; do
-    test -d $d/include && MNI_CPPFLAGS="$MNI_CPPFLAGS -I$d/include"
-    test -d $d/include/volume_io && MNI_CPPFLAGS="$MNI_CPPFLAGS -I$d/include/volume_io"
-    test -d $d/lib && MNI_LDFLAGS="$MNI_LDFLAGS -L$d/lib"
-done
-])
+mni_REQUIRE_VOLUMEIO
 
-smr_CHECK_LIB(netcdf,, [NetCDF library], ncopen, netcdf.h, 
-$MNI_LDFLAGS, $MNI_CPPFLAGS)
-if test "$netcdf_LIBS" = ""; then
-    AC_MSG_ERROR([Required library NetCDF not found!])
-fi
-MNI_LIBS=$netcdf_LIBS
-MNI_INCLUDES=$netcdf_CFLAGS
-
-smr_CHECK_LIB(minc,, [MNI medical image library], miicv_create, minc.h, 
-[$MNI_LDFLAGS $MNI_LIBS], [$MNI_INCLUDES $MNI_CPPFLAGS])
-if test "$minc_LIBS" = ""; then
-    AC_MSG_ERROR([Required library minc not found!])
-fi
-MNI_LIBS="$minc_LIBS $MNI_LIBS"
-MNI_INCLUDES="$minc_CFLAGS $MNI_INCLUDES"
-
-smr_CHECK_LIB(volumeio, volume_io, [MNI Volume IO library], input_volume, volume_io.h,
-[$MNI_LDFLAGS $MNI_LIBS -lm],[$MNI_INCLUDES $MNI_CPPFLAGS])
-if test "$volumeio_LIBS" = ""; then
-    AC_MSG_ERROR([Required library volume_io not found!])
-fi
-MNI_LIBS="$MNI_LDFLAGS $volumeio_LIBS $MNI_LIBS"
-MNI_INCLUDES="$volumeio_CFLAGS $MNI_INCLUDES $MNI_CPPFLAGS"
-
+# MNI_LIBS and MNI_INCLUDES are now obsolete.
 AC_SUBST(MNI_LIBS)
 AC_SUBST(MNI_INCLUDES)
 
 #------------------------------------------------------------------------
 # Check some oddities of the volume IO library.
 #------------------------------------------------------------------------
-
-save_CPPFLAGS="${CPPFLAGS-unset}"
-CPPFLAGS="$CPPFLAGS $MNI_INCLUDES"
 
 old_volumeio=
 
@@ -280,12 +256,6 @@ fi
 AC_MSG_RESULT($autoreg_test)
 if test $autoreg_test = fail; then
     AC_MSG_ERROR(Cannot determine arguments to delete_dimension_names.)
-fi
-
-if test "$save_CPPFLAGS" = unset; then
-    unset CPPFLAGS
-else
-    CPPFLAGS="$save_CPPFLAGS"
 fi
 
 if test "$old_volumeio" = yes; then

@@ -1,5 +1,20 @@
 #! /bin/sh
 
+if [ ! -r m4/mni_REQUIRE_LIB.m4 ]; then
+    cat <<EOF
+The required m4 files were not found.
+You need to check these out from their repository
+using
+
+    cvs -d /software/source/libraries checkout -d m4 mni-acmacros
+
+(yes, two '-d' options)
+Then re-run autogen.sh.
+EOF
+    exit 1
+fi
+
+
 cat <<EOF
 Messages of the following type may be safely ignored.
 Any other diagnostics may be a sign of trouble.  
@@ -12,7 +27,7 @@ Let us know if something goes wrong.
 
 EOF
 
-aclocal
+aclocal -I m4
 autoheader
 automake --add-missing
 autoconf
