@@ -33,7 +33,7 @@ public void build_inverse_transformation_matrix(Transform *trans,
 						 double *shears,
 						 double *rotations);
 
-public Boolean extract_parameters_from_matrix(Transform *trans,
+public BOOLEAN extract_parameters_from_matrix(Transform *trans,
 					      double *center,
 					      double *translations,
 					      double *scales,

@@ -1,7 +1,7 @@
-/* Boolean.h head file */
+/* BOOLEAN.h head file */
 /* James M Winget: June 5, 1988 */
 
-typedef int Boolean;
+typedef int BOOLEAN;
 
 #ifndef TRUE
 #define FALSE	0

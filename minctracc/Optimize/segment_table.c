@@ -1,16 +1,19 @@
-#include <def_mni.h>
+#include <mni.h>
 #include <recipes.h>
 #include <print_error.h>
 
-#include <def_segment_table.h>
+#include <segment_table.h>
 
-public Boolean build_segment_table(Segment_Table **s_table, Volume d1, int groups)
+public BOOLEAN build_segment_table(Segment_Table **s_table, Volume d1, int groups)
 {
 
   float
     frac;
   int
     i,min,max;
+
+  Segment_Table *st;
+  int *it;
 
   switch (d1->data_type) {
   case   UNSIGNED_BYTE:
@@ -31,15 +34,17 @@ public Boolean build_segment_table(Segment_Table **s_table, Volume d1, int group
     return(FALSE);
   }
 
-  ALLOC( *s_table, 1);
+  ALLOC( st, 1);
 
+  *s_table = st;
   if (*s_table != NULL) {
     (*s_table)->min = min;
     (*s_table)->max = max;
     (*s_table)->groups = groups;
     (*s_table)->segment = get_segment_LUT_value;
     
-    (*s_table)->table = ivector(min,max);	/* allocate the table space! */
+    it = ivector(min,max);	/* allocate the table space! */
+    (*s_table)->table = it;
     
     for_inclusive(i, min, max) {	        /* build the look up table */
       frac = 0.5 + ((float)(groups)-0.00001 )* (float)(i-min)/(float)(max-min);
@@ -53,7 +58,7 @@ public Boolean build_segment_table(Segment_Table **s_table, Volume d1, int group
 }
 
 
-public Boolean free_segment_table(Segment_Table *s_table)
+public BOOLEAN free_segment_table(Segment_Table *s_table)
 {
 
   free_ivector(s_table->table, s_table->min, s_table->max);

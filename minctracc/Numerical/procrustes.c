@@ -5,7 +5,13 @@
                  procrustes
 @CALLS      : 
 @CREATED    : January 29, 1992 (Peter Neelin)
-@MODIFIED   : February 7, 1992 (Peter Neelin)
+@MODIFIED   :  $Log: procrustes.c,v $
+@MODIFIED   :  Revision 1.5  1993-11-15 16:27:10  louis
+@MODIFIED   :  working version, with new library, with RCS revision stuff,
+@MODIFIED   :  before deformations included
+@MODIFIED   :
+
+February 7, 1992 (Peter Neelin)
                  - added routine transformations_to_homogeneous
 Fri Jun  4 14:10:34 EST 1993 LC
 
@@ -15,7 +21,12 @@ removed
     rotation_to_homogeneous
 and moved them to matrix_basics!
 ---------------------------------------------------------------------------- */
-#include <def_mni.h>
+
+#ifndef lint
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/procrustes.c,v 1.5 1993-11-15 16:27:10 louis Exp $";
+#endif
+
+#include <mni.h>
 #include <recipes.h>
 #include <matrix_basics.h>
 

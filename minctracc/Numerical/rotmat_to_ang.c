@@ -56,12 +56,24 @@
 @GLOBALS    : 
 @CALLS      : mfmult(), rotx(),roty(),rotz(),matrix(),vector()
 @CREATED    : Feb 9, 1992 lc
-@MODIFIED   : 
+@MODIFIED   :  $Log: rotmat_to_ang.c,v $
+@MODIFIED   :  Revision 1.6  1993-11-15 16:27:10  louis
+@MODIFIED   :  working version, with new library, with RCS revision stuff,
+@MODIFIED   :  before deformations included
+@MODIFIED   :
+
 Tue Jun  8 08:44:59 EST 1993 LC
    changes all vec*matrix to matrix*vec.  Std is premultiplication by matrix!
 
 ---------------------------------------------------------------------------- */
-#include <def_mni.h>
+
+
+#ifndef lint
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/rotmat_to_ang.c,v 1.6 1993-11-15 16:27:10 louis Exp $";
+#endif
+
+
+#include <mni.h>
 #include <recipes.h>
 #include <print_error.h>
 
@@ -75,7 +87,7 @@ extern char *prog_name;
 /* VARARGS */
 public  void  print_error( char format[], char *name, int line, ... );
 
-public Boolean rotmat_to_ang(float **rot, float *ang)
+public BOOLEAN rotmat_to_ang(float **rot, float *ang)
 {
 
    float 
@@ -119,13 +131,13 @@ public Boolean rotmat_to_ang(float **rot, float *ang)
    k = t[3][1];
 
    if (i<EPS) {			/* if i is not already in the positive X range, */
-      print_error("step one: rz not in the range -pi/2..pi/2",__FILE__, __LINE__);
+      print_error("%s",__FILE__, __LINE__,"step one: rz not in the range -pi/2..pi/2");
       return(FALSE);
    }
 
    len = sqrt(i*i + j*j);	/* length of vect x on XY plane */
    if (ABS(len)<EPS) {
-      print_error("step one: length of vect x null.",__FILE__, __LINE__);
+      print_error("%s",__FILE__, __LINE__,"step one: length of vect x null.");
       return(FALSE);
    }
 
@@ -160,14 +172,14 @@ public Boolean rotmat_to_ang(float **rot, float *ang)
    k = s[3][1];
 
    if (i<EPS) {
-      print_error("step two: ry not in the range -pi/2..pi/2",__FILE__, __LINE__);
+      print_error("%s",__FILE__, __LINE__,"step two: ry not in the range -pi/2..pi/2");
       return(FALSE);
    }
 
    len = sqrt(i*i + k*k);		/* length of vect x in XZ plane, after RZ */
 
    if (ABS(len)<EPS) {
-      print_error("step two: length of vect z null.",__FILE__, __LINE__);
+      print_error("%s",__FILE__, __LINE__,"step two: length of vect z null.");
       return(FALSE);
    }
 
@@ -205,7 +217,7 @@ public Boolean rotmat_to_ang(float **rot, float *ang)
    len = sqrt(j*j + k*k);	/* length of vect x in Y,Z plane */
 
    if (ABS(len)<EPS) {
-      print_error("step three: length of vect z null.",__FILE__, __LINE__);
+      print_error("%s",__FILE__, __LINE__,"step three: length of vect z null.");
       return(FALSE);
    }
 

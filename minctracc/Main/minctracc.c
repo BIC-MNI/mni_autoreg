@@ -23,9 +23,13 @@
    @CALLS      : 
    @CREATED    : February 3, 1992 - louis collins
    @MODIFIED   : $Log: minctracc.c,v $
-   @MODIFIED   : Revision 1.7  1993-11-15 13:12:10  louis
-   @MODIFIED   : working version, deform deform installation
+   @MODIFIED   : Revision 1.8  1993-11-15 16:27:06  louis
+   @MODIFIED   : working version, with new library, with RCS revision stuff,
+   @MODIFIED   : before deformations included
    @MODIFIED   :
+ * Revision 1.7  93/11/15  13:12:10  louis
+ * working version, before deform installation
+ * 
 
 Thu May 20 11:21:22 EST 1993 lc
              complete re-write to use minc library
@@ -43,14 +47,10 @@ Wed May 26 13:05:44 EST 1993 lc
 	- calculate the bounding box of both source and model,
 	  to map samples from smallest volume into larger one (for speed)
 
-@MODIFIED   : $Log: minctracc.c,v $
-@MODIFIED   : Revision 1.7  1993-11-15 13:12:10  louis
-@MODIFIED   : working version, deform deform installation
-@MODIFIED   :
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 1.7 1993-11-15 13:12:10 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 1.8 1993-11-15 16:27:06 louis Exp $";
 #endif
 
 
@@ -83,7 +83,7 @@ main ( argc, argv )
   Transform 
     *lt, ident_trans;
   int 
-    sizes[3],msizes[3],i;
+    sizes[3],i;
   Real
     min_value, max_value, step[3];
   float 
@@ -117,10 +117,10 @@ main ( argc, argv )
       print ("%s ",argv[i]);
     print ("\n");
     
-    (void) fprintf(stderr, 
+    (void)fprintf(stderr, 
 		   "\nUsage: %s [<options>] <sourcefile> <targetfile> <output transfile>\n", 
 		   prog_name);
-    (void) fprintf(stderr,"       %s [-help]\n\n", prog_name);
+    (void)fprintf(stderr,"       %s [-help]\n\n", prog_name);
     exit(EXIT_FAILURE);
   }
 
@@ -197,7 +197,7 @@ main ( argc, argv )
 	}
 	else {
 	  DEBUG_PRINT("unknown!\n");
-	  (void) fprintf(stderr,"Unknown objective function requested.\n");
+	  (void)fprintf(stderr,"Unknown objective function requested.\n");
 	  exit(EXIT_FAILURE);
 	}
 
@@ -294,7 +294,9 @@ main ( argc, argv )
   /* ===========================  translate initial transformation matrix into 
                                   transformation parameters */
 
-  init_params( data, model, mask_data, mask_model, &main_args );
+  if (!init_params( data, model, mask_data, mask_model, &main_args )) {
+    print_error("%s",__FILE__, __LINE__,"Could not initialize transformation parameters\n");
+  }
 
   if (main_args.filenames.matlab_file != NULL) {
     init_lattice( data, model, mask_data, mask_model, &main_args );
@@ -336,101 +338,17 @@ main ( argc, argv )
 		main_args.trans_info.scales[2] );
 
 
+  if (main_args.filenames.measure_file != NULL) {
+
+#include "measure_code.c"
+
+  }
+
 				/* do not do any optimization if the transformation
 				   requested is the Principal Axes Transformation 
 				   then:
 		                   =======   do linear fitting =============== */
   
-
-
-  if (main_args.filenames.measure_file != NULL) {
-
-
-    init_lattice( data, model, mask_data, mask_model, &main_args );
-
-    if (main_args.smallest_vol == 1) {
-      DEBUG_PRINT("Source volume is smallest\n");
-    }
-    else {
-      DEBUG_PRINT("Target volume is smallest\n");
-    }
-    DEBUG_PRINT3 ( "Lattice step size  = %8.3f %8.3f %8.3f\n",
-		  main_args.step[0],main_args.step[1],main_args.step[2]);
-    DEBUG_PRINT3 ( "Lattice start      = %8.3f %8.3f %8.3f\n",
-		  main_args.start[0],main_args.start[1],main_args.start[2]);
-    DEBUG_PRINT3 ( "Lattice count      = %8d %8d %8d\n\n",
-		  main_args.count[0],main_args.count[1],main_args.count[2]);
-
-
-    status = open_file(  main_args.filenames.measure_file, WRITE_FILE, BINARY_FORMAT,  &ofd );
-    if ( status != OK ) 
-      print_error ("filename `%s' cannot be opened.", 
-		   __FILE__, __LINE__, main_args.filenames.measure_file);
-
-				/* do zscore and reload */
-
-    main_args.obj_function = zscore_objective;
-    obj_func_val = measure_fit( data, model, mask_data, mask_model, &main_args );
-    (void)fprintf (ofd, "%f - zscore\n",obj_func_val);
-    (void)fflush(ofd);
-    DEBUG_PRINT1 ( "%f - zscore\n",obj_func_val);
-    
-    delete_volume(data);  
-    delete_volume(model);  
-
-
-    status = input_volume( main_args.filenames.data, 3, default_dim_names, 
-			  NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-			  TRUE, &data, (minc_input_options *)NULL );
-    status = input_volume( main_args.filenames.model, 3, default_dim_names, 
-			  NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-			  TRUE, &model, (minc_input_options *)NULL );
-
-				/* do xcorr   */
-
-    main_args.obj_function = xcorr_objective;
-    obj_func_val = measure_fit( data, model, mask_data, mask_model, &main_args );
-    (void)fprintf (ofd, "%f - xcorr\n",obj_func_val);
-    (void)fflush(ofd);
-    DEBUG_PRINT1 ( "%f - xcorr\n",obj_func_val);
-
-				/* do var_ratio */
-
-    main_args.obj_function = vr_objective;
-    obj_func_val = measure_fit( data, model, mask_data, mask_model, &main_args );
-    (void)fprintf (ofd, "%f - var_ratio\n",obj_func_val);
-    (void)fflush(ofd);
-    DEBUG_PRINT1 ( "%f - var_ratio\n",obj_func_val);
-
-    delete_volume(data);  
-    delete_volume(model);  
-
-				/* do ssc / zero-crossings */
-
-    status = input_volume( main_args.filenames.data, 3, default_dim_names, 
-			  NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-			  TRUE, &data, (minc_input_options *)NULL );
-    status = input_volume( main_args.filenames.model, 3, default_dim_names, 
-			  NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-			  TRUE, &model, (minc_input_options *)NULL ); 
-
-    main_args.obj_function = ssc_objective;
-    obj_func_val = measure_fit( data, model, mask_data, mask_model, &main_args );
-    (void)fprintf (ofd, "%f - ssc\n",obj_func_val);
-    (void)fflush(ofd);
-    DEBUG_PRINT1 ( "%f - ssc\n",obj_func_val);
-
-
-    status = close_file(ofd);
-    if ( status != OK ) 
-      print_error ("filename `%s' cannot be closed.", 
-		   __FILE__, __LINE__, main_args.filenames.measure_file);
-
-
-    exit( status ) ;
-
-  }
-
   if (main_args.trans_info.transform_type != TRANS_PAT) {
     
 				/* initialize the sampling lattice and figure out
@@ -453,7 +371,7 @@ main ( argc, argv )
 		  main_args.count[0],main_args.count[1],main_args.count[2]);
 
     if (!optimize_linear_transformation( data, model, mask_data, mask_model, &main_args )) {
-      (void) fprintf(stderr, 
+      (void)fprintf(stderr, 
 		     "\n%s: Error in optimization\n", 
 		     prog_name);
       exit(EXIT_FAILURE);
@@ -524,7 +442,7 @@ public int get_transformation(char *dst, char *key, char *nextArg)
 
    /* Check for following argument */
    if (nextArg == NULL) {
-      (void) fprintf(stderr, 
+      (void)fprintf(stderr, 
                      "\"%s\" option requires an additional argument\n",
                      key);
       return FALSE;
@@ -547,7 +465,7 @@ public int get_transformation(char *dst, char *key, char *nextArg)
       /* Create a temporary for standard input */
       fp=tmpfile();
       if (fp==NULL) {
-         (void) fprintf(stderr, "Error opening temporary file.\n");
+         (void)fprintf(stderr, "Error opening temporary file.\n");
          exit(EXIT_FAILURE);
       }
       while ((ch=getc(stdin))!=EOF) (void) putc(ch, fp);
@@ -556,7 +474,7 @@ public int get_transformation(char *dst, char *key, char *nextArg)
    else {
       fp = fopen(nextArg, "r");
       if (fp==NULL) {
-         (void) fprintf(stderr, "Error opening transformation file %s.\n",
+         (void)fprintf(stderr, "Error opening transformation file %s.\n",
                         nextArg);
          exit(EXIT_FAILURE);
       }
@@ -580,7 +498,7 @@ public int get_transformation(char *dst, char *key, char *nextArg)
 
    /* Read the file */
    if (input_transform(fp, &input_transformation)!=OK) {
-      (void) fprintf(stderr, "Error reading transformation file.\n");
+      (void)fprintf(stderr, "Error reading transformation file.\n");
       exit(EXIT_FAILURE);
    }
    (void) fclose(fp);
@@ -635,7 +553,7 @@ public int get_mask_file(char *dst, char *key, char *nextArg)
 
   if (status != OK)
   {
-    (void) fprintf(stderr, "Cannot input mask file %s.",nextArg);
+    (void)fprintf(stderr, "Cannot input mask file %s.",nextArg);
     return(FALSE);
   } 
 

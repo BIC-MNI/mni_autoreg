@@ -1,4 +1,19 @@
-#include <def_mni.h>
+/* ----------------------------- MNI Header -----------------------------------
+@NAME       : make_rots.c
+@DESCRIPTION: collection of routines to build transformation matrices
+              from parameters and to extract parameters from matrices.
+@MODIFIED   : $Log: make_rots.c,v $
+@MODIFIED   : Revision 1.6  1993-11-15 16:27:02  louis
+@MODIFIED   : working version, with new library, with RCS revision stuff,
+@MODIFIED   : before deformations included
+@MODIFIED   :
+---------------------------------------------------------------------------- */
+
+#ifndef lint
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/make_rots.c,v 1.6 1993-11-15 16:27:02 louis Exp $";
+#endif
+
+#include <mni.h>
 #include <recipes.h>
 
 #include "matrix_basics.h"
@@ -334,7 +349,7 @@ public void build_inverse_transformation_matrix(Transform *trans,
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-public Boolean extract_parameters_from_matrix(Transform *trans,
+public BOOLEAN extract_parameters_from_matrix(Transform *trans,
 					      double *center,
 					      double *translations,
 					      double *scales,
@@ -460,7 +475,7 @@ public Boolean extract_parameters_from_matrix(Transform *trans,
 
 				/* get rotation angles */
   if (!rotmat_to_ang(R, ang)) {
-    fprintf(stderr,"Cannot convert R to radians!");
+    (void)fprintf(stderr,"Cannot convert R to radians!");
     printmatrix(3,3,R);
     return(FALSE);
   }

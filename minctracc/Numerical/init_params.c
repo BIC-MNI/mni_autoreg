@@ -11,14 +11,23 @@
 @CALLS      : 
 @CREATED    : Thu May 27 16:50:50 EST 1993
                   
-@MODIFIED   : 
+@MODIFIED   :  $Log: init_params.c,v $
+@MODIFIED   :  Revision 1.6  1993-11-15 16:26:44  louis
+@MODIFIED   :  working version, with new library, with RCS revision stuff,
+@MODIFIED   :  before deformations included
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 
-#include <def_mni.h>
+#ifndef lint
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 1.6 1993-11-15 16:26:44 louis Exp $";
+#endif
+
+
+#include <mni.h>
 #include <recipes.h>
 
-#include "def_constants.h"
-#include "def_arg_data.h"
+#include "constants.h"
+#include "arg_data.h"
 
 #include "matrix_basics.h"
 #include "cov_to_praxes.h"
@@ -29,6 +38,12 @@ extern Arg_Data main_args;
 #include "local_macros.h"
 #include <print_error.h>
 
+public void set_up_lattice(Volume data, 
+			   double *user_step, /* user requested spacing for lattice */
+			   double *start,     /* world starting position of lattice */
+			   int    *count,     /* number of steps in each direction */
+			   double *step,      /* step size in each direction */
+			   VectorR directions[]); /* array of vector directions for each index*/
 
 
 
@@ -57,19 +72,14 @@ extern Arg_Data main_args;
 @MODIFIED   : Thu May 27 16:50:50 EST 1993 lc
                  rewrite for minc files and david's library
 ---------------------------------------------------------------------------- */
-Boolean vol_to_cov(Volume d1, Volume m1, float *centroid, float **covar, double *step)
+BOOLEAN vol_to_cov(Volume d1, Volume m1, float *centroid, float **covar, double *step)
 {
 
 
   VectorR
-    vector_step,
-    slice_step,
-    row_step,
-    col_step;
+    vector_step;
 
   PointR 
-    starting_offset,
-    starting_origin,
     starting_position,
     slice,
     row,
@@ -77,54 +87,47 @@ Boolean vol_to_cov(Volume d1, Volume m1, float *centroid, float **covar, double 
     voxel;
 
   Real
-    tx,ty,tz,
-    voxel_value;
+    tx,ty,tz;
+
   int
-    i,r,c,s,
-    limits[VOL_NDIMS];
+    r,c,s;
 
   float
-    t,
     sxx,syy,szz,
     sxy,syz,sxz,
     sx,sy,sz,si; 
+
   Real
-    thickness[3];
+    true_value;
+
   int
-    sizes[3];
+    count[3];
+  double 
+    start[3],
+    local_step[3];
+  VectorR
+    directions[3];  
 
-  Real
-    true_value,
-    mask_value;
+				/* build default sampling lattice info
+				   on the data set (d1)               */
+  set_up_lattice(d1, step,
+		 start, count, local_step, directions);
 
+/*
+print ("in vol to cov\n");
+print ("start = %8.2f %8.2f %8.2f \n",start[0],start[1],start[2]);
+print ("count = %8d %8d %8d \n",count[0],count[1],count[2]);
+print ("step  = %8.2f %8.2f %8.2f \n",local_step[0],local_step[1],local_step[2]);
 
-  get_volume_separations(d1, thickness);
-  get_volume_sizes(d1, sizes);
+for_less(i,0,3)
+  print ("direct= %8.2f %8.2f %8.2f \n",
+	 Point_x(directions[i]),
+	 Point_y(directions[i]),
+	 Point_z(directions[i]));
+*/
+
+  fill_Point( starting_position, start[0], start[1], start[2]);
   
-				/* build sampling lattice info */
-  for_less( i, 0, 3) {	
-    step[i] *= thickness[i] / ABS( thickness[i]);
-  }
-
-  fill_Vector( col_step,   step[COL_IND], 0.0,     0.0 );
-  fill_Vector( row_step,   0.0,     step[ROW_IND], 0.0 );
-  fill_Vector( slice_step, 0.0,     0.0,     step[SLICE_IND] );
-
-  convert_voxel_to_world(d1, 0.0, 0.0, 0.0, &tx, &ty, &tz); 
-
-  fill_Point( starting_origin, tx, ty, tz);
-
-  for_less( i, 0, 3) {		/* for each dim, get # of steps in that direction,
-				   and set starting offset */
-    t = sizes[i] * thickness[i] / step[i];
-    limits[i] = (int)( ABS( t ) );
-    
-    Point_coord( starting_offset, (2-i) ) = 
-      ( (sizes[i]-1)*thickness[i] - (limits[i] * step[i] ) ) / 2.0;
-  }
-  
-  ADD_POINTS( starting_position, starting_origin, starting_offset ); /*  */
-
 				/* calculate centroids first */
 
   sx = 0.0;
@@ -132,34 +135,28 @@ Boolean vol_to_cov(Volume d1, Volume m1, float *centroid, float **covar, double 
   sz = 0.0;
   si = 0.0;
 
-  for_inclusive(s,0,limits[SLICE_IND]) {
+  for_inclusive(s,0,count[SLICE_IND]) {
 
-    SCALE_VECTOR( vector_step, slice_step, s);
+    SCALE_VECTOR( vector_step, directions[SLICE_IND], s);
     ADD_POINT_VECTOR( slice, starting_position, vector_step );
 
-    for_inclusive(r,0,limits[ROW_IND]) {
+    for_inclusive(r,0,count[ROW_IND]) {
 
-      SCALE_VECTOR( vector_step, row_step, r);
+      SCALE_VECTOR( vector_step, directions[ROW_IND], r);
       ADD_POINT_VECTOR( row, slice, vector_step );
 
       SCALE_POINT( col, row, 1.0); /* init first col position */
-      for_inclusive(c,0,limits[COL_IND]) {
+      for_inclusive(c,0,count[COL_IND]) {
 
-	convert_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
+	
+	convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
 
 	fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
 	
-	if (m1 != NULL) {
-	  nearest_neighbour_interpolant( m1, &voxel, &mask_value); 
-	}
-	else
-	  mask_value = 1.0;
-	
-	if (mask_value > 0.0) {	                /* should be fill_value  */
+
+	if (point_not_masked(m1, Point_x(col), Point_y(col), Point_z(col))) {	
 	  
-	  if (INTERPOLATE_VOXEL_VALUE( d1, &voxel, &voxel_value )) {
-	    
-	    true_value = CONVERT_VOXEL_TO_VALUE(d1,voxel_value );
+	  if (INTERPOLATE_TRUE_VALUE( d1, &voxel, &true_value )) {
 	    
 	    sx +=  Point_x(col) * true_value;
 	    sy +=  Point_y(col) * true_value;
@@ -169,9 +166,9 @@ Boolean vol_to_cov(Volume d1, Volume m1, float *centroid, float **covar, double 
 	  }
 	  /* else requested voxel is just outside volume., so ignore it */
 
-	} /* if mask_value > 0.0 */
+	}
 	
-	ADD_POINT_VECTOR( col, col, col_step );
+	ADD_POINT_VECTOR( col, col, directions[COL_IND] );
 	
       }
     }
@@ -187,34 +184,27 @@ Boolean vol_to_cov(Volume d1, Volume m1, float *centroid, float **covar, double 
     
 				/* now calculate variances and co-variances */
 
-    for_inclusive(s,0,limits[Z]) {
+    for_inclusive(s,0,count[SLICE_IND]) {
       
-      SCALE_VECTOR( vector_step, slice_step, s);
+      SCALE_VECTOR( vector_step, directions[SLICE_IND], s);
       ADD_POINT_VECTOR( slice, starting_position, vector_step );
       
-      for_inclusive(r,0,limits[Y]) {
+      for_inclusive(r,0,count[ROW_IND]) {
 	
-	SCALE_VECTOR( vector_step, row_step, r);
+	SCALE_VECTOR( vector_step, directions[ROW_IND], r);
 	ADD_POINT_VECTOR( row, slice, vector_step );
 	
 	SCALE_POINT( col, row, 1.0); /* init first col position */
-	for_inclusive(c,0,limits[X]) {
+	for_inclusive(c,0,count[COL_IND]) {
 	  
-	  convert_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
+	  
+	  convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
 
 	  fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
 	
-	  if (m1 != NULL) {
-	    nearest_neighbour_interpolant( m1, &voxel, &mask_value); 
-	  }
-	  else
-	    mask_value = 1.0;
-	  
-	  if (mask_value > 0.0) {	                /* should be fill_value  */
+	  if (point_not_masked(m1, Point_x(col), Point_y(col), Point_z(col))) {	
 	    
-	    if (INTERPOLATE_VOXEL_VALUE( d1, &voxel, &voxel_value )) {
-	      
-	      true_value = CONVERT_VOXEL_TO_VALUE(d1,voxel_value );
+	    if (INTERPOLATE_TRUE_VALUE( d1, &voxel, &true_value )) {
 	      
       	      sxx += (Point_x( col )-centroid[1]) * (Point_x( col )-centroid[1]) * true_value;
 	      syy += (Point_y( col )-centroid[2]) * (Point_y( col )-centroid[2]) * true_value;
@@ -226,9 +216,9 @@ Boolean vol_to_cov(Volume d1, Volume m1, float *centroid, float **covar, double 
 	    }
 	    /* else requested voxel is just outside volume., so ignore it */
 
-	  } /* if mask_value > 0.0 */
+	  } 
 	  
-	  ADD_POINT_VECTOR( col, col, col_step );
+	  ADD_POINT_VECTOR( col, col, directions[COL_IND] );
 	
 	}
       }
@@ -280,7 +270,7 @@ Boolean vol_to_cov(Volume d1, Volume m1, float *centroid, float **covar, double 
 @MODIFIED   : Thu May 27 16:50:50 EST 1993 lc
                  rewrite for minc files and david's library
 ---------------------------------------------------------------------------- */
-private  Boolean init_transformation(
+private  BOOLEAN init_transformation(
 				     Volume d1, /* data for volume1 */
 				     Volume d2, /* data for volume2 */
 				     Volume m1, /* mask for volume1 */
@@ -324,16 +314,18 @@ private  Boolean init_transformation(
   
   
   if (! vol_to_cov(d1, m1, c1, cov1, step ) ) {
-    print_error("Cannot calculate the COG of volume 1\n.", __FILE__, __LINE__ );
+    print_error("%s", __FILE__, __LINE__,"Cannot calculate the COG of volume 1\n." );
     return(FALSE);
   }
   if (! vol_to_cov(d2, m2, c2, cov2, step ) ) {
-    print_error("Cannot calculate the COG of volume 2\n.", __FILE__, __LINE__ );
+    print_error("%s", __FILE__, __LINE__,"Cannot calculate the COG of volume 2\n." );
     return(FALSE);
   }
 
-printf ("COG of v1: %f %f %f\n",c1[1],c1[2],c1[3]);
-printf ("COG of v2: %f %f %f\n",c2[1],c2[2],c2[3]);
+  if (verbose>0) {
+    print ("COG of v1: %f %f %f\n",c1[1],c1[2],c1[3]);
+    print ("COG of v2: %f %f %f\n",c2[1],c2[2],c2[3]);
+  }
 
   tx = c2[1] - c1[1];    /* translations to map vol1 into vol2                  */
   ty = c2[2] - c1[2];
@@ -347,14 +339,14 @@ printf ("COG of v2: %f %f %f\n",c2[1],c2[2],c2[3]);
   
   
   if (verbose > 1) {
-    printf ("cov1:                              cov2:\n");
+    print ("cov1:                              cov2:\n");
     for (i=1; i<=3; i++) {
       for (j=1; j<=3; j++)
-	printf ("%8.3f ", cov1[i][j]);
-    printf ("|");
+	print ("%8.3f ", cov1[i][j]);
+    print ("|");
       for (j=1; j<=3; j++)
-	printf ("%8.3f ", cov2[i][j]);
-      printf ("\n\n");
+	print ("%8.3f ", cov2[i][j]);
+      print ("\n\n");
     }
   }
 
@@ -373,14 +365,14 @@ printf ("COG of v2: %f %f %f\n",c2[1],c2[2],c2[3]);
   }
   
   if (verbose > 1) {
-    printf ("prin_axes1:                      princ_axes2:\n");
+    print ("prin_axes1:                      princ_axes2:\n");
     for (i=1; i<=3; i++) {
       for (j=1; j<=3; j++)
-	printf ("%8.3f ", prin_axes1[i][j]);
-      printf ("|");
+	print ("%8.3f ", prin_axes1[i][j]);
+      print ("|");
       for (j=1; j<=3; j++)
-	printf ("%8.3f ", prin_axes2[i][j]);
-      printf ("\n\n");
+	print ("%8.3f ", prin_axes2[i][j]);
+      print ("\n\n");
     }
   }
   
@@ -390,17 +382,17 @@ printf ("COG of v2: %f %f %f\n",c2[1],c2[2],c2[3]);
   
   
   if (verbose > 1) {
-    printf ("r1:                   r2:                  r:\n");
+    print ("r1:                   r2:                  r:\n");
     for (i=1; i<=3; i++) {
       for (j=1; j<=3; j++)
-	printf ("%8.3f ", R1[i][j]);
-      printf ("|");
+	print ("%8.3f ", R1[i][j]);
+      print ("|");
       for (j=1; j<=3; j++)
-	printf ("%8.3f ", R2[i][j]);
-      printf ("|");
+	print ("%8.3f ", R2[i][j]);
+      print ("|");
       for (j=1; j<=3; j++)
-	printf ("%8.3f ", R[i][j]);
-      printf ("\n");
+	print ("%8.3f ", R[i][j]);
+      print ("\n");
     }
   }
 
@@ -408,7 +400,7 @@ printf ("COG of v2: %f %f %f\n",c2[1],c2[2],c2[3]);
   transpose(3,3,R,R);		/* all of the princ axes stuff uses vec*mat */
 
   if (!rotmat_to_ang(R, angles)) {
-    fprintf(stderr,"Could not extract angles from:\n");
+    (void)fprintf(stderr,"Could not extract angles from:\n");
     printmatrix(3,3,R);
     return(FALSE);
   }
@@ -433,39 +425,39 @@ printf ("COG of v2: %f %f %f\n",c2[1],c2[2],c2[3]);
   ndim = 3;
   
   if (verbose > 1) {
-    (void) printf("\nFor volume 1 :");
-    (void) printf("\nCentroid :");
-    for (i=1; i<=ndim; i++) (void) printf("  %f",c1[i]);
-    (void) printf("\n\n");
-    (void) printf("Principal axes\n");
+    (void) print("\nFor volume 1 :");
+    (void) print("\nCentroid :");
+    for (i=1; i<=ndim; i++) (void) print("  %f",c1[i]);
+    (void) print("\n\n");
+    (void) print("Principal axes\n");
     for (i=1; i<=ndim; i++) {
-      (void) printf("Vector %d :",i);
+      (void) print("Vector %d :",i);
       for (j=1; j<=ndim; j++) {
-	(void) printf("  %f",prin_axes1[i][j]);
+	(void) print("  %f",prin_axes1[i][j]);
       }
-      (void) printf("\n");
+      (void) print("\n");
     }
   
-    (void) printf("\n");
+    (void) print("\n");
     
-    (void) printf("\nFor volume 2 :");
-    (void) printf("\nCentroid :");
-    for (i=1; i<=ndim; i++) (void) printf("  %f",c2[i]);
-    (void) printf("\n\n");
-    (void) printf("Principal axes\n");
+    (void) print("\nFor volume 2 :");
+    (void) print("\nCentroid :");
+    for (i=1; i<=ndim; i++) (void) print("  %f",c2[i]);
+    (void) print("\n\n");
+    (void) print("Principal axes\n");
     for (i=1; i<=ndim; i++) {
-      (void) printf("Vector %d :",i);
+      (void) print("Vector %d :",i);
       for (j=1; j<=ndim; j++) {
-	(void) printf("  %f",prin_axes2[i][j]);
+	(void) print("  %f",prin_axes2[i][j]);
       }
-      (void) printf("\n");
+      (void) print("\n");
     }
     
-    (void) printf ("rotation angles are: %f %f %f\n",
+    (void) print ("rotation angles are: %f %f %f\n",
 		   angles[1]*RAD_TO_DEG,
 		   angles[2]*RAD_TO_DEG,
 		   angles[3]*RAD_TO_DEG);
-    (void) printf ("translation mm     : %f %f %f\n",tx,ty,tz);
+    (void) print ("translation mm     : %f %f %f\n",tx,ty,tz);
   }
 
   free_matrix(cov1,      1,3,1,3); 
@@ -505,7 +497,7 @@ printf ("COG of v2: %f %f %f\n",c2[1],c2[2],c2[3]);
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-public Boolean init_params(Volume d1,
+public BOOLEAN init_params(Volume d1,
 		 Volume d2,
 		 Volume m1,
 		 Volume m2, 
@@ -537,9 +529,12 @@ public Boolean init_params(Volume d1,
 				   or if PAT transformation requested, 
 				   then assume them all to be true, otherwise leave
 				   them as set on the command line. */
-    
+
+    if (globals->filenames.measure_file!=NULL)
+
     if ((globals->trans_info.transform_type==TRANS_PAT) || 
-	!(globals->trans_flags.estimate_center ||
+	!(globals->filenames.measure_file!=NULL ||
+	  globals->trans_flags.estimate_center ||
 	  globals->trans_flags.estimate_scale  ||
 	  globals->trans_flags.estimate_rots   ||
 	  globals->trans_flags.estimate_trans)) {
@@ -603,7 +598,7 @@ public Boolean init_params(Volume d1,
       c1   = vector(1,3);
       
       if (! vol_to_cov(d1, m1,  c1, cov1, globals->step ) ) {
-	print_error("Cannot calculate the COG of volume 1\n.", __FILE__, __LINE__ );
+	print_error("%s", __FILE__, __LINE__,"Cannot calculate the COG of volume 1\n." );
 	return(FALSE);
       }
       for_inclusive( i, 0, 2 )
@@ -613,13 +608,15 @@ public Boolean init_params(Volume d1,
       free_vector(c1,1,3);
     }
 				/* get the parameters from the input matrix: */
-    extract_parameters_from_matrix(lt,
-				   globals->trans_info.center,
-				   globals->trans_info.translations,
-				   globals->trans_info.scales,
-				   globals->trans_info.shears,
-				   globals->trans_info.rotations);
-
+    if (!extract_parameters_from_matrix(lt,
+					globals->trans_info.center,
+					globals->trans_info.translations,
+					globals->trans_info.scales,
+					globals->trans_info.shears,
+					globals->trans_info.rotations)) {
+      return(FALSE);  
+    }
+	
 				/* do we need to replace anything?
 				   (note that center was possibly replaced
 				    just abve, and we dont have to do all the 
@@ -635,8 +632,9 @@ public Boolean init_params(Volume d1,
       c2 = vector(1,3);
       sc = vector(1,3);
     
-      init_transformation(d1,d2,m1,m2, globals->step, globals->flags.verbose,
-			  trans,rots,ang,c1,c2,sc);      
+      if (!init_transformation(d1,d2,m1,m2, globals->step, globals->flags.verbose,
+			       trans,rots,ang,c1,c2,sc))
+	return(FALSE);      
       
       for_less( i, 0, 3 ) {
 	if (globals->trans_flags.estimate_rots)

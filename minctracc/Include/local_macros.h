@@ -40,7 +40,7 @@
    } \
 }
 
-#define INTERPOLATE_VOXEL_VALUE(volume, coord, result) \
+#define INTERPOLATE_TRUE_VALUE(volume, coord, result) \
    (*(main_args.interpolant)) (volume, coord, result)
 
 #ifndef DEBUG_PRINT

@@ -4,17 +4,25 @@
 @METHOD     : 
 @GLOBALS    : 
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
-@MODIFIED   : 
+@MODIFIED   :  $Log: objectives.c,v $
+@MODIFIED   :  Revision 1.5  1993-11-15 16:27:07  louis
+@MODIFIED   :  working version, with new library, with RCS revision stuff,
+@MODIFIED   :  before deformations included
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 
+#ifndef lint
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/objectives.c,v 1.5 1993-11-15 16:27:07 louis Exp $";
+#endif
 
-#include <def_mni.h>
+
+#include <mni.h>
 #include <limits.h>
 #include <recipes.h>
-#include "def_constants.h"
-#include "def_arg_data.h"
+#include "constants.h"
+#include "arg_data.h"
 
-#include <def_segment_table.h>
+#include <segment_table.h>
 
 #include "local_macros.h"
 #include <print_error.h>
@@ -70,10 +78,7 @@ public float xcorr_objective(Volume d1,
 {
 
   VectorR
-    vector_step,
-    slice_step,
-    row_step,
-    col_step;
+    vector_step;
 
   PointR
     starting_position,
@@ -89,9 +94,7 @@ public float xcorr_objective(Volume d1,
     r,c,s;
 
   Real
-    value1, value2,
-    voxel_value,
-    mask_value;
+    value1, value2;
   
   Real
     s1,s2,s3;                   /* to store the sums for f1,f2,f3 */
@@ -100,9 +103,6 @@ public float xcorr_objective(Volume d1,
   int 
     count1,count2;
 
-  fill_Vector( col_step,   globals->step[COL_IND], 0.0,           0.0 );
-  fill_Vector( row_step,   0.0,           globals->step[ROW_IND], 0.0 );
-  fill_Vector( slice_step, 0.0,           0.0,           globals->step[SLICE_IND] );
 
   fill_Point( starting_position, globals->start[X], globals->start[Y], globals->start[Z]);
 
@@ -111,55 +111,40 @@ public float xcorr_objective(Volume d1,
 
   for_inclusive(s,0,globals->count[SLICE_IND]) {
 
-    SCALE_VECTOR( vector_step, slice_step, s);
+    SCALE_VECTOR( vector_step, globals->directions[SLICE_IND], s);
     ADD_POINT_VECTOR( slice, starting_position, vector_step );
 
     for_inclusive(r,0,globals->count[ROW_IND]) {
       
-      SCALE_VECTOR( vector_step, row_step, r);
+      SCALE_VECTOR( vector_step, globals->directions[ROW_IND], r);
       ADD_POINT_VECTOR( row, slice, vector_step );
       
       SCALE_POINT( col, row, 1.0); /* init first col position */
       for_inclusive(c,0,globals->count[COL_IND]) {
 	
-	convert_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
+	convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
 	
 	fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
 	
-	if (m1 != NULL) {
-	  nearest_neighbour_interpolant( m1, &voxel, &mask_value); 
-	}
-	else
-	  mask_value = 1.0;
-	
-	if (mask_value > 0.0) {	                /* should be fill_value  */
+	if (point_not_masked(m1, Point_x(col), Point_y(col), Point_z(col))) {
 	  
-	  if (INTERPOLATE_VOXEL_VALUE( d1, &voxel, &voxel_value )) {
+	  if (INTERPOLATE_TRUE_VALUE( d1, &voxel, &value1 )) {
 
 	    count1++;
-	    value1 = CONVERT_VOXEL_TO_VALUE(d1,voxel_value );
-
 
 	    DO_TRANSFORM(pos2, globals->trans_info.transformation, col);
 	    
-	    convert_world_to_voxel(d2, Point_x(pos2), Point_y(pos2), Point_z(pos2), &tx, &ty, &tz);
+	    convert_3D_world_to_voxel(d2, Point_x(pos2), Point_y(pos2), Point_z(pos2), &tx, &ty, &tz);
 	    
 	    fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
 	
-	    if (m2 != NULL) {
-	      nearest_neighbour_interpolant( m2, &voxel, &mask_value); 
-	    }
-	    else
-	      mask_value = 1.0;
-	    
-	    if (mask_value > 0.0) {	                /* should be fill_value  */
+	    if (point_not_masked(m2, Point_x(pos2), Point_y(pos2), Point_z(pos2))) {
 	      
-	      if (INTERPOLATE_VOXEL_VALUE( d2, &voxel, &voxel_value )) {
+	      if (INTERPOLATE_TRUE_VALUE( d2, &voxel, &value2 )) {
 
 		count2++;
-		value2 = CONVERT_VOXEL_TO_VALUE(d1,voxel_value );
 
-		if (value1 > globals->threshold || value2 > globals->threshold ) {
+		if (value1 > globals->threshold[0] || value2 > globals->threshold[1] ) {
 		  
 		  s1 += value1*value2;
 		  s2 += value1*value1;
@@ -168,11 +153,11 @@ public float xcorr_objective(Volume d1,
 		} 
 		
 	      } /* if voxel in d2 */
-	    } /* if mask_value, on volume two */
+	    } /* if point in mask volume two */
 	  } /* if voxel in d1 */
-	} /* if mask_value, on volume one */
+	} /* if point in mask volume one */
 	
-	ADD_POINT_VECTOR( col, col, col_step );
+	ADD_POINT_VECTOR( col, col, globals->directions[COL_IND] );
 	
       } /* for c */
     } /* for r */
@@ -180,7 +165,7 @@ public float xcorr_objective(Volume d1,
   
   result = 1.0 - s1 / (fsqrt(s2)*fsqrt(s3));
   
-  if (globals->flags.debug) printf ("%7d %7d -> %10.8f\n",count1,count2,result);
+  if (globals->flags.debug) (void)print ("%7d %7d -> %10.8f\n",count1,count2,result);
   
   return (result);
   
@@ -194,10 +179,7 @@ public float ssc_objective(Volume d1,
 			   Arg_Data *globals)
 {
   VectorR
-    vector_step,
-    slice_step,
-    row_step,
-    col_step;
+    vector_step;
 
   PointR
     starting_position,
@@ -213,9 +195,7 @@ public float ssc_objective(Volume d1,
     r,c,s;
 
   Real
-    value1, value2,
-    voxel_value,
-    mask_value;
+    value1, value2;
   
   float 
     result;				/* the result */
@@ -226,9 +206,6 @@ public float ssc_objective(Volume d1,
     zero_crossings;
 
 
-  fill_Vector( col_step,   globals->step[ROW_IND], 0.0,              0.0 );
-  fill_Vector( row_step,   0.0,              globals->step[ROW_IND], 0.0 );
-  fill_Vector( slice_step, 0.0,              0.0,              globals->step[SLICE_IND] );
 
   fill_Point( starting_position, globals->start[X], globals->start[Y], globals->start[Z]);
 
@@ -241,53 +218,38 @@ public float ssc_objective(Volume d1,
 
   for_inclusive(s,0,globals->count[SLICE_IND]) {
 
-    SCALE_VECTOR( vector_step, slice_step, s);
+    SCALE_VECTOR( vector_step, globals->directions[SLICE_IND], s);
     ADD_POINT_VECTOR( slice, starting_position, vector_step );
 
     for_inclusive(r,0,globals->count[ROW_IND]) {
       
-      SCALE_VECTOR( vector_step, row_step, r);
+      SCALE_VECTOR( vector_step, globals->directions[ROW_IND], r);
       ADD_POINT_VECTOR( row, slice, vector_step );
       
       SCALE_POINT( col, row, 1.0); /* init first col position */
       for_inclusive(c,0,globals->count[COL_IND]) {
 	
-	convert_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
+	convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
 	
 	fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
 	
-	if (m1 != NULL) {
-	  nearest_neighbour_interpolant( m1, &voxel, &mask_value); 
-	}
-	else
-	  mask_value = 1.0;
-	
-	if (mask_value > 0.0) {	                /* should be fill_value  */
+	if (point_not_masked(m1, Point_x(col), Point_y(col), Point_z(col))) {
 	  
-	  if (INTERPOLATE_VOXEL_VALUE( d1, &voxel, &voxel_value )) {
+	  if (INTERPOLATE_TRUE_VALUE( d1, &voxel, &value1 )) {
 
 	    count1++;
-	    value1 = CONVERT_VOXEL_TO_VALUE(d1,voxel_value );
-
 
 	    DO_TRANSFORM(pos2, globals->trans_info.transformation, col);
 	    
-	    convert_world_to_voxel(d2, Point_x(pos2), Point_y(pos2), Point_z(pos2), &tx, &ty, &tz);
+	    convert_3D_world_to_voxel(d2, Point_x(pos2), Point_y(pos2), Point_z(pos2), &tx, &ty, &tz);
 	    
 	    fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
 	
-	    if (m2 != NULL) {
-	      nearest_neighbour_interpolant( m2, &voxel, &mask_value); 
-	    }
-	    else
-	      mask_value = 1.0;
-	    
-	    if (mask_value > 0.0) {	                /* should be fill_value  */
+	    if (point_not_masked(m2, Point_x(pos2), Point_y(pos2), Point_z(pos2))) {
 	      
-	      if (INTERPOLATE_VOXEL_VALUE( d2, &voxel, &voxel_value )) {
+	      if (INTERPOLATE_TRUE_VALUE( d2, &voxel, &value2 )) {
 
 		count2++;
-		value2 = CONVERT_VOXEL_TO_VALUE(d1,voxel_value );
 
 		if (!((greater && value1>value2) || (!greater && value1<value2))) {
 		  greater = !greater;
@@ -295,11 +257,11 @@ public float ssc_objective(Volume d1,
 		} 
 		
 	      } /* if voxel in d2 */
-	    } /* if mask_value, on volume two */
+	    } /* if point in mask volume two */
 	  } /* if voxel in d1 */
-	} /* if mask_value, on volume one */
+	} /* if point in mask volume one */
 	
-	ADD_POINT_VECTOR( col, col, col_step );
+	ADD_POINT_VECTOR( col, col, globals->directions[COL_IND] );
 	
       } /* for c */
     } /* for r */
@@ -309,54 +271,39 @@ public float ssc_objective(Volume d1,
 
   for_inclusive(s,0,globals->count[SLICE_IND]) {
 
-    SCALE_VECTOR( vector_step, slice_step, s);
+    SCALE_VECTOR( vector_step, globals->directions[SLICE_IND], s);
     ADD_POINT_VECTOR( slice, starting_position, vector_step );
 
     for_inclusive(c,0,globals->count[COL_IND]) {
       
-      SCALE_VECTOR( vector_step, col_step, c);
+      SCALE_VECTOR( vector_step, globals->directions[COL_IND], c);
       ADD_POINT_VECTOR( col, slice, vector_step );
       
       SCALE_POINT( row, col, 1.0); /* init first row position */
 
       for_inclusive(r,0,globals->count[ROW_IND]) {
 
-	convert_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
+	convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
 	
 	fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
 	
-	if (m1 != NULL) {
-	  nearest_neighbour_interpolant( m1, &voxel, &mask_value); 
-	}
-	else
-	  mask_value = 1.0;
-	
-	if (mask_value > 0.0) {	                /* should be fill_value  */
+	if (point_not_masked(m1, Point_x(col), Point_y(col), Point_z(col))) {
 	  
-	  if (INTERPOLATE_VOXEL_VALUE( d1, &voxel, &voxel_value )) {
+	  if (INTERPOLATE_TRUE_VALUE( d1, &voxel, &value1 )) {
 
 	    count1++;
-	    value1 = CONVERT_VOXEL_TO_VALUE(d1,voxel_value );
-
 
 	    DO_TRANSFORM(pos2, globals->trans_info.transformation, col);
 	    
-	    convert_world_to_voxel(d2, Point_x(pos2), Point_y(pos2), Point_z(pos2), &tx, &ty, &tz);
+	    convert_3D_world_to_voxel(d2, Point_x(pos2), Point_y(pos2), Point_z(pos2), &tx, &ty, &tz);
 	    
 	    fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
 	
-	    if (m2 != NULL) {
-	      nearest_neighbour_interpolant( m2, &voxel, &mask_value); 
-	    }
-	    else
-	      mask_value = 1.0;
-	    
-	    if (mask_value > 0.0) {	                /* should be fill_value  */
+	    if (point_not_masked(m2,Point_x(pos2), Point_y(pos2), Point_z(pos2))) {
 	      
-	      if (INTERPOLATE_VOXEL_VALUE( d2, &voxel, &voxel_value )) {
+	      if (INTERPOLATE_TRUE_VALUE( d2, &voxel, &value2 )) {
 
 		count2++;
-		value2 = CONVERT_VOXEL_TO_VALUE(d1,voxel_value );
 
 		if (!((greater && value1>value2) || (!greater && value1<value2))) {
 		  greater = !greater;
@@ -364,11 +311,11 @@ public float ssc_objective(Volume d1,
 		} 
 		
 	      } /* if voxel in d2 */
-	    } /* if mask_value, on volume two */
+	    } /* if point in mask volume two */
 	  } /* if voxel in d1 */
-	} /* if mask_value, on volume one */
+	} /* if point in mask volume one */
 	
-	ADD_POINT_VECTOR( row, row, row_step );
+	ADD_POINT_VECTOR( row, row, globals->directions[ROW_IND] );
 	
       } /* for c */
     } /* for r */
@@ -382,54 +329,39 @@ public float ssc_objective(Volume d1,
 
   for_inclusive(c,0,globals->count[COL_IND]) {
     
-    SCALE_VECTOR( vector_step, col_step, c);
+    SCALE_VECTOR( vector_step, globals->directions[COL_IND], c);
     ADD_POINT_VECTOR( col, starting_position, vector_step );
 
     for_inclusive(r,0,globals->count[ROW_IND]) {
       
-      SCALE_VECTOR( vector_step, row_step, r);
+      SCALE_VECTOR( vector_step, globals->directions[ROW_IND], r);
       ADD_POINT_VECTOR( row, col, vector_step );
       
       SCALE_POINT( slice, row, 1.0); /* init first col position */
 
       for_inclusive(s,0,globals->count[SLICE_IND]) {
 	
-	convert_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
+	convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
 	
 	fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
 	
-	if (m1 != NULL) {
-	  nearest_neighbour_interpolant( m1, &voxel, &mask_value); 
-	}
-	else
-	  mask_value = 1.0;
-	
-	if (mask_value > 0.0) {	                /* should be fill_value  */
+	if (point_not_masked(m1, Point_x(col), Point_y(col), Point_z(col))) {
 	  
-	  if (INTERPOLATE_VOXEL_VALUE( d1, &voxel, &voxel_value )) {
+	  if (INTERPOLATE_TRUE_VALUE( d1, &voxel, &value1 )) {
 
 	    count1++;
-	    value1 = CONVERT_VOXEL_TO_VALUE(d1,voxel_value );
-
 
 	    DO_TRANSFORM(pos2, globals->trans_info.transformation, col);
 	    
-	    convert_world_to_voxel(d2, Point_x(pos2), Point_y(pos2), Point_z(pos2), &tx, &ty, &tz);
+	    convert_3D_world_to_voxel(d2, Point_x(pos2), Point_y(pos2), Point_z(pos2), &tx, &ty, &tz);
 	    
 	    fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
 	
-	    if (m2 != NULL) {
-	      nearest_neighbour_interpolant( m2, &voxel, &mask_value); 
-	    }
-	    else
-	      mask_value = 1.0;
-	    
-	    if (mask_value > 0.0) {	                /* should be fill_value  */
+	    if (point_not_masked(m2, Point_x(pos2), Point_y(pos2), Point_z(pos2))) {
 	      
-	      if (INTERPOLATE_VOXEL_VALUE( d2, &voxel, &voxel_value )) {
+	      if (INTERPOLATE_TRUE_VALUE( d2, &voxel, &value2 )) {
 
 		count2++;
-		value2 = CONVERT_VOXEL_TO_VALUE(d1,voxel_value );
 
 		if (!((greater && value1>value2) || (!greater && value1<value2))) {
 		  greater = !greater;
@@ -437,11 +369,11 @@ public float ssc_objective(Volume d1,
 		} 
 		
 	      } /* if voxel in d2 */
-	    } /* if mask_value, on volume two */
+	    } /* if point in mask volume two */
 	  } /* if voxel in d1 */
-	} /* if mask_value, on volume one */
+	} /* if point in mask volume one */
 	
-	ADD_POINT_VECTOR( slice, slice, slice_step );
+	ADD_POINT_VECTOR( slice, slice, globals->directions[SLICE_IND] );
 	
       } /* for c */
     } /* for r */
@@ -450,7 +382,7 @@ public float ssc_objective(Volume d1,
 
   result = -1.0 * (float)zero_crossings;
 
-  if (globals->flags.debug) printf ("%7d %7d -> %10.8f\n",count1,count2,result);
+  if (globals->flags.debug) (void)print ("%7d %7d -> %10.8f\n",count1,count2,result);
 
   return (result);
   
@@ -463,10 +395,7 @@ public float zscore_objective(Volume d1,
 			   Arg_Data *globals)
 {
   VectorR
-    vector_step,
-    slice_step,
-    row_step,
-    col_step;
+    vector_step;
 
   PointR 
     starting_position,
@@ -482,9 +411,7 @@ public float zscore_objective(Volume d1,
     r,c,s;
 
   Real
-    value1, value2,
-    voxel_value,
-    mask_value;
+    value1, value2;
   
   Real
     z2_sum;
@@ -494,9 +421,6 @@ public float zscore_objective(Volume d1,
     count1,count2,count3;
 
 
-  fill_Vector( col_step,   globals->step[COL_IND], 0.0,           0.0 );
-  fill_Vector( row_step,   0.0,           globals->step[ROW_IND], 0.0 );
-  fill_Vector( slice_step, 0.0,           0.0,           globals->step[SLICE_IND] );
 
   fill_Point( starting_position, globals->start[X], globals->start[Y], globals->start[Z]);
 
@@ -505,66 +429,51 @@ public float zscore_objective(Volume d1,
 
   for_inclusive(s,0,globals->count[SLICE_IND]) {
 
-    SCALE_VECTOR( vector_step, slice_step, s);
+    SCALE_VECTOR( vector_step, globals->directions[SLICE_IND], s);
     ADD_POINT_VECTOR( slice, starting_position, vector_step );
 
     for_inclusive(r,0,globals->count[ROW_IND]) {
       
-      SCALE_VECTOR( vector_step, row_step, r);
+      SCALE_VECTOR( vector_step, globals->directions[ROW_IND], r);
       ADD_POINT_VECTOR( row, slice, vector_step );
       
       SCALE_POINT( col, row, 1.0); /* init first col position */
       for_inclusive(c,0,globals->count[COL_IND]) {
 	
-	convert_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
+	convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
 	
 	fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
 	
-	if (m1 != NULL) {
-	  nearest_neighbour_interpolant( m1, &voxel, &mask_value); 
-	}
-	else
-	  mask_value = 1.0;
-	
-	if (mask_value > 0.0) {	                /* should be fill_value  */
+	if (point_not_masked(m1, Point_x(col), Point_y(col), Point_z(col))) {
 	  
-	  if (INTERPOLATE_VOXEL_VALUE( d1, &voxel, &voxel_value )) {
+	  if (INTERPOLATE_TRUE_VALUE( d1, &voxel, &value1 )) {
 
 	    count1++;
-	    value1 = CONVERT_VOXEL_TO_VALUE(d1,voxel_value );
-
 
 	    DO_TRANSFORM(pos2, globals->trans_info.transformation, col);
 	    
-	    convert_world_to_voxel(d2, Point_x(pos2), Point_y(pos2), Point_z(pos2), &tx, &ty, &tz);
+	    convert_3D_world_to_voxel(d2, Point_x(pos2), Point_y(pos2), Point_z(pos2), &tx, &ty, &tz);
 	    
 	    fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
 	
-	    if (m2 != NULL) {
-	      nearest_neighbour_interpolant( m2, &voxel, &mask_value); 
-	    }
-	    else
-	      mask_value = 1.0;
-	    
-	    if (mask_value > 0.0) {	                /* should be fill_value  */
+	    if (point_not_masked(m2, Point_x(pos2), Point_y(pos2), Point_z(pos2))) {
 	      
-	      if (INTERPOLATE_VOXEL_VALUE( d2, &voxel, &voxel_value )) {
+	      if (INTERPOLATE_TRUE_VALUE( d2, &voxel, &value2 )) {
 
 		count2++;
-		value2 = CONVERT_VOXEL_TO_VALUE(d1,voxel_value );
 
-		if (ABS(value1) > globals->threshold || ABS(value2) > globals->threshold ) {
+		if (ABS(value1) > globals->threshold[0] || ABS(value2) > globals->threshold[1] ) {
 		  count3++;
 		  z2_sum +=  (value1-value2)*(value1-value2);
 		} 
 	
 		
 	      } /* if voxel in d2 */
-	    } /* if mask_value, on volume two */
+	    } /* if point in mask volume two */
 	  } /* if voxel in d1 */
-	} /* if mask_value, on volume one */
+	} /* if point in mask volume one */
 	
-	ADD_POINT_VECTOR( col, col, col_step );
+	ADD_POINT_VECTOR( col, col, globals->directions[COL_IND] );
 	
       } /* for c */
     } /* for r */
@@ -575,7 +484,7 @@ public float zscore_objective(Volume d1,
   else
     result = fsqrt(z2_sum);
 
-  if (globals->flags.debug) printf ("%7d %7d %7d -> %10.8f\n",count1,count2,count3,result);
+  if (globals->flags.debug) (void)print ("%7d %7d %7d -> %10.8f\n",count1,count2,count3,result);
   
   return (result);
   
@@ -590,10 +499,7 @@ public float vr_objective(Volume d1,
 			  Arg_Data *globals)
 {
   VectorR
-    vector_step,
-    slice_step,
-    row_step,
-    col_step;
+    vector_step;
 
   PointR
     starting_position,
@@ -611,8 +517,7 @@ public float vr_objective(Volume d1,
   Real
     value1, value2,
     voxel_value1,
-    voxel_value2,
-    mask_value;
+    voxel_value2;
   
   float
     rat,
@@ -640,11 +545,8 @@ public float vr_objective(Volume d1,
 
   ALLOC(count3, (segment_table->groups+1));
 
-				/* build lattice info */
+				/* build world lattice info */
 
-  fill_Vector( col_step,   globals->step[COL_IND], 0.0,           0.0 );
-  fill_Vector( row_step,   0.0,           globals->step[ROW_IND], 0.0 );
-  fill_Vector( slice_step, 0.0,           0.0,           globals->step[SLICE_IND] );
 
   fill_Point( starting_position, globals->start[X], globals->start[Y], globals->start[Z]);
 
@@ -660,55 +562,43 @@ public float vr_objective(Volume d1,
 				/* loop through each node of lattice */
   for_inclusive(s,0,globals->count[SLICE_IND]) {
 
-    SCALE_VECTOR( vector_step, slice_step, s);
+    SCALE_VECTOR( vector_step, globals->directions[SLICE_IND], s);
     ADD_POINT_VECTOR( slice, starting_position, vector_step );
 
     for_inclusive(r,0,globals->count[ROW_IND]) {
       
-      SCALE_VECTOR( vector_step, row_step, r);
+      SCALE_VECTOR( vector_step, globals->directions[ROW_IND], r);
       ADD_POINT_VECTOR( row, slice, vector_step );
       
       SCALE_POINT( col, row, 1.0); /* init first col position */
       for_inclusive(c,0,globals->count[COL_IND]) {
 	
-	convert_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
+	convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
 	
 	fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
 	
-	if (m1 != NULL) {
-	  nearest_neighbour_interpolant( m1, &voxel, &mask_value); 
-	}
-	else
-	  mask_value = 1.0;
-	
-	if (mask_value > 0.0) {	                /* should be fill_value  */
+	if (point_not_masked(m1, Point_x(col), Point_y(col), Point_z(col))) {
 	  
-	  if (INTERPOLATE_VOXEL_VALUE( d1, &voxel, &voxel_value1 )) {
+	  if (INTERPOLATE_TRUE_VALUE( d1, &voxel, &value1 )) {
 
 	    count1++;
-	    value1 = CONVERT_VOXEL_TO_VALUE(d1,voxel_value1 );
+	    voxel_value1 = CONVERT_VALUE_TO_VOXEL(d1,value1 );
 
 
 	    DO_TRANSFORM(pos2, globals->trans_info.transformation, col);
 	    
-	    convert_world_to_voxel(d2, Point_x(pos2), Point_y(pos2), Point_z(pos2), &tx, &ty, &tz);
+	    convert_3D_world_to_voxel(d2, Point_x(pos2), Point_y(pos2), Point_z(pos2), &tx, &ty, &tz);
 	    
 	    fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
 	
-	    if (m2 != NULL) {
-	      nearest_neighbour_interpolant( m2, &voxel, &mask_value); 
-	    }
-	    else
-	      mask_value = 1.0;
-	    
-	    if (mask_value > 0.0) {	                /* should be fill_value  */
+	    if (point_not_masked(m2,Point_x(pos2), Point_y(pos2), Point_z(pos2) )) {
 	      
-	      if (INTERPOLATE_VOXEL_VALUE( d2, &voxel, &voxel_value2 )) {
+	      if (INTERPOLATE_TRUE_VALUE( d2, &voxel, &value2 )) {
 
 		count2++;
-		value2 = CONVERT_VOXEL_TO_VALUE(d1,voxel_value2 );
+		voxel_value2 = CONVERT_VALUE_TO_VOXEL(d1,value2 );
 
-	        if (ABS(value1) > globals->threshold && ABS(value2) > globals->threshold ) {
+	        if (ABS(value1) > globals->threshold[0] && ABS(value2) > globals->threshold[1] ) {
 
 		  index = (*segment_table->segment)( voxel_value1, segment_table);
 
@@ -728,11 +618,11 @@ public float vr_objective(Volume d1,
 		
 		
 	      } /* if voxel in d2 */
-	    } /* if mask_value, on volume two */
+	    } /* if point in mask volume two */
 	  } /* if voxel in d1 */
-	} /* if mask_value, on volume one */
+	} /* if point in mask volume one */
 	
-	ADD_POINT_VECTOR( col, col, col_step );
+	ADD_POINT_VECTOR( col, col, globals->directions[COL_IND] );
 	
       } /* for c */
     } /* for r */

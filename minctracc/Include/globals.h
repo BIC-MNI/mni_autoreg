@@ -12,6 +12,7 @@ double  ftol         =  0.005;
 double  simplex_size = 20.0;
 
 int  invert_mapping_flag = FALSE;
+int clobber_flag = FALSE;
 
   
 /*------------------------    Command line arguments --------------------*/
@@ -21,6 +22,10 @@ static ArgvInfo argTable[] = {
      "---Transformation maps one to volume two---"},
   {NULL, ARGV_HELP, NULL, NULL,
 	"Initial transformation information."},
+  {"-no_clobber", ARGV_CONSTANT, (char *) FALSE, (char *) &clobber_flag,
+     "Do not overwrite output file (default)."},
+  {"-clobber", ARGV_CONSTANT, (char *) TRUE, (char *) &clobber_flag,
+     "Overwrite output file."},
   {"-transformation", ARGV_FUNC, (char *) get_transformation, 
      (char *) &main_args.trans_info,
      "Initial world transformation. (Default = identity)."},
@@ -96,8 +101,8 @@ static ArgvInfo argTable[] = {
   {"-groups", ARGV_INT, (char *) 0, 
      (char *) &main_args.groups,
      "Number of groups for ratio calculations."},
-  {"-threshold", ARGV_FLOAT, (char *) 0, 
-     (char *) &main_args.threshold,
+  {"-threshold", ARGV_FLOAT, (char *) 2, 
+     (char *) main_args.threshold,
      "Lower limit for voxel threshold"},
   {"-speckle", ARGV_FLOAT, (char *) 0, 
      (char *) &main_args.speckle,
@@ -127,14 +132,14 @@ static ArgvInfo argTable[] = {
      (char *) main_args.step,
      "Step size along each dimension (X, Y, Z)"},
   {"-xstep", ARGV_FLOAT, (char *) 0, 
-     (char *) &main_args.step[X],
-     "Step size along the X dimension"},
+     (char *) &main_args.step[0],
+     "Step size along the column dimension"},
   {"-ystep", ARGV_FLOAT, (char *) 0, 
-     (char *) &main_args.step[Y],
-     "Step size along the Y dimension"},
+     (char *) &main_args.step[1],
+     "Step size along the row dimension"},
   {"-zstep", ARGV_FLOAT, (char *) 0, 
-     (char *) &main_args.step[Z],
-     "Step size along the Z dimension"},
+     (char *) &main_args.step[2],
+     "Step size along the slice dimension"},
   
   {NULL, ARGV_HELP, NULL, NULL,
      "Options for logging progress. Default = -verbose 1."},

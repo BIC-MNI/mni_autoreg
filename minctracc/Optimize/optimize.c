@@ -1,12 +1,27 @@
-#include <def_mni.h>
+/* ----------------------------- MNI Header -----------------------------------
+@NAME       : optimize.c
+@DESCRIPTION: collection of routines for user-specified optimization.
+@METHOD     : now, only simplex method is used.
+@MODIFIED   : $Log: optimize.c,v $
+@MODIFIED   : Revision 1.5  1993-11-15 16:27:08  louis
+@MODIFIED   : working version, with new library, with RCS revision stuff,
+@MODIFIED   : before deformations included
+@MODIFIED   :
+---------------------------------------------------------------------------- */
+
+#ifndef lint
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 1.5 1993-11-15 16:27:08 louis Exp $";
+#endif
+
+#include <mni.h>
 #include <recipes.h>
 #include <limits.h>
 
-#include "def_constants.h"
-#include "def_arg_data.h"
+#include "constants.h"
+#include "arg_data.h"
 #include "objectives.h"
-
-#include "def_segment_table.h"
+#include "make_rots.h"
+#include "segment_table.h"
 
 extern Arg_Data main_args;
 
@@ -17,10 +32,10 @@ public void make_zscore_volume(Volume d1, Volume m1,
 
 public void add_speckle_to_volume(Volume d1, 
 				  float speckle,
-				  double *start, int *count, double *size);
+				  double  *start, int *count, VectorR directions[]);
 
-static   Volume   Gdata1, Gdata2, Gmask1, Gmask2;
-static   int      Ginverse_mapping_flag, Gndim;
+         Volume   Gdata1, Gdata2, Gmask1, Gmask2;
+         int      Ginverse_mapping_flag, Gndim;
 
 extern   double   ftol ;        
 extern   double   simplex_size ;
@@ -41,7 +56,7 @@ extern   double   simplex_size ;
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-private float fit_function(float *params) 
+public float fit_function(float *params) 
 {
 
   Transform *mat;
@@ -127,13 +142,13 @@ private float fit_function(float *params)
 @CREATED    : Fri Jun 11 11:16:25 EST 1993 LC
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public Boolean optimize_simplex(Volume d1,
+public BOOLEAN optimize_simplex(Volume d1,
 				Volume d2,
 				Volume m1,
 				Volume m2, 
 				Arg_Data *globals)
 {
-  Boolean 
+  BOOLEAN 
     stat;
   float 
     local_ftol,
@@ -175,9 +190,9 @@ public Boolean optimize_simplex(Volume d1,
     ndim = 12;
     break;
   default:
-    (void) fprintf(stderr, "Unknown type of transformation requested (%d)\n",
+    (void)fprintf(stderr, "Unknown type of transformation requested (%d)\n",
 		   globals->trans_info.transform_type);
-    (void) fprintf(stderr, "Error in line %d, file %s\n",__LINE__, __FILE__);
+    (void)fprintf(stderr, "Error in line %d, file %s\n",__LINE__, __FILE__);
     stat = FALSE;
   }
 
@@ -234,7 +249,7 @@ public Boolean optimize_simplex(Volume d1,
     
     p[2][1]=p[1][1]+simplex_size;		/* set up all vertices of simplex */
     p[3][2]=p[1][2]+simplex_size;
-    p[4][3]=p[1][3]+simplex_size;
+    p[4][3]=p[1][3]+simplex_size/5;
     
     p[5][4]=p[1][4] + (simplex_size*DEG_TO_RAD);
     p[6][5]=p[1][5] + (simplex_size*DEG_TO_RAD);
@@ -259,37 +274,37 @@ public Boolean optimize_simplex(Volume d1,
       
       y[i] = fit_function(p[i]);
 
-      printf ("corr = %6.4f",y[i]);
+      (void)print ("corr = %6.4f",y[i]);
       for (j=1; j<=3; ++j)  {
-	printf (" %7.2f",p[i][j]);
+	(void)print (" %7.2f",p[i][j]);
       }
       for (j=4; j<=6; ++j)  {
-	printf (" %7.3f",p[i][j]*RAD_TO_DEG);
+	(void)print (" %7.3f",p[i][j]*RAD_TO_DEG);
       }
       for (j=7; j<=ndim; ++j)  {
-	printf (" %6.4f",p[i][j]);
+	(void)print (" %6.4f",p[i][j]);
       }
-      printf ("\n");
+      (void)print ("\n");
       
     }
 	
     amoeba(p,y,ndim,local_ftol,fit_function,&nfunk);
     
-    printf("after %d iterations\n",nfunk);
+    (void)print("after %d iterations\n",nfunk);
     
     for (i=1; i<=(ndim+1); ++i)	{   /* print out value of correlation at all points of simplex */
       if (i==1) {
-	printf ("end corr = %f",y[i]);
+	(void)print ("end corr = %f",y[i]);
 	for (j=1; j<=3; ++j)  {
-	  printf (" %f",p[i][j]);
+	  (void)print (" %f",p[i][j]);
 	}
 	for (j=4; j<=6; ++j)  {
-	  printf (" %f",p[i][j]*RAD_TO_DEG);
+	  (void)print (" %f",p[i][j]*RAD_TO_DEG);
 	}
 	for (j=7; j<=ndim; ++j)  {
-	  printf (" %f",p[i][j]);
+	  (void)print (" %f",p[i][j]);
 	}
-	printf ("\n");
+	(void)print ("\n");
       }
     }   
     
@@ -308,7 +323,7 @@ public Boolean optimize_simplex(Volume d1,
 	  globals->trans_info.scales[i]       =  p[1][7];
       } else {
 	for_less ( i, 0, 3 ) 
-	  globals->trans_info.scales[i]       =  p[i][i+7];
+	  globals->trans_info.scales[i]       =  p[1][i+7];
       } 
     
     if (ndim==12) {
@@ -371,37 +386,55 @@ public Boolean optimize_simplex(Volume d1,
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public Boolean optimize_linear_transformation(Volume d1,
+public BOOLEAN optimize_linear_transformation(Volume d1,
 					      Volume d2,
 					      Volume m1,
 					      Volume m2, 
 					      Arg_Data *globals)
 {
-  Boolean 
+  BOOLEAN 
     stat;
+  int i;
 
   stat = TRUE;
-
+  
 	     /*----------------- prepare data for optimization ------------ */
   
   if (globals->obj_function == zscore_objective) { /* replace volume d1 and d2 by zscore volume  */
-    make_zscore_volume(d1,m1,(float)globals->threshold);
-    make_zscore_volume(d2,m2,(float)globals->threshold);
+    make_zscore_volume(d1,m1,(float)globals->threshold[0]);
+    make_zscore_volume(d2,m2,(float)globals->threshold[1]);
   } 
   else  if (globals->obj_function == ssc_objective) {	/* add speckle to the data set */
+
+    make_zscore_volume(d1,m1,(float)globals->threshold[0]); /* need to make data sets comparable */
+    make_zscore_volume(d2,m2,(float)globals->threshold[1]); /* in mean and sd...                 */
+
     if (globals->smallest_vol == 1)
       add_speckle_to_volume(d1, 
 			    globals->speckle,
-			    globals->start, globals->count, globals->step);
+			    globals->start, globals->count, globals->directions);
     else
       add_speckle_to_volume(d2, 
 			    globals->speckle,
-			    globals->start, globals->count, globals->step);    
+			    globals->start, globals->count, globals->directions);    
   } else if (globals->obj_function == vr_objective) {
-    if (globals->smallest_vol == 1)
-      build_segment_table(&segment_table, d1, globals->groups);
-    else
-      build_segment_table(&segment_table, d2, globals->groups);
+    if (globals->smallest_vol == 1) {
+      if (!build_segment_table(&segment_table, d1, globals->groups))
+	print_error("%s\n",__FILE__, __LINE__,"Could not build segment table for source volume");
+    }
+    else {
+      if (!build_segment_table(&segment_table, d2, globals->groups))
+	print_error("%s\n",__FILE__, __LINE__,"Could not build segment table for target volume");
+
+    }
+
+    if (globals->flags.debug && globals->flags.verbose>1) {
+      print ("groups = %d\n",segment_table->groups);
+      for_less(i, segment_table->min, segment_table->max+1) {
+	print ("%5d: table = %5d, function = %5d\n",i,segment_table->table[i],
+	       (segment_table->segment)(i,segment_table) );
+      }
+    }
 
   }
 	   /* ---------------- call requested optimization strategy ---------*/
@@ -411,15 +444,15 @@ public Boolean optimize_linear_transformation(Volume d1,
     stat = optimize_simplex(d1, d2, m1, m2, globals);
     break;
   default:
-    (void) fprintf(stderr, "Unknown type of optimization requested (%d)\n",globals->optimize_type);
-    (void) fprintf(stderr, "Error in line %d, file %s\n",__LINE__, __FILE__);
+    (void)fprintf(stderr, "Unknown type of optimization requested (%d)\n",globals->optimize_type);
+    (void)fprintf(stderr, "Error in line %d, file %s\n",__LINE__, __FILE__);
     stat = FALSE;
   }
   
           /* ----------------finish up parameter/matrix manipulations ------*/
 
   if (globals->obj_function == vr_objective) {
-    free_segment_table(segment_table);
+    stat = free_segment_table(segment_table);
   }
 
   return(stat);
@@ -459,7 +492,7 @@ public float measure_fit(Volume d1,
 			 Volume m2, 
 			 Arg_Data *globals)
 {
-  Boolean 
+  BOOLEAN 
     stat;
   float 
     **p, y;
@@ -478,23 +511,32 @@ public float measure_fit(Volume d1,
 
   
   if (globals->obj_function == zscore_objective) { /* replace volume d1 and d2 by zscore volume  */
-    make_zscore_volume(d1,m1,(float)globals->threshold);
-    make_zscore_volume(d2,m2,(float)globals->threshold);
+    make_zscore_volume(d1,m1,(float)globals->threshold[0]);
+    make_zscore_volume(d2,m2,(float)globals->threshold[1]);
   } 
   else  if (globals->obj_function == ssc_objective) {	/* add speckle to the data set */
+
+    make_zscore_volume(d1,m1,(float)globals->threshold[0]); /* need to make data sets comparable */
+    make_zscore_volume(d2,m2,(float)globals->threshold[1]); /* in mean and sd...                 */
+
     if (globals->smallest_vol == 1)
       add_speckle_to_volume(d1, 
 			    globals->speckle,
-			    globals->start, globals->count, globals->step);
+			    globals->start, globals->count, globals->directions);
     else
       add_speckle_to_volume(d2, 
 			    globals->speckle,
-			    globals->start, globals->count, globals->step);    
+			    globals->start, globals->count, globals->directions);    
   } else if (globals->obj_function == vr_objective) {
-    if (globals->smallest_vol == 1)
-      build_segment_table(&segment_table, d1, globals->groups);
-    else
-      build_segment_table(&segment_table, d2, globals->groups);
+
+    if (globals->smallest_vol == 1) {
+      if (!build_segment_table(&segment_table, d1, globals->groups))
+	print_error("%s",__FILE__, __LINE__,"Could not build segment table for source volume\n");
+    }
+    else {
+      if (!build_segment_table(&segment_table, d2, globals->groups))
+	print_error("%s",__FILE__, __LINE__,"Could not build segment table for target volume\n");
+    }
 
   }
 	   /* ---------------- build the parameters necessary for obj func evaluation ---------*/
@@ -520,9 +562,9 @@ public float measure_fit(Volume d1,
     ndim = 12;
     break;
   default:
-    (void) fprintf(stderr, "Unknown type of transformation requested (%d)\n",
+    (void)fprintf(stderr, "Unknown type of transformation requested (%d)\n",
 		   globals->trans_info.transform_type);
-    (void) fprintf(stderr, "Error in line %d, file %s\n",__LINE__, __FILE__);
+    (void)fprintf(stderr, "Error in line %d, file %s\n",__LINE__, __FILE__);
     stat = FALSE;
   }
 
@@ -581,7 +623,7 @@ public float measure_fit(Volume d1,
           /* ----------------finish up parameter/matrix manipulations ------*/
 
   if (globals->obj_function == vr_objective) {
-    free_segment_table(segment_table);
+    stat = free_segment_table(segment_table);
   }
 
   if (stat)

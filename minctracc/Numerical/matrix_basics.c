@@ -12,7 +12,12 @@
 		 invertmatrix
 @CALLS      : 
 @CREATED    : January 31, 1992 (Peter Neelin)
-@MODIFIED   : 
+@MODIFIED   :  $Log: matrix_basics.c,v $
+@MODIFIED   :  Revision 1.5  1993-11-15 16:27:04  louis
+@MODIFIED   :  working version, with new library, with RCS revision stuff,
+@MODIFIED   :  before deformations included
+@MODIFIED   :
+
 Tue Jun  1 12:46:44 EST 1993 LC
      added routines to make identity matrices, copy matrices, make rotation matrices
      each routine has two copies (one for float, one for double parameters)
@@ -24,7 +29,12 @@ Fri Jun  4 14:10:34 EST 1993 LC
        ie new_vec = matrix * old_vec!
 
 ---------------------------------------------------------------------------- */
-#include <def_mni.h>
+
+#ifndef lint
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/matrix_basics.c,v 1.5 1993-11-15 16:27:04 louis Exp $";
+#endif
+
+#include <mni.h>
 #include <recipes.h>
 
 /* external calls: */
@@ -120,9 +130,9 @@ public void printmatrix(int rows, int cols, float **the_matrix)
    for (i=1; i <= rows; ++i) {
       for (j=1; j <= cols; ++j) {
          f=the_matrix[i][j];
-         (void) printf(" %10.6f ",f);
+         (void) print(" %10.6f ",f);
       }
-      (void) printf("\n");
+      (void) print("\n");
    }
 }
 
@@ -1018,8 +1028,8 @@ public void angles_to_homogeneous(int ndim, float *angles,
 
    }
    else {
-     fprintf (stderr,"Can't handle %d dimensions in angles_to_homogeneous()\n",ndim);
-     fprintf (stderr,"Error in %s, line %d\n",__FILE__,__LINE__);
+     (void)fprintf (stderr,"Can't handle %d dimensions in angles_to_homogeneous()\n",ndim);
+     (void)fprintf (stderr,"Error in %s, line %d\n",__FILE__,__LINE__);
      exit(-1);
    }
 

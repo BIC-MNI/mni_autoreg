@@ -6,16 +6,73 @@
 @GLOBALS    : 
 @CREATED    : Wed May 26 13:05:44 EST 1993 LC using routines from NEELIN's
               mincresample.
-@MODIFIED   : 
-
-
+@MODIFIED   :  $Log: interpolation.c,v $
+@MODIFIED   :  Revision 1.6  1993-11-15 16:26:46  louis
+@MODIFIED   :  working version, with new library, with RCS revision stuff,
+@MODIFIED   :  before deformations included
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 
+#ifndef lint
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/interpolation.c,v 1.6 1993-11-15 16:26:46 louis Exp $";
+#endif
 
-#include <def_mni.h>
-#include "def_point_vector.h"
+#include <mni.h>
+#include "point_vector.h"
 
 #define VOL_NDIMS 3
+
+/* ----------------------------- MNI Header -----------------------------------
+@NAME       : nearest_neighbour_interpolant
+@INPUT      : volume - pointer to volume data
+              coord - point at which volume should be interpolated in voxel 
+                 units (with 0 being first point of the volume).
+@OUTPUT     : result - interpolated value.
+@RETURNS    : TRUE if coord is within the volume, FALSE otherwise.
+@DESCRIPTION: Routine to interpolate a volume at a point with nearest
+              neighbour interpolation.
+@METHOD     : 
+@GLOBALS    : 
+@CALLS      : 
+@CREATED    : February 12, 1993 (Peter Neelin)
+@MODIFIED   : Fri May 28 09:06:12 EST 1993 Louis Collins
+               mod to use david's volume_struct
+---------------------------------------------------------------------------- */
+public int nearest_neighbour_interpolant(Volume volume, 
+                                         PointR *coord, double *result)
+{
+   long 
+     ind0, ind1, ind2, 
+     max[3];
+   int sizes[3];
+
+   /* Check that the coordinate is inside the volume */
+   
+  get_volume_sizes(volume, sizes);
+  max[0]=sizes[0];
+  max[1]=sizes[1];
+  max[2]=sizes[2];
+   
+   if ((Point_x( *coord ) < -0.5) || (Point_x( *coord ) >= max[0]-0.5) ||
+       (Point_y( *coord ) < -0.5) || (Point_y( *coord ) >= max[1]-0.5) ||
+       (Point_z( *coord ) < -0.5) || (Point_z( *coord ) >= max[2]-0.5)) {
+
+      *result = CONVERT_VOXEL_TO_VALUE( volume, get_volume_voxel_min(volume));
+
+      return FALSE;
+   }
+
+   /* Get the whole part of the coordinate */
+   ind0 = (long) (Point_x( *coord ) + 0.5);
+   ind1 = (long) (Point_y( *coord ) + 0.5);
+   ind2 = (long) (Point_z( *coord ) + 0.5);
+
+   /* Get the value */
+   GET_VALUE_3D( *result ,  volume, ind0  , ind1  , ind2  );
+
+   return TRUE;
+
+}
 
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -33,14 +90,14 @@
 @CREATED    : February 10, 1993 (Peter Neelin)
 @MODIFIED   : Fri May 28 09:06:12 EST 1993 Louis Collins
                mod to use david's volume_struct
-	      Wed Sep 15 09:01:17 EDT 1993 LC
-               swapped x & z references.  x varies fastest, z, slowest
 ---------------------------------------------------------------------------- */
 public int trilinear_interpolant(Volume volume, 
                                  PointR *coord, double *result)
 {
   long ind0, ind1, ind2, max[3];
   int sizes[3];
+  int flag;
+  double temp_result;
   static double f0, f1, f2, r0, r1, r2, r1r2, r1f2, f1r2, f1f2;
   static double v000, v001, v010, v011, v100, v101, v110, v111;
   
@@ -51,46 +108,37 @@ public int trilinear_interpolant(Volume volume,
   max[1]=sizes[1];
   max[2]=sizes[2];
   
-  if ((Point_z( *coord ) < 0) || (Point_z( *coord ) > max[0]-1) ||
-      (Point_y( *coord ) < 0) || (Point_y( *coord ) > max[1]-1) ||
-      (Point_x( *coord ) < 0) || (Point_x( *coord ) > max[2]-1)) {
+  if ((Point_x( *coord ) < 0) || (Point_x( *coord ) >= max[0]-1) ||
+      (Point_y( *coord ) < 0) || (Point_y( *coord ) >= max[1]-1) ||
+      (Point_z( *coord ) < 0) || (Point_z( *coord ) >= max[2]-1)) {
     
-    *result = 0.0;
-    
-    return FALSE;
+    flag = nearest_neighbour_interpolant(volume, coord, &temp_result) ;
+    *result = temp_result;
+    return(flag);
   }
-  
-  
+    
   /* Get the whole part of the coordinate */ 
-  ind0 = (long) Point_z( *coord );
+  ind0 = (long) Point_x( *coord );
   ind1 = (long) Point_y( *coord );
-  ind2 = (long) Point_x( *coord );
+  ind2 = (long) Point_z( *coord );
   if (ind0 >= max[0]-1) ind0 = max[0]-1;
   if (ind1 >= max[1]-1) ind1 = max[1]-1;
   if (ind2 >= max[2]-1) ind2 = max[2]-1;
   
   /* Get the relevant voxels */
-  GET_VOXEL_3D( v000 ,  volume, ind0  , ind1  , ind2   ); 
-  v000=CONVERT_VOXEL_TO_VALUE(volume,v000);
-  GET_VOXEL_3D( v001 ,  volume, ind0  , ind1  , ind2+1 ); 
-  v001=CONVERT_VOXEL_TO_VALUE(volume,v001);
-  GET_VOXEL_3D( v010 ,  volume, ind0  , ind1+1, ind2   ); 
-  v010=CONVERT_VOXEL_TO_VALUE(volume,v010);
-  GET_VOXEL_3D( v011 ,  volume, ind0  , ind1+1, ind2+1 ); 
-  v011=CONVERT_VOXEL_TO_VALUE(volume,v011);
-  GET_VOXEL_3D( v100 ,  volume, ind0+1, ind1  , ind2   ); 
-  v101=CONVERT_VOXEL_TO_VALUE(volume,v100);
-  GET_VOXEL_3D( v101 ,  volume, ind0+1, ind1  , ind2+1 ); 
-  v101=CONVERT_VOXEL_TO_VALUE(volume,v101);
-  GET_VOXEL_3D( v110 ,  volume, ind0+1, ind1+1, ind2   ); 
-  v110=CONVERT_VOXEL_TO_VALUE(volume,v110);
-  GET_VOXEL_3D( v111 ,  volume, ind0+1, ind1+1, ind2+1 ); 
-  v111=CONVERT_VOXEL_TO_VALUE(volume,v111);
+  GET_VALUE_3D( v000 ,  volume, ind0  , ind1  , ind2   ); 
+  GET_VALUE_3D( v001 ,  volume, ind0  , ind1  , ind2+1 ); 
+  GET_VALUE_3D( v010 ,  volume, ind0  , ind1+1, ind2   ); 
+  GET_VALUE_3D( v011 ,  volume, ind0  , ind1+1, ind2+1 ); 
+  GET_VALUE_3D( v100 ,  volume, ind0+1, ind1  , ind2   ); 
+  GET_VALUE_3D( v101 ,  volume, ind0+1, ind1  , ind2+1 ); 
+  GET_VALUE_3D( v110 ,  volume, ind0+1, ind1+1, ind2   ); 
+  GET_VALUE_3D( v111 ,  volume, ind0+1, ind1+1, ind2+1 ); 
 
    /* Get the fraction parts */
-   f0 = Point_z( *coord ) - ind0;
+   f0 = Point_x( *coord ) - ind0;
    f1 = Point_y( *coord ) - ind1;
-   f2 = Point_x( *coord ) - ind2;
+   f2 = Point_z( *coord ) - ind2;
    r0 = 1.0 - f0;
    r1 = 1.0 - f1;
    r2 = 1.0 - f2;
@@ -212,8 +260,6 @@ public void do_Ncubic_interpolation(Volume volume,
 @CREATED    : February 12, 1993 (Peter Neelin)
 @MODIFIED   : Fri May 28 09:06:12 EST 1993 Louis Collins
                mod to use david's volume_struct
-	      Wed Sep 15 09:01:17 EDT 1993 LC
-               swapped x & z references.  x varies fastest, z, slowest
 ---------------------------------------------------------------------------- */
 public int tricubic_interpolant(Volume volume, 
                                 PointR *coord, double *result)
@@ -221,6 +267,8 @@ public int tricubic_interpolant(Volume volume,
    long ind0, ind1, ind2, max[3], index[VOL_NDIMS];
    double frac[VOL_NDIMS];
    int sizes[3];
+   int flag;
+   double temp_result;
 
    /* Check that the coordinate is inside the volume */
 
@@ -229,23 +277,23 @@ public int tricubic_interpolant(Volume volume,
    max[1] = sizes[1];
    max[2] = sizes[2];
    
-   if ((Point_z( *coord ) < 0) || (Point_z( *coord ) > max[0]-1) ||
-       (Point_y( *coord ) < 0) || (Point_y( *coord ) > max[1]-1) ||
-       (Point_x( *coord ) < 0) || (Point_x( *coord ) > max[2]-1)) {
+   if ((Point_x( *coord ) < 0) || (Point_x( *coord ) >= max[0]-1) ||
+       (Point_y( *coord ) < 0) || (Point_y( *coord ) >= max[1]-1) ||
+       (Point_z( *coord ) < 0) || (Point_z( *coord ) >= max[2]-1)) {
 
-      *result = 0.0;
-
-      return FALSE;
+     flag = nearest_neighbour_interpolant(volume, coord, &temp_result) ;
+     *result = temp_result;
+     return(flag);
    }
 
 
    /* Get the whole and fractional part of the coordinate */
-   ind0 = (long) Point_z( *coord );
+   ind0 = (long) Point_x( *coord );
    ind1 = (long) Point_y( *coord );
-   ind2 = (long) Point_x( *coord );
-   frac[0] = Point_z( *coord ) - ind0;
+   ind2 = (long) Point_z( *coord );
+   frac[0] = Point_x( *coord ) - ind0;
    frac[1] = Point_y( *coord ) - ind1;
-   frac[2] = Point_x( *coord ) - ind2;
+   frac[2] = Point_z( *coord ) - ind2;
    ind0--;
    ind1--;
    ind2--;
@@ -265,60 +313,28 @@ public int tricubic_interpolant(Volume volume,
 
 }
 
-/* ----------------------------- MNI Header -----------------------------------
-@NAME       : nearest_neighbour_interpolant
-@INPUT      : volume - pointer to volume data
-              coord - point at which volume should be interpolated in voxel 
-                 units (with 0 being first point of the volume).
-@OUTPUT     : result - interpolated value.
-@RETURNS    : TRUE if coord is within the volume, FALSE otherwise.
-@DESCRIPTION: Routine to interpolate a volume at a point with nearest
-              neighbour interpolation.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
-@CREATED    : February 12, 1993 (Peter Neelin)
-@MODIFIED   : Fri May 28 09:06:12 EST 1993 Louis Collins
-               mod to use david's volume_struct
-	      Wed Sep 15 09:01:17 EDT 1993 LC
-               swapped x & z references.  x varies fastest, z, slowest
----------------------------------------------------------------------------- */
-public int nearest_neighbour_interpolant(Volume volume, 
-                                         PointR *coord, double *result)
+public int point_not_masked(Volume volume, 
+			    Real wx, Real wy, Real wz)
 {
-   long 
-     ind0, ind1, ind2, 
-     max[3];
-   int sizes[3];
 
-   /* Check that the coordinate is inside the volume */
-   
-  get_volume_sizes(volume, sizes);
-  max[0]=sizes[0];
-  max[1]=sizes[1];
-  max[2]=sizes[2];
-   
-   if ((Point_z( *coord ) < -0.5) || (Point_z( *coord ) > max[0]-0.5) ||
-       (Point_y( *coord ) < -0.5) || (Point_y( *coord ) > max[1]-0.5) ||
-       (Point_x( *coord ) < -0.5) || (Point_x( *coord ) > max[2]-0.5)) {
+  double result;
+  PointR coord;
+  
 
-      *result = 0.0;
-
-      return FALSE;
-   }
-
-   /* Get the whole part of the coordinate */
-   ind0 = (long) (Point_z( *coord ) + 0.5);
-   ind1 = (long) (Point_y( *coord ) + 0.5);
-   ind2 = (long) (Point_x( *coord ) + 0.5);
-
-   /* Get the value */
-   GET_VOXEL_3D( *result ,  volume, ind0  , ind1  , ind2  );
-
-   *result = CONVERT_VOXEL_TO_VALUE( volume, *result);
-
-   return TRUE;
-
+  if (volume!=(Volume)NULL) {
+    convert_3D_world_to_voxel(volume, wx, wy, wz, &Point_x(coord),&Point_y(coord),&Point_z(coord));
+    
+    if ( nearest_neighbour_interpolant(volume,&coord,&result) ) {
+      
+      if (result>0.0)
+	return(TRUE);
+      else
+	return(FALSE);
+    }
+    else
+      return(FALSE) ;
+  }
+  else
+    return(TRUE) ;
 }
-
 

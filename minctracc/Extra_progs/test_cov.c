@@ -1,22 +1,25 @@
-#include <def_mni.h>
+#include <mni.h>
 #include <recipes.h>
 
-#include "def_constants.h"
+#include "constants.h"
 #include "matrix_basics.h"
 #include "cov_to_praxes.h"
 #include "make_rots.h"
-#include "def_point_vector.h"
+#include "point_vector.h"
 
 #define DO_TRANSFORM(result, transformation, coord) \
    general_transform_point(transformation, \
       Point_x(coord), Point_y(coord), Point_z(coord), \
       &(Point_x(result)), &(Point_y(result)), &(Point_z(result)) )
 
-#define INTERPOLATE_VOXEL_VALUE(volume, coord, result) \
+#define INTERPOLATE_TRUE_VALUE(volume, coord, result) \
    trilinear_interpolant(volume, coord, result)
 
+static char *default_dim_names[N_DIMENSIONS] =
+   { MIzspace, MIyspace, MIxspace };
 
-Boolean vol_to_cov(Volume d1, Volume m1, float *centroid, float **covar, double *step)
+
+BOOLEAN vol_to_cov(Volume d1, Volume m1, float *centroid, float **covar, double *step)
 {
 
   VectorR
@@ -53,7 +56,6 @@ Boolean vol_to_cov(Volume d1, Volume m1, float *centroid, float **covar, double 
 
   Real
     true_value,
-    mask_value,
     position[3];
 
   get_volume_separations(d1, thickness);
@@ -68,7 +70,7 @@ Boolean vol_to_cov(Volume d1, Volume m1, float *centroid, float **covar, double 
   fill_Vector( row_step,   0.0,     step[ROW_IND], 0.0 );
   fill_Vector( slice_step, 0.0,     0.0,     step[SLICE_IND] );
 
-  convert_voxel_to_world(d1, 0.0, 0.0, 0.0, &tx, &ty, &tz); 
+  convert_3D_voxel_to_world(d1, 0.0, 0.0, 0.0, &tx, &ty, &tz); 
 
   fill_Point( starting_origin, tx, ty, tz);
 
@@ -77,7 +79,7 @@ Boolean vol_to_cov(Volume d1, Volume m1, float *centroid, float **covar, double 
     t = sizes[i] * thickness[i] / step[i];
     limits[i] = (int)( ABS( t ) );
     
-    Point_coord( starting_offset, (2-i) ) = 
+    Point_coord( starting_offset, (i) ) = 
       ( (sizes[i]-1)*thickness[i] - (limits[i] * step[i] ) ) / 2.0;
   }
   
@@ -103,21 +105,13 @@ Boolean vol_to_cov(Volume d1, Volume m1, float *centroid, float **covar, double 
       SCALE_POINT( col, row, 1.0); /* init first col position */
       for_inclusive(c,0,limits[COL_IND]) {
 
-	convert_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
+	convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
 
 	fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
 	
-	if (m1 != NULL) {
-	  nearest_neighbour_interpolant( m1, &voxel, &mask_value); 
-	}
-	else
-	  mask_value = 1.0;
-	
-	if (mask_value > 0.0) {	                /* should be fill_value  */
+	if (point_not_masked(m1, Point_x(col), Point_y(col), Point_z(col))) {
 	  
-	  if (INTERPOLATE_VOXEL_VALUE( d1, &voxel, &voxel_value )) {
-	    
-	    true_value = CONVERT_VOXEL_TO_VALUE(d1,voxel_value );
+	  if (INTERPOLATE_TRUE_VALUE( d1, &voxel, &true_value )) {
 	    
 	    sx +=  Point_x(col) * true_value;
 	    sy +=  Point_y(col) * true_value;
@@ -127,7 +121,7 @@ Boolean vol_to_cov(Volume d1, Volume m1, float *centroid, float **covar, double 
 	  }
 	  /* else requested voxel is just outside volume., so ignore it */
 
-	} /* if mask_value > 0.0 */
+	} 
 	
 	ADD_POINT_VECTOR( col, col, col_step );
 	
@@ -158,21 +152,13 @@ Boolean vol_to_cov(Volume d1, Volume m1, float *centroid, float **covar, double 
 	SCALE_POINT( col, row, 1.0); /* init first col position */
 	for_inclusive(c,0,limits[X]) {
 	  
-	  convert_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
+	  convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
 
 	  fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
 	
-	  if (m1 != NULL) {
-	    nearest_neighbour_interpolant( m1, &voxel, &mask_value); 
-	  }
-	  else
-	    mask_value = 1.0;
-	  
-	  if (mask_value > 0.0) {	                /* should be fill_value  */
+	  if (point_not_masked(m1, Point_x(col), Point_y(col), Point_z(col))) {
 	    
-	    if (INTERPOLATE_VOXEL_VALUE( d1, &voxel, &voxel_value )) {
-	      
-	      true_value = CONVERT_VOXEL_TO_VALUE(d1,voxel_value );
+	    if (INTERPOLATE_TRUE_VALUE( d1, &voxel, &true_value )) {
 	      
       	      sxx += (Point_x( col )-centroid[1]) * (Point_x( col )-centroid[1]) * true_value;
 	      syy += (Point_y( col )-centroid[2]) * (Point_y( col )-centroid[2]) * true_value;
@@ -184,7 +170,7 @@ Boolean vol_to_cov(Volume d1, Volume m1, float *centroid, float **covar, double 
 	    }
 	    /* else requested voxel is just outside volume., so ignore it */
 
-	  } /* if mask_value > 0.0 */
+	  } 
 	  
 	  ADD_POINT_VECTOR( col, col, col_step );
 	
@@ -215,17 +201,44 @@ main(int argc, char *argv[])
   Real x,y,z,r,s,c;
 
   prog_name = argv[0];
-  input_volume(argv[1],NULL,NULL,&vol);
+  input_volume(argv[1],3,default_dim_names /*(char **)NULL*/, NC_UNSPECIFIED, FALSE, 0.0,0.0,
+	       TRUE, &vol, (minc_input_options *)NULL);
 
-  step[0] = 3.0;
-  step[1] = 3.0;
-  step[2] = 3.0;
+
+/*
+  x = y = z = 0.0;
+  convert_3D_world_to_voxel(vol, x,y,z, &c, &r, &s);
+  (void)print ("%10.4f %10.4f %10.4f -> %10.4f %10.4f %10.4f\n",x,y,z,c,r,s);
+
+  x = y = 0.0;
+  z = 10.0;
+  convert_3D_world_to_voxel(vol, x,y,z, &c, &r, &s);
+  (void)print ("%10.4f %10.4f %10.4f -> %10.4f %10.4f %10.4f\n",x,y,z,c,r,s);
+
+  z = y = 0.0;
+  x = 10.0;
+  convert_3D_world_to_voxel(vol, x,y,z, &c, &r, &s);
+  (void)print ("%10.4f %10.4f %10.4f -> %10.4f %10.4f %10.4f\n",x,y,z,c,r,s);
+
+*/
+
+
+  step[0] = 4.0;
+  step[1] = 4.0;
+  step[2] = 4.0;
 
   cov = matrix(1,3,1,3); 
   cog = vector(1,3);
 
   vol_to_cov(vol, NULL, cog, cov, step );
 
-  printf ("cog = %f %f %f\n",cog[1],cog[2],cog[3]);
+  (void)print ("%f %f %f\n",cog[1],cog[2],cog[3]);
+  (void)print ("%f %f %f\n",cog[1]+75,cog[2],cog[3]);
+  (void)print ("%f %f %f\n",cog[1]-75,cog[2],cog[3]);
+  (void)print ("%f %f %f\n",cog[1],cog[2]+75,cog[3]);
+  (void)print ("%f %f %f\n",cog[1],cog[2]-75,cog[3]);
+  (void)print ("%f %f %f;\n",cog[1],cog[2],cog[3]+75);
+
+
 
 }

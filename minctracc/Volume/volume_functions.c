@@ -9,19 +9,28 @@
 @GLOBALS    : 
 @CALLS      : 
 @CREATED    : Tue Jun 15 08:57:23 EST 1993 LC
-@MODIFIED   : 
+@MODIFIED   :  $Log: volume_functions.c,v $
+@MODIFIED   :  Revision 1.6  1993-11-15 16:27:13  louis
+@MODIFIED   :  working version, with new library, with RCS revision stuff,
+@MODIFIED   :  before deformations included
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
-#include <def_mni.h>
+
+#ifndef lint
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/volume_functions.c,v 1.6 1993-11-15 16:27:13 louis Exp $";
+#endif
+
+#include <mni.h>
 #include <limits.h>
-#include "def_point_vector.h"
-#include "def_constants.h"
+#include "point_vector.h"
+#include "constants.h"
 
 public void make_zscore_volume(Volume d1, Volume m1, 
 			       float threshold); 
 
 public void add_speckle_to_volume(Volume d1, 
 				  float speckle,
-				  double *start, int *count, double  *size);
+				  double  *start, int *count, VectorR directions[]);
 
 public void save_volume(Volume d, char *filename);
 
@@ -36,34 +45,30 @@ public void make_zscore_volume(Volume d1, Volume m1,
     sizes[MAX_DIMENSIONS],
     s,r,c;
   Real
+    wx,wy,wz,
     valid_min_mvoxel, valid_max_mvoxel,
     valid_min_dvoxel, valid_max_dvoxel,
     min,max,
     sum, sum2, mean, var, std,
-    mask_vox, data_vox,data_val,
+    data_vox,data_val,
     thick[MAX_DIMENSIONS];
 
-  Volume vol;
-  General_transform *transform;
+  PointR 
+    voxel;
+
+  Volume 
+    vol;
 
   /* get default information from data and mask */
 
-  get_volume_sizes(d1, sizes);
-  get_volume_separations(d1, thick);
-  transform = get_voxel_to_world_transform(d1);
-  get_volume_voxel_range(d1,&valid_min_dvoxel, &valid_max_dvoxel);
-
-  get_volume_voxel_range(m1, &valid_min_mvoxel, &valid_max_mvoxel);
-
   /* build temporary working volume */
  
-  vol = create_volume(3, d1->dimension_names,  NC_FLOAT, TRUE);
-  set_volume_size(vol, NC_FLOAT, TRUE, sizes);
-  set_volume_separations(vol, thick);
-  set_volume_voxel_range(vol, valid_min_dvoxel, valid_max_dvoxel);
+  vol = copy_volume_definition(d1, NC_UNSPECIFIED, FALSE, 0.0, 0.0);
   set_volume_real_range(vol, -5.0, 5.0);
-  set_voxel_to_world_transform(vol, transform);
-
+  get_volume_sizes(d1, sizes);
+  get_volume_separations(d1, thick);
+  get_volume_voxel_range(d1, &valid_min_dvoxel, &valid_max_dvoxel);
+  get_volume_voxel_range(m1, &valid_min_mvoxel, &valid_max_mvoxel);
 
   /* initialize counters and sums */
 
@@ -78,13 +83,10 @@ public void make_zscore_volume(Volume d1, Volume m1,
     for_less( r, 0, sizes[1]) {
       for_less( c, 0, sizes[2]) {
 
-	if ( m1 != NULL ) {
-	  GET_VOXEL_3D( mask_vox, m1 , s, r, c ); 
-	}
-	else
-	  mask_vox = -DBL_MAX;
-	
-	if (mask_vox >= valid_min_mvoxel && mask_vox <= valid_max_mvoxel) { 
+	convert_3D_voxel_to_world(d1, (Real)s, (Real)r, (Real)c, &wx, &wy, &wz);
+	convert_3D_world_to_voxel(m1, wx, wy, wz, &Point_x(voxel), &Point_y(voxel), &Point_z(voxel));
+
+	if (point_not_masked(m1, wx,wy,wz)) {
 	  
 	  GET_VOXEL_3D( data_vox,  d1 , s, r, c );
 
@@ -167,13 +169,10 @@ public void make_zscore_volume(Volume d1, Volume m1,
 
 public void add_speckle_to_volume(Volume d1, 
 				  float speckle,
-				  double  *start, int *count, double  *step)
+				  double  *start, int *count, VectorR directions[])
 {
   VectorR
-    vector_step,
-    slice_step,
-    row_step,
-    col_step;
+    vector_step;
 
   PointR 
     starting_position,
@@ -189,36 +188,32 @@ public void add_speckle_to_volume(Volume d1,
     xi,yi,zi,
     flip_flag,r,c,s;
 
-  fill_Vector( col_step,   step[COL_IND], 0.0,     0.0 );
-  fill_Vector( row_step,   0.0,     step[ROW_IND], 0.0 );
-  fill_Vector( slice_step, 0.0,     0.0,     step[SLICE_IND] );
-
-  fill_Point( starting_position, start[X], start[Y], start[Z]);
 
   flip_flag = FALSE;
 
-  get_volume_voxel_range(d1,&valid_min_voxel, &valid_max_voxel);
-
+  get_volume_voxel_range(d1, &valid_min_voxel, &valid_max_voxel);
+  fill_Point( starting_position, start[0], start[1], start[2]);
+  
   for_inclusive(s,0,count[SLICE_IND]) {
 
-    SCALE_VECTOR( vector_step, slice_step, s);
+    SCALE_VECTOR( vector_step, directions[SLICE_IND], s);
     ADD_POINT_VECTOR( slice, starting_position, vector_step );
 
     for_inclusive(r,0,count[ROW_IND]) {
 
-      SCALE_VECTOR( vector_step, row_step, r);
+      SCALE_VECTOR( vector_step, directions[ROW_IND], r);
       ADD_POINT_VECTOR( row, slice, vector_step );
 
       SCALE_POINT( col, row, 1.0); /* init first col position */
       for_inclusive(c,0,count[COL_IND]) {
 
-	convert_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
+	convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
 
 	xi = ROUND( tx );
 	yi = ROUND( ty );
 	zi = ROUND( tz );
 
-	GET_VOXEL_3D( voxel_value, d1 , zi, yi, xi ); 
+	GET_VOXEL_3D( voxel_value, d1 , xi, yi, zi ); 
 
 
 	if (voxel_value >= valid_min_voxel && voxel_value <= valid_max_voxel) {
@@ -227,14 +222,18 @@ public void add_speckle_to_volume(Volume d1,
 	  else
 	    voxel_value = voxel_value * (1 - 0.01*speckle);
 
-	  SET_VOXEL_3D( d1 , zi, yi, xi, voxel_value );
+	  SET_VOXEL_3D( d1 , xi, yi, zi, voxel_value );
 	}
 
 	flip_flag = !flip_flag;
 
-	ADD_POINT_VECTOR( col, col, col_step );
-	
+
+	ADD_POINT_VECTOR( col, col, directions[COL_IND] );
+
       }
+	
+
+
     }
   }
 
@@ -246,7 +245,8 @@ public void save_volume(Volume d, char *filename)
 {
   Status status;
 
-  status = output_volume(filename,FALSE, d, NULL);
+  status = output_volume(filename,NC_UNSPECIFIED, FALSE, 0.0, 0.0, d, (char *)NULL,
+			 (minc_output_options *)NULL);
 
   if (status != OK)
     print_error("problems writing  volume `%s'.",__FILE__, __LINE__, filename);
