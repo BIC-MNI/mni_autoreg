@@ -24,11 +24,16 @@
 
 @CREATED    : January 31, 1992 (Peter Neelin)
 @MODIFIED   :  $Log: matrix_basics.c,v $
-@MODIFIED   :  Revision 1.8  1995-02-22 08:56:06  louis
-@MODIFIED   :  Montreal Neurological Institute version.
-@MODIFIED   :  compiled and working on SGI.  this is before any changes for SPARC/
-@MODIFIED   :  Solaris.
+@MODIFIED   :  Revision 1.9  1995-09-11 12:37:16  louis
+@MODIFIED   :  All refs to numerical recipes routines have been replaced.
+@MODIFIED   :  this is an updated working version - corresponds to mni_reg-0.1g
+@MODIFIED   :  \
 @MODIFIED   :
+ * Revision 1.8  1995/02/22  08:56:06  louis
+ * Montreal Neurological Institute version.
+ * compiled and working on SGI.  this is before any changes for SPARC/
+ * Solaris.
+ *
  * Revision 1.7  94/04/06  11:48:41  louis
  * working linted version of linear + non-linear registration based on Lvv
  * operator working in 3D
@@ -54,11 +59,10 @@ Fri Jun  4 14:10:34 EST 1993 LC
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/matrix_basics.c,v 1.8 1995-02-22 08:56:06 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/matrix_basics.c,v 1.9 1995-09-11 12:37:16 louis Exp $";
 #endif
 
 #include <volume_io.h>
-#include <recipes.h>
 #include "local_macros.h"
 
 /* external calls: */
@@ -131,10 +135,9 @@ public void rotation_to_homogeneous(int ndim, float **rotation,
 @NAME       : printmatrix
 @INPUT      : rows   - number of rows in matrix
               cols   - number of columns in matrix
-              the_matrix - matrix to be printed (in numerical recipes form).
+              the_matrix - matrix to be printed (in zero offset form).
                  The dimensions of this matrix should be defined to be 
-                 1 to rows and 1 to cols (when calling the numerical 
-                 recipes routine matrix).
+                 1 to rows and 1 to cols.
 @OUTPUT     : (nothing)
 @RETURNS    : (nothing)
 @DESCRIPTION: Prints out a matrix on stdout with one row per line.
@@ -165,10 +168,9 @@ public void printmatrix(int rows, int cols, float **the_matrix)
 @NAME       : calc_centroid
 @INPUT      : npoints - number of points
               ndim    - number of dimensions
-              points  - points matrix (in numerical recipes form).
+              points  - points matrix (in zero offset form).
                  The dimensions of this matrix should be defined to be 
-                 1 to npoints and 1 to ndim (when calling the numerical 
-                 recipes routine matrix).
+                 1 to npoints and 1 to ndim.
 @OUTPUT     : centroid - vector of centroid of points (in num. rec. form)
                  This vector should run from 1 to ndim.
 @RETURNS    : (nothing)
@@ -202,10 +204,9 @@ public void calc_centroid(int npoints, int ndim, float **points,
 @NAME       : translate
 @INPUT      : npoints - number of points
               ndim    - number of dimensions
-              points  - points matrix (in numerical recipes form).
+              points  - points matrix (in zero offset form).
                  The dimensions of this matrix should be defined to be 
-                 1 to npoints and 1 to ndim (when calling the numerical 
-                 recipes routine matrix).
+                 1 to npoints and 1 to ndim.
               translation - translation vector (in num. rec. form, running
                  from 1 to ndim).
 @OUTPUT     : newpoints - translated points matrix (see points). This matrix
@@ -237,11 +238,10 @@ public void translate(int npoints, int ndim, float **points,
 @NAME       : transpose
 @INPUT      : rows    - number of rows
               cols    - number of columns
-              mat     - original matrix (in numerical recipes form).
+              mat     - original matrix (in zero offset form).
                  The dimensions of this matrix should be defined to be 
-                 1 to rows and 1 to cols (when calling the numerical 
-                 recipes routine matrix).
-@OUTPUT     : mat_transpose  - transposed matrix (in numerical recipes form,
+                 1 to rows and 1 to cols.
+@OUTPUT     : mat_transpose  - transposed matrix (in zero offset form,
                  with dimensions 1 to cols and 1 to rows). 
 @RETURNS    : (nothing)
 @DESCRIPTION: Transposes a matrix.
@@ -266,7 +266,7 @@ public void transpose(int rows, int cols, float **mat, float **mat_transpose)
 					 the input before the compete transpose is 
 					 done. */
      /* Allocate a temporary matrix */
-     Ctemp = matrix(1,cols,1,rows);
+     ALLOC2D(Ctemp,cols+1,rows+1);
      
      for (i=1; i <= rows; ++i) {
        for (j=1; j <= cols; ++j) {
@@ -280,7 +280,7 @@ public void transpose(int rows, int cols, float **mat, float **mat_transpose)
          mat_transpose[i][j] = Ctemp[i][j];
      
      /* Free the matrix */
-     free_matrix(Ctemp,1,cols,1,rows);
+     FREE2D(Ctemp);
    }
    else {
      for (i=1; i <= rows; ++i) {
@@ -294,11 +294,10 @@ public void transpose(int rows, int cols, float **mat, float **mat_transpose)
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : invertmatrix
 @INPUT      : n       - number of rows/or columns (must be square)
-              mat     - original matrix (in numerical recipes form).
+              mat     - original matrix (in zero offset form).
                  The dimensions of this matrix should be defined to be 
-                 1 to n rows and 1 to n cols (when calling the numerical 
-                 recipes routine matrix).
-@OUTPUT     : mat_invert  - the inverted  matrix (in numerical recipes form,
+                 1 to n rows and 1 to n cols.
+@OUTPUT     : mat_invert  - the inverted  matrix (in zero offset form,
                  with dimensions 1 to n cols and 1 to n rows). 
 @RETURNS    : (nothing)
 @DESCRIPTION: Inverts a matrix.
@@ -311,82 +310,56 @@ public void transpose(int rows, int cols, float **mat, float **mat_transpose)
 public void raw_invertmatrix(int n, float **mat, float **mat_invert)
 {
 
-/*
-  void svdcmp(float **a, int m, int n, float w[], float **v);
-  float 
-    wmax,wmin,
-    **ut,**u,*w,**v,**wd;
   int 
     i,j;
+  Real 
+    **Rmat, **Rinv;
 
-  u=matrix(1,n,1,n);
-  ut=matrix(1,n,1,n);
-  wd=matrix(1,n,1,n);
-  w=vector(1,n);
-  v=matrix(1,n,1,n);
+  ALLOC2D( Rmat, n, n );
+  ALLOC2D( Rinv, n, n );
 
-  for (i=1; i<=n; ++i)		/ * copy the input matrix * /
-    for (j=1; j<=n; ++j)
-      u[i][j] = mat[i][j];
+  for (i=1; i<=n; ++i)		/* copy the input matrix */
+    for (j=1; j<=n; ++j) {
+      Rmat[i-1][j-1] = mat[i][j];
+    }
 
+  (void)invert_square_matrix(n, Rmat, Rinv);
 
-  svdcmp(u,n,n,w,v);
+  for (i=1; i<=n; ++i)		/* copy the result */
+    for (j=1; j<=n; ++j) {
+      mat_invert[i][j] = Rinv[i-1][j-1];
+    }
 
-  wmax=0.0;
-  for (j=1; j<=n; ++j) if (w[j]>wmax) wmax=w[j];
-
-				/ * this is where the threshold is set for editing
-				   singular values.  The constant must be experimented
-				   with. * /
-  wmin = wmax*1.0e-6;
-
-  for (j=1; j<=n; ++j) 
-    if (w[j]<wmin) 
-      w[j]=0.0;
-    else 
-      w[j] = 1.0/w[j];  
-
-  for (i=1; i<=n; ++i) {		/ * multiply v by a matrix with diag=w * /
-    for (j=1; j<=n; ++j) 
-      wd[i][j] = 0.0;
-    wd[i][i] = w[i];
-  }
-
-  transpose(n,n,u,ut);
-  raw_matrix_multiply(n,n,n,v,wd,u);
-  raw_matrix_multiply(n,n,n,u,ut,mat_invert);
-
-  free_matrix(u,1,n,1,n);
-  free_matrix(ut,1,n,1,n);
-  free_matrix(wd,1,n,1,n);
-  free_matrix(v,1,n,1,n);
-  free_vector(w,1,n);
-*/
-
+/*
+			       this is the old inversion code
   float 
     d, **u, *col;
   int 
     i,j,*indx;
 
-  u=matrix(1,n,1,n);
-  col=vector(1,n);
-  indx=ivector(1,n);
 
-  for (i=1; i<=n; ++i)		/* copy the input matrix */
+  u=mat rix(1,n,1,n);
+  col=vec tor(1,n);
+  indx=ivec tor(1,n);
+
+  for (i=1; i<=n; ++i)		/ * copy the input matrix * /
     for (j=1; j<=n; ++j)
       u[i][j] = mat[i][j];
 
-  ludcmp(u,n,indx,&d);
+  lud cmp(u,n,indx,&d);
   for(j=1; j<=n; ++j) {
     for(i=1; i<=n; ++i) col[i] = 0.0;
     col[j]=1.0;
-    lubksb(u,n,indx,col);
+    lub ksb(u,n,indx,col);
     for(i=1; i<=n; ++i) mat_invert[i][j]=col[i];
   }
 
-  free_matrix(u,1,n,1,n);
-  free_vector(col,1,n);
-  free_ivector(indx,1,n);
+  free_ matrix(u,1,n,1,n);
+  free_ vector(col,1,n);
+  free_ ivector(indx,1,n);
+
+*/
+
 }
 
 public void invertmatrix(int ndim, float **mat, float **mat_invert)
@@ -398,7 +371,7 @@ public void invertmatrix(int ndim, float **mat, float **mat_invert)
 				         temporary space, so as not to overwrite
 					 the input as the inverse is being done. */
     /* Allocate a temporary matrix */
-    Ctemp = matrix(1,ndim,1,ndim);
+    ALLOC2D(Ctemp,ndim+1,ndim+1);
     
     /* invert the matrix */
     raw_invertmatrix(ndim, mat, Ctemp);
@@ -409,7 +382,7 @@ public void invertmatrix(int ndim, float **mat, float **mat_invert)
 	mat_invert[i][j] = Ctemp[i][j];
     
     /* Free the matrix */
-    free_matrix(Ctemp,1,ndim,1,ndim);
+    FREE2D(Ctemp);
   }
   else {
     raw_invertmatrix(ndim, mat, mat_invert);
@@ -424,11 +397,11 @@ public void invertmatrix(int ndim, float **mat, float **mat_invert)
                  dimensions (ldim x mdim), matrix Bmat has dimension
                  (mdim x ndim) and resultant matrix has dimension
                  (ldim x ndim).
-              Amat - First matrix of multiply (in numerical recipes form).
+              Amat - First matrix of multiply (in zero offset form).
                  Dimensions are 1 to ldim and 1 to mdim.
-              Bmat - Second matrix of multiply (in numerical recipes form).
+              Bmat - Second matrix of multiply (in zero offset form).
                  Dimensions are 1 to mdim and 1 to ndim.
-@OUTPUT     : Cmat - Resulting matrix (in numerical recipes form).
+@OUTPUT     : Cmat - Resulting matrix (in zero offset form).
                  Dimensions are 1 to ldim and 1 to ndim. This matrix cannot
                  be either Amat or Bmat.
 @RETURNS    : (nothing)
@@ -464,11 +437,11 @@ public void raw_matrix_multiply(int ldim, int mdim, int ndim,
                  dimensions (ldim x mdim), matrix Bmat has dimension
                  (mdim x ndim) and resultant matrix has dimension
                  (ldim x ndim).
-              Amat - First matrix of multiply (in numerical recipes form).
+              Amat - First matrix of multiply (in zero offset form).
                  Dimensions are 1 to ldim and 1 to mdim.
-              Bmat - Second matrix of multiply (in numerical recipes form).
+              Bmat - Second matrix of multiply (in zero offset form).
                  Dimensions are 1 to mdim and 1 to ndim.
-@OUTPUT     : Cmat - Resulting matrix (in numerical recipes form).
+@OUTPUT     : Cmat - Resulting matrix (in zero offset form).
                  Dimensions are 1 to ldim and 1 to ndim. This matrix can
                  be either matrix Amat or Bmat.
 @RETURNS    : (nothing)
@@ -488,7 +461,7 @@ public void matrix_multiply(int ldim, int mdim, int ndim,
    float **Ctemp;
 
    /* Allocate a temporary matrix */
-   Ctemp = matrix(1,ldim,1,ndim);
+   ALLOC2D(Ctemp, ldim+1, ndim+1);
 
    /* Do the multiplication */
    raw_matrix_multiply(ldim,mdim,ndim,Amat,Bmat,Ctemp);
@@ -499,7 +472,7 @@ public void matrix_multiply(int ldim, int mdim, int ndim,
          Cmat[i][j] = Ctemp[i][j];
 
    /* Free the matrix */
-   free_matrix(Ctemp,1,ldim,1,ndim);
+   FREE2D(Ctemp);
 }
                   
 
@@ -507,7 +480,7 @@ public void matrix_multiply(int ldim, int mdim, int ndim,
 @NAME       : trace
 @INPUT      : size   - size of the_matrix (the_matrix should be square)
               the_matrix - matrix for which trace should be calculated (in 
-                 numerical recipes form). Dimensions are 1 to size and 
+                 zero offset form). Dimensions are 1 to size and 
                  1 to size.
 @OUTPUT     : (none)
 @RETURNS    : trace of matrix
@@ -538,9 +511,9 @@ public float trace(int size, float **the_matrix)
 @INPUT      : rows    - number of rows of the_matrix.
               cols    - number of columns of the_matrix
               scalar  - scalar by which the_matrix should be multiplied.
-              the_matrix  - matrix to be multiplied (in numerical recipes 
+              the_matrix  - matrix to be multiplied (in zero offset 
                  form). Dimensions are 1 to rows and 1 to cols.
-@OUTPUT     : product - result of multiply ( in numerical recipes form).
+@OUTPUT     : product - result of multiply ( in zero offset form).
                  Dimensions are 1 to rows and 1 to cols. This matrix
                  can be the input matrix.
 @RETURNS    : (nothing)
@@ -571,7 +544,7 @@ public void matrix_scalar_multiply(int rows, int cols, float scalar,
 @INPUT      : A - pointer to matrix
               m1,m2 - row limits
 	      n1,n2 - col limits
-              (matrix in numerical recipes form, allocated by calling routine)
+              (matrix in zero offset form, allocated by calling routine)
 @OUTPUT     : identiy matrix in A
 @RETURNS    : (nothing)
 @DESCRIPTION: 
@@ -617,7 +590,7 @@ public void nr_identf(float **A, int m1, int m2, int n1, int n2 )
 @INPUT      : A - source matrix
               m1,m2 - row limits
 	      n1,n2 - col limits
-              (matrix in numerical recipes form, allocated by calling routine)
+              (matrix in zero offset form, allocated by calling routine)
 @OUTPUT     : B - copy of A
 @RETURNS    : (nothing)
 @DESCRIPTION: 
@@ -652,7 +625,7 @@ public void nr_copyf(float  **A, int m1, int m2, int n1, int n2, float **B )
 @NAME       : nr_rotxd,nr_rotxf - make rot X matrix
 @INPUT      : M - 4x4 matrix
               a - rotation angle in radians
-              (matrix in numerical recipes form, allocated by calling routine)
+              (matrix in zero offset form, allocated by calling routine)
 @OUTPUT     : modified matrix M
 @RETURNS    : (nothing)
 @DESCRIPTION: 
@@ -688,7 +661,7 @@ public void nr_rotxf(float **M, float a)
 @NAME       : nr_rotyd,nr_rotyf - make rot Y matrix
 @INPUT      : M - 4x4 matrix
               a - rotation angle in radians
-              (matrix in numerical recipes form, allocated by calling routine)
+              (matrix in zero offset form, allocated by calling routine)
 @RETURNS    : (nothing)
 @DESCRIPTION: 
 @METHOD     : 
@@ -724,7 +697,7 @@ public void nr_rotyf(float **M, float a)
 @NAME       : nr_rotzd, nr_rotzf - make rot Z matrix
 @INPUT      : M - 4x4 matrix
               a - rotation angle in radians
-              (matrix in numerical recipes form, allocated by calling routine)
+              (matrix in zero offset form, allocated by calling routine)
 @RETURNS    : (nothing)
 @DESCRIPTION: 
 @METHOD     : 
@@ -763,7 +736,7 @@ public void nr_rotzf(float **M, float a)
 	      B - source matrix
               mB1,mB2 - row limits of B
 	      nB1,nB2 - col limits of B
-              (matrix in numerical recipes form, allocated by calling routine)
+              (matrix in zero offset form, allocated by calling routine)
 @OUTPUT     : C = A * B
 @RETURNS    : (nothing)
 @DESCRIPTION: 
@@ -821,17 +794,17 @@ public void nr_multf(float **A, int mA1, int mA2, int nA1, int nA2,
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : transformations_to_homogeneous
 @INPUT      : ndim    - number of dimensions
-              translation - Numerical recipes vector (1 to ndim) that 
+              translation - zero offset vector (1 to ndim) that 
                  specifies the translation to be applied first.
-              centre_of_rotation - Numerical recipes vector (1 to ndim) that
+              centre_of_rotation - zero offset vector (1 to ndim) that
                  specifies the centre of rotation and scaling.
-              rotation - Numerical recipes matrix (1 to ndim by 1 to ndim) 
+              rotation - zero offset matrix (1 to ndim by 1 to ndim) 
                  for rotation about centre_of_rotation (applied after 
                  translation). Note that this matrix need not only specify
                  rotation/reflexion - any ndim x ndim matrix will work.
               scale - Scalar value giving global scaling to be applied after
                  translation and rotation.
-@OUTPUT     : transformation - Numerical recipes matrix (1 to ndim+1 by
+@OUTPUT     : transformation - zero offset matrix (1 to ndim+1 by
                  1 to ndim+1) specifying the transformation for homogeneous 
                  coordinates. To apply this transformation, a point
                  vector should be pre-multiplied by this matrix, with the
@@ -850,8 +823,7 @@ public void nr_multf(float **A, int mA1, int mA2, int nA1, int nA2,
                  4) Scale
                  5) Translate by centre_of_rotation
 @GLOBALS    : (none)
-@CALLS      : numerical recipes stuff
-              translation_to_homogeneous
+@CALLS      : translation_to_homogeneous
               matrix_multiply
               matrix_scalar_multiply
 @CREATED    : February 7, 1992 (Peter Neelin)
@@ -874,11 +846,11 @@ public void transformations_to_homogeneous(int ndim,
    size=ndim+1;
 
    /* Allocate matrices and vectors */
-   centre_translate = vector(1,ndim);
-   trans1 = matrix(1,size,1,size);
-   trans2 = matrix(1,size,1,size);
-   trans_temp = matrix(1,size,1,size);
-   rotation_and_scale = matrix(1,ndim,1,ndim);
+   ALLOC(centre_translate,ndim+1);
+   ALLOC2D(trans1 ,size+1, size+1);
+   ALLOC2D(trans2 ,size+1, size+1);
+   ALLOC2D(trans_temp,size+1, size+1); 
+   ALLOC2D(rotation_and_scale,ndim+1, ndim+1);
 
 
    /* Construct translation matrix */
@@ -905,11 +877,11 @@ public void transformations_to_homogeneous(int ndim,
 
 
    /* Free matrices */
-   free_vector(centre_translate,1,ndim);
-   free_matrix(trans1,1,size,1,size);
-   free_matrix(trans2,1,size,1,size);
-   free_matrix(trans_temp,1,size,1,size);
-   free_matrix(rotation_and_scale,1,ndim,1,ndim);
+   FREE(  centre_translate);
+   FREE2D(trans1);
+   FREE2D(trans2);
+   FREE2D(trans_temp);
+   FREE2D(rotation_and_scale);
 
 }
 
@@ -917,9 +889,9 @@ public void transformations_to_homogeneous(int ndim,
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : translation_to_homogeneous
 @INPUT      : ndim    - number of dimensions
-              translation - Numerical recipes vector (1 to ndim) that 
+              translation - zero offset vector (1 to ndim) that 
                  specifies the translation.
-@OUTPUT     : transformation - Numerical recipes matrix (1 to ndim+1 by
+@OUTPUT     : transformation - zero offset matrix (1 to ndim+1 by
                  1 to ndim+1) specifying the transformation for homogeneous 
                  coordinates. To apply this transformation, a point
                  vector should be pre-multiplied by this matrix, with the
@@ -969,11 +941,11 @@ public void translation_to_homogeneous(int ndim, float *translation,
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : rotation_to_homogeneous
 @INPUT      : ndim    - number of dimensions
-              rotation - Numerical recipes matrix (1 to ndim by 1 to ndim) 
+              rotation - zero offset matrix (1 to ndim by 1 to ndim) 
                  for rotation about origin. Note that this matrix need not 
                  only specify rotation/reflexion - any ndim x ndim matrix 
                  will work.
-@OUTPUT     : transformation - Numerical recipes matrix (1 to ndim+1 by
+@OUTPUT     : transformation - zero offset matrix (1 to ndim+1 by
                  1 to ndim+1) specifying the transformation for homogeneous 
                  coordinates. To apply this transformation, a point
                  vector should be pre-multiplied by this matrix, with the
@@ -1021,9 +993,9 @@ public void rotation_to_homogeneous(int ndim, float **rotation,
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : angles_to_homogeneous
 @INPUT      : ndim    - number of dimensions
-              angles - Numerical recipes array (1 to ndim)
+              angles - zero offset array (1 to ndim)
                  for rotation angles (in radians) about origin. 
-@OUTPUT     : transformation - Numerical recipes matrix (1 to ndim+1 by
+@OUTPUT     : transformation - zero offset matrix (1 to ndim+1 by
                  1 to ndim+1) specifying the transformation for homogeneous 
                  coordinates. To apply this transformation, a point
                  vector should be pre-multiplied by this matrix, with the
@@ -1049,7 +1021,7 @@ public void angles_to_homogeneous(int ndim, float *angles,
 
    size=ndim+1;
 
-   rot_matrix = matrix(1,4,1,4);
+   ALLOC2D(rot_matrix,5,5);
 
 
    if (ndim==2 || ndim==3) {
@@ -1084,7 +1056,7 @@ public void angles_to_homogeneous(int ndim, float *angles,
 
 
 
-   free_matrix(rot_matrix,1,4,1,4);
+   FREE2D(rot_matrix);
 
 
 }

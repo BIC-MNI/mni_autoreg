@@ -14,11 +14,16 @@
               express or implied warranty.
 @CREATED    : Tue Jun  8 08:44:59 EST 1993 LC
 @MODIFIED   : $Log: make_rots.c,v $
-@MODIFIED   : Revision 1.10  1995-02-22 08:56:06  louis
-@MODIFIED   : Montreal Neurological Institute version.
-@MODIFIED   : compiled and working on SGI.  this is before any changes for SPARC/
-@MODIFIED   : Solaris.
+@MODIFIED   : Revision 1.11  1995-09-11 12:37:16  louis
+@MODIFIED   : All refs to numerical recipes routines have been replaced.
+@MODIFIED   : this is an updated working version - corresponds to mni_reg-0.1g
+@MODIFIED   : \
 @MODIFIED   :
+ * Revision 1.10  1995/02/22  08:56:06  louis
+ * Montreal Neurological Institute version.
+ * compiled and working on SGI.  this is before any changes for SPARC/
+ * Solaris.
+ *
  * Revision 1.9  94/04/26  12:54:26  louis
  * updated with new versions of make_rots, extract2_parameters_from_matrix 
  * that include proper interpretation of skew.
@@ -37,12 +42,10 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/make_rots.c,v 1.10 1995-02-22 08:56:06 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/make_rots.c,v 1.11 1995-09-11 12:37:16 louis Exp $";
 #endif
 
 #include <volume_io.h>
-#include <recipes.h>
-
 #include "matrix_basics.h"
 #include "rotmat_to_ang.h"
 #include "local_macros.h"
@@ -102,7 +105,7 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : make_rots
 @INPUT      : rot_x, rot_y, rot_z - three rotation angles, in radians.
-@OUTPUT     : xmat, a numerical recipes matrix for homogeous transformations
+@OUTPUT     : xmat, a zero offset matrix for homogeous transformations
 @RETURNS    : nothing
 @DESCRIPTION: to be applied by premultiplication, ie rot*vec = newvec
 @METHOD     : 
@@ -120,10 +123,10 @@ void   make_rots(float **xmat, float rot_x, float rot_y, float rot_z)
       **TRZ,
       **T1;
    
-   TRX  = matrix(1,4,1,4);
-   TRY  = matrix(1,4,1,4);
-   TRZ  = matrix(1,4,1,4);
-   T1   = matrix(1,4,1,4);
+   ALLOC2D(TRX  ,5,5);
+   ALLOC2D(TRY  ,5,5);
+   ALLOC2D(TRZ  ,5,5);
+   ALLOC2D(T1   ,5,5);
 
    nr_rotxf(TRX, rot_x);             /* create the rotate X matrix */
    nr_rotyf(TRY, rot_y);             /* create the rotate Y matrix */
@@ -133,10 +136,10 @@ void   make_rots(float **xmat, float rot_x, float rot_y, float rot_z)
    nr_multf(TRZ,1,4,1,4,  T1,1,4,1,4,   xmat); /* apply rz */
 
 
-   free_matrix(TRX,1,4,1,4);
-   free_matrix(TRY,1,4,1,4);
-   free_matrix(TRZ,1,4,1,4);
-   free_matrix(T1 ,1,4,1,4);
+   FREE2D(TRX);
+   FREE2D(TRY);
+   FREE2D(TRZ);
+   FREE2D(T1 );
 
 }
 
@@ -144,7 +147,7 @@ void   make_rots(float **xmat, float rot_x, float rot_y, float rot_z)
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : make_shears
 @INPUT      : shear - an array of six shear parameters.
-@OUTPUT     : xmat, a numerical recipes matrix for homogeous transformations
+@OUTPUT     : xmat, a zero offset matrix for homogeous transformations
 @RETURNS    : nothing
 @DESCRIPTION: to be applied by premultiplication, ie rot*vec = newvec
 @METHOD     : 
@@ -209,15 +212,15 @@ public void build_transformation_matrix(Transform *trans,
   int
     i,j;
   
-  T  = matrix(1,4,1,4);
-  SH = matrix(1,4,1,4);
-  S  = matrix(1,4,1,4);
-  R  = matrix(1,4,1,4);
-  C  = matrix(1,4,1,4);
-  T1 = matrix(1,4,1,4);
-  T2 = matrix(1,4,1,4);
-  T3 = matrix(1,4,1,4);
-  T4 = matrix(1,4,1,4);
+  ALLOC2D(T  ,5,5);
+  ALLOC2D(SH ,5,5);
+  ALLOC2D(S  ,5,5);
+  ALLOC2D(R  ,5,5);
+  ALLOC2D(C  ,5,5);
+  ALLOC2D(T1 ,5,5);
+  ALLOC2D(T2 ,5,5);
+  ALLOC2D(T3 ,5,5);
+  ALLOC2D(T4 ,5,5);
   
 				             /* mat = (T)(C)(SH)(S)(R)(-C) */
 
@@ -254,15 +257,15 @@ public void build_transformation_matrix(Transform *trans,
     for_less(j,0,4)
       Transform_elem(*trans, i, j ) = T4[i+1][j+1];
 
-  free_matrix(T    ,1,4,1,4);
-  free_matrix(SH   ,1,4,1,4);
-  free_matrix(S    ,1,4,1,4);
-  free_matrix(R    ,1,4,1,4);
-  free_matrix(C ,1,4,1,4);
-  free_matrix(T1   ,1,4,1,4);
-  free_matrix(T2   ,1,4,1,4);
-  free_matrix(T3   ,1,4,1,4);
-  free_matrix(T4   ,1,4,1,4);
+  FREE2D(T    );
+  FREE2D(SH   );
+  FREE2D(S    );
+  FREE2D(R    );
+  FREE2D(C );
+  FREE2D(T1   );
+  FREE2D(T2   );
+  FREE2D(T3   );
+  FREE2D(T4   );
 }
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -303,15 +306,15 @@ public void build_inverse_transformation_matrix(Transform *trans,
   int
     i,j;
   
-  T   = matrix(1,4,1,4);
-  SH  = matrix(1,4,1,4);
-  S   = matrix(1,4,1,4);
-  R   = matrix(1,4,1,4);
-  C   = matrix(1,4,1,4);
-  T1  = matrix(1,4,1,4);
-  T2  = matrix(1,4,1,4);
-  T3  = matrix(1,4,1,4);
-  T4  = matrix(1,4,1,4);
+  ALLOC2D(T   ,5,5);
+  ALLOC2D(SH  ,5,5);
+  ALLOC2D(S   ,5,5);
+  ALLOC2D(R   ,5,5);
+  ALLOC2D(C   ,5,5);
+  ALLOC2D(T1  ,5,5);
+  ALLOC2D(T2  ,5,5);
+  ALLOC2D(T3  ,5,5);
+  ALLOC2D(T4  ,5,5);
   
 				/* invmat = (C)(inv(r))(inv(S))(inv(SH))(-C)(-T)
 				   mat = (T)(C)(SH)(S)(R)(-C) */
@@ -354,15 +357,15 @@ public void build_inverse_transformation_matrix(Transform *trans,
     for_less(j,0,4)
       Transform_elem(*trans, i, j ) = T4[i+1][j+1];
 
-  free_matrix(T    ,1,4,1,4);
-  free_matrix(SH   ,1,4,1,4);
-  free_matrix(S    ,1,4,1,4);
-  free_matrix(R    ,1,4,1,4);
-  free_matrix(C ,1,4,1,4);
-  free_matrix(T1   ,1,4,1,4);
-  free_matrix(T2   ,1,4,1,4);
-  free_matrix(T3   ,1,4,1,4);
-  free_matrix(T4   ,1,4,1,4);
+  FREE2D(T    );
+  FREE2D(SH   );
+  FREE2D(S    );
+  FREE2D(R    );
+  FREE2D(C );
+  FREE2D(T1   );
+  FREE2D(T2   );
+  FREE2D(T3   );
+  FREE2D(T4   );
 }
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -402,24 +405,24 @@ public BOOLEAN extract_parameters_from_matrix(Transform *trans,
     *ang,*tmp,
     **xmat,**T,**Tinv,**C,**Sinv,**R,**SR,**SRinv,**Cinv,**TMP1,**TMP2;
 
-  xmat  = matrix(1,4,1,4); nr_identf(xmat ,1,4,1,4);
-  TMP1  = matrix(1,4,1,4); nr_identf(TMP1 ,1,4,1,4);
-  TMP2  = matrix(1,4,1,4); nr_identf(TMP2 ,1,4,1,4);
-  Cinv  = matrix(1,4,1,4); nr_identf(Cinv ,1,4,1,4);
-  SR    = matrix(1,4,1,4); nr_identf(SR   ,1,4,1,4);
-  SRinv = matrix(1,4,1,4); nr_identf(SRinv,1,4,1,4);
-  Sinv  = matrix(1,4,1,4); nr_identf(Sinv ,1,4,1,4); 
-  T     = matrix(1,4,1,4); nr_identf(T    ,1,4,1,4);
-  Tinv  = matrix(1,4,1,4); nr_identf(Tinv ,1,4,1,4);
-  C     = matrix(1,4,1,4); nr_identf(C    ,1,4,1,4);
-  R     = matrix(1,4,1,4); nr_identf(R    ,1,4,1,4);
+  ALLOC2D(xmat  ,5,5); nr_identf(xmat ,1,4,1,4);
+  ALLOC2D(TMP1  ,5,5); nr_identf(TMP1 ,1,4,1,4);
+  ALLOC2D(TMP2  ,5,5); nr_identf(TMP2 ,1,4,1,4);
+  ALLOC2D(Cinv  ,5,5); nr_identf(Cinv ,1,4,1,4);
+  ALLOC2D(SR    ,5,5); nr_identf(SR   ,1,4,1,4);
+  ALLOC2D(SRinv ,5,5); nr_identf(SRinv,1,4,1,4);
+  ALLOC2D(Sinv  ,5,5); nr_identf(Sinv ,1,4,1,4); 
+  ALLOC2D(T     ,5,5); nr_identf(T    ,1,4,1,4);
+  ALLOC2D(Tinv  ,5,5); nr_identf(Tinv ,1,4,1,4);
+  ALLOC2D(C     ,5,5); nr_identf(C    ,1,4,1,4);
+  ALLOC2D(R     ,5,5); nr_identf(R    ,1,4,1,4);
 
-  center_of_rotation = matrix(1,4,1,1);	/* make column vectors */
-  result             = matrix(1,4,1,1);
-  unit_vec           = matrix(1,4,1,1);
+  ALLOC2D(center_of_rotation ,5,5);	/* make column vectors */
+  ALLOC2D(result             ,5,5);
+  ALLOC2D(unit_vec           ,5,5);
 
-  tmp = vector(1,3);
-  ang = vector(1,3);
+  ALLOC(tmp ,4);
+  ALLOC(ang ,4);
 
 
   for_inclusive( i, 0, 3)	/* copy the input matrix */
@@ -522,24 +525,24 @@ public BOOLEAN extract_parameters_from_matrix(Transform *trans,
     rotations[i] = ang[i+1];
 
 
-  free_matrix(xmat,1,4,1,4);
-  free_matrix(TMP1,1,4,1,4);
-  free_matrix(TMP2,1,4,1,4);
-  free_matrix(Cinv,1,4,1,4);
-  free_matrix(SR  ,1,4,1,4);
-  free_matrix(SRinv,1,4,1,4);
-  free_matrix(Sinv,1,4,1,4);
-  free_matrix(T   ,1,4,1,4);
-  free_matrix(Tinv,1,4,1,4);
-  free_matrix(C   ,1,4,1,4);
-  free_matrix(R   ,1,4,1,4);
+  FREE2D(xmat);
+  FREE2D(TMP1);
+  FREE2D(TMP2);
+  FREE2D(Cinv);
+  FREE2D(SR  );
+  FREE2D(SRinv);
+  FREE2D(Sinv);
+  FREE2D(T   );
+  FREE2D(Tinv);
+  FREE2D(C   );
+  FREE2D(R   );
   
-  free_matrix(center_of_rotation,1,4,1,1);	/* make column vectors */
-  free_matrix(result            ,1,4,1,1);
-  free_matrix(unit_vec          ,1,4,1,1);
+  FREE2D(center_of_rotation);
+  FREE2D(result            );
+  FREE2D(unit_vec          );
 
-  free_vector(ang, 1, 3);
-  free_vector(tmp, 1, 3);
+  FREE(ang);
+  FREE(tmp);
 
   return(TRUE);
 }
@@ -656,30 +659,30 @@ public BOOLEAN extract2_parameters_from_matrix(Transform *trans,
     **xmat,**T,**Tinv,**C,**Sinv,
     **R,**SR,**SRinv,**Cinv,**TMP1,**TMP2;
 
-  xmat  = matrix(1,4,1,4); nr_identf(xmat ,1,4,1,4);
-  TMP1  = matrix(1,4,1,4); nr_identf(TMP1 ,1,4,1,4);
-  TMP2  = matrix(1,4,1,4); nr_identf(TMP2 ,1,4,1,4);
-  Cinv  = matrix(1,4,1,4); nr_identf(Cinv ,1,4,1,4);
-  SR    = matrix(1,4,1,4); nr_identf(SR   ,1,4,1,4);
-  SRinv = matrix(1,4,1,4); nr_identf(SRinv,1,4,1,4);
-  Sinv  = matrix(1,4,1,4); nr_identf(Sinv ,1,4,1,4); 
-  T     = matrix(1,4,1,4); nr_identf(T    ,1,4,1,4);
-  Tinv  = matrix(1,4,1,4); nr_identf(Tinv ,1,4,1,4);
-  C     = matrix(1,4,1,4); nr_identf(C    ,1,4,1,4);
-  R     = matrix(1,4,1,4); nr_identf(R    ,1,4,1,4);
+  ALLOC2D(xmat  ,5,5); nr_identf(xmat ,1,4,1,4);
+  ALLOC2D(TMP1  ,5,5); nr_identf(TMP1 ,1,4,1,4);
+  ALLOC2D(TMP2  ,5,5); nr_identf(TMP2 ,1,4,1,4);
+  ALLOC2D(Cinv  ,5,5); nr_identf(Cinv ,1,4,1,4);
+  ALLOC2D(SR    ,5,5); nr_identf(SR   ,1,4,1,4);
+  ALLOC2D(SRinv ,5,5); nr_identf(SRinv,1,4,1,4);
+  ALLOC2D(Sinv  ,5,5); nr_identf(Sinv ,1,4,1,4); 
+  ALLOC2D(T     ,5,5); nr_identf(T    ,1,4,1,4);
+  ALLOC2D(Tinv  ,5,5); nr_identf(Tinv ,1,4,1,4);
+  ALLOC2D(C     ,5,5); nr_identf(C    ,1,4,1,4);
+  ALLOC2D(R     ,5,5); nr_identf(R    ,1,4,1,4);
 
-  center_of_rotation = matrix(1,4,1,1);	/* make column vectors */
-  result             = matrix(1,4,1,1);
-  unit_vec           = matrix(1,4,1,1);
-  x                  = matrix(1,4,1,1);
-  y                  = matrix(1,4,1,1);
-  z                  = matrix(1,4,1,1);
-  nz                 = matrix(1,4,1,1);
-  y_on_z             = matrix(1,4,1,1);
-  ortho_y            = matrix(1,4,1,1);
+  ALLOC2D(center_of_rotation ,5,5);	/* make column vectors */
+  ALLOC2D(result             ,5,5);
+  ALLOC2D(unit_vec           ,5,5);
+  ALLOC2D(x                  ,5,5);
+  ALLOC2D(y                  ,5,5);
+  ALLOC2D(z                  ,5,5);
+  ALLOC2D(nz                 ,5,5);
+  ALLOC2D(y_on_z             ,5,5);
+  ALLOC2D(ortho_y            ,5,5);
 
-  tmp = vector(1,3);
-  ang = vector(1,3);
+  ALLOC(tmp ,4);
+  ALLOC(ang ,4);
 
   for_inclusive( i, 0, 3)	/* copy the input matrix */
     for_inclusive( j, 0, 3)
@@ -878,30 +881,30 @@ public BOOLEAN extract2_parameters_from_matrix(Transform *trans,
   shears[2] = Tinv[3][2]/scales[2] ;
   
 
-  free_matrix(xmat,1,4,1,4);
-  free_matrix(TMP1,1,4,1,4);
-  free_matrix(TMP2,1,4,1,4);
-  free_matrix(Cinv,1,4,1,4);
-  free_matrix(SR  ,1,4,1,4);
-  free_matrix(SRinv,1,4,1,4);
-  free_matrix(Sinv,1,4,1,4);
-  free_matrix(T   ,1,4,1,4);
-  free_matrix(Tinv,1,4,1,4);
-  free_matrix(C   ,1,4,1,4);
-  free_matrix(R   ,1,4,1,4);
+  FREE2D(xmat);
+  FREE2D(TMP1);
+  FREE2D(TMP2);
+  FREE2D(Cinv);
+  FREE2D(SR  );
+  FREE2D(SRinv);
+  FREE2D(Sinv);
+  FREE2D(T   );
+  FREE2D(Tinv);
+  FREE2D(C   );
+  FREE2D(R   );
   
-  free_matrix(center_of_rotation,1,4,1,1);	/* make column vectors */
-  free_matrix(result            ,1,4,1,1);
-  free_matrix(unit_vec          ,1,4,1,1);
-  free_matrix(x                 ,1,4,1,1);
-  free_matrix(y                 ,1,4,1,1);
-  free_matrix(z                 ,1,4,1,1);
-  free_matrix(nz                ,1,4,1,1);
-  free_matrix(y_on_z            ,1,4,1,1);
-  free_matrix(ortho_y           ,1,4,1,1);
+  FREE2D(center_of_rotation);
+  FREE2D(result            );
+  FREE2D(unit_vec          );
+  FREE2D(x                 );
+  FREE2D(y                 );
+  FREE2D(z                 );
+  FREE2D(nz                );
+  FREE2D(y_on_z            );
+  FREE2D(ortho_y           );
 
-  free_vector(ang, 1, 3);
-  free_vector(tmp, 1, 3);
+  FREE(ang);
+  FREE(tmp);
 
   return(TRUE);
 }
