@@ -16,12 +16,16 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 1.20  1995-09-07 10:05:11  louis
-@MODIFIED   : All references to numerical recipes routines are being removed.  At this
-@MODIFIED   : stage, any num rec routine should be local in the file.  All memory
-@MODIFIED   : allocation calls to vector(), matrix(), free_vector() etc... have been
-@MODIFIED   : replaced with ALLOC and FREE from the volume_io library of routines.
+@MODIFIED   : Revision 1.21  1995-09-14 09:53:49  louis
+@MODIFIED   : working version, using David's simplex optimization replacing the
+@MODIFIED   : numerical recipes amoeba() routine.
 @MODIFIED   :
+ * Revision 1.20  1995/09/07  10:05:11  louis
+ * All references to numerical recipes routines are being removed.  At this
+ * stage, any num rec routine should be local in the file.  All memory
+ * allocation calls to vector(), matrix(), free_vector() etc... have been
+ * replaced with ALLOC and FREE from the volume_io library of routines.
+ *
  * Revision 1.19  1995/08/21  11:36:43  louis
  * This version of get_deformation_vector_for_node with the 3x3x3 weights
  * of 1.0, 1.0, 1.0, 1.0 for all nodes used in the quadratic fit and works
@@ -143,12 +147,14 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 1.20 1995-09-07 10:05:11 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 1.21 1995-09-14 09:53:49 louis Exp $";
 #endif
 
 #include <limits.h>		/* MAXtype and MIN defs                      */
 #include <volume_io.h>		/* structs & tools to deal with volumes data */
-#include <stdlib.h>		/* to get header info for drand48()  */
+#include <amoeba.h>		/* simplex optimization struct               */
+
+#include <stdlib.h>		/* to get header info for drand48()          */
 #include "arg_data.h"		/* definition of the global data struct      */
 #include <print_error.h>	/* def of print_error_and_..                 */
 #include "deform_support.h"	/* prototypes for routines called
@@ -262,12 +268,24 @@ extern Real       initial_corr;	         /* value of correlation before
         /* prototypes function definitions */
 
 
-int amoeba2(float **p, 
-	    float y[], 
-	    int ndim, 
-	    float ftol, 
-	    float (*funk)(), 
-	    int *nfunk);
+public  BOOLEAN  perform_amoeba(amoeba_struct  *amoeba );
+public  void  initialize_amoeba(
+				amoeba_struct     *amoeba,
+				int               n_parameters,
+				Real              initial_parameters[],
+				Real              parameter_delta,
+				amoeba_function   function,
+				void              *function_data,
+				Real              tolerance );
+
+public  Real  get_amoeba_parameters(
+				    amoeba_struct  *amoeba,
+				    Real           parameters[] );
+
+public  void  terminate_amoeba(
+			       amoeba_struct  *amoeba );
+
+
 
 public float xcorr_objective(Volume d1,
                              Volume d2,
@@ -289,6 +307,8 @@ private Real cost_fn(float x, float y, float z, Real max_length);
 private Real similarity_fn(float *d);
 
 private float xcorr_fitting_function(float *x);
+
+private Real amoeba_obj_function(void * dummy, float d[]);
 
 public Status save_deform_data(Volume dx,
 			       Volume dy,
@@ -1078,6 +1098,10 @@ private Real get_deformation_vector_for_node(Real spacing,
     nfunk,
     numsteps,
     i,j,k;
+  amoeba_struct
+    the_amoeba;
+  Real
+    *parameters;
 
 
   result = 0.0;			/* assume no additional deformation */
@@ -1387,14 +1411,11 @@ private Real get_deformation_vector_for_node(Real spacing,
     else {	       /* set up SIMPLEX OPTIMIZATION */
 
       nfunk = 0;
-      ALLOC2D(p,ndim+1+1,3+1);	/* simplex structure */
-      ALLOC(y,ndim+1+1);	/* value of correlation at simplex vertices */
-    
-				/* init simplex for no deformation */
-      p[1][1] = p[1][2] = p[1][3] = 0.0;
-      for (i=2; i<=(ndim+1); ++i)	
-	for (j=1; j<=3; ++j)
-	  p[i][j] = p[1][j];
+
+      ALLOC(parameters, ndim);	/* init parameters for _NO_ deformation  */
+      for_less(i,0,ndim)
+	parameters[i] = 0.0;
+
 				/* set the simplex diameter so as to 
 				   reduce the size of the simplex, and
 				   hence reduce the search space with
@@ -1402,44 +1423,31 @@ private Real get_deformation_vector_for_node(Real spacing,
       simplex_size = Gsimplex_size * 
 	(0.5 + 
 	 0.5*((Real)(total_iters-iteration)/(Real)total_iters));
-      
-      p[2][1] += simplex_size;	/* set up all vertices of simplex */
-      p[3][2] += simplex_size;
-      if (ndim > 2) {
-	p[4][3] += simplex_size;
-      }
-				/* set up value of correlation at 
-				   each vertex of simplex */
-      for (i=1; i<=(ndim+1); ++i)	{ 
-	y[i] = xcorr_fitting_function(p[i]);
-      }
 
+      initialize_amoeba(&the_amoeba, ndim, parameters, 
+			simplex_size, amoeba_obj_function, 
+			NULL, (Real)ftol);
+      
 				/* do the actual SIMPLEX optimization */
-      if (amoeba2(p,y,ndim,ftol,xcorr_fitting_function,&nfunk)) {    
-	
-				/* find the best result */
-	if ( y[1] < y[2] + 0.00001 )
-	  i=1;
-	else
-	  i=2;
-	
-	if ( y[i] > y[3] + 0.00001)
-	  i=3;
-	
-	if ((ndim > 2) && ( y[i] > y[4] + 0.00001))
-	  i=4;
-	
+      nfunk = 0;
+      while (nfunk < 200 && perform_amoeba(&the_amoeba) )
+	nfunk++;
+    
+      if (nfunk<200) {
+
+	get_amoeba_parameters(&the_amoeba,parameters);
+
 	*num_functions = nfunk;
     
 	if (ndim>2) {
-	  voxel_displacement[0] = p[i][3];
-	  voxel_displacement[1] = p[i][2];
-	  voxel_displacement[2] = p[i][1];
+	  voxel_displacement[0] = parameters[2];
+	  voxel_displacement[1] = parameters[1];
+	  voxel_displacement[2] = parameters[0];
 	}
 	else {
 	  voxel_displacement[0] = 0.0;
-	  voxel_displacement[1] = p[i][2];
-	  voxel_displacement[2] = p[i][1];
+	  voxel_displacement[1] = parameters[1];
+	  voxel_displacement[2] = parameters[0];
 	}
 
       }
@@ -1453,10 +1461,10 @@ private Real get_deformation_vector_for_node(Real spacing,
 	result                = 0.0;
 	*num_functions        = 0;
 
-      } /*  if ameoba2 */
+      } /*  if perform_amoeba */
 
-      FREE2D(p);
-      FREE(y);
+      terminate_amoeba(&the_amoeba);      
+      FREE(parameters);
 
     } /* else use_magnitude */
 
@@ -1669,6 +1677,17 @@ private Real similarity_fn(float *d)
 }
 
 
+private Real amoeba_obj_function(void * dummy, float d[])
+{
+    int i;
+  float p[4];
+
+  for_less(i,0,number_dimensions)
+    p[i+1] = d[i];
+  
+  return ( (Real)xcorr_fitting_function(p) );
+
+}
 
 private float xcorr_fitting_function(float *d)
 
