@@ -12,7 +12,7 @@ TESTS_ENVIRONMENT = PATH=$(built_PATH):$(PATH) $(SHELL)
 
 TESTS = linear-1 linear-2 linear-3 nonlinear-2 nonlinear-3
 
-EXTRA_DIST = $(TESTS) tps.tag
+EXTRA_DIST = $(TESTS) tps.xfm tps.tag
 
 
 # Objects used in testing
