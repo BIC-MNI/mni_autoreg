@@ -14,10 +14,21 @@
               express or implied warranty.
 
 @MODIFIED   : $Log: optimize.c,v $
-@MODIFIED   : Revision 1.14  1996-03-07 13:25:19  louis
-@MODIFIED   : small reorganisation of procedures and working version of non-isotropic
-@MODIFIED   : smoothing.
+@MODIFIED   : Revision 1.15  1996-03-25 10:33:15  louis
+@MODIFIED   : modifications apply to the implementation of mutual information
+@MODIFIED   : and the constraints of using byte-only data and 256 groups.
 @MODIFIED   :
+@MODIFIED   : also, I now call  get_volume_data_type() to get the volume data type.
+@MODIFIED   :
+@MODIFIED   : also, calls to set initial_corr and final_corr are done in
+@MODIFIED   : optimize_linear_transformation() instead of calling xcorr_fitting_fn
+@MODIFIED   : in main(), so that the user-selected obj-fn is used to measure
+@MODIFIED   : the before and after fit.
+@MODIFIED   :
+ * Revision 1.14  1996/03/07  13:25:19  louis
+ * small reorganisation of procedures and working version of non-isotropic
+ * smoothing.
+ *
  * Revision 1.13  1995/10/06  09:25:02  louis
  * removed all the volume parameters from do_non_linear_optimization() and
  * optimize_non_linear_transformation() since they are all represented in
@@ -68,7 +79,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 1.14 1996-03-07 13:25:19 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 1.15 1996-03-25 10:33:15 louis Exp $";
 #endif
 
 #include <volume_io.h>
@@ -88,7 +99,7 @@ int      Ginverse_mapping_flag, Gndim;
 
 extern   double   ftol ;        
 extern   double   simplex_size ;
-extern   Real     initial_corr;
+extern   Real     initial_corr, final_corr;
 
          Segment_Table  *segment_table;	/* for variance of ratios */
 
@@ -369,21 +380,6 @@ public BOOLEAN optimize_simplex(Volume d1,
 				   function to be fitted!              */
   if (stat && ndim>0) {
     Gndim = ndim;
-    if (globals->smallest_vol == 1) {
-      Gdata1 = d1;      Gdata2 = d2;
-      Gmask1 = m1;      Gmask2 = m2;
-      Ginverse_mapping_flag = FALSE;
-    }
-    else {
-      Gdata1 = d2;      Gdata2 = d1;
-      Gmask1 = m2;      Gmask2 = m1;
-      Ginverse_mapping_flag = TRUE;
-    }
-
-  }
-
-
-  if (stat && ndim>0) {
 
     ALLOC(p,ndim+1+1);		/* my parameters for the simplex 
 				   [1..ndim+1]*/
@@ -482,6 +478,51 @@ public BOOLEAN optimize_simplex(Volume d1,
 }
 
 
+public BOOLEAN replace_volume_data_with_ubyte(Volume data)
+{
+  Volume tmp_vol;
+  int sizes[MAX_DIMENSIONS];
+  int i,j,k,count,n_dim;
+  progress_struct		
+    progress;
+
+  n_dim = get_volume_n_dimensions(data);
+  get_volume_sizes(data, sizes);
+
+  if (n_dim != 3) {
+    print ("Volume must have 3 dimensions for byte copy\n");
+    return(FALSE);
+  }
+				/* build a matching temporary ubyte 
+				   volume */
+
+  tmp_vol = copy_volume_definition(data, NC_BYTE, FALSE, 0.0, 0.0);
+
+				/* copy the original voxel data into
+				   the byte voxels */
+  count = 0;
+  initialize_progress_report(&progress, FALSE, sizes[0]*sizes[1]*sizes[2] + 1,
+			     "Converting" );
+  for_less(i,0,sizes[0])
+    for_less(j,0,sizes[1])
+      for_less(k,0,sizes[2]) {
+	set_volume_real_value(tmp_vol, i,j,k,0,0,
+			      get_volume_real_value(data,i,j,k,0,0));
+	count++;
+	update_progress_report( &progress, count);
+      }
+  terminate_progress_report( &progress );
+
+  
+  free_volume_data( data );	/* get rid of original data */
+
+  data->data = tmp_vol->data;
+  set_volume_type(data, NC_BYTE, FALSE, 0.0, 0.0);
+
+  tmp_vol->data = NULL;
+
+  return(TRUE);
+}
 
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : optimize_linear_transformation
@@ -520,9 +561,13 @@ public BOOLEAN optimize_linear_transformation(Volume d1,
   BOOLEAN 
     stat;
   int i;
+  Data_types
+    data_type;
+  float *p;
+
 
   stat = TRUE;
-  
+
           /* --------------------------------------------------------------*/
           /*----------------- prepare data for optimization -------------- */
   
@@ -582,6 +627,30 @@ public BOOLEAN optimize_linear_transformation(Volume d1,
   if (globals->obj_function == mutual_information_objective)
 				/* Collignon's mutual information */
     {
+
+      if ( globals->groups != 256 ) {
+	print ("WARNING: -groups was %d, but will be forced to 256 in this run\n",globals->groups);
+	globals->groups = 256;
+      }
+
+      data_type = get_volume_data_type (d1);
+      if (data_type != UNSIGNED_BYTE) {
+	print ("WARNING: source volume not UNSIGNED_BYTE, will do conversion now.\n");
+	if (!replace_volume_data_with_ubyte(d1)) {
+	  print_error_and_line_num("Can't replace volume data with unsigned bytes\n",
+			     __FILE__, __LINE__);
+	}
+      }
+
+      data_type = get_volume_data_type (d2);
+      if (data_type != UNSIGNED_BYTE) {
+	print ("WARNING: target volume not UNSIGNED_BYTE, will do conversion now.\n");
+	if (!replace_volume_data_with_ubyte(d2)) {
+	  print_error_and_line_num("Can't replace volume data with unsigned bytes\n",
+			     __FILE__, __LINE__);
+	}
+      }
+
       ALLOC(   prob_fn1,   globals->groups);
       ALLOC(   prob_fn2,   globals->groups);
       ALLOC2D( prob_hash_table, globals->groups, globals->groups);
@@ -616,12 +685,9 @@ public BOOLEAN optimize_linear_transformation(Volume d1,
       globals->trans_info.shears[i] = 0.0;
     }
     break;
-  case TRANS_PROCRUSTES: 
-    for_less(i,7,12) globals->trans_info.weights[i] = 0.0;
-    for_less(i,0,3) {
-      globals->trans_info.shears[i] = 0.0;
-    }
-    break;
+				/* collapsed because PROCRUSTES and LSQ7 are 
+				   the same */
+  case TRANS_PROCRUSTES:	
   case TRANS_LSQ7: 
     for_less(i,7,12) globals->trans_info.weights[i] = 0.0;
     for_less(i,0,3) {
@@ -653,7 +719,33 @@ public BOOLEAN optimize_linear_transformation(Volume d1,
     stat = FALSE;
   }
 
-  initial_corr = xcorr_objective(d1, d2, m1, m2, globals );
+	   /* ---------------- swap the volumes, so that the smallest
+	                       is first (to save on CPU)             ---------*/
+
+  if (globals->smallest_vol == 1) {
+    Gdata1 = d1;      Gdata2 = d2;
+    Gmask1 = m1;      Gmask2 = m2;
+    Ginverse_mapping_flag = FALSE;
+  }
+  else {
+    Gdata1 = d2;      Gdata2 = d1;
+    Gmask1 = m2;      Gmask2 = m1;
+    Ginverse_mapping_flag = TRUE;
+  }
+
+
+	   /* ---------------- call the requested obj_function to 
+	                       establish the initial fitting value  ---------*/
+
+  ALLOC(p,13);
+  parameters_to_vector(globals->trans_info.translations,
+		       globals->trans_info.rotations,
+		       globals->trans_info.scales,
+		       globals->trans_info.shears,
+		       p,
+		       globals->trans_info.weights);
+
+  initial_corr = fit_function(p);
 
 	   /* ---------------- call requested optimization strategy ---------*/
 
@@ -668,6 +760,16 @@ public BOOLEAN optimize_linear_transformation(Volume d1,
     stat = FALSE;
   }
   
+  parameters_to_vector(globals->trans_info.translations,
+		       globals->trans_info.rotations,
+		       globals->trans_info.scales,
+		       globals->trans_info.shears,
+		       p,
+		       globals->trans_info.weights);
+
+  final_corr = fit_function(p);
+
+  FREE(p);
 
           /* ----------------finish up parameter/matrix manipulations ------*/
 
@@ -728,6 +830,8 @@ public float measure_fit(Volume d1,
   int 
     i, 
     ndim;
+  Data_types
+    data_type;
 
 /*  Transform
     *mat;
@@ -767,7 +871,38 @@ public float measure_fit(Volume d1,
 	print_error_and_line_num("Could not build segment table for target volume\n",__FILE__, __LINE__);
     }
 
-  }
+  } else if (globals->obj_function == mutual_information_objective)
+				/* Collignon's mutual information */
+    {
+
+      if ( globals->groups != 256 ) {
+	print ("WARNING: -groups was %d, but will be forced to 256 in this run\n",globals->groups);
+	globals->groups = 256;
+      }
+
+      data_type = get_volume_data_type (d1);
+      if (data_type != UNSIGNED_BYTE) {
+	print ("WARNING: source volume not UNSIGNED_BYTE, will do conversion now.\n");
+	if (!replace_volume_data_with_ubyte(d1)) {
+	  print_error_and_line_num("Can't replace volume data with unsigned bytes\n",
+			     __FILE__, __LINE__);
+	}
+      }
+
+      data_type = get_volume_data_type (d2);
+      if (data_type != UNSIGNED_BYTE) {
+	print ("WARNING: target volume not UNSIGNED_BYTE, will do conversion now.\n");
+	if (!replace_volume_data_with_ubyte(d2)) {
+	  print_error_and_line_num("Can't replace volume data with unsigned bytes\n",
+			     __FILE__, __LINE__);
+	}
+      }
+
+      ALLOC(   prob_fn1,   globals->groups);
+      ALLOC(   prob_fn2,   globals->groups);
+      ALLOC2D( prob_hash_table, globals->groups, globals->groups);
+
+    } 
           /* ---------------- prepare the weighting array for obj func evaluation  ---------*/
 
           /* ---------------- prepare the weighting array for optimization ---------*/
@@ -874,7 +1009,15 @@ public float measure_fit(Volume d1,
       (void)fprintf(stderr, "Can't free segment table.\n");
       (void)fprintf(stderr, "Error in line %d, file %s\n",__LINE__, __FILE__);
     }
-  }
+  } else
+  if (globals->obj_function == mutual_information_objective)
+				/* Collignon's mutual information */
+    {
+      FREE(   prob_fn1 );
+      FREE(   prob_fn2 );
+      FREE2D( prob_hash_table);
+    }
+
 
   return(y);
 }
