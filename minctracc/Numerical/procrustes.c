@@ -17,11 +17,15 @@
 
 @CREATED    : January 29, 1992 (Peter Neelin)
 @MODIFIED   :  $Log: procrustes.c,v $
-@MODIFIED   :  Revision 1.8  1995-02-22 08:56:06  louis
-@MODIFIED   :  Montreal Neurological Institute version.
-@MODIFIED   :  compiled and working on SGI.  this is before any changes for SPARC/
-@MODIFIED   :  Solaris.
+@MODIFIED   :  Revision 1.9  1995-09-11 12:37:16  louis
+@MODIFIED   :  this file is not used in mni_reg-0.1g, and some numerical recipes
+@MODIFIED   :  routines remain.
 @MODIFIED   :
+ * Revision 1.8  1995/02/22  08:56:06  louis
+ * Montreal Neurological Institute version.
+ * compiled and working on SGI.  this is before any changes for SPARC/
+ * Solaris.
+ *
  * Revision 1.7  94/04/06  11:48:47  louis
  * working linted version of linear + non-linear registration based on Lvv
  * operator working in 3D
@@ -46,11 +50,10 @@ and moved them to matrix_basics!
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/procrustes.c,v 1.8 1995-02-22 08:56:06 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/procrustes.c,v 1.9 1995-09-11 12:37:16 louis Exp $";
 #endif
 
 #include <volume_io.h>
-#include <recipes.h>
 #include "matrix_basics.h"
 
 /* Routines called in this file */
@@ -67,23 +70,23 @@ public void procrustes(int npoints, int ndim,
 @NAME       : procrustes
 @INPUT      : npoints - number of input point pairs
               ndim    - number of dimensions for each point
-              Apoints - Matrix of point set 1 (in numerical recipes
+              Apoints - Matrix of point set 1 (in zero offset
                  form). The dimensions of this matrix should be defined
                  to be 1 to npoints and 1 to ndim (when calling the numerical
                  recipes routine matrix).
-              Bpoints - Matrix of point set 2 (in numerical recipes
+              Bpoints - Matrix of point set 2 (in zero offset
                  form). The dimensions of this matrix should be defined
                  to be 1 to npoints and 1 to ndim (when calling the numerical
                  recipes routine matrix).
-@OUTPUT     : translation - Numerical recipes vector (1 to ndim) that 
+@OUTPUT     : translation - zero offset vector (1 to ndim) that 
                  specifies the translation to be applied to Bpoints to line
                  up the centroid with that of Apoints. Calling routine must
                  allocate space for this vector.
-              centre_of_rotation - Numerical recipes vector (1 to ndim) that
+              centre_of_rotation - zero offset vector (1 to ndim) that
                  specifies the centre of rotation and scaling (this is 
                  in fact only the centroid of Apoints). Calling routine must
                  allocate space for this vector.
-              rotation - Numerical recipes matrix (1 to ndim by 1 to ndim) 
+              rotation - zero offset matrix (1 to ndim by 1 to ndim) 
                  to rotate translated Bpoints so that they line up with 
                  Apoints. Calling routine must allocate space for this 
                  matrix.
@@ -107,12 +110,11 @@ public void procrustes(int npoints, int ndim,
               can be found independently of scale (after the best translation
               has been found). (See Sibson for more).
 @GLOBALS    : (none)
-@CALLS      : numerical recipes stuff
-              calc_centroid
+@CALLS      : calc_centroid
               translate
               transpose
               matrix_multiply
-              svdcmp (numerical recipes)
+              svdcmp (zero offset)
               trace
 @CREATED    : Long time ago (Sean Marrett)
 @MODIFIED   : Some time later (Shyan Ku)
