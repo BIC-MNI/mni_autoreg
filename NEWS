@@ -1,5 +1,11 @@
 CHANGES to the MNI_AutoReg package...
 
+Release 0.98s
+-------------
+
+* Removed malloc.h from mincblur to assist build on OSX
+
+
 Release 0.98r
 -------------
 

@@ -1,3 +1,7 @@
+2005-01-29  Andrew Janke <a.janke@gmail.com>
+
+        * removed #include <malloc.h> from mincblur build to assist OSX build
+
 2004-03-18  Andrew Janke <rotor@cmr.uq.edu.au>
 
         * changed make_model from csh to sh (Cygwin has no csh by default)

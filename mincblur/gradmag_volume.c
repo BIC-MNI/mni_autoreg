@@ -19,7 +19,10 @@
 
 @CREATED    : some time in 1993
 @MODIFIED   : $Log: gradmag_volume.c,v $
-@MODIFIED   : Revision 96.1  2004-02-12 05:53:48  rotor
+@MODIFIED   : Revision 96.2  2005-01-29 16:34:05  rotor
+@MODIFIED   :  * removed malloc.h include for smoother OSX build
+@MODIFIED   :
+@MODIFIED   : Revision 96.1  2004/02/12 05:53:48  rotor
 @MODIFIED   :  * removed public/private defs
 @MODIFIED   :
 @MODIFIED   : Revision 96.0  1996/08/21 18:22:24  louis
@@ -58,7 +61,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/gradmag_volume.c,v 96.1 2004-02-12 05:53:48 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/gradmag_volume.c,v 96.2 2005-01-29 16:34:05 rotor Exp $";
 #endif
 
 #include <config.h>             /* for EXIT_FAILURE (on some systems) */
@@ -72,7 +75,6 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur
 #include <ParseArgv.h>
 #include <time_stamp.h>
 #include "gradmag_volume.h"
-#include <malloc.h>
 
 /* Main program */
 
