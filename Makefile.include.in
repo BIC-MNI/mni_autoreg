@@ -98,7 +98,7 @@ PROGRAM_LIBS = -lmincprog -lvolume_io -lminc -lnetcdf
 # the list of directories we need to search for {netcdf,minc,volume_io}.h
 
     INCLUDES = -I@TOPDIR@ -IInclude -I$(PROG_LIB_DIR) @INCLUDEDIRS@
-    CDEFINES = -Dpublic= -Dprivate=static @DEFS@
+    CDEFINES = -Dpublic= -Dprivate=static -DNONLINEAR_RELEASE @DEFS@
    LINTFLAGS = $(INCLUDES) 
 
 
