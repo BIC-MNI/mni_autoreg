@@ -21,6 +21,7 @@ int     iteration_limit          = 20;
 double  iteration_weight         = 0.3;
 double  similarity_cost_ratio    = 0.5;
 double  simplex_size             = 20.0;
+int     number_dimensions        = 3;
 
 int  invert_mapping_flag = FALSE;
 int clobber_flag = FALSE;
@@ -75,8 +76,16 @@ static ArgvInfo argTable[] = {
   {"-nonlinear", ARGV_CONSTANT, (char *) TRANS_NONLIN, (char *) &main_args.trans_info.transform_type,
      "recover nonlinear deformation field."}, 
 
+  {"-2D-non-lin", ARGV_CONSTANT, (char *) 2, (char *) &number_dimensions,
+     "Estimate the non-lin fit on a 2D slice only."},
+  {"-3D-non-lin", ARGV_CONSTANT, (char *) 3, (char *) &number_dimensions,
+     "Estimate the non-lin fit on a 3D volume (default)."},
   {"-use_magnitude", ARGV_CONSTANT, (char *) TRUE, (char *) &main_args.trans_info.use_magnitude,
-     "use the 1st derivative to calculate the non-lin fit."},
+     "use magnitude data local deformation (default)."},
+  {"-use_simplex", ARGV_CONSTANT, (char *) TRUE, (char *) &main_args.trans_info.use_simplex,
+     "use 3D simplex optimization for local deformation (default)."},
+  {"-use_1D", ARGV_CONSTANT, (char *) FALSE, (char *) &main_args.trans_info.use_simplex,
+     "use Lvv correlation for local deformation."},
   {"-forward", ARGV_CONSTANT, (char *) FALSE,
      (char *) &main_args.trans_info.invert_mapping_flag,
      "Recover forward transformation (source -> model, default).\n"},

@@ -17,10 +17,15 @@
 
 @CREATED    : Thu May 20 14:20:21 EST 1993 Louis Collins
 @MODIFIED   : $Log: minctracc.h,v $
-@MODIFIED   : Revision 1.12  1994-06-06 09:46:52  louis
-@MODIFIED   : modified the initialization of main_args to reflect the use_magnitude
-@MODIFIED   : field in the trans_info struct.
+@MODIFIED   : Revision 1.13  1994-06-19 15:42:15  louis
+@MODIFIED   : clean working version of 3D local deformation with simplex optimization
+@MODIFIED   : (by default) on magnitude data (default).  No more FFT stuff.
+@MODIFIED   : This working version before change of deformation field in do_nonlinear.c
 @MODIFIED   :
+ * Revision 1.12  94/06/06  09:46:52  louis
+ * modified the initialization of main_args to reflect the use_magnitude
+ * field in the trans_info struct.
+ * 
  * Revision 1.11  94/05/28  16:18:55  louis
  * working version before modification of non-linear optimiation
  * 
@@ -192,7 +197,8 @@ Arg_Data main_args = {
   {1,FALSE},			/* verbose, debug      */
   {				/* transformation info */
     TRUE,			/*   do default Principal Axis Transformation start */
-    FALSE,			/*   use_mag=FALSE i.e. use Lvv by default          */
+    TRUE,			/*   use_mag=TRUE i.e. do not use Lvv by default    */
+    TRUE,			/*   use_simplex=TRUE i.e. use 3d simplex by default      */
     (char *)NULL,			/*   filename */
     (char *)NULL,			/*   file_contents */
     0,                          /* buffer_length   */
@@ -225,3 +231,4 @@ Arg_Data main_args = {
 };
 
 
+ 
