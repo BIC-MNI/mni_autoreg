@@ -16,11 +16,17 @@
 
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   :  $Log: objectives.c,v $
-@MODIFIED   :  Revision 1.8  1995-02-22 08:56:06  louis
-@MODIFIED   :  Montreal Neurological Institute version.
-@MODIFIED   :  compiled and working on SGI.  this is before any changes for SPARC/
-@MODIFIED   :  Solaris.
+@MODIFIED   :  Revision 1.9  1995-09-07 10:05:11  louis
+@MODIFIED   :  All references to numerical recipes routines are being removed.  At this
+@MODIFIED   :  stage, any num rec routine should be local in the file.  All memory
+@MODIFIED   :  allocation calls to vector(), matrix(), free_vector() etc... have been
+@MODIFIED   :  replaced with ALLOC and FREE from the volume_io library of routines.
 @MODIFIED   :
+ * Revision 1.8  1995/02/22  08:56:06  louis
+ * Montreal Neurological Institute version.
+ * compiled and working on SGI.  this is before any changes for SPARC/
+ * Solaris.
+ *
  * Revision 1.7  94/04/06  11:48:44  louis
  * working linted version of linear + non-linear registration based on Lvv
  * operator working in 3D
@@ -35,13 +41,10 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/objectives.c,v 1.8 1995-02-22 08:56:06 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/objectives.c,v 1.9 1995-09-07 10:05:11 louis Exp $";
 #endif
 
-
 #include <volume_io.h>
-#include <limits.h>
-#include <recipes.h>
 #include "constants.h"
 #include "arg_data.h"
 
@@ -52,6 +55,15 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 extern Arg_Data main_args;
 
 extern Segment_Table *segment_table;
+
+extern int            **prob_hash_table; /* for mutual information */
+extern int            *prob_fn1;         /*     for vol 1 */
+extern int            *prob_fn2;         /*     for vol 2 */
+
+public int point_not_masked(Volume volume, 
+			    Real wx, Real wy, Real wz);
+
+
 
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : xcorr_objective
@@ -559,10 +571,10 @@ public float vr_objective(Volume d1,
 
 				/* build segmentation info!  */
 
-  rat_sum  = vector(1,segment_table->groups);
-  rat2_sum = vector(1,segment_table->groups);
-  var      = vector(1,segment_table->groups);
-  limits   = vector(1,segment_table->groups);
+  ALLOC(rat_sum  ,1+segment_table->groups);
+  ALLOC(rat2_sum ,1+segment_table->groups);
+  ALLOC(var      ,1+segment_table->groups);
+  ALLOC(limits   ,1+segment_table->groups);
 
   ALLOC(count3, (segment_table->groups+1));
 
@@ -630,7 +642,7 @@ public float vr_objective(Volume d1,
 		    rat2_sum[index] +=  rat*rat;
 		  }
 		  else {
-		    print_error("Cannot segment voxel value %d into one of %d groups.", 
+		    print_error_and_line_num("Cannot segment voxel value %d into one of %d groups.", 
 				__FILE__, __LINE__, voxel_value1,segment_table->groups );
 		    exit(EXIT_FAILURE);
 
@@ -671,17 +683,16 @@ public float vr_objective(Volume d1,
     }
   }
   else
-    total_variance = FLT_MAX;
+    total_variance = 1e15;
 
   result = total_variance;
 
   if (globals->flags.debug) print ("%7d %7d %7d -> %10.8f\n",count1,count2,count3[1],result);
 
-  free_vector(rat_sum,  1, segment_table->groups);
-  free_vector(rat2_sum, 1, segment_table->groups);
-  free_vector(var,      1, segment_table->groups);
-  free_vector(limits,   1, segment_table->groups);
-
+  FREE(rat_sum);
+  FREE(rat2_sum);
+  FREE(var);
+  FREE(limits);
   FREE(count3);
 
 
@@ -689,4 +700,296 @@ public float vr_objective(Volume d1,
   return (result);
   
 }
+
+public float stub_objective(Volume d1,
+			    Volume d2,
+			    Volume m1,
+			    Volume m2, 
+			    Arg_Data *globals)
+{
+
+  VectorR			/* these variables are used to step through */
+    vector_step;		/* the 3D lattice                           */
+  PointR
+    starting_position,
+    slice,
+    row,
+    col,
+    pos2,
+    voxel;
+  double
+    tx,ty,tz;
+  int
+    r,c,s;
+  Real
+    value1, value2,
+    voxel_value1;
+  float 
+    result;				/* the result */
+  int 
+    count1,count2;		/* number of nodes in first vol, second vol */
+
+
+				/* init any objective function specific
+				   stuff here                           */
+  count1 = count2 = 0;
+  result = 0.0;
+
+				/* build world lattice info */
+
+  fill_Point( starting_position, globals->start[X], globals->start[Y], globals->start[Z]);
+
+				/* loop through each node of lattice */
+  for_inclusive(s,0,globals->count[SLICE_IND]) {
+
+    SCALE_VECTOR( vector_step, globals->directions[SLICE_IND], s);
+    ADD_POINT_VECTOR( slice, starting_position, vector_step );
+
+    for_inclusive(r,0,globals->count[ROW_IND]) {
+      
+      SCALE_VECTOR( vector_step, globals->directions[ROW_IND], r);
+      ADD_POINT_VECTOR( row, slice, vector_step );
+      
+      SCALE_POINT( col, row, 1.0); /* init first col position */
+      for_inclusive(c,0,globals->count[COL_IND]) {
+	
+	convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col),
+				  &tx, &ty, &tz);
+	
+	fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
+	
+				/* get the node value in volume 1,
+				   if it falls within the volume    */
+
+	if (point_not_masked(m1, Point_x(col), Point_y(col), Point_z(col))) {
+	  
+	  if (INTERPOLATE_TRUE_VALUE( d1, &voxel, &value1 )) {
+
+	    count1++;
+	    voxel_value1 = CONVERT_VALUE_TO_VOXEL(d1,value1 );
+
+				/* transform the node coordinate into
+				   volume 2                             */
+
+	    DO_TRANSFORM(pos2, globals->trans_info.transformation, col);
+	    
+	    convert_3D_world_to_voxel(d2, Point_x(pos2), Point_y(pos2), Point_z(pos2), &tx, &ty, &tz);
+	    
+	    fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
+	
+				/* get the node value in volume 2,
+				   if it falls within the volume    */
+
+	    if (point_not_masked(m2,Point_x(pos2), Point_y(pos2), Point_z(pos2) )) {
+	      
+	      if (INTERPOLATE_TRUE_VALUE( d2, &voxel, &value2 )) {
+
+		count2++;
+		/* voxel_value2 = CONVERT_VALUE_TO_VOXEL(d1,value2 ); */
+
+
+				/* if both values are within the threshold
+				   limits, then do what is necessary to
+				   calculate the objective function         */
+
+	        if (ABS(value1) > globals->threshold[0] && 
+		    ABS(value2) > globals->threshold[1] ) {
+
+				/*EMPTY*/
+				/* EMPTY is for lint  */
+				/* calculate objective function data here */
+
+
+		} /* if value1 & value2 > threshold */
+		
+		
+	      } /* if voxel in d2 */
+	    } /* if point in mask volume two */
+	  } /* if voxel in d1 */
+	} /* if point in mask volume one */
+	
+	ADD_POINT_VECTOR( col, col, globals->directions[COL_IND] );
+	
+      } /* for c */
+    } /* for r */
+  } /* for s */
+
+
+  /* now that the data for the objective function has been accumulated
+     over the lattice nodes, finish the objective function calculation, 
+     placing the final objective function value in  'result' */
+
+
+  /* don't forget to free up any variables you declared above */
+
+  return (result);
+  
+}
+
+/* this function will calculate the mutual information similarity
+   value based on the paper by Collignon, IPMI95, p 266 
+
+   the volumes d1 and d2 have been intensity normalized to +/- 5.0 sd
+   and have a mean of 0.0.
+
+*/
+
+public float mutual_information_objective(Volume d1,
+					  Volume d2,
+					  Volume m1,
+					  Volume m2, 
+					  Arg_Data *globals)
+{
+
+  VectorR			/* these variables are used to step through */
+    vector_step;		/* the 3D lattice                           */
+  PointR
+    starting_position,
+    slice,
+    row,
+    col,
+    pos2,
+    voxel;
+  double
+    tx,ty,tz;
+  int
+    r,c,s;
+  Real
+    value1, value2,
+    voxel_value2,
+    voxel_value1;
+  float 
+    result;				/* the result */
+  int 
+    i,j,count1,count2;		/* number of nodes in first vol, second vol */
+
+
+				/* init any objective function specific
+				   stuff here                           */
+  count1 = count2 = 0;
+  result = 0.0;
+
+  for_less(i,0,globals->groups) {
+    prob_fn1[i] = 0;
+    prob_fn2[i] = 0;
+  }
+
+  for_less(i,0,globals->groups) 
+    for_less(j,0,globals->groups) 
+      prob_hash_table[i][j] = 0;
+
+				/* build world lattice info */
+
+  fill_Point( starting_position, globals->start[X], globals->start[Y], globals->start[Z]);
+
+				/* loop through each node of lattice */
+  for_inclusive(s,0,globals->count[SLICE_IND]) {
+
+    SCALE_VECTOR( vector_step, globals->directions[SLICE_IND], s);
+    ADD_POINT_VECTOR( slice, starting_position, vector_step );
+
+    for_inclusive(r,0,globals->count[ROW_IND]) {
+      
+      SCALE_VECTOR( vector_step, globals->directions[ROW_IND], r);
+      ADD_POINT_VECTOR( row, slice, vector_step );
+      
+      SCALE_POINT( col, row, 1.0); /* init first col position */
+      for_inclusive(c,0,globals->count[COL_IND]) {
+	
+	convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col),
+				  &tx, &ty, &tz);
+	
+	fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
+	
+				/* get the node value in volume 1,
+				   if it falls within the volume    */
+
+	if (point_not_masked(m1, Point_x(col), Point_y(col), Point_z(col))) {
+	  
+	  if (INTERPOLATE_TRUE_VALUE( d1, &voxel, &value1 )) {
+
+	    count1++;
+	    voxel_value1 = CONVERT_VALUE_TO_VOXEL(d1,value1 );
+	    
+	    if (voxel_value1 > 0) { /* is the voxel defined? */
+
+				/* transform the node coordinate into
+				   volume 2                             */
+
+	      DO_TRANSFORM(pos2, globals->trans_info.transformation, col);
+	      
+	      convert_3D_world_to_voxel(d2, Point_x(pos2), Point_y(pos2), Point_z(pos2), &tx, &ty, &tz);
+	      
+	      fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
+	      
+	      /* get the node value in volume 2,
+		 if it falls within the volume    */
+	      
+	      if (point_not_masked(m2,Point_x(pos2), Point_y(pos2), Point_z(pos2) )) {
+		
+		if (INTERPOLATE_TRUE_VALUE( d2, &voxel, &value2 )) {
+		  
+		  voxel_value2 = CONVERT_VALUE_TO_VOXEL(d2,value2 );
+		  
+		  if (voxel_value2 > 0) { /* is the voxel defined? */
+
+		    value1 = (Real)globals->groups * (value1 + 5.0)/10.0001;
+		    value2 = (Real)globals->groups * (value2 + 5.0)/10.0001;
+		    
+		    if ((int)value1>=0 && (int)value1<globals->groups &&
+			(int)value2>=0 && (int)value2<globals->groups) {
+
+		      count2++;
+		    
+		      prob_fn1[(int)value1]++;
+		      prob_fn2[(int)value2]++;
+		      prob_hash_table[(int)value1][(int)value2]++;
+
+		    }
+		  } /* if voxel_value2>0 */
+		} /* if voxel in d2 */
+	      } /* if point in mask volume two */
+	    } /* if voxel_value1>0 */
+	  } /* if voxel in d1 */
+	} /* if point in mask volume one */
+	
+	ADD_POINT_VECTOR( col, col, globals->directions[COL_IND] );
+	
+      } /* for c */
+    } /* for r */
+  } /* for s */
+
+  /* now that the data for the objective function has been accumulated
+     over the lattice nodes, finish the objective function calculation, 
+     placing the final objective function value in  'result' */
+
+
+  result = 0.0;
+  if (count2>0) {
+    for_less(i,1,globals->groups) 
+      for_less(j,1,globals->groups) {
+	
+	if ( prob_fn1[i] > 0 &&  prob_fn2[j] > 0 && prob_hash_table[i][j]>0)
+	  result += (Real)prob_hash_table[i][j] * 
+            	    (Real)prob_hash_table[i][j] * 
+		      log( (Real)prob_hash_table[i][j] / 
+			  ((Real)prob_fn1[i] * (Real)prob_fn2[j])
+			  );
+      }
+    
+    result *= (-1.0/(Real)count2) * log ( 1.0/(Real)count2 );
+  }
+
+  if (globals->flags.debug) (void)print ("%7d %7d -> %f\n",count1,count2,result);
+
+
+  /* don't forget to free up any variables you declared above */
+    
+  return (result);
+  
+}
+
+
+
+
 

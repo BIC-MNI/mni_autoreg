@@ -14,14 +14,20 @@
               express or implied warranty.
 
 @MODIFIED   : $Log: optimize.c,v $
-@MODIFIED   : Revision 1.10  1995-03-17 11:15:35  louis
-@MODIFIED   : added prototype for amoeba2 in optimize.c - I think that Greg may
-@MODIFIED   : have changed the call from amoeba2 to amoeba so that he could take
-@MODIFIED   : advantage of the amoeba routine in librecipes.  I don't think he
-@MODIFIED   : knew that there are small differences between the original NR amoeba
-@MODIFIED   : and the version I use.  So I put it back to the way it was, or in
-@MODIFIED   : any case, to the way that works.
+@MODIFIED   : Revision 1.11  1995-09-07 10:05:11  louis
+@MODIFIED   : All references to numerical recipes routines are being removed.  At this
+@MODIFIED   : stage, any num rec routine should be local in the file.  All memory
+@MODIFIED   : allocation calls to vector(), matrix(), free_vector() etc... have been
+@MODIFIED   : replaced with ALLOC and FREE from the volume_io library of routines.
 @MODIFIED   :
+ * Revision 1.10  1995/03/17  11:15:35  louis
+ * added prototype for amoeba2 in optimize.c - I think that Greg may
+ * have changed the call from amoeba2 to amoeba so that he could take
+ * advantage of the amoeba routine in librecipes.  I don't think he
+ * knew that there are small differences between the original NR amoeba
+ * and the version I use.  So I put it back to the way it was, or in
+ * any case, to the way that works.
+ *
  * Revision 1.9  1995/02/22  08:56:06  louis
  * Montreal Neurological Institute version.
  * compiled and working on SGI.  this is before any changes for SPARC/
@@ -45,12 +51,10 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 1.10 1995-03-17 11:15:35 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 1.11 1995-09-07 10:05:11 louis Exp $";
 #endif
 
 #include <volume_io.h>
-#include <recipes.h>
-#include <limits.h>
 #include <print_error.h>
 
 #include "constants.h"
@@ -59,6 +63,22 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #include "make_rots.h"
 #include "segment_table.h"
 
+extern Arg_Data main_args;
+
+Volume   Gdata1, Gdata2, Gmask1, Gmask2;
+int      Ginverse_mapping_flag, Gndim;
+
+extern   double   ftol ;        
+extern   double   simplex_size ;
+extern   Real     initial_corr;
+
+         Segment_Table  *segment_table;	/* for variance of ratios */
+
+         int            **prob_hash_table;   /* for mutual information */
+         int            *prob_fn1;      /*     for vol 1 */
+         int            *prob_fn2;      /*     for vol 2 */
+
+
 /* external calls: */
 
 public void make_zscore_volume(Volume d1, Volume m1, 
@@ -66,7 +86,8 @@ public void make_zscore_volume(Volume d1, Volume m1,
 
 public void add_speckle_to_volume(Volume d1, 
 				  float speckle,
-				  double  *start, int *count, VectorR directions[]);
+				  double  *start, int *count, 
+				  VectorR directions[]);
 
 public Status do_non_linear_optimization(Volume d1,
 					 Volume d1_dx, 
@@ -82,26 +103,15 @@ public Status do_non_linear_optimization(Volume d1,
 					 Volume m2, 
 					 Arg_Data *globals);
 
-int amoeba2(float **p, float y[], int ndim, float ftol, float (*funk)(), int *nfunk);
-
-
-extern Arg_Data main_args;
-
-Volume   Gdata1, Gdata2, Gmask1, Gmask2;
-int      Ginverse_mapping_flag, Gndim;
-
-extern   double   ftol ;        
-extern   double   simplex_size ;
-
-         Segment_Table  *segment_table;
-
+int amoeba2(float **p, float y[], int ndim, 
+	    float ftol, float (*funk)(), int *nfunk);
 
 public void parameters_to_vector(double *trans, 
-				  double *rots, 
-				  double *scales,
-				  double *shears,
-				  float  *op_vector,
-				  double *weights) 
+				 double *rots, 
+				 double *scales,
+				 double *shears,
+				 float  *op_vector,
+				 double *weights) 
 {
   int i;
 
@@ -200,6 +210,7 @@ public float fit_function(float *params)
     cent[i]  = main_args.trans_info.center[i];
   }
 
+
 				/* modify the parameters to be optimized */
   vector_to_parameters(trans, rots, scale, shear, params, main_args.trans_info.weights);
   
@@ -221,7 +232,7 @@ public float fit_function(float *params)
 
     {
 
-printf("out : %7.4f=%c %7.4f=%c %7.4f=%c   %7.4f=%c %7.4f=%c %7.4f=%c   %7.4f=%c %7.4f=%c %7.4f=%c \n",
+ (void)printf("out : %7.4f=%c %7.4f=%c %7.4f=%c   %7.4f=%c %7.4f=%c %7.4f=%c   %7.4f=%c %7.4f=%c %7.4f=%c \n",
        rots[0], in_limits(rots[0], (double)-3.1415927/2.0, (double)3.1415927/2.0) ? 'T': 'F' , 
        rots[1], in_limits(rots[1], (double)-3.1415927/2.0, (double)3.1415927/2.0) ? 'T': 'F' , 
        rots[2], in_limits(rots[2], (double)-3.1415927/2.0, (double)3.1415927/2.0) ? 'T': 'F' , 
@@ -232,7 +243,7 @@ printf("out : %7.4f=%c %7.4f=%c %7.4f=%c   %7.4f=%c %7.4f=%c %7.4f=%c   %7.4f=%c
        shear[1],in_limits(shear[1], (double)-2.0, (double)2.0)? 'T': 'F' , 
        shear[2],in_limits(shear[2], (double)-2.0, (double)2.0)? 'T': 'F' );
 
-    r = FLT_MAX;
+    r = 1e10;
   }
   else {
 				/* get the linear transformation ptr */
@@ -333,8 +344,8 @@ public BOOLEAN optimize_simplex(Volume d1,
 
   if (stat && ndim>0) {
 
-    p = matrix(1,ndim+1,1,ndim); /* simplex */
-    y = vector(1,ndim+1);        /* value of correlation at simplex vertices */
+    ALLOC2D(p, ndim+1+1,ndim+1); /* simplex */
+    ALLOC(y,ndim+1+1);        /* value of correlation at simplex vertices */
     
     parameters_to_vector(globals->trans_info.translations,
 			 globals->trans_info.rotations,
@@ -364,28 +375,34 @@ public BOOLEAN optimize_simplex(Volume d1,
       
     }
 	
-    amoeba2(p,y,ndim,local_ftol,fit_function,&nfunk);
+    if (amoeba2(p,y,ndim,local_ftol,fit_function,&nfunk)) {
     
-    (void)print("after %d iterations\n",nfunk);
-    
-    for (i=1; i<=(ndim+1); ++i)	{   /* print out value of correlation at all points of simplex */
-      if (i==1) {
-	(void)print ("end corr = %f",y[i]);
-	for (j=1; j<=ndim; ++j)  {
-	  (void)print (" %9.4f",p[i][j]);
-	}
-	(void)print ("\n");
-       } 
-    }   
-
+      (void)print("after %d iterations\n",nfunk);
+      
+      for (i=1; i<=(ndim+1); ++i)	{   /* print out value of correlation at all points of simplex */
+	if (i==1) {
+	  (void)print ("end corr = %f",y[i]);
+	  for (j=1; j<=ndim; ++j)  {
+	    (void)print (" %9.4f",p[i][j]);
+	  }
+	  (void)print ("\n");
+	} 
+      }   
 				/* copy result into main data structure */
 
-    vector_to_parameters(globals->trans_info.translations,
-			 globals->trans_info.rotations,
-			 globals->trans_info.scales,
-			 globals->trans_info.shears,
-			 p[1],
-			 globals->trans_info.weights);
+      vector_to_parameters(globals->trans_info.translations,
+			   globals->trans_info.rotations,
+			   globals->trans_info.scales,
+			   globals->trans_info.shears,
+			   p[1],
+			   globals->trans_info.weights);
+    }
+    else {
+      print_error_and_line_num(
+	  "Amoeba2 failure.\n",
+	   __FILE__, __LINE__);
+
+    }
 
 print ("%d == %d\n",globals->trans_info.transform_type,TRANS_LSQ7);
 
@@ -423,8 +440,8 @@ print ("%d == %d\n",globals->trans_info.transform_type,TRANS_LSQ7);
     
     build_transformation_matrix(mat, cent, trans, scale, shear, rots);
 
-    free_matrix(p,1,ndim+1,1,ndim); /* simplex */
-    free_vector(y,1,ndim+1);        /* value of correlation at simplex vertices */
+    FREE2D(p); /* simplex */
+    FREE(y);        /* value of correlation at simplex vertices */
 
   }
 
@@ -473,48 +490,92 @@ public BOOLEAN optimize_linear_transformation(Volume d1,
 
   stat = TRUE;
   
-	     /*----------------- prepare data for optimization ------------ */
+          /* --------------------------------------------------------------*/
+          /*----------------- prepare data for optimization -------------- */
   
-  if (globals->obj_function == zscore_objective) { /* replace volume d1 and d2 by zscore volume  */
-    make_zscore_volume(d1,m1,(float)globals->threshold[0]);
-    make_zscore_volume(d2,m2,(float)globals->threshold[1]);
-  } 
-  else  if (globals->obj_function == ssc_objective) {	/* add speckle to the data set */
+  if (globals->obj_function == zscore_objective) 
+				/* normalize volumes before correlation */
+    { 
+      /* replace volume d1 and d2 by zscore volume  */
 
-    make_zscore_volume(d1,m1,(float)globals->threshold[0]); /* need to make data sets comparable */
-    make_zscore_volume(d2,m2,(float)globals->threshold[1]); /* in mean and sd...                 */
+      make_zscore_volume(d1,m1,(float)globals->threshold[0]);
+      make_zscore_volume(d2,m2,(float)globals->threshold[1]);
+    } else
+  if (globals->obj_function == ssc_objective)
+				/* Stocastic sign change (or zero-crossings) */
+    {
+      /* add speckle to the data set, after making both data sets
+         comparable in mean and sd...                             */
 
-    if (globals->smallest_vol == 1)
-      add_speckle_to_volume(d1, 
-			    globals->speckle,
-			    globals->start, globals->count, globals->directions);
-    else
-      add_speckle_to_volume(d2, 
-			    globals->speckle,
-			    globals->start, globals->count, globals->directions);    
-  } else if (globals->obj_function == vr_objective) {
-    if (globals->smallest_vol == 1) {
-      if (!build_segment_table(&segment_table, d1, globals->groups))
-	print_error("Could not build segment table for source volume\n",__FILE__, __LINE__);
-    }
-    else {
-      if (!build_segment_table(&segment_table, d2, globals->groups))
-	print_error("Could not build segment table for target volume\n",__FILE__, __LINE__);
+      make_zscore_volume(d1,m1,(float)globals->threshold[0]); 
+      make_zscore_volume(d2,m2,(float)globals->threshold[1]); 
 
-    }
+      if (globals->smallest_vol == 1)
+	add_speckle_to_volume(d1, 
+			      globals->speckle,
+			      globals->start, globals->count, 
+			      globals->directions);
+      else
+	add_speckle_to_volume(d2, 
+			      globals->speckle,
+			      globals->start, globals->count, 
+			      globals->directions);    
+    } else
+  if (globals->obj_function == vr_objective)
+				/* Woods' variance of ratios */
+    {
 
-    if (globals->flags.debug && globals->flags.verbose>1) {
-      print ("groups = %d\n",segment_table->groups);
-      for_less(i, segment_table->min, segment_table->max+1) {
-	print ("%5d: table = %5d, function = %5d\n",i,segment_table->table[i],
-	       (segment_table->segment)(i,segment_table) );
+      if (globals->smallest_vol == 1) {
+	if (!build_segment_table(&segment_table, d1, globals->groups))
+	  print_error_and_line_num(
+	    "Could not build segment table for SOURCE volume\n",
+	    __FILE__, __LINE__);
       }
-    }
+      else {
+	if (!build_segment_table(&segment_table, d2, globals->groups))
+	  print_error_and_line_num(
+	    "Could not build segment table for TARGET volume\n",
+	    __FILE__, __LINE__);	
+      }
+      
+      if (globals->flags.debug && globals->flags.verbose>1) {
+	print ("groups = %d\n",segment_table->groups);
+	for_less(i, segment_table->min, segment_table->max+1) {
+	  print ("%5d: table = %5d, function = %5d\n",i,segment_table->table[i],
+		 (segment_table->segment)(i,segment_table) );
+	}
+      }
+    } else
+  if (globals->obj_function == mutual_information_objective)
+				/* Collignon's mutual information */
+    {
+      ALLOC(   prob_fn1,   globals->groups);
+      ALLOC(   prob_fn2,   globals->groups);
+      ALLOC2D( prob_hash_table, globals->groups, globals->groups);
 
+				/* this will normalize each volume
+				   to -5 to +5 standard deviations
+				   in intensity, so the volume range
+				   is now only -5.0 to +5.0 */
+
+      make_zscore_volume(d1,m1,(float)globals->threshold[0]); 
+      make_zscore_volume(d2,m2,(float)globals->threshold[1]); 
+      set_volume_real_range(d1, -5.0, 5.0);
+      set_volume_real_range(d2, -5.0, 5.0);
+    } else
+  if (globals->obj_function == xcorr_objective) {
+				/*EMPTY*/
   }
+  else  {
+    print_error_and_line_num("Unknown objective function value\n",
+			     __FILE__, __LINE__);
+  }    
 
-          /* ---------------- prepare the weighting array for optimization ---------*/
 
+
+  /* --------------------------------------------------------------*/
+  /* -------- prepare the weighting array for optimization --------*/
+  
   switch (globals->trans_info.transform_type) {
   case TRANS_LSQ3: 
     for_less(i,3,12) globals->trans_info.weights[i] = 0.0;
@@ -568,6 +629,8 @@ public BOOLEAN optimize_linear_transformation(Volume d1,
     stat = FALSE;
   }
 
+  initial_corr = xcorr_objective(d1, d2, m1, m2, globals );
+
 	   /* ---------------- call requested optimization strategy ---------*/
 
   switch (globals->optimize_type) {
@@ -575,16 +638,27 @@ public BOOLEAN optimize_linear_transformation(Volume d1,
     stat = optimize_simplex(d1, d2, m1, m2, globals);
     break;
   default:
-    (void)fprintf(stderr, "Unknown type of optimization requested (%d)\n",globals->optimize_type);
+    (void)fprintf(stderr, "Unknown type of optimization requested (%d)\n",
+		  globals->optimize_type);
     (void)fprintf(stderr, "Error in line %d, file %s\n",__LINE__, __FILE__);
     stat = FALSE;
   }
   
+
           /* ----------------finish up parameter/matrix manipulations ------*/
 
-  if (globals->obj_function == vr_objective) {
-    stat = free_segment_table(segment_table);
-  }
+  if (globals->obj_function == vr_objective)
+    {
+      stat = stat && free_segment_table(segment_table);
+    } else
+  if (globals->obj_function == mutual_information_objective)
+				/* Collignon's mutual information */
+    {
+      FREE(   prob_fn1 );
+      FREE(   prob_fn2 );
+      FREE2D( prob_hash_table);
+    }
+
 
   return(stat);
 }
@@ -662,11 +736,11 @@ public float measure_fit(Volume d1,
 
     if (globals->smallest_vol == 1) {
       if (!build_segment_table(&segment_table, d1, globals->groups))
-	print_error("Could not build segment table for source volume\n",__FILE__, __LINE__);
+	print_error_and_line_num("Could not build segment table for source volume\n",__FILE__, __LINE__);
     }
     else {
       if (!build_segment_table(&segment_table, d2, globals->groups))
-	print_error("Could not build segment table for target volume\n",__FILE__, __LINE__);
+	print_error_and_line_num("Could not build segment table for target volume\n",__FILE__, __LINE__);
     }
 
   }
@@ -757,7 +831,7 @@ public float measure_fit(Volume d1,
 
   if (stat) {
 
-    p = matrix(1,ndim+1,1,ndim); /* simplex */
+    ALLOC2D(p,ndim+1+1,ndim+1); /* simplex */
     
     parameters_to_vector(globals->trans_info.translations,
 			 globals->trans_info.rotations,
@@ -768,7 +842,7 @@ public float measure_fit(Volume d1,
 
     y = fit_function(p[1]);	/* evaluate the objective  function */
 
-    free_matrix(p,1,ndim+1,1,ndim); /* simplex */
+    FREE2D(p); /* simplex */
 
   }
   
@@ -781,7 +855,7 @@ public float measure_fit(Volume d1,
   if (stat)
     return(y);
   else
-    return(-FLT_MAX);
+    return(-1e10);
 }
 
 
@@ -862,11 +936,11 @@ public BOOLEAN optimize_non_linear_transformation(Volume d1,
   } else if (globals->obj_function == vr_objective) {
     if (globals->smallest_vol == 1) {
       if (!build_segment_table(&segment_table, d1, globals->groups))
-	print_error("Could not build segment table for source volume\n",__FILE__, __LINE__);
+	print_error_and_line_num("Could not build segment table for source volume\n",__FILE__, __LINE__);
     }
     else {
       if (!build_segment_table(&segment_table, d2, globals->groups))
-	print_error("Could not build segment table for target volume\n",__FILE__, __LINE__);
+	print_error_and_line_num("Could not build segment table for target volume\n",__FILE__, __LINE__);
 
     }
 

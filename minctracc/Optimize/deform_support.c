@@ -20,9 +20,15 @@
 
 @CREATED    : Tue Feb 22 08:37:49 EST 1994
 @MODIFIED   : $Log: deform_support.c,v $
-@MODIFIED   : Revision 1.8  1995-06-12 14:29:46  louis
-@MODIFIED   : working version - 2d,3d w/ simplex and -direct.
+@MODIFIED   : Revision 1.9  1995-09-07 10:05:11  louis
+@MODIFIED   : All references to numerical recipes routines are being removed.  At this
+@MODIFIED   : stage, any num rec routine should be local in the file.  All memory
+@MODIFIED   : allocation calls to vector(), matrix(), free_vector() etc... have been
+@MODIFIED   : replaced with ALLOC and FREE from the volume_io library of routines.
 @MODIFIED   :
+ * Revision 1.8  1995/06/12  14:29:46  louis
+ * working version - 2d,3d w/ simplex and -direct.
+ *
  * Revision 1.7  1995/05/04  14:25:18  louis
  * compilable version, seems to run a bit with GRID_TRANSFORM, still
  * needs work for the super sampled volumes... and lots of testing.
@@ -68,13 +74,14 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 1.8 1995-06-12 14:29:46 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 1.9 1995-09-07 10:05:11 louis Exp $";
 #endif
 
+#include <limits.h>
 #include <volume_io.h>
 #include <louis_splines.h>
+#include <print_error.h>
 
-#include <limits.h>
 #include "line_data.h"
 #include "point_vector.h"
 
@@ -87,6 +94,14 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 
 extern double smoothing_weight;
 extern char *my_XYZ_dim_names;
+
+public void get_volume_XYZV_indices(Volume data, int xyzv[]);
+
+public int trilinear_interpolant(Volume volume, 
+                                 PointR *coord, double *result);
+ 
+public int nearest_neighbour_interpolant(Volume volume, 
+                                         PointR *coord, double *result);
 
 public void interpolate_deformation_slice(Volume volume, 
 					  Real wx,Real wy,Real wz,
@@ -152,9 +167,7 @@ public BOOLEAN get_average_warp_vector_from_neighbours(General_transform *trans,
     xyzv[MAX_DIMENSIONS],
     sizes[MAX_DIMENSIONS];
   Real 
-    ri,rj,rk,
-    def_vector[N_DIMENSIONS],
-    val_x, val_y, val_z;
+    def_vector[N_DIMENSIONS];
   Volume volume;
   
   if (trans->type != GRID_TRANSFORM) {
@@ -168,8 +181,7 @@ public BOOLEAN get_average_warp_vector_from_neighbours(General_transform *trans,
   get_volume_sizes(volume, sizes);
   get_volume_XYZV_indices(volume, xyzv);
   count = 0;
-  *mx = 0.0; *my = 0.0; *mz = 0.0;
-
+  *mx = 0.0; *my = 0.0; *mz = 0.0; /* assume no warp vector in volume */
 
 				/* make sure voxel is in volume */
   for_less(i,0,3 ) {
@@ -178,15 +190,15 @@ public BOOLEAN get_average_warp_vector_from_neighbours(General_transform *trans,
     }
   }
   
-  for_less(i,0,MAX_DIMENSIONS ) {
+  for_less(i,0,MAX_DIMENSIONS ) { /* copy the voxel position */
     voxel2[i] = voxel[i];
   }
   
   switch (avg_type) {
-  case 1:  {
-				/* for each of the spatial axes,
-				   get the neighbouring deformations
+  case 1:  {			/* get the 6 neighbours, 2 along
+				   each of the spatial axes,
 				   if they exist */
+
     for_less(i, 0 , N_DIMENSIONS) {
       
       if ((voxel[ xyzv[i] ]+1) < sizes[ xyzv[i] ]) {
@@ -347,7 +359,7 @@ public void add_additional_warp_to_current(General_transform *additional,
     index[MAX_DIMENSIONS],
     i;
   Real 
-    value, value2;
+    additional_value, current_value;
 
 
   if (get_volume_n_dimensions(additional->displacement_volume) != 
@@ -381,18 +393,21 @@ public void add_additional_warp_to_current(General_transform *additional,
       for_less(index[ xyzv_additional[Z] ], 0, count[ xyzv_additional[Z] ])
 	for_less(index[ xyzv_additional[Z+1] ], 0, count[ xyzv_additional[Z+1] ]) {
 
-	  value = get_volume_real_value(additional->displacement_volume,
-					index[0],index[1],index[2],index[3],index[4]);
-	  value2 = get_volume_real_value(current->displacement_volume,
-					index[0],index[1],index[2],index[3],index[4]);
-	  value2 += value*weight;
+	  additional_value = get_volume_real_value(
+				 additional->displacement_volume,
+				 index[0],index[1],index[2],index[3],index[4]);
+	  current_value = get_volume_real_value(
+                                 current->displacement_volume,
+				 index[0],index[1],index[2],index[3],index[4]);
 
-	  if (value2 >  40.0) value2 =  40.0;
-	  if (value2 < -40.0) value2 = -40.0;
+	  additional_value = current_value + additional_value*weight;
+
+	  if (additional_value >  40.0) additional_value =  40.0;
+	  if (additional_value < -40.0) additional_value = -40.0;
 
 	  set_volume_real_value(additional->displacement_volume,
 				index[0],index[1],index[2],index[3],index[4],
-				value2);
+				additional_value);
 
 	  
 	}
@@ -401,18 +416,18 @@ public void add_additional_warp_to_current(General_transform *additional,
 					    
 
 
-/*******************************************************************************/
-/*  procedure: smooth_the_warp
+/*******************************************************************
+  procedure: smooth_the_warp
 
-    desc: this procedure will smooth the current warp stored in current and 
-          return the smoothed warp in smoothed
+    desc: this procedure will smooth the current warp stored in
+          current and return the smoothed warp in smoothed
 
-    meth: smoothing is accomplished by averaging the 6 neighbours of each node
-          with the value at that node.
+    meth: smoothing is accomplished by averaging the 6 neighbours of
+          each node with the value at that node.
 
-	  new_val = FRAC1*old_val + (1-FRAC1)*sum_6_neighbours(val);
-    
+	  new_val = FRAC1*old_val + (1-FRAC1)*sum_6_neighbours(val); 
 */
+
 public void smooth_the_warp(General_transform *smoothed,
 			    General_transform *current,
 			    Volume warp_mag, Real thres) 
@@ -430,9 +445,7 @@ public void smooth_the_warp(General_transform *smoothed,
     end[MAX_DIMENSIONS],
     i;
   Real 
-    voxel[MAX_DIMENSIONS],
-    value[3], value2[3],
-    mag,
+    value[3], 
     wx, wy, wz, 
     mx, my, mz;
   progress_struct
@@ -502,19 +515,37 @@ public void smooth_the_warp(General_transform *smoothed,
 				    mag_index[ Y ],
 				    mag_index[ Z ],
 				    0, 0) >= thres) {
+
+				/* go get the current warp vector for
+                                   this node. */
 	  
 	  for_less(index[ xyzv[Z+1] ], start[ Z+1 ], end[ Z+1 ]) {
 
 	    value[index[ xyzv[Z+1] ]] = 
 	      get_volume_real_value(current->displacement_volume,
-				    index[0],index[1],index[2],index[3],index[4]);
+				    index[0],index[1],index[2],
+				    index[3],index[4]);
 
 	  }
+				/* store the current warp in wx, wy,
+                                   wz */
+
+/*
+	  if (index[ xyzv[X] ]== 3 && index[ xyzv[Y] ]== 20) {
+	    print ("Hi there! value = %f %f %f\n",value[X],value[Y],value[Z]);
+	    print ("next....\n");
+	  }
+*/
 	  wx = value[X]; wy = value[Y]; wz = value[Z]; 
 
 	  index[ xyzv[Z+1]] = 0;
+
+				/* if we can get a neighbourhood mean
+				   warp vector, then we average it
+				   with the current warp vector */
+
 	  if ( get_average_warp_vector_from_neighbours(current,
-						      index, 1 ,
+						      index, 2 ,
 						      &mx, &my, &mz) ) {
 	    
 	    wx = (1.0 - smoothing_weight) * value[X] + smoothing_weight * mx;
@@ -524,11 +555,15 @@ public void smooth_the_warp(General_transform *smoothed,
 	    value[Y] = wy; 
 	    value[Z] = wz; 
 
-	  }
+	  } 
 	  
+				/* now put the averaged vector into
+				   the smoothed volume */
+
 	  for_less(index[ xyzv[Z+1] ], start[ Z+1 ], end[ Z+1 ])  
 	    set_volume_real_value(smoothed->displacement_volume,
-				  index[0],index[1],index[2],index[3],index[4],
+				  index[0],index[1],index[2],
+				  index[3],index[4],
 				  value[index[ xyzv[Z+1] ]] );  
 	}
 	else {
@@ -537,10 +572,12 @@ public void smooth_the_warp(General_transform *smoothed,
 	    
 	    value[index[ xyzv[Z+1] ]] = 
 	      get_volume_real_value(current->displacement_volume,
-				    index[0],index[1],index[2],index[3],index[4]);
+				    index[0],index[1],index[2],
+				    index[3],index[4]);
 
 	    set_volume_real_value(smoothed->displacement_volume,
-				  index[0],index[1],index[2],index[3],index[4],
+				  index[0],index[1],index[2],
+				  index[3],index[4],
 				  value[index[ xyzv[Z+1] ]] );
 	  }
 
@@ -552,8 +589,9 @@ public void smooth_the_warp(General_transform *smoothed,
 			      (index[ xyzv[X]  ]-start[ X ])) +
 			     (index[ xyzv[Y] ]-start[ X ])  +    1  );
     }
-    terminate_progress_report( &progress );
   }
+
+  terminate_progress_report( &progress );
 }
 
 public void clamp_warp_deriv(Volume dx, Volume dy, Volume dz)
@@ -783,7 +821,6 @@ public void create_super_sampled_data_volumes(General_transform *orig_deformatio
 
   int 
     i,
-    nc_data_type,
     xyzv[MAX_DIMENSIONS],
     orig_count[MAX_DIMENSIONS], 
     xyz_count[MAX_DIMENSIONS], 
@@ -858,7 +895,7 @@ public void interpolate_super_sampled_data(General_transform *orig_deformation,
     super_vol;
 
   int 
-    i,j,k,
+    i,
     index[MAX_DIMENSIONS],
     orig_xyzv[MAX_DIMENSIONS],
     xyzv[MAX_DIMENSIONS],
@@ -866,9 +903,7 @@ public void interpolate_super_sampled_data(General_transform *orig_deformation,
   Real
     def_vector[N_DIMENSIONS],
     voxel[MAX_DIMENSIONS],
-    values[MAX_DIMENSIONS],
-    wx,wy,wz,
-    tx,ty,tz;
+    wx,wy,wz;
   progress_struct
     progress;
 
@@ -954,7 +989,8 @@ public void save_data(char *basename, int i, int j,
 
   (void)sprintf(comments,"step %d of %d of the non-linear estimation",i,j);
   
-  status = open_file_with_default_suffix(basename,
+  (void)sprintf(name,"%s%d",basename,i);
+  status = open_file_with_default_suffix(name,
 					 get_default_transform_file_suffix(),
 					 WRITE_FILE, ASCII_FORMAT, &file );
   
@@ -969,7 +1005,7 @@ public void save_data(char *basename, int i, int j,
     status = close_file( file );
   
   if (status!=OK)
-    print ("Error saving %s\n",basename);
+    print ("Error saving %s%d\n",basename,i);
 }
 
 /*********************************************************************** 
@@ -1133,7 +1169,7 @@ public float go_get_samples_with_offset(Volume data,
       if (ind0>=0 && ind0<xs &&
 	  ind1>=0 && ind1<ys &&
 	  ind2>=0 && ind2<zs) {
-	sample = byte_ptr[ind0][ind1][ind2] * f_scale + f_trans;
+	sample = (float)(byte_ptr[ind0][ind1][ind2]) * f_scale + f_trans;
       }
       else
 	sample = 0.0;
@@ -1185,7 +1221,7 @@ public float go_get_samples_with_offset(Volume data,
       if (ind0>=0 && ind0<xs &&
 	  ind1>=0 && ind1<ys &&
 	  ind2>=0 && ind2<zs) {
-	sample = ushort_ptr[ind0][ind1][ind2] * f_scale + f_trans;
+	sample = (float)(ushort_ptr[ind0][ind1][ind2]) * f_scale + f_trans;
       }
       else
 	sample = 0.0;
@@ -1202,11 +1238,11 @@ public float go_get_samples_with_offset(Volume data,
 
 
 
-  if ( sqrt_s1 < 0.01 && s3 < 0.0001) {
+  if ( sqrt_s1 < 0.001 && s3 < 0.00001) {
     r = 1.0;
   }
   else {
-    if ( sqrt_s1 < 0.01 || s3 < 0.0001) {
+    if ( sqrt_s1 < 0.001 || s3 < 0.00001) {
       r = 0.0;
     }
     else {

@@ -16,18 +16,24 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 1.19  1995-08-21 11:36:43  louis
-@MODIFIED   : This version of get_deformation_vector_for_node with the 3x3x3 weights
-@MODIFIED   : of 1.0, 1.0, 1.0, 1.0 for all nodes used in the quadratic fit and works
-@MODIFIED   : well with return_3D_disp_from_quad_fit() in ver 1.2 of quad_max_fit.c
+@MODIFIED   : Revision 1.20  1995-09-07 10:05:11  louis
+@MODIFIED   : All references to numerical recipes routines are being removed.  At this
+@MODIFIED   : stage, any num rec routine should be local in the file.  All memory
+@MODIFIED   : allocation calls to vector(), matrix(), free_vector() etc... have been
+@MODIFIED   : replaced with ALLOC and FREE from the volume_io library of routines.
 @MODIFIED   :
-@MODIFIED   : This version of the quadratic fit seems to work reasonably well in 3D
-@MODIFIED   : and compares favorably to the simplex optimization for hoge/jacob fitting
-@MODIFIED   : at 16mm.
-@MODIFIED   :
-@MODIFIED   : The use of quadratic fitting is twice as fast as simplex (6.4 vs 15.2 min)
-@MODIFIED   : for the 16mm fit (again with {hoge,jacob}_16_dxyz.mnc and -step 8 8 8.
-@MODIFIED   :
+ * Revision 1.19  1995/08/21  11:36:43  louis
+ * This version of get_deformation_vector_for_node with the 3x3x3 weights
+ * of 1.0, 1.0, 1.0, 1.0 for all nodes used in the quadratic fit and works
+ * well with return_3D_disp_from_quad_fit() in ver 1.2 of quad_max_fit.c
+ *
+ * This version of the quadratic fit seems to work reasonably well in 3D
+ * and compares favorably to the simplex optimization for hoge/jacob fitting
+ * at 16mm.
+ *
+ * The use of quadratic fitting is twice as fast as simplex (6.4 vs 15.2 min)
+ * for the 16mm fit (again with {hoge,jacob}_16_dxyz.mnc and -step 8 8 8.
+ *
  * Revision 1.18  1995/08/17  12:17:59  louis
  * bug fixed for warping problems at the scalp region.  This was
  * caused by adding a deoformation vector to the field, even when
@@ -137,14 +143,14 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 1.19 1995-08-21 11:36:43 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 1.20 1995-09-07 10:05:11 louis Exp $";
 #endif
 
+#include <limits.h>		/* MAXtype and MIN defs                      */
 #include <volume_io.h>		/* structs & tools to deal with volumes data */
+#include <stdlib.h>		/* to get header info for drand48()  */
 #include "arg_data.h"		/* definition of the global data struct      */
 #include <print_error.h>	/* def of print_error_and_..                 */
-#include <limits.h>		/* MAXtype and MIN defs                      */
-#include <recipes.h>		/* numerical recipes defs                    */
 #include "deform_support.h"	/* prototypes for routines called
 				   from deformation procedures.              */
 
@@ -179,7 +185,7 @@ static Volume   Gd1_dy;	        /* deriv along y, not always loaded          */
 static Volume   Gd1_dz;	        /* deriv along z, not always loaded          */
 static Volume   Gd1_dxyz;       /* Gradient magnitude vol                    */
 static Volume   Gm1;		/* mask vol for source                       */
-static Volume   Gd2;    /* target: blurred volume                            */
+static Volume   Gd2;		/* target: blurred volume                    */
 static Volume   Gd2_dx;         /* deriv along x, not always loaded          */
 static Volume   Gd2_dy;         /* deriv along y, not always loaded          */
 static Volume   Gd2_dz;         /* deriv along z, not always loaded          */
@@ -331,6 +337,11 @@ public  void  louis_general_inverse_transform_point(
     Real                *y_transformed,
     Real                *z_transformed );
 
+public void get_volume_XYZV_indices(Volume data, int xyzv[]);
+
+public int point_not_masked(Volume volume, 
+			    Real wx, Real wy, Real wz);
+
 
 
 
@@ -373,18 +384,15 @@ public Status do_non_linear_optimization(Volume d1,
 
   int 
     additional_count[MAX_DIMENSIONS],
-    current_count[MAX_DIMENSIONS],
     mag_count[MAX_DIMENSIONS],
-    sizes[MAX_DIMENSIONS],    
     index[MAX_DIMENSIONS],
     xyzv[MAX_DIMENSIONS],
-    data_xyzv[MAX_DIMENSIONS],
     start[MAX_DIMENSIONS], 
     end[MAX_DIMENSIONS],
     debug_sizes[MAX_DIMENSIONS],
     iters,
-    i,j,k,m,
-    nodes_done, nodes_tried, nodes_seen, matching_type, over,
+    i,j,k,
+    nodes_done, nodes_tried, nodes_seen, over,
     nfunks,
     nfunk1, nodes1;
 
@@ -392,14 +400,11 @@ public Status do_non_linear_optimization(Volume d1,
     debug_steps[MAX_DIMENSIONS],
     voxel[MAX_DIMENSIONS],
     steps[MAX_DIMENSIONS],
-    current_steps[MAX_DIMENSIONS],
     steps_data[MAX_DIMENSIONS],
     min, max, sum, sum2, mag, mean_disp_mag, std, var, 
-    val_x, val_y, val_z,
     def_vector[3],
     wx,wy,wz,
     node_x, node_y, node_z,
-    test_x, test_y, test_z,
     mx,my,mz,
     tx,ty,tz, 
     displace,
@@ -425,15 +430,15 @@ public Status do_non_linear_optimization(Volume d1,
   Gglobals= globals;
 
 
-  Ga1xyz = vector(1,MAX_G_LEN);	/* allocate space for the global data for */
-  Ga2xyz = vector(1,MAX_G_LEN);	/* the local neighborhood lattice values */
+  ALLOC(Ga1xyz,MAX_G_LEN+1);	/* allocate space for the global data for */
+  ALLOC(Ga2xyz,MAX_G_LEN+1);	/* the local neighborhood lattice values */
   
-  SX = vector(1,MAX_G_LEN);		/* and coordinates in source volume  */
-  SY = vector(1,MAX_G_LEN);
-  SZ = vector(1,MAX_G_LEN);
-  TX = vector(1,MAX_G_LEN);		/* and coordinates in target volume  */
-  TY = vector(1,MAX_G_LEN);
-  TZ = vector(1,MAX_G_LEN);
+  ALLOC(SX,MAX_G_LEN+1);		/* and coordinates in source volume  */
+  ALLOC(SY,MAX_G_LEN+1);
+  ALLOC(SZ,MAX_G_LEN+1);
+  ALLOC(TX,MAX_G_LEN+1);		/* and coordinates in target volume  */
+  ALLOC(TY,MAX_G_LEN+1);
+  ALLOC(TZ,MAX_G_LEN+1);
 
 				/* split the total transformation into
 				   the first linear part and the last
@@ -739,7 +744,7 @@ public Status do_non_linear_optimization(Volume d1,
 		       1.0);
 
 				/* calculate statistics  */
-	      if (ABS(result) > 0.95*steps[0]) over++;
+	      if (ABS(result) > 0.95*steps[xyzv[X]]) over++;
 	      nodes_done++;
 	      displace += ABS(result);
 	      sum      += ABS(result);
@@ -755,7 +760,7 @@ public Status do_non_linear_optimization(Volume d1,
 	    } /* of else (result<0) */
 	    
 	    
-	  } /* val in volume2 > /* threshold 2 */
+	  } /* val in volume2 > threshold 2 */
 	  
 
 	}  /* forless on X index */
@@ -976,14 +981,14 @@ public Status do_non_linear_optimization(Volume d1,
   (void)delete_general_transform(additional_warp);
   (void)delete_volume(additional_mag);
 
-  free_vector(Ga1xyz ,1,MAX_G_LEN);
-  free_vector(Ga2xyz ,1,MAX_G_LEN);
-  free_vector(TX ,1,MAX_G_LEN);
-  free_vector(TY ,1,MAX_G_LEN);
-  free_vector(TZ ,1,MAX_G_LEN);
-  free_vector(SX ,1,MAX_G_LEN);
-  free_vector(SY ,1,MAX_G_LEN);
-  free_vector(SZ ,1,MAX_G_LEN);
+  FREE(Ga1xyz );
+  FREE(Ga2xyz );
+  FREE(TX );
+  FREE(TY );
+  FREE(TZ );
+  FREE(SX );
+  FREE(SY );
+  FREE(SZ );
     
 
   return (OK);
@@ -1067,7 +1072,6 @@ private Real get_deformation_vector_for_node(Real spacing,
     xp,yp,zp;
   float 
     pos_vector[4],
-    tmp_val,
      *y, **p;
   int 
     flag,
@@ -1383,8 +1387,8 @@ private Real get_deformation_vector_for_node(Real spacing,
     else {	       /* set up SIMPLEX OPTIMIZATION */
 
       nfunk = 0;
-      p = matrix(1,ndim+1,1,3);	/* simplex structure */
-      y = vector(1,ndim+1);	/* value of correlation at simplex vertices */
+      ALLOC2D(p,ndim+1+1,3+1);	/* simplex structure */
+      ALLOC(y,ndim+1+1);	/* value of correlation at simplex vertices */
     
 				/* init simplex for no deformation */
       p[1][1] = p[1][2] = p[1][3] = 0.0;
@@ -1451,8 +1455,8 @@ private Real get_deformation_vector_for_node(Real spacing,
 
       } /*  if ameoba2 */
 
-      free_matrix(p, 1,ndim+1,1,3);    
-      free_vector(y, 1,ndim+1);  
+      FREE2D(p);
+      FREE(y);
 
     } /* else use_magnitude */
 
@@ -1534,23 +1538,17 @@ public void    build_target_lattice2(float px[], float py[], float pz[],
 {
   int 
     i,j,
-    n_dim,
     sizes[MAX_DIMENSIONS],
     xyzv[MAX_DIMENSIONS];
   Real 
     def_vector[N_DIMENSIONS],
     voxel[MAX_DIMENSIONS],
     x,y,z;
-  Real vx,vy,vz;
-  Real dx,dy,dz;
   long 
-    index[MAX_DIMENSIONS],
-    ind0, ind1, ind2;
-
+    index[MAX_DIMENSIONS];
 
   get_volume_sizes(Gsuper_sampled_vol,sizes);
   get_volume_XYZV_indices(Gsuper_sampled_vol,xyzv);
-  n_dim = get_volume_n_dimensions(Gsuper_sampled_vol);
 
   for_inclusive(i,1,len) {
 
@@ -1602,7 +1600,7 @@ private Real cost_fn(float x, float y, float z, Real max_length)
   if (v<max_length)
     d = 0.2 * v / (max_length - v);
   else
-    d = FLT_MAX;
+    d = 1e38;
 
   return(d);
 }

@@ -1,5 +1,8 @@
 #include <volume_io.h>
 #include <louis_splines.h>
+#include <print_error.h>
+
+public void get_volume_XYZV_indices(Volume data, int xyzv[]);
 
 public void interpolate_deformation_slice(Volume volume, 
 					  Real wx,Real wy,Real wz,
@@ -332,7 +335,7 @@ public void interpolate_deformation_slice(Volume volume,
     v20,v21,v22,v23, 
     v30,v31,v32,v33;
   long 
-    ind0, ind1, ind2, max[MAX_DIMENSIONS];
+    ind0, ind1, ind2;
   Real
     voxel[MAX_DIMENSIONS],
     frac[MAX_DIMENSIONS];
@@ -340,13 +343,11 @@ public void interpolate_deformation_slice(Volume volume,
     i,
     xyzv[MAX_DIMENSIONS],
     sizes[MAX_DIMENSIONS];
-  int 
-    flag;
   double temp_result;
   
   
   def[X] = def[Y] = def[Z] = 0.0;
-  world[X] = wx; world[Y] = wy; world[Z];
+  world[X] = wx; world[Y] = wy; world[Z] = wz;
   convert_world_to_voxel(volume, wx, wy, wz, voxel);
   
   /* Check that the coordinate is inside the volume */

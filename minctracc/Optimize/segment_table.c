@@ -1,5 +1,4 @@
 #include <volume_io.h>
-#include <recipes.h>
 #include <print_error.h>
 
 #include "segment_table.h"
@@ -29,7 +28,7 @@ public BOOLEAN build_segment_table(Segment_Table **s_table, Volume d1, int group
     min = -(1<<15); max = (1<<15)-1;
     break;
   default:
-    print_error("Currently an unsupported data type (%d).", __FILE__, __LINE__, 
+    print_error_and_line_num("Currently an unsupported data type (%d).", __FILE__, __LINE__, 
 		d1->data_type);
     return(FALSE);
   }
@@ -43,7 +42,10 @@ public BOOLEAN build_segment_table(Segment_Table **s_table, Volume d1, int group
     (*s_table)->groups = groups;
     (*s_table)->segment = get_segment_LUT_value;
     
-    it = ivector(min,max);	/* allocate the table space! */
+
+    ALLOC(it,max-min+1);      /* allocate the table space! */
+    it -= min;
+
     (*s_table)->table = it;
     
     for_inclusive(i, min, max) {	        /* build the look up table */
@@ -61,7 +63,12 @@ public BOOLEAN build_segment_table(Segment_Table **s_table, Volume d1, int group
 public BOOLEAN free_segment_table(Segment_Table *s_table)
 {
 
-  free_ivector(s_table->table, s_table->min, s_table->max);
+  int *p;
+
+  p = s_table->table;
+  p += s_table->min;
+
+  FREE(p);
   FREE(s_table);
   return(TRUE);
 

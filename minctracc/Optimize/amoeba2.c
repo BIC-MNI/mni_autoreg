@@ -1,5 +1,4 @@
 #include "volume_io.h"
-#include "recipes.h"
 
 #define NMAX 5000
 
@@ -12,15 +11,15 @@
 #define GET_PSUM for (j=1;j<=ndim;j++) { for (i=1,sum=0.0;i<=mpts;i++)\
 						sum += p[i][j]; psum[j]=sum;}
 
-float amotry2(float **p,float *y,float *psum,int ndim,float (*funk)(),int ihi,int *nfunk,float fac);
 
+float amotry2(float **p,float *y,float *psum,int ndim,float (*funk)(),int ihi,int *nfunk,float fac);
 
 int amoeba2(float **p, float y[], int ndim, float ftol, float (*funk)(), int *nfunk)
 {
   int i,j,ilo,ihi,inhi,mpts=ndim+1;
   float ytry,ysave,sum,rtol,*psum;
   
-  psum=vector(1,ndim);
+  ALLOC(psum,ndim+1);
   *nfunk=0;
   GET_PSUM
     for (;;) {
@@ -63,7 +62,7 @@ int amoeba2(float **p, float y[], int ndim, float ftol, float (*funk)(), int *nf
 	  }
       }
     }
-  free_vector(psum,1,ndim);
+  FREE(psum);
   return(TRUE);
 }
 
@@ -72,7 +71,7 @@ float amotry2(float **p,float *y,float *psum,int ndim,float (*funk)(),int ihi,in
   int j;
   float fac1,fac2,ytry,*ptry;
   
-  ptry=vector(1,ndim);
+  ALLOC(ptry,ndim+1);
   fac1=(1.0-fac)/ndim;
   fac2=fac1-fac;
   for (j=1;j<=ndim;j++) 
@@ -88,7 +87,7 @@ float amotry2(float **p,float *y,float *psum,int ndim,float (*funk)(),int ihi,in
       p[ihi][j]=ptry[j];
     }
   }
-  free_vector(ptry,1,ndim);
+  FREE(ptry);
   return ytry;
 }
 
