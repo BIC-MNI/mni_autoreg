@@ -1,3 +1,8 @@
+2000-03-21  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* mritotal.in (CreateInfoText): removed statement that `mritotal'
+	handles only linear fits.
+
 2000-03-08  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* mritotal.1: document new options -nonlinear, -startlevel,

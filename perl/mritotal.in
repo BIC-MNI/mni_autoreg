@@ -46,7 +46,7 @@
 # the same copyright as above.
 # --------------------------------------------------------------------
 
-# $Id: mritotal.in,v 1.5 2000-02-10 15:06:21 stever Exp $
+# $Id: mritotal.in,v 1.6 2000-03-23 15:12:29 stever Exp $
 
 require 5.001;
 
@@ -221,8 +221,6 @@ volume to similarly blurred versions of a pre-existing model.  (The
 default model is the MNI 305 average brain.)  Currently, the sequence
 of resamplings, blurs, crops and fits carried out by $ProgramName is
 hard-coded, so you'll have to edit the source if you don't like it.
-Also, $ProgramName currently only does linear fits, although nonlinear
-fitting will be added in the near future.
 
 You can specify an input transformation (using the -transformation
 option) to start off with; if you do this, then $ProgramName will skip
