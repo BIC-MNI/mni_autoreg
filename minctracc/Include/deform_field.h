@@ -1,6 +1,5 @@
 typedef  struct
 {
-
   STRING basename;
   STRING xfmname;
   Volume dx;

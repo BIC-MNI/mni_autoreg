@@ -14,9 +14,13 @@
 
 @CREATED    : Tue Jun 15 08:57:23 EST 1993 LC
 @MODIFIED   :  $Log: volume_functions.c,v $
-@MODIFIED   :  Revision 1.7  1994-02-21 16:37:46  louis
-@MODIFIED   :  version before feb 22 changes
+@MODIFIED   :  Revision 1.8  1994-04-06 11:49:00  louis
+@MODIFIED   :  working linted version of linear + non-linear registration based on Lvv
+@MODIFIED   :  operator working in 3D
 @MODIFIED   :
+ * Revision 1.7  94/02/21  16:37:46  louis
+ * version before feb 22 changes
+ * 
  * Revision 1.6  93/11/15  16:27:13  louis
  * working version, with new library, with RCS revision stuff,
  * before deformations included
@@ -24,13 +28,14 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/volume_functions.c,v 1.7 1994-02-21 16:37:46 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/volume_functions.c,v 1.8 1994-04-06 11:49:00 louis Exp $";
 #endif
 
 #include <volume_io.h>
 #include <limits.h>
 #include "point_vector.h"
 #include "constants.h"
+#include <print_error.h>
 
 public void make_zscore_volume(Volume d1, Volume m1, 
 			       float threshold); 

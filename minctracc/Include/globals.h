@@ -64,9 +64,10 @@ static ArgvInfo argTable[] = {
      "full 12 parameter transformation (same as -lsq12)."},
   {"-procrustes", ARGV_CONSTANT, (char *) TRANS_PROCRUSTES, (char *) &main_args.trans_info.transform_type,
      "procrustes transformation (3 trans, 3 rots, 1 scale), same as -lsq7."},
-/*
+
   {"-nonlinear", ARGV_CONSTANT, (char *) TRANS_NONLIN, (char *) &main_args.trans_info.transform_type,
-     "recover nonlinear deformation field."}, */
+     "recover nonlinear deformation field."}, 
+
   {"-forward", ARGV_CONSTANT, (char *) FALSE,
      (char *) &main_args.trans_info.invert_mapping_flag,
      "Recover forward transformation (source -> model, default).\n"},

@@ -16,9 +16,13 @@
 
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   :  $Log: objectives.c,v $
-@MODIFIED   :  Revision 1.6  1994-02-21 16:35:56  louis
-@MODIFIED   :  version before feb 22 changes
+@MODIFIED   :  Revision 1.7  1994-04-06 11:48:44  louis
+@MODIFIED   :  working linted version of linear + non-linear registration based on Lvv
+@MODIFIED   :  operator working in 3D
 @MODIFIED   :
+ * Revision 1.6  94/02/21  16:35:56  louis
+ * version before feb 22 changes
+ * 
  * Revision 1.5  93/11/15  16:27:07  louis
  * working version, with new library, with RCS revision stuff,
  * before deformations included
@@ -26,7 +30,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/objectives.c,v 1.6 1994-02-21 16:35:56 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/objectives.c,v 1.7 1994-04-06 11:48:44 louis Exp $";
 #endif
 
 

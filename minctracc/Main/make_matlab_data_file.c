@@ -23,16 +23,20 @@
 
 @CREATED    : Mon Oct  4 13:06:17 EST 1993 Louis
 @MODIFIED   : $Log: make_matlab_data_file.c,v $
-@MODIFIED   : Revision 1.2  1994-02-21 16:35:40  louis
-@MODIFIED   : version before feb 22 changes
+@MODIFIED   : Revision 1.3  1994-04-06 11:48:39  louis
+@MODIFIED   : working linted version of linear + non-linear registration based on Lvv
+@MODIFIED   : operator working in 3D
 @MODIFIED   :
+ * Revision 1.2  94/02/21  16:35:40  louis
+ * version before feb 22 changes
+ * 
  * Revision 1.1  93/11/15  16:26:47  louis
  * Initial revision
  * 
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/make_matlab_data_file.c,v 1.2 1994-02-21 16:35:40 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/make_matlab_data_file.c,v 1.3 1994-04-06 11:48:39 louis Exp $";
 #endif
 
 

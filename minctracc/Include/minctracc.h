@@ -17,9 +17,13 @@
 
 @CREATED    : Thu May 20 14:20:21 EST 1993 Louis Collins
 @MODIFIED   : $Log: minctracc.h,v $
-@MODIFIED   : Revision 1.8  1994-02-21 16:38:49  louis
-@MODIFIED   : version before feb 22 changes
+@MODIFIED   : Revision 1.9  1994-04-06 11:49:49  louis
+@MODIFIED   : working linted version of linear + non-linear registration based on Lvv
+@MODIFIED   : operator working in 3D
 @MODIFIED   :
+ * Revision 1.8  94/02/21  16:38:49  louis
+ * version before feb 22 changes
+ * 
  * Revision 1.7  93/11/15  13:12:53  louis
  * working version, deform deform installation
  * 
@@ -116,6 +120,14 @@ public BOOLEAN optimize_non_linear_transformation(Volume d1,
 						  Volume m1,
 						  Volume m2, 
 						  Arg_Data *globals);
+public  Status  output_deformation_file(
+    char                filename[],
+    char                comments[],
+    General_transform   *transform );
+
+public  Status  input_deformation(
+    FILE                *file,
+    General_transform   *transform );
 
 #include "objectives.h"
 

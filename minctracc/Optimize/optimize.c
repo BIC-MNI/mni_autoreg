@@ -14,9 +14,13 @@
               express or implied warranty.
 
 @MODIFIED   : $Log: optimize.c,v $
-@MODIFIED   : Revision 1.6  1994-02-21 16:35:59  louis
-@MODIFIED   : version before feb 22 changes
+@MODIFIED   : Revision 1.7  1994-04-06 11:48:44  louis
+@MODIFIED   : working linted version of linear + non-linear registration based on Lvv
+@MODIFIED   : operator working in 3D
 @MODIFIED   :
+ * Revision 1.6  94/02/21  16:35:59  louis
+ * version before feb 22 changes
+ * 
  * Revision 1.5  93/11/15  16:27:08  louis
  * working version, with new library, with RCS revision stuff,
  * before deformations included
@@ -24,12 +28,13 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 1.6 1994-02-21 16:35:59 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 1.7 1994-04-06 11:48:44 louis Exp $";
 #endif
 
 #include <volume_io.h>
 #include <recipes.h>
 #include <limits.h>
+#include <print_error.h>
 
 #include "constants.h"
 #include "arg_data.h"
@@ -458,11 +463,11 @@ public BOOLEAN optimize_linear_transformation(Volume d1,
   } else if (globals->obj_function == vr_objective) {
     if (globals->smallest_vol == 1) {
       if (!build_segment_table(&segment_table, d1, globals->groups))
-	print_error("%s\n",__FILE__, __LINE__,"Could not build segment table for source volume");
+	print_error("Could not build segment table for source volume\n",__FILE__, __LINE__);
     }
     else {
       if (!build_segment_table(&segment_table, d2, globals->groups))
-	print_error("%s\n",__FILE__, __LINE__,"Could not build segment table for target volume");
+	print_error("Could not build segment table for target volume\n",__FILE__, __LINE__);
 
     }
 
@@ -569,11 +574,11 @@ public float measure_fit(Volume d1,
 
     if (globals->smallest_vol == 1) {
       if (!build_segment_table(&segment_table, d1, globals->groups))
-	print_error("%s",__FILE__, __LINE__,"Could not build segment table for source volume\n");
+	print_error("Could not build segment table for source volume\n",__FILE__, __LINE__);
     }
     else {
       if (!build_segment_table(&segment_table, d2, globals->groups))
-	print_error("%s",__FILE__, __LINE__,"Could not build segment table for target volume\n");
+	print_error("Could not build segment table for target volume\n",__FILE__, __LINE__);
     }
 
   }
@@ -748,11 +753,11 @@ public BOOLEAN optimize_non_linear_transformation(Volume d1,
   } else if (globals->obj_function == vr_objective) {
     if (globals->smallest_vol == 1) {
       if (!build_segment_table(&segment_table, d1, globals->groups))
-	print_error("%s\n",__FILE__, __LINE__,"Could not build segment table for source volume");
+	print_error("Could not build segment table for source volume\n",__FILE__, __LINE__);
     }
     else {
       if (!build_segment_table(&segment_table, d2, globals->groups))
-	print_error("%s\n",__FILE__, __LINE__,"Could not build segment table for target volume");
+	print_error("Could not build segment table for target volume\n",__FILE__, __LINE__);
 
     }
 
@@ -767,16 +772,16 @@ public BOOLEAN optimize_non_linear_transformation(Volume d1,
   }
 	   /* ---------------- call requested optimization strategy ---------*/
 
-  stat = do_non_linear_optimization(d1,d1_dx, d1_dy, d1_dz, d1_dxyz,
+  stat = (do_non_linear_optimization(d1,d1_dx, d1_dy, d1_dz, d1_dxyz,
 				    d2,d2_dx, d2_dy, d2_dz, d2_dxyz,
 				    m1,m2, 
-				    globals);
+				    globals)==OK);
 
 
   
           /* ----------------finish up parameter/matrix manipulations ------*/
 
-  if (globals->obj_function == vr_objective) {
+  if (stat && globals->obj_function == vr_objective) {
     stat = free_segment_table(segment_table);
   }
 

@@ -9,9 +9,13 @@
 @CALLS      : 
 @CREATED    : August 13, 1993 (Peter Neelin)
 @MODIFIED   : $Log: xfminvert.c,v $
-@MODIFIED   : Revision 1.1  1994-02-21 16:37:49  louis
-@MODIFIED   : Initial revision
+@MODIFIED   : Revision 1.2  1994-04-06 11:49:01  louis
+@MODIFIED   : working linted version of linear + non-linear registration based on Lvv
+@MODIFIED   : operator working in 3D
 @MODIFIED   :
+ * Revision 1.1  94/02/21  16:37:49  louis
+ * Initial revision
+ * 
  * Revision 1.4  93/10/12  12:52:37  neelin
  * Replaced def_mni.h with volume_io.h
  * 
@@ -38,7 +42,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/xfminvert.c,v 1.1 1994-02-21 16:37:49 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/xfminvert.c,v 1.2 1994-04-06 11:49:01 louis Exp $";
 #endif
 
 #include <stdlib.h>

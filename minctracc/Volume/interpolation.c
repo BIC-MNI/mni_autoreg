@@ -16,9 +16,13 @@
 @CREATED    : Wed May 26 13:05:44 EST 1993 LC using routines from NEELIN's
               mincresample.
 @MODIFIED   :  $Log: interpolation.c,v $
-@MODIFIED   :  Revision 1.7  1994-02-21 16:35:39  louis
-@MODIFIED   :  version before feb 22 changes
+@MODIFIED   :  Revision 1.8  1994-04-06 11:48:38  louis
+@MODIFIED   :  working linted version of linear + non-linear registration based on Lvv
+@MODIFIED   :  operator working in 3D
 @MODIFIED   :
+ * Revision 1.7  94/02/21  16:35:39  louis
+ * version before feb 22 changes
+ * 
  * Revision 1.6  93/11/15  16:26:46  louis
  * working version, with new library, with RCS revision stuff,
  * before deformations included
@@ -26,7 +30,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/interpolation.c,v 1.7 1994-02-21 16:35:39 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/interpolation.c,v 1.8 1994-04-06 11:48:38 louis Exp $";
 #endif
 
 #include <volume_io.h>
@@ -311,9 +315,9 @@ public int tricubic_interpolant(Volume volume,
    ind2--;
 
    /* Check for edges - do linear interpolation at edges */
-   if ((ind0 > max[0]-3) || (ind0 < 0) ||
-       (ind1 > max[1]-3) || (ind1 < 0) ||
-       (ind2 > max[2]-3) || (ind2 < 0)) {
+   if ((ind0 >= max[0]-3) || (ind0 < 0) ||
+       (ind1 >= max[1]-3) || (ind1 < 0) ||
+       (ind2 >= max[2]-3) || (ind2 < 0)) {
       return trilinear_interpolant(volume, coord, result);
    }
    index[0]=ind0; index[1]=ind1; index[2]=ind2;

@@ -9,9 +9,13 @@
 @CALLS      : 
 @CREATED    : Mon Nov 29 11:01:47 EST 1993 Louis
 @MODIFIED   : $Log: param2xfm.c,v $
-@MODIFIED   : Revision 1.1  1994-02-21 16:36:03  louis
-@MODIFIED   : Initial revision
+@MODIFIED   : Revision 1.2  1994-04-06 11:48:46  louis
+@MODIFIED   : working linted version of linear + non-linear registration based on Lvv
+@MODIFIED   : operator working in 3D
 @MODIFIED   :
+ * Revision 1.1  94/02/21  16:36:03  louis
+ * Initial revision
+ * 
 @COPYRIGHT  :
               Copyright 1993 Louis Collins, McConnell Brain Imaging Centre, 
               Montreal Neurological Institute, McGill University.

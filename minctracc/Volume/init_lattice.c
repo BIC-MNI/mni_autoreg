@@ -28,9 +28,13 @@
 
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   :  $Log: init_lattice.c,v $
-@MODIFIED   :  Revision 1.6  1994-02-21 16:35:29  louis
-@MODIFIED   :  version before feb 22 changes
+@MODIFIED   :  Revision 1.7  1994-04-06 11:48:35  louis
+@MODIFIED   :  working linted version of linear + non-linear registration based on Lvv
+@MODIFIED   :  operator working in 3D
 @MODIFIED   :
+ * Revision 1.6  94/02/21  16:35:29  louis
+ * version before feb 22 changes
+ * 
  * Revision 1.5  93/11/15  16:25:43  louis
  * working version, with new library, with RCS revision stuff,
  * before deformations included
@@ -38,7 +42,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/init_lattice.c,v 1.6 1994-02-21 16:35:29 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/init_lattice.c,v 1.7 1994-04-06 11:48:35 louis Exp $";
 #endif
 
 
@@ -78,6 +82,8 @@ public void set_up_lattice(Volume data,
     i,j;
 
   Real 
+    sign,
+    starts[3],
     start_voxel[3],
     vect_voxel[3],
     tmp_point[3],
@@ -85,6 +91,10 @@ public void set_up_lattice(Volume data,
     offset[3],
     separations[3];
 
+  BOOLEAN debug; int verbose;
+
+  debug  = main_args.flags.debug;
+  verbose= main_args.flags.verbose;
 
   for_less(i,0,3)
     step[i] = user_step[i]; 
@@ -93,6 +103,18 @@ public void set_up_lattice(Volume data,
   get_volume_sizes(data, sizes );
   get_volume_separations(data, separations );
 
+  
+
+  if (debug && verbose>1) {
+
+    convert_3D_voxel_to_world(data, 0.0,0.0,0.0,
+			      &starts[0], &starts[1], &starts[2]);
+    
+    print ("In set_up_lattice, for orig data volume:\n");
+    print ("sizes: %7d %7d %7d\n",sizes[0],sizes[1],sizes[2]);
+    print ("steps: %7.2f %7.2f %7.2f\n",separations[0],separations[1],separations[2]);
+    print ("start: %7.2f %7.2f %7.2f\n",starts[0],starts[1],starts[2]); 
+  }
   
 				/* for each direction */
   for_less( i, 0, 3) {	
@@ -105,7 +127,7 @@ public void set_up_lattice(Volume data,
     num_steps = separations[i] * sizes[i] / step[i];
     num_steps = ABS(num_steps);
 
-    count[i] = (int)num_steps;
+    count[i] = ROUND(num_steps);
     
 				/* this is the offset for the start of the
 				   lattice from the corner of the volume 
@@ -114,11 +136,26 @@ public void set_up_lattice(Volume data,
 
   }
 
-				/* get the voxel position of the lattice start */
-  for_less(i,0,3)
-    start_voxel[i] = (offset[i]/separations[i]) - 0.5;
-  
+				/* get the voxel position of the lattice start,
+				   in voxel coordinates of the data volume       */
+  for_less(i,0,3) {
+
+    if (separations[i] > 0)
+      sign = 1.0;
+    else
+      sign = -1.0;
+
+    start_voxel[i] = sign*((-0.5)  	/* to get to the edge of the voxel,
+                                           since the voxel's  coordinates is at its center */
+
+                    + (offset[i]/separations[i]) /* the offset to edge of lattice */
+
+		    + step[i]/(2*separations[i]));/* the offset to the center of the 
+						    lattice voxel */
+    
+  }
 				/* get the world start.  */
+
   convert_3D_voxel_to_world(data, start_voxel[0],start_voxel[1], start_voxel[2],
 			    &tmp_point[0], &tmp_point[1], &tmp_point[2]);
   
@@ -139,6 +176,16 @@ public void set_up_lattice(Volume data,
     fill_Vector( directions[i], tmp_point[0]-start[0], tmp_point[1]-start[1], tmp_point[2]-start[2]);
   }
   
+  if (debug && verbose>1) {
+    
+    print ("                   for lattice volume:\n");
+    print ("sizes: %7d %7d %7d\n",count[0],count[1],count[2]);
+    print ("steps: %7.2f %7.2f %7.2f\n",step[0],step[1],step[2]);
+    print ("start: %7.2f %7.2f %7.2f\n",start[0],start[1],start[2]);
+    print ("leaving set_up_lattice()\n\n");
+  }
+ 
+
 }
 
 public void init_lattice(Volume d1,
@@ -174,7 +221,6 @@ public void init_lattice(Volume d1,
     min2_slice, max2_slice;
 
   Real
-    rx,ry,rz,
     true_value;
   double
     tmp_threshold;
@@ -245,7 +291,7 @@ public void init_lattice(Volume d1,
 	    }
 	  }    
 	  else {
-	    if (globals->flags.debug && globals->flags.verbose>1) {
+	    if (globals->flags.debug && globals->flags.verbose>2) {
 	      print ("%3d %3d %3d : %12.5f %12.5f %12.5f -> %12.5f\n",c,r,s,
 		      Point_x(col), Point_y(col), Point_z(col),true_value);
 	    }
@@ -298,8 +344,8 @@ public void init_lattice(Volume d1,
 	     Point_x(directions2[i]),
 	     Point_y(directions2[i]),
 	     Point_z(directions2[i]));
-  }
 
+  }
 
 
   fill_Point( starting_position2, start2[0], start2[1], start2[2]);
@@ -365,16 +411,23 @@ public void init_lattice(Volume d1,
     print ("volume =  %d\n",vol2);
   }
 
-  if (vol1<vol2) {
+  if ( !(globals->trans_info.transform_type==TRANS_NONLIN) && vol1<=vol2) {
     globals->smallest_vol = 1;
     globals->count[COL_IND] = max1_col - min1_col + 1;
     globals->count[ROW_IND] = max1_row - min1_row + 1;
     globals->count[SLICE_IND] = max1_slice - min1_slice + 1;
 
-    convert_3D_voxel_to_world(d1, (Real)min1_slice, (Real)min1_row, (Real)min1_col, &rx, &ry, &rz);
-    globals->start[X] = rx;
-    globals->start[Y] = ry;
-    globals->start[Z] = rz;
+    fill_Point( starting_position1, start1[0], start1[1], start1[2]);
+    SCALE_VECTOR( vector_step, directions1[SLICE_IND], min1_slice);
+    ADD_POINT_VECTOR( slice, starting_position1, vector_step );
+    SCALE_VECTOR( vector_step, directions1[ROW_IND], min1_row);
+    ADD_POINT_VECTOR( row, slice, vector_step );
+    SCALE_VECTOR( vector_step, directions1[COL_IND], min1_col);
+    ADD_POINT_VECTOR( col, row, vector_step );
+
+    globals->start[X] = Point_x(col);
+    globals->start[Y] = Point_y(col);
+    globals->start[Z] = Point_z(col);
 
     for_less(i,0,3) {
       Point_x(globals->directions[i]) = Point_x(directions1[i]);
@@ -387,10 +440,18 @@ public void init_lattice(Volume d1,
     globals->count[COL_IND] = max2_col - min2_col + 1;
     globals->count[ROW_IND] = max2_row - min2_row + 1;
     globals->count[SLICE_IND] = max2_slice - min2_slice + 1;
-    convert_3D_voxel_to_world(d2, (Real)min2_slice, (Real)min2_row, (Real)min2_col, &rx, &ry, &rz);
-    globals->start[X] = rx;
-    globals->start[Y] = ry;
-    globals->start[Z] = rz;
+
+    fill_Point( starting_position2, start2[0], start2[1], start2[2]);
+    SCALE_VECTOR( vector_step, directions2[SLICE_IND], min2_slice);
+    ADD_POINT_VECTOR( slice, starting_position2, vector_step );
+    SCALE_VECTOR( vector_step, directions2[ROW_IND], min2_row);
+    ADD_POINT_VECTOR( row, slice, vector_step );
+    SCALE_VECTOR( vector_step, directions2[COL_IND], min2_col);
+    ADD_POINT_VECTOR( col, row, vector_step );
+
+    globals->start[X] = Point_x(col);
+    globals->start[Y] = Point_y(col);
+    globals->start[Z] = Point_z(col);
 
     for_less(i,0,3) {
       Point_x(globals->directions[i]) = Point_x(directions2[i]);

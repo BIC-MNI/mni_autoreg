@@ -18,9 +18,13 @@
                  MI acquisition variable
 @CREATED    : July 24, 1992. (Peter Neelin, Montreal Neurological Institute)
 @MODIFIED   : $Log: minc.h,v $
-@MODIFIED   : Revision 1.1  1993-11-15 16:28:49  louis
-@MODIFIED   : Initial revision
+@MODIFIED   : Revision 1.2  1994-04-06 11:49:47  louis
+@MODIFIED   : working linted version of linear + non-linear registration based on Lvv
+@MODIFIED   : operator working in 3D
 @MODIFIED   :
+ * Revision 1.1  93/11/15  16:28:49  louis
+ * Initial revision
+ * 
  * Revision 1.26  93/08/11  12:06:34  neelin
  * Added RCS logging in source.
  * 
@@ -36,12 +40,12 @@
               make no representations about the suitability of this
               software for any purpose.  It is provided "as is" without
               express or implied warranty.
-@RCSID      : $Header: /private-cvsroot/registration/mni_autoreg/minctracc/Include/Attic/minc.h,v 1.1 1993-11-15 16:28:49 louis Exp $ MINC (MNI)
+@RCSID      : $Header: /private-cvsroot/registration/mni_autoreg/minctracc/Include/Attic/minc.h,v 1.2 1994-04-06 11:49:47 louis Exp $ MINC (MNI)
 ---------------------------------------------------------------------------- */
 
 #ifndef MINC_PRIVATE_HEADER_FILE
 #ifndef lint
-static char minc_h_rcsid[] = "$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Include/Attic/minc.h,v 1.1 1993-11-15 16:28:49 louis Exp $ MINC (MNI)";
+static char minc_h_rcsid[] = "$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Include/Attic/minc.h,v 1.2 1994-04-06 11:49:47 louis Exp $ MINC (MNI)";
 #endif
 #endif
 

@@ -17,9 +17,13 @@
 @CREATED    : Thu May 27 16:50:50 EST 1993
                   
 @MODIFIED   :  $Log: init_params.c,v $
-@MODIFIED   :  Revision 1.7  1994-02-21 16:35:36  louis
-@MODIFIED   :  version before feb 22 changes
+@MODIFIED   :  Revision 1.8  1994-04-06 11:48:37  louis
+@MODIFIED   :  working linted version of linear + non-linear registration based on Lvv
+@MODIFIED   :  operator working in 3D
 @MODIFIED   :
+ * Revision 1.7  94/02/21  16:35:36  louis
+ * version before feb 22 changes
+ * 
  * Revision 1.6  93/11/15  16:26:44  louis
  * working version, with new library, with RCS revision stuff,
  * before deformations included
@@ -27,7 +31,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 1.7 1994-02-21 16:35:36 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 1.8 1994-04-06 11:48:37 louis Exp $";
 #endif
 
 

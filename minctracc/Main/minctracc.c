@@ -34,9 +34,13 @@
 
    @CREATED    : February 3, 1992 - louis collins
    @MODIFIED   : $Log: minctracc.c,v $
-   @MODIFIED   : Revision 1.9  1994-02-21 16:35:51  louis
-   @MODIFIED   : version before feb 22 changes
+   @MODIFIED   : Revision 1.10  1994-04-06 11:48:43  louis
+   @MODIFIED   : working linted version of linear + non-linear registration based on Lvv
+   @MODIFIED   : operator working in 3D
    @MODIFIED   :
+ * Revision 1.9  94/02/21  16:35:51  louis
+ * version before feb 22 changes
+ * 
  * Revision 1.8  93/11/15  16:27:06  louis
  * working version, with new library, with RCS revision stuff,
  * before deformations included
@@ -64,7 +68,7 @@ Wed May 26 13:05:44 EST 1993 lc
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 1.9 1994-02-21 16:35:51 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 1.10 1994-04-06 11:48:43 louis Exp $";
 #endif
 
 
@@ -413,8 +417,8 @@ main ( argc, argv )
       build_default_deformation_field(&main_args);
 
       if (!optimize_non_linear_transformation(data_dxyz, data_dx, data_dy, data_dz, data, 
-					      model_dxyz, model_dx, model_dy, model_dz, model, 
-					      mask_data, mask_model, &main_args )) {
+					     model_dxyz, model_dx, model_dy, model_dz, model, 
+					     mask_data, mask_model, &main_args ) ) {
 	print_error("Error in optimization of non-linear transformation\n",
 		    __FILE__, __LINE__);
 	exit(EXIT_FAILURE);

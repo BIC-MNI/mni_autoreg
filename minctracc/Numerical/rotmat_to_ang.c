@@ -68,9 +68,13 @@
 
 @CREATED    : Feb 9, 1992 lc
 @MODIFIED   :  $Log: rotmat_to_ang.c,v $
-@MODIFIED   :  Revision 1.7  1994-02-21 16:36:53  louis
-@MODIFIED   :  version before feb 22 changes
+@MODIFIED   :  Revision 1.8  1994-04-06 11:48:49  louis
+@MODIFIED   :  working linted version of linear + non-linear registration based on Lvv
+@MODIFIED   :  operator working in 3D
 @MODIFIED   :
+ * Revision 1.7  94/02/21  16:36:53  louis
+ * version before feb 22 changes
+ * 
  * Revision 1.6  93/11/15  16:27:10  louis
  * working version, with new library, with RCS revision stuff,
  * before deformations included
@@ -83,7 +87,7 @@ Tue Jun  8 08:44:59 EST 1993 LC
 
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/rotmat_to_ang.c,v 1.7 1994-02-21 16:36:53 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/rotmat_to_ang.c,v 1.8 1994-04-06 11:48:49 louis Exp $";
 #endif
 
 

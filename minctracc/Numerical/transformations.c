@@ -16,14 +16,19 @@
 @CREATED    : Tue Nov 16 14:51:04 EST 1993 lc
                     based on transformations.c from fit_vol
 @MODIFIED   : $Log: transformations.c,v $
-@MODIFIED   : Revision 1.4  1994-02-21 16:37:02  louis
-@MODIFIED   : version before feb 22 changes
+@MODIFIED   : Revision 1.5  1994-04-06 11:48:52  louis
+@MODIFIED   : working linted version of linear + non-linear registration based on Lvv
+@MODIFIED   : operator working in 3D
 @MODIFIED   :
+ * Revision 1.4  94/02/21  16:37:02  louis
+ * version before feb 22 changes
+ * 
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/transformations.c,v 1.4 1994-02-21 16:37:02 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/transformations.c,v 1.5 1994-04-06 11:48:52 louis Exp $";
 #endif
+
 
 #include <volume_io.h>
 
@@ -34,6 +39,8 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 
 
 #include "deform_field.h"
+
+#include "constants.h"
 
 extern Arg_Data main_args;
 
@@ -70,13 +77,23 @@ public void
     convert_3D_world_to_voxel(def->dx, x_in,y_in,z_in, &xv, &yv, &zv);
     
     fill_Point( voxel, xv, yv, zv ); /* build the voxel POINT */
-    
+
+/*    
     if ( !INTERPOLATE_TRUE_VALUE( def->dx, &voxel, &delta_x ))
       delta_x = 0.0;
     if ( !INTERPOLATE_TRUE_VALUE( def->dy, &voxel, &delta_y ))
       delta_y = 0.0;
     if ( !INTERPOLATE_TRUE_VALUE( def->dz, &voxel, &delta_z ))
       delta_z = 0.0;
+*/
+
+    if ( !tricubic_interpolant( def->dx, &voxel, &delta_x ))
+      delta_x = 0.0;
+    if ( !tricubic_interpolant( def->dy, &voxel, &delta_y ))
+      delta_y = 0.0;
+    if ( !tricubic_interpolant( def->dz, &voxel, &delta_z ))
+      delta_z = 0.0;
+    
   }
 
   *x_out = x_in + delta_x;
@@ -129,13 +146,21 @@ public void
     
     /* if there is a deformation for this point,
        subtract it to form the first guess... */
+/*
     if ( !INTERPOLATE_TRUE_VALUE( def->dx, &voxel, &delta_x ))
       delta_x = 0.0;
     if ( !INTERPOLATE_TRUE_VALUE( def->dy, &voxel, &delta_y ))
       delta_y = 0.0;
     if ( !INTERPOLATE_TRUE_VALUE( def->dz, &voxel, &delta_z ))
       delta_z = 0.0;
-    
+*/
+    if ( !tricubic_interpolant( def->dx, &voxel, &delta_x ))
+      delta_x = 0.0;
+    if ( !tricubic_interpolant( def->dy, &voxel, &delta_y ))
+      delta_y = 0.0;
+    if ( !tricubic_interpolant( def->dz, &voxel, &delta_z ))
+      delta_z = 0.0;
+       
     x -= delta_x;
     y -= delta_y;
     z -= delta_z;
@@ -239,9 +264,16 @@ public void build_default_deformation_field(Arg_Data *globals)
   Volume *dx,*dy,*dz;
   Real zero, voxel[3], point[3], start2[3];
   int i,j,k;
+  int count_extended[3];
   Deform_field *def;
   General_transform *trans;
-				/* build the three deformation volumes: */
+/*
+  int count[3];
+  Real step[3];
+*/
+
+
+  /* build the three deformation volumes: */
   ALLOC(dx,1);
   ALLOC(dy,1);
   ALLOC(dz,1);
@@ -249,13 +281,26 @@ public void build_default_deformation_field(Arg_Data *globals)
   *dx = create_volume(3, default_dim_names, NC_BYTE, FALSE, 0.0, 0.0);
   set_volume_voxel_range(*dx, 1.0, 255.0);
   set_volume_real_range(*dx, -2.0*globals->step[0], 2.0*globals->step[0] );
+
+/*   see below for count_extended 
+
+  for_less(i,0,3) {
+    count[i] = 2*globals->count[i];
+    step[i] = globals->step[i]/2.0;
+  }
+
+  set_volume_sizes(*dx, count);
+  set_volume_separations(*dx,step);
+*/
+
+
   set_volume_sizes(*dx, globals->count);
   set_volume_separations(*dx,globals->step);
 
   voxel[0] = 0.0;
   voxel[1] = 0.0;
   voxel[2] = 0.0;
-  if (globals->smallest_vol==1) { /* lattice was defined on volume 1 */
+  if (globals->smallest_vol==1 || globals->trans_info.transform_type==TRANS_NONLIN) { /* lattice was defined on volume 1 */
     set_volume_translation(*dx, voxel, globals->start);
   } 
   else {			/* lattice was defined on volume 2, but it must be 
@@ -287,6 +332,28 @@ public void build_default_deformation_field(Arg_Data *globals)
     set_volume_direction_cosine(*dx, 0, point);
 
   }
+
+				/* now make the volume four voxels larger, all around */
+
+  convert_3D_voxel_to_world(*dx, -4.0, -4.0, -4.0, &point[X], &point[Y], &point[Z]);
+
+/*
+  see above to put this back in.
+
+  for_less(i,0,3)
+    count_extended[i] = count[i]+8;
+*/
+
+  for_less(i,0,3)
+    count_extended[i] = globals->count[i]+8;
+  set_volume_sizes(*dx, count_extended);
+
+  voxel[0] = 0.0;
+  voxel[1] = 0.0;
+  voxel[2] = 0.0;
+				/* reset the first voxel position */
+  set_volume_translation(*dx, voxel, point);
+
   *dy = copy_volume_definition(*dx, NC_UNSPECIFIED, FALSE, 0.0, 0.0);
   *dz = copy_volume_definition(*dx, NC_UNSPECIFIED, FALSE, 0.0, 0.0);
     
@@ -298,9 +365,9 @@ public void build_default_deformation_field(Arg_Data *globals)
 
   zero = CONVERT_VALUE_TO_VOXEL(*dx, 0.0);
 
-  for_less(i,0,globals->count[0])
-    for_less(j,0,globals->count[1])
-      for_less(k,0,globals->count[2]){
+  for_less(i,0,count_extended[0])
+    for_less(j,0,count_extended[1])
+      for_less(k,0,count_extended[2]){
 	SET_VOXEL_3D(*dx, i,j,k, zero);
 	SET_VOXEL_3D(*dy, i,j,k, zero);
 	SET_VOXEL_3D(*dz, i,j,k, zero);
@@ -310,8 +377,8 @@ public void build_default_deformation_field(Arg_Data *globals)
 
   ALLOC(def, 1);
 
-  strcpy(def->basename,"\0");
-  strcpy(def->xfmname,"\0");
+  (void)strcpy(def->basename,globals->filenames.output_trans);
+  (void)strcpy(def->xfmname,"\0");
   def->dx = *dx;
   def->dy = *dy;
   def->dz = *dz;
