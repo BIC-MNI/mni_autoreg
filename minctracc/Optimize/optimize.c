@@ -14,10 +14,14 @@
               express or implied warranty.
 
 @MODIFIED   : $Log: optimize.c,v $
-@MODIFIED   : Revision 1.7  1994-04-06 11:48:44  louis
-@MODIFIED   : working linted version of linear + non-linear registration based on Lvv
-@MODIFIED   : operator working in 3D
+@MODIFIED   : Revision 1.8  1994-04-26 12:54:33  louis
+@MODIFIED   : updated with new versions of make_rots, extract2_parameters_from_matrix
+@MODIFIED   : that include proper interpretation of skew.
 @MODIFIED   :
+ * Revision 1.7  94/04/06  11:48:44  louis
+ * working linted version of linear + non-linear registration based on Lvv
+ * operator working in 3D
+ * 
  * Revision 1.6  94/02/21  16:35:59  louis
  * version before feb 22 changes
  * 
@@ -28,7 +32,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 1.7 1994-04-06 11:48:44 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 1.8 1994-04-26 12:54:33 louis Exp $";
 #endif
 
 #include <volume_io.h>
@@ -75,6 +79,74 @@ extern   double   simplex_size ;
 
          Segment_Table  *segment_table;
 
+
+private void parameters_to_vector(double *trans, 
+				  double *rots, 
+				  double *scales,
+				  double *shears,
+				  float  *op_vector,
+				  double *weights) 
+{
+  int i;
+
+  i = 1;
+
+  if (weights[0]  != 0.0) { op_vector[i] = trans[0] /weights[0]; ++i; }
+  if (weights[1]  != 0.0) { op_vector[i] = trans[1] /weights[1]; ++i; }
+  if (weights[2]  != 0.0) { op_vector[i] = trans[2] /weights[2]; ++i; }
+
+  if (weights[3]  != 0.0) { op_vector[i] = rots[0] / weights[3]; ++i; }
+  if (weights[4]  != 0.0) { op_vector[i] = rots[1] / weights[4]; ++i; }
+  if (weights[5]  != 0.0) { op_vector[i] = rots[2] / weights[5]; ++i; }
+
+  if (weights[6]  != 0.0) { op_vector[i] = scales[0]/weights[6]; ++i; }
+  if (weights[7]  != 0.0) { op_vector[i] = scales[1]/weights[7]; ++i; }
+  if (weights[8]  != 0.0) { op_vector[i] = scales[2]/weights[8]; ++i; }
+
+  if (weights[9]  != 0.0) { op_vector[i] = shears[0]/weights[9]; ++i; }
+  if (weights[10] != 0.0) { op_vector[i] = shears[1]/weights[10];++i; }
+  if (weights[11] != 0.0) { op_vector[i] = shears[2]/weights[11];     }
+
+
+}
+
+private void vector_to_parameters(double *trans, 
+				  double *rots, 
+				  double *scales,
+				  double *shears,
+				  float  *op_vector,
+				  double *weights) 
+{
+  int i;
+
+  i = 1;
+
+  if (weights[0]  != 0.0) { trans[0] = op_vector[i] * weights[0]; ++i; }
+  if (weights[1]  != 0.0) { trans[1] = op_vector[i] * weights[1]; ++i; }
+  if (weights[2]  != 0.0) { trans[2] = op_vector[i] * weights[2]; ++i; }
+
+  if (weights[3]  != 0.0) { rots[0]  = op_vector[i] * weights[3]; ++i; }
+  if (weights[4]  != 0.0) { rots[1]  = op_vector[i] * weights[4]; ++i; }
+  if (weights[5]  != 0.0) { rots[2]  = op_vector[i] * weights[5]; ++i; }
+
+  if (weights[6]  != 0.0) { scales[0]= op_vector[i] * weights[6]; ++i; }
+  if (weights[7]  != 0.0) { scales[1]= op_vector[i] * weights[7]; ++i; }
+  if (weights[8]  != 0.0) { scales[2]= op_vector[i] * weights[8]; ++i; }
+
+  if (weights[9]  != 0.0) { shears[0]= op_vector[i] * weights[9]; ++i; }
+  if (weights[10] != 0.0) { shears[1]= op_vector[i] * weights[10];++i; }
+  if (weights[11] != 0.0) { shears[2]= op_vector[i] * weights[11];     }
+}
+
+private BOOLEAN in_limits(double x,double lower,double upper)
+{
+
+  if ( x>=lower && x <= upper ) 
+    return(TRUE);
+  else
+    return(FALSE);
+}
+
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : fit_function
 @INPUT      : params - a variable length array of floats
@@ -100,59 +172,70 @@ public float fit_function(float *params)
   double cent[3];
   double rots[3];
   double scale[3];
-  double shear[3];
+  double shear[6];
 
-  for_less( i, 0, 3 )		/* set translations */
-    trans[i] = params[i+1]; 
 
-  for_less( i, 0, 3 )		/* set rotations */
-    rots[i] = params[i+4]; 
+  for_less( i, 0, 3 ) {		/* set default values from GLOBAL MAIN_ARGS */
+    shear[i] = main_args.trans_info.shears[i];
+    scale[i] = main_args.trans_info.scales[i];
+    trans[i] = main_args.trans_info.translations[i];
+    rots[i]  = main_args.trans_info.rotations[i];
+    cent[i]  = main_args.trans_info.center[i];
+  }
 
-  if (Gndim >= 7)  {
-    scale[0] = params[7];
-    if (Gndim >7) {		/* three scales */
-      scale[1] = params[8];
-      scale[2] = params[9];
+				/* modify the parameters to be optimized */
+  vector_to_parameters(trans, rots, scale, shear, params, main_args.trans_info.weights);
+  
+  if (main_args.trans_info.transform_type==TRANS_LSQ7) { /* adjust scaley and scalez only */
+                                                         /* if 7 parameter fit.  */
+    scale[1] = scale[0];
+    scale[2] = scale[0];
+  }
+
+  if (!in_limits(rots[0], (double)-3.1415927/2.0, (double)3.1415927/2.0) ||
+      !in_limits(rots[1], (double)-3.1415927/2.0, (double)3.1415927/2.0) ||
+      !in_limits(rots[2], (double)-3.1415927/2.0, (double)3.1415927/2.0) ||
+      !in_limits(scale[0],(double)0.0, (double)3.0) ||
+      !in_limits(scale[1],(double)0.0, (double)3.0) ||
+      !in_limits(scale[2],(double)0.0, (double)3.0) ||
+      !in_limits(shear[0],(double)-2.0, (double)2.0) ||
+      !in_limits(shear[1],(double)-2.0, (double)2.0) ||
+      !in_limits(shear[2],(double)-2.0, (double)2.0))
+
+    {
+
+printf("out : %7.4f=%c %7.4f=%c %7.4f=%c   %7.4f=%c %7.4f=%c %7.4f=%c   %7.4f=%c %7.4f=%c %7.4f=%c \n",
+       rots[0], in_limits(rots[0], (double)-3.1415927/2.0, (double)3.1415927/2.0) ? 'T': 'F' , 
+       rots[1], in_limits(rots[1], (double)-3.1415927/2.0, (double)3.1415927/2.0) ? 'T': 'F' , 
+       rots[2], in_limits(rots[2], (double)-3.1415927/2.0, (double)3.1415927/2.0) ? 'T': 'F' , 
+       scale[0],in_limits(scale[0], (double)0.0, (double)3.0)? 'T': 'F' , 
+       scale[1],in_limits(scale[1], (double)0.0, (double)3.0)? 'T': 'F' , 
+       scale[2],in_limits(scale[2], (double)0.0, (double)3.0)? 'T': 'F' , 
+       shear[0],in_limits(shear[0], (double)-2.0, (double)2.0)? 'T': 'F' , 
+       shear[1],in_limits(shear[1], (double)-2.0, (double)2.0)? 'T': 'F' , 
+       shear[2],in_limits(shear[2], (double)-2.0, (double)2.0)? 'T': 'F' );
+
+    r = FLT_MAX;
+  }
+  else {
+				/* get the linear transformation ptr */
+
+    if (get_transform_type(main_args.trans_info.transformation) == CONCATENATED_TRANSFORM) {
+      mat = get_linear_transform_ptr(
+             get_nth_general_transform(main_args.trans_info.transformation,0));
     }
-    else {			/* only one scale */
-      scale[1] = params[7];
-      scale[2] = params[7];
-    }
+    else
+      mat = get_linear_transform_ptr(main_args.trans_info.transformation);
+    
+    if (Ginverse_mapping_flag)
+      build_inverse_transformation_matrix(mat, cent, trans, scale, shear, rots);
+    else
+      build_transformation_matrix(mat, cent, trans, scale, shear, rots);
+    
+    /* call the needed objective function */
+    
+    r = (main_args.obj_function)(Gdata1,Gdata2,Gmask1,Gmask2,&main_args);
   }
-  else {			/* fixed scale */
-    scale[0] = 1.0;
-    scale[1] = 1.0;
-    scale[2] = 1.0;
-  }
-
-  for_less( i, 0, 3 )		/* set shears */
-    shear[i] = 0.0;
-  
-  if (Gndim==10) {
-      shear[0] = params[10]; 
-  }
-  else if (Gndim==12) {
-    for_less( i, 0, 3 )		
-      shear[i] = params[10+i]; 
-  }
-
-  for_less( i, 0, 3 )
-    cent[i] = main_args.trans_info.center[i]; /* GLOBAL MAIN_ARGS USED HERE */
-  
-
-  if (get_transform_type(main_args.trans_info.transformation) == CONCATENATED_TRANSFORM) {
-    mat = get_linear_transform_ptr(get_nth_general_transform(main_args.trans_info.transformation,0));
-  }
-  else
-    mat = get_linear_transform_ptr(main_args.trans_info.transformation);
-  
-  if (Ginverse_mapping_flag)
-    build_inverse_transformation_matrix(mat, cent, trans, scale, shear, rots);
-  else
-    build_transformation_matrix(mat, cent, trans, scale, shear, rots);
-
-				/* call the needed objective function */
-  r = (main_args.obj_function)(Gdata1,Gdata2,Gmask1,Gmask2,&main_args);
 
   return(r);
 }
@@ -201,125 +284,64 @@ public BOOLEAN optimize_simplex(Volume d1,
   double cent[3];
   double rots[3];
   double scale[3];
-  double shear[3];
+  double shear[6];
 
   
   stat = TRUE;
   local_ftol = ftol;
 
-  switch (globals->trans_info.transform_type) {
-  case TRANS_PROCRUSTES: 
-    ndim = 7;
-    break;
-  case TRANS_LSQ: 
-    ndim = 12;
-    break;
-  case TRANS_LSQ6: 
-    ndim = 6;
-    break;
-  case TRANS_LSQ7: 
-    ndim = 7;
-    break;
-  case TRANS_LSQ9: 
-    ndim = 9;
-    break;
-  case TRANS_LSQ12: 
-    ndim = 12;
-    break;
-  default:
-    (void)fprintf(stderr, "Unknown type of transformation requested (%d)\n",
-		   globals->trans_info.transform_type);
-    (void)fprintf(stderr, "Error in line %d, file %s\n",__LINE__, __FILE__);
-    stat = FALSE;
-  }
 
+				/* find number of dimensions for optimization */
+  ndim = 0;
+  for_less(i,0,12)
+    if (globals->trans_info.weights[i] != 0.0) ndim++;
 
 				/* set GLOBALS to communicate with the
 				   function to be fitted!              */
-  if (stat) {
+  if (stat && ndim>0) {
     Gndim = ndim;
     if (globals->smallest_vol == 1) {
-      Gdata1 = d1;
-      Gdata2 = d2;
-      Gmask1 = m1;
-      Gmask2 = m2;
+      Gdata1 = d1;      Gdata2 = d2;
+      Gmask1 = m1;      Gmask2 = m2;
       Ginverse_mapping_flag = FALSE;
     }
     else {
-      Gdata1 = d2;
-      Gdata2 = d1;
-      Gmask1 = m2;
-      Gmask2 = m1;
+      Gdata1 = d2;      Gdata2 = d1;
+      Gmask1 = m2;      Gmask2 = m1;
       Ginverse_mapping_flag = TRUE;
     }
+
   }
 
 
-  if (stat) {
+  if (stat && ndim>0) {
 
     p = matrix(1,ndim+1,1,ndim); /* simplex */
     y = vector(1,ndim+1);        /* value of correlation at simplex vertices */
     
-    p[1][1]=globals->trans_info.translations[0];
-    p[1][2]=globals->trans_info.translations[1];
-    p[1][3]=globals->trans_info.translations[2];
-    
-    p[1][4]=globals->trans_info.rotations[0]; 
-    p[1][5]=globals->trans_info.rotations[1]; 
-    p[1][6]=globals->trans_info.rotations[2];
-    
-    if (ndim >= 7) p[1][7]=globals->trans_info.scales[0];
-    if (ndim >7) {
-      p[1][8]=globals->trans_info.scales[1];
-      p[1][9]=globals->trans_info.scales[2];
-    }
-    
-    if (ndim==12) {
-      for_less( i, 0, 3 )		/* set shears */
-	p[1][10+i] = globals->trans_info.shears[i];
-    }
+    parameters_to_vector(globals->trans_info.translations,
+			 globals->trans_info.rotations,
+			 globals->trans_info.scales,
+			 globals->trans_info.shears,
+			 p[1],
+			 globals->trans_info.weights);
 
-
-    for (i=2; i<=(ndim+1); ++i)	/* copy initial guess to all points of simplex */
-      for (j=1; j<=ndim; ++j)
+    for_inclusive(i,2,ndim+1)	/* copy initial guess to all points of simplex */
+      for_inclusive(j,1,ndim)
 	p[i][j] = p[1][j];
     
-    p[2][1]=p[1][1]+simplex_size;		/* set up all vertices of simplex */
-    p[3][2]=p[1][2]+simplex_size;
-    p[4][3]=p[1][3]+simplex_size/5;
-    
-    p[5][4]=p[1][4] + (simplex_size*DEG_TO_RAD);
-    p[6][5]=p[1][5] + (simplex_size*DEG_TO_RAD);
-    p[7][6]=p[1][6] + (simplex_size*DEG_TO_RAD);
-    
-    if (ndim >= 7) p[8][7]=p[1][7] + simplex_size/50;	
-    if (ndim >7) {
-      p[9][8]=p[1][8] + simplex_size/50;
-      p[10][9]=p[1][9]+ simplex_size/50;
+				/* set up all vertices of simplex */
+    for_inclusive(j,1,ndim) {
+	p[j+1][j] = p[1][j] + simplex_size;
     }
-
-    if (ndim==10) {
-	p[11][10]=p[1][10] + (simplex_size*DEG_TO_RAD);
-    } else
-      if (ndim==12) {
-	for_less( i, 0, 3 )
-	  p[11+i][10+i]=p[1][10+i] + (simplex_size*DEG_TO_RAD);
-      }
-
 
     for (i=1; i<=(ndim+1); ++i)	{   /* set up value of correlation at all points of simplex */
       
       y[i] = fit_function(p[i]);
 
       (void)print ("corr = %6.4f",y[i]);
-      for (j=1; j<=3; ++j)  {
-	(void)print (" %7.2f",p[i][j]);
-      }
-      for (j=4; j<=6; ++j)  {
-	(void)print (" %7.3f",p[i][j]*RAD_TO_DEG);
-      }
-      for (j=7; j<=ndim; ++j)  {
-	(void)print (" %6.4f",p[i][j]);
+      for (j=1; j<=ndim; ++j)  {
+	(void)print (" %9.4f",p[i][j]);
       }
       (void)print ("\n");
       
@@ -332,62 +354,55 @@ public BOOLEAN optimize_simplex(Volume d1,
     for (i=1; i<=(ndim+1); ++i)	{   /* print out value of correlation at all points of simplex */
       if (i==1) {
 	(void)print ("end corr = %f",y[i]);
-	for (j=1; j<=3; ++j)  {
-	  (void)print (" %f",p[i][j]);
-	}
-	for (j=4; j<=6; ++j)  {
-	  (void)print (" %f",p[i][j]*RAD_TO_DEG);
-	}
-	for (j=7; j<=ndim; ++j)  {
-	  (void)print (" %f",p[i][j]);
+	for (j=1; j<=ndim; ++j)  {
+	  (void)print (" %9.4f",p[i][j]);
 	}
 	(void)print ("\n");
-      }
+       } 
     }   
-    
-				/* copy result into main data structure */
-    for_less ( i, 0, 3 ) {
-      globals->trans_info.translations[i] = p[1][i+1];
-      globals->trans_info.rotations[i]    = p[1][i+4];
-    }
 
-    if (ndim==6) {
-      for_less ( i, 0, 3 ) 
-	globals->trans_info.scales[i]       =  1.0;
-    } else
-      if (ndim==7) {
-	for_less ( i, 0, 3 ) 
-	  globals->trans_info.scales[i]       =  p[1][7];
-      } else {
-	for_less ( i, 0, 3 ) 
-	  globals->trans_info.scales[i]       =  p[1][i+7];
-      } 
-    
-    if (ndim==12) {
-      for_less( i, 0, 3 )		/* get shears */
-	globals->trans_info.shears[i] = p[1][10+i]; 
+				/* copy result into main data structure */
+
+    vector_to_parameters(globals->trans_info.translations,
+			 globals->trans_info.rotations,
+			 globals->trans_info.scales,
+			 globals->trans_info.shears,
+			 p[1],
+			 globals->trans_info.weights);
+
+print ("%d == %d\n",globals->trans_info.transform_type,TRANS_LSQ7);
+
+    if (globals->trans_info.transform_type==TRANS_LSQ7) { /* adjust scaley and scalez only */
+      /* if 7 parameter fit.  */
+      globals->trans_info.scales[1] = globals->trans_info.scales[0];
+      globals->trans_info.scales[2] = globals->trans_info.scales[0];
     }
-    else
-      for_less( i, 0, 3 )		/* set shears */
-	globals->trans_info.shears[i] = 0.0;
-    
     
 
     for_less( i, 0, 3 ) {		/* set translations */
       trans[i] = globals->trans_info.translations[i]; 
       rots[i]  = globals->trans_info.rotations[i];
       scale[i] = globals->trans_info.scales[i];
-      shear[i] = globals->trans_info.shears[i];
       cent[i]  = globals->trans_info.center[i];
+      shear[i] = globals->trans_info.shears[i];
     }
 
-
+    if (globals->flags.debug) {
+      print("after parameter optimization\n");
+      print("-center      %10.5f %10.5f %10.5f\n", cent[0], cent[1], cent[2]);
+      print("-translation %10.5f %10.5f %10.5f\n", trans[0], trans[1], trans[2]);
+      print("-rotation    %10.5f %10.5f %10.5f\n", 
+	    rots[0]*180.0/3.1415927, rots[1]*180.0/3.1415927, rots[2]*180.0/3.1415927);
+      print("-scale       %10.5f %10.5f %10.5f\n", scale[0], scale[1], scale[2]);
+      print("-shear       %10.5f %10.5f %10.5f\n", shear[0], shear[1], shear[2]);
+    }
+  
     if (get_transform_type(globals->trans_info.transformation) == CONCATENATED_TRANSFORM) {
-      mat = get_linear_transform_ptr(get_nth_general_transform(globals->trans_info.transformation,0));
+      mat = get_linear_transform_ptr(
+              get_nth_general_transform(globals->trans_info.transformation,0));
     }
     else
       mat = get_linear_transform_ptr(globals->trans_info.transformation);
-    
     
     build_transformation_matrix(mat, cent, trans, scale, shear, rots);
 
@@ -480,6 +495,62 @@ public BOOLEAN optimize_linear_transformation(Volume d1,
     }
 
   }
+
+          /* ---------------- prepare the weighting array for optimization ---------*/
+
+  switch (globals->trans_info.transform_type) {
+  case TRANS_LSQ3: 
+    for_less(i,3,12) globals->trans_info.weights[i] = 0.0;
+    for_less(i,0,3) {
+      globals->trans_info.scales[i] = 1.0;
+      globals->trans_info.rotations[i] = 0.0;
+      globals->trans_info.shears[i] = 0.0;
+    }
+    break;
+  case TRANS_LSQ6: 
+    for_less(i,6,12) globals->trans_info.weights[i] = 0.0;
+    for_less(i,0,3) {
+      globals->trans_info.scales[i] = 1.0;
+      globals->trans_info.shears[i] = 0.0;
+    }
+    break;
+  case TRANS_PROCRUSTES: 
+    for_less(i,7,12) globals->trans_info.weights[i] = 0.0;
+    for_less(i,0,3) {
+      globals->trans_info.shears[i] = 0.0;
+    }
+    break;
+  case TRANS_LSQ7: 
+    for_less(i,7,12) globals->trans_info.weights[i] = 0.0;
+    for_less(i,0,3) {
+      globals->trans_info.shears[i] = 0.0;
+    }
+    break;
+  case TRANS_LSQ9: 
+    for_less(i,9,12) globals->trans_info.weights[i] = 0.0;
+    for_less(i,0,3) {
+      globals->trans_info.shears[i] = 0.0;
+    }
+    break;
+  case TRANS_LSQ10: 
+    for_less(i,10,12) globals->trans_info.weights[i] = 0.0;
+    for_less(i,1,3) {
+      globals->trans_info.shears[i] = 0.0;
+    }
+    break;
+  case TRANS_LSQ: 
+				/* nothing to be zeroed */
+    break;
+  case TRANS_LSQ12: 
+				/* nothing to be zeroed */
+    break;
+  default:
+    (void)fprintf(stderr, "Unknown type of transformation requested (%d)\n",
+		   globals->trans_info.transform_type);
+    (void)fprintf(stderr, "Error in line %d, file %s\n",__LINE__, __FILE__);
+    stat = FALSE;
+  }
+
 	   /* ---------------- call requested optimization strategy ---------*/
 
   switch (globals->optimize_type) {
@@ -545,7 +616,7 @@ public float measure_fit(Volume d1,
 
 /*  Transform
     *mat;
-    double trans[3];  double cent[3];  double rots[3];  double scale[3];  double shear[3]; */
+    double trans[3];  double cent[3];  double rots[3];  double scale[3];  double shear[6]; */
 
   
   stat = TRUE;
@@ -582,27 +653,55 @@ public float measure_fit(Volume d1,
     }
 
   }
-	   /* ---------------- build the parameters necessary for obj func evaluation ---------*/
+          /* ---------------- prepare the weighting array for obj func evaluation  ---------*/
 
+          /* ---------------- prepare the weighting array for optimization ---------*/
 
   switch (globals->trans_info.transform_type) {
-  case TRANS_PROCRUSTES: 
-    ndim = 7;
-    break;
-  case TRANS_LSQ: 
-    ndim = 12;
+  case TRANS_LSQ3: 
+    for_less(i,3,12) globals->trans_info.weights[i] = 0.0;
+    for_less(i,0,3) {
+      globals->trans_info.scales[i] = 1.0;
+      globals->trans_info.rotations[i] = 0.0;
+      globals->trans_info.shears[i] = 0.0;
+    }
     break;
   case TRANS_LSQ6: 
-    ndim = 6;
+    for_less(i,6,12) globals->trans_info.weights[i] = 0.0;
+    for_less(i,0,3) {
+      globals->trans_info.scales[i] = 1.0;
+      globals->trans_info.shears[i] = 0.0;
+    }
+    break;
+  case TRANS_PROCRUSTES: 
+    for_less(i,7,12) globals->trans_info.weights[i] = 0.0;
+    for_less(i,0,3) {
+      globals->trans_info.shears[i] = 0.0;
+    }
     break;
   case TRANS_LSQ7: 
-    ndim = 7;
+    for_less(i,7,12) globals->trans_info.weights[i] = 0.0;
+    for_less(i,0,3) {
+      globals->trans_info.shears[i] = 0.0;
+    }
     break;
   case TRANS_LSQ9: 
-    ndim = 9;
+    for_less(i,9,12) globals->trans_info.weights[i] = 0.0;
+    for_less(i,0,3) {
+      globals->trans_info.shears[i] = 0.0;
+    }
+    break;
+  case TRANS_LSQ10: 
+    for_less(i,10,12) globals->trans_info.weights[i] = 0.0;
+    for_less(i,1,3) {
+      globals->trans_info.shears[i] = 0.0;
+    }
+    break;
+  case TRANS_LSQ: 
+				/* nothing to be zeroed */
     break;
   case TRANS_LSQ12: 
-    ndim = 12;
+				/* nothing to be zeroed */
     break;
   default:
     (void)fprintf(stderr, "Unknown type of transformation requested (%d)\n",
@@ -610,6 +709,12 @@ public float measure_fit(Volume d1,
     (void)fprintf(stderr, "Error in line %d, file %s\n",__LINE__, __FILE__);
     stat = FALSE;
   }
+
+	
+
+  ndim = 0;
+  for_less(i,0,12)
+    if (globals->trans_info.weights[i] != 0.0) ndim++;
 
 				/* set GLOBALS to communicate with the
 				   function to be fitted!              */
@@ -632,31 +737,18 @@ public float measure_fit(Volume d1,
   }
 
 
+
   if (stat) {
 
     p = matrix(1,ndim+1,1,ndim); /* simplex */
     
-    p[1][1]=globals->trans_info.translations[0];
-    p[1][2]=globals->trans_info.translations[1];
-    p[1][3]=globals->trans_info.translations[2];
-    
-    p[1][4]=globals->trans_info.rotations[0]; 
-    p[1][5]=globals->trans_info.rotations[1]; 
-    p[1][6]=globals->trans_info.rotations[2];
-    
-    if (ndim >= 7) p[1][7]=globals->trans_info.scales[0];
-    if (ndim >7) {
-      p[1][8]=globals->trans_info.scales[1];
-      p[1][9]=globals->trans_info.scales[2];
-    }
-    
-    if (ndim==12) {
-      for_less( i, 0, 3 )		/* set shears */
-	p[1][10+i] = globals->trans_info.shears[i];
-    }
+    parameters_to_vector(globals->trans_info.translations,
+			 globals->trans_info.rotations,
+			 globals->trans_info.scales,
+			 globals->trans_info.shears,
+			 p[1],
+			 globals->trans_info.weights);
 
-
-      
     y = fit_function(p[1]);	/* evaluate the objective  function */
 
     free_matrix(p,1,ndim+1,1,ndim); /* simplex */

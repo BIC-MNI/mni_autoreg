@@ -23,10 +23,14 @@
 
 @CREATED    : Mon Oct  4 13:06:17 EST 1993 Louis
 @MODIFIED   : $Log: make_matlab_data_file.c,v $
-@MODIFIED   : Revision 1.3  1994-04-06 11:48:39  louis
-@MODIFIED   : working linted version of linear + non-linear registration based on Lvv
-@MODIFIED   : operator working in 3D
+@MODIFIED   : Revision 1.4  1994-04-26 12:54:23  louis
+@MODIFIED   : updated with new versions of make_rots, extract2_parameters_from_matrix
+@MODIFIED   : that include proper interpretation of skew.
 @MODIFIED   :
+ * Revision 1.3  94/04/06  11:48:39  louis
+ * working linted version of linear + non-linear registration based on Lvv
+ * operator working in 3D
+ * 
  * Revision 1.2  94/02/21  16:35:40  louis
  * version before feb 22 changes
  * 
@@ -36,7 +40,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/make_matlab_data_file.c,v 1.3 1994-04-06 11:48:39 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/make_matlab_data_file.c,v 1.4 1994-04-26 12:54:23 louis Exp $";
 #endif
 
 
@@ -141,7 +145,7 @@ public void make_matlab_data_file(Volume d1,
     ndim = 9;
     break;
   case TRANS_LSQ12: 
-    ndim = 12;
+    ndim = 15;
     break;
   default:
     (void)fprintf(stderr, "Unknown type of transformation requested (%d)\n",
@@ -172,21 +176,36 @@ public void make_matlab_data_file(Volume d1,
 
   p = vector(1,ndim); /* parameter values */
   
-  p[1]=globals->trans_info.translations[0];
-  p[2]=globals->trans_info.translations[1];
-  p[3]=globals->trans_info.translations[2];
-  
-  p[4]=globals->trans_info.rotations[0]; 
-  p[5]=globals->trans_info.rotations[1]; 
-  p[6]=globals->trans_info.rotations[2];
-  
-  if (ndim >= 7) p[7]=globals->trans_info.scales[0];
-  if (ndim >7) {
-    p[8]=globals->trans_info.scales[1];
-    p[9]=globals->trans_info.scales[2];
+  if (globals->trans_info.transform_type==TRANS_LSQ3 ||
+      globals->trans_info.transform_type==TRANS_LSQ6 ||
+      globals->trans_info.transform_type==TRANS_LSQ7 ||
+      globals->trans_info.transform_type==TRANS_LSQ9 ||
+      globals->trans_info.transform_type==TRANS_LSQ12) {
+    p[1]=globals->trans_info.translations[0];
+    p[2]=globals->trans_info.translations[1];
+    p[3]=globals->trans_info.translations[2];
   }
+
+  if (globals->trans_info.transform_type==TRANS_LSQ6 ||
+      globals->trans_info.transform_type==TRANS_LSQ7 ||
+      globals->trans_info.transform_type==TRANS_LSQ9 ||
+      globals->trans_info.transform_type==TRANS_LSQ12) {
+    p[4]=globals->trans_info.rotations[0]; 
+    p[5]=globals->trans_info.rotations[1]; 
+    p[6]=globals->trans_info.rotations[2];
+  }
+
+  if (globals->trans_info.transform_type==TRANS_LSQ7)
+    p[7]=globals->trans_info.scales[0];
+  else
+    if (globals->trans_info.transform_type==TRANS_LSQ9 ||
+	globals->trans_info.transform_type==TRANS_LSQ12) {
+      p[7]=globals->trans_info.scales[0];
+      p[8]=globals->trans_info.scales[1];
+      p[9]=globals->trans_info.scales[2];
+    }
   
-  if (ndim==12) {
+  if (globals->trans_info.transform_type==TRANS_LSQ12) {
     for_less( i, 0, 3 )		/* set shears */
       p[10+i] = globals->trans_info.shears[i];
   }
@@ -218,9 +237,12 @@ public void make_matlab_data_file(Volume d1,
     case  7: (void)fprintf (ofd,"sx = [\n"); step=simplex_size/(50*NUM_STEPS); break;
     case  8: (void)fprintf (ofd,"sy = [\n"); step=simplex_size/(50*NUM_STEPS); break;
     case  9: (void)fprintf (ofd,"sz = [\n"); step=simplex_size/(50*NUM_STEPS); break; 
-    case 10: (void)fprintf (ofd,"hx = [\n"); step=simplex_size*DEG_TO_RAD/NUM_STEPS; break;
-    case 11: (void)fprintf (ofd,"hy = [\n"); step=simplex_size*DEG_TO_RAD/NUM_STEPS; break;
-    case 12: (void)fprintf (ofd,"hz = [\n"); step=simplex_size*DEG_TO_RAD/NUM_STEPS; break;
+    case 10: (void)fprintf (ofd,"hxy = [\n"); step=simplex_size/(50*NUM_STEPS); break;
+    case 11: (void)fprintf (ofd,"hxz = [\n"); step=simplex_size/(50*NUM_STEPS); break;
+    case 12: (void)fprintf (ofd,"hyx = [\n"); step=simplex_size/(50*NUM_STEPS); break;
+    case 13: (void)fprintf (ofd,"hyz = [\n"); step=simplex_size/(50*NUM_STEPS); break;
+    case 14: (void)fprintf (ofd,"hzx = [\n"); step=simplex_size/(50*NUM_STEPS); break;
+    case 15: (void)fprintf (ofd,"hzy = [\n"); step=simplex_size/(50*NUM_STEPS); break;
     }
     
     start = p[j];

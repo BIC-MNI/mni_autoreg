@@ -9,10 +9,14 @@
 @CALLS      : 
 @CREATED    : Mon Nov 29 11:01:47 EST 1993 Louis
 @MODIFIED   : $Log: param2xfm.c,v $
-@MODIFIED   : Revision 1.2  1994-04-06 11:48:46  louis
-@MODIFIED   : working linted version of linear + non-linear registration based on Lvv
-@MODIFIED   : operator working in 3D
+@MODIFIED   : Revision 1.3  1994-04-26 12:54:34  louis
+@MODIFIED   : updated with new versions of make_rots, extract2_parameters_from_matrix
+@MODIFIED   : that include proper interpretation of skew.
 @MODIFIED   :
+ * Revision 1.2  94/04/06  11:48:46  louis
+ * working linted version of linear + non-linear registration based on Lvv
+ * operator working in 3D
+ * 
  * Revision 1.1  94/02/21  16:36:03  louis
  * Initial revision
  * 
@@ -60,6 +64,8 @@ int main(int argc, char *argv[])
      {"-rotations",   ARGV_FLOAT, (char *) 3, (char *)rots,
 	"Rotation angle (in degrees)."},
      {"-scales",      ARGV_FLOAT, (char *) 3, (char *)scales,
+	"Scaling factors."},
+     {"-shears",      ARGV_FLOAT, (char *) 3, (char *)skews,
 	"Scaling factors."},
      {NULL, ARGV_END, NULL, NULL, NULL}
    };

@@ -14,10 +14,14 @@
 
 @CREATED    : Tue Jun 15 08:57:23 EST 1993 LC
 @MODIFIED   :  $Log: volume_functions.c,v $
-@MODIFIED   :  Revision 1.8  1994-04-06 11:49:00  louis
-@MODIFIED   :  working linted version of linear + non-linear registration based on Lvv
-@MODIFIED   :  operator working in 3D
+@MODIFIED   :  Revision 1.9  1994-04-26 12:54:44  louis
+@MODIFIED   :  updated with new versions of make_rots, extract2_parameters_from_matrix
+@MODIFIED   :  that include proper interpretation of skew.
 @MODIFIED   :
+ * Revision 1.8  94/04/06  11:49:00  louis
+ * working linted version of linear + non-linear registration based on Lvv
+ * operator working in 3D
+ * 
  * Revision 1.7  94/02/21  16:37:46  louis
  * version before feb 22 changes
  * 
@@ -28,7 +32,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/volume_functions.c,v 1.8 1994-04-06 11:49:00 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/volume_functions.c,v 1.9 1994-04-26 12:54:44 louis Exp $";
 #endif
 
 #include <volume_io.h>
@@ -58,7 +62,6 @@ public void make_zscore_volume(Volume d1, Volume m1,
     s,r,c;
   Real
     wx,wy,wz,
-    valid_min_mvoxel, valid_max_mvoxel,
     valid_min_dvoxel, valid_max_dvoxel,
     min,max,
     sum, sum2, mean, var, std,
@@ -80,7 +83,6 @@ public void make_zscore_volume(Volume d1, Volume m1,
   get_volume_sizes(d1, sizes);
   get_volume_separations(d1, thick);
   get_volume_voxel_range(d1, &valid_min_dvoxel, &valid_max_dvoxel);
-  get_volume_voxel_range(m1, &valid_min_mvoxel, &valid_max_mvoxel);
 
   /* initialize counters and sums */
 
@@ -96,7 +98,13 @@ public void make_zscore_volume(Volume d1, Volume m1,
       for_less( c, 0, sizes[2]) {
 
 	convert_3D_voxel_to_world(d1, (Real)s, (Real)r, (Real)c, &wx, &wy, &wz);
-	convert_3D_world_to_voxel(m1, wx, wy, wz, &Point_x(voxel), &Point_y(voxel), &Point_z(voxel));
+
+	if (m1 != NULL) {
+	  convert_3D_world_to_voxel(m1, wx, wy, wz, &Point_x(voxel), &Point_y(voxel), &Point_z(voxel));
+	}
+	else {
+	  wx = 0.0; wy = 0.0; wz = 0.0;
+	}
 
 	if (point_not_masked(m1, wx,wy,wz)) {
 	  

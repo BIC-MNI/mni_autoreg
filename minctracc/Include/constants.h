@@ -23,12 +23,14 @@
 
 #define TRANS_PROCRUSTES  0
 #define TRANS_LSQ         1
-#define TRANS_LSQ6        2
-#define TRANS_LSQ7        3
-#define TRANS_LSQ9        4
-#define TRANS_LSQ12       5
-#define TRANS_PAT         6
-#define TRANS_NONLIN      7
+#define TRANS_LSQ3        2
+#define TRANS_LSQ6        3
+#define TRANS_LSQ7        4
+#define TRANS_LSQ9        5
+#define TRANS_LSQ10       6
+#define TRANS_LSQ12       7
+#define TRANS_PAT         8
+#define TRANS_NONLIN      9
 
 #define OPT_SIMPLEX       0
 

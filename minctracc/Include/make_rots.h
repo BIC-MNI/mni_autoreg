@@ -50,3 +50,10 @@ public BOOLEAN extract_parameters_from_matrix(Transform *trans,
 					      double *scales,
 					      double *shears,
 					      double *rotations);
+
+public BOOLEAN extract2_parameters_from_matrix(Transform *trans,
+					      double *center,
+					      double *translations,
+					      double *scales,
+					      double *shears,
+					      double *rotations);
