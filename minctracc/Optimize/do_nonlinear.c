@@ -16,9 +16,29 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 1.7  1994-06-15 09:46:47  louis
-@MODIFIED   : non-working version using FFT for local def.
+@MODIFIED   : Revision 1.8  1994-06-17 10:29:20  louis
+@MODIFIED   : this version has both a simplex method and convolution method 
+@MODIFIED   : working to find the best local offset for a given lattice node.
 @MODIFIED   :
+@MODIFIED   : The simplex method works well, is stable and yields good results.
+@MODIFIED   : The convolution method also works, but the discretization of the 
+@MODIFIED   : possible deformed vector yields results that are not always stable.
+@MODIFIED   :
+@MODIFIED   : The conv technique is only 2 times faster than the simplex method, 
+@MODIFIED   : and therefore does not warrent further testing....
+@MODIFIED   :
+@MODIFIED   : I will now modify the simplex method:
+@MODIFIED   :    - use nearest neighbour interpolation only for the moving lattice
+@MODIFIED   :    - use tri-cubic for the non-moving lattice
+@MODIFIED   :    - swap the moving and stable grids.  now the source grid moves,
+@MODIFIED   :      the target (deformed) grid should move to increase the effective
+@MODIFIED   :      resolution of the deformation vector (over the linear interpolant
+@MODIFIED   :      limit).
+@MODIFIED   :
+@MODIFIED   :
+ * Revision 1.7  94/06/15  09:46:47  louis
+ * non-working version using FFT for local def.
+ *
  * Revision 1.6  94/06/06  18:45:24  louis
  * working version: clamp and blur of deformation lattice now ensures
  * a smooth recovered deformation.  Unfortunately, the r = cost-similarity
@@ -61,7 +81,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 1.7 1994-06-15 09:46:47 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 1.8 1994-06-17 10:29:20 louis Exp $";
 #endif
 
 
@@ -121,6 +141,9 @@ private void copy_data_into_fft_array(float *data, float *ffa, int numd, int num
 
 private void find_max_in_fft_array(float *ffa, int num, int ndim,
 				   int *dx, int *dy, int *dz);
+
+private void find_best_offset(float *Ga1xyz, float *Ga2xyz, int n1, int n2, int dim, 
+			      float *dx, float *dy, float *dz);
 
 public void    build_source_lattice(Real x, Real y, Real z,
 				    float PX[], float PY[], float PZ[],
@@ -321,6 +344,7 @@ public Status do_non_linear_optimization(Volume d1,
   Gm1     = m1;
   Gm2     = m2; 
   Gglobals= globals;
+
 
   /*******************************************************************************/
   /*  copy all but the last general transformation (which should be non-lin) to  */
@@ -622,7 +646,8 @@ public Status do_non_linear_optimization(Volume d1,
      clamp_warp_deriv(current->dx, current->dy, current->dz); 
 */
 
-    if (iters<iteration_limit-1) {
+    
+    if (iters<iteration_limit-1 && Gglobals->trans_info.use_simplex==TRUE) {
       for_less(i,loop_start[0],loop_end[0]) {
 	for_less(j,loop_start[1],loop_end[1]) {
 	  for_less(k,loop_start[2],loop_end[2]){
@@ -737,7 +762,10 @@ public Status do_non_linear_optimization(Volume d1,
   (void)free_volume_data(additional_dz); (void)delete_volume(additional_dz);
   (void)free_volume_data(additional_mag); (void)delete_volume(additional_mag);
 
+
   return (OK);
+
+
 
 }
 
@@ -1345,14 +1373,15 @@ private Real optimize_3D_deformation_by_FFT(Real spacing,
     px_dir, py_dir, pz_dir,
     d1x_dir, d1y_dir, d1z_dir,
     d2x_dir, d2y_dir, d2z_dir;
-  float 
+  float
+    step,
+    dx,dy,dz,
     *res,*f1, *f2;
     
     
   int 
     dims[4],
-    dx,dy,dz,
-    nfunk,len,ff_len,
+    nfunk,num1,num2,len1,len2,
     numsteps,
     i,j,k;
 
@@ -1387,191 +1416,103 @@ private Real optimize_3D_deformation_by_FFT(Real spacing,
                     
        */   
     
-    
-    if (ndim > 2) {
-      numsteps = 7;
-      len = (numsteps + 1) * (numsteps + 1) * (numsteps + 1);
-    }
-    else {
-      numsteps = 7;
-      len = (numsteps + 1) * (numsteps + 1);
+    num1 = 14;    num2 = 6;	/* if odd number, then the lattice will have
+				   one node ON the point to be optimized     */
+    len1 = num1;  len2 = num2;
+    for_less(i,1,ndim) {
+      len1 *= num1;
+      len2 *= num2;
     }
 
-    Glen = len;
+    Glen = len1;
     
-    Ga1xyz = vector(1,len);
-    Ga2xyz = vector(1,len);
+    Ga1xyz = vector(1,len1);
+    Ga2xyz = vector(1,len2);
     
-    SX = vector(1,len);
-    SY = vector(1,len);
-    SZ = vector(1,len);
-    TX = vector(1,len);
-    TY = vector(1,len);
-    TZ = vector(1,len);
-
-
+    SX = vector(1,len1);
+    SY = vector(1,len1);
+    SZ = vector(1,len1);
+    TX = vector(1,len2);
+    TY = vector(1,len2);
+    TZ = vector(1,len2);
+				/* get the position, in the source volume, of 
+				   the node to be optimized            	   */
     general_inverse_transform_point(Gglobals->trans_info.transformation, 
 				    tx,  ty,  tz,
 				    &xp, &yp, &zp);
 
-
 				/* build the lattice of points, in the source volume */
 				/* taking into consideration the warp from neighbours */
+
+    step = (spacing*2)/5;	/* step = .2* FWHM approximately */
     build_source_lattice(xp, yp, zp, 
 			 SX,    SY,    SZ,
-			 spacing*3, spacing*3, spacing*3, /* lattice size= 2.5*fwhm */
-			 4,  4,  4,
+			 step*(num2-1), step*(num2-1), step*(num2-1),  /* lattice size= 1.5*fwhm */
+			 num2, num2, num2, 
 			 ndim);
     
 				/* map this lattice forward into the target space,
 				   using the current transformation. */
     build_target_lattice(SX,SY,SZ,
 			 TX,TY,TZ,
-			 len);
+			 len2);
 
 				/* build the source lattice (without warp),
 				   that will be used in the optimization below */
     build_source_lattice(src_x, src_y, src_z,
 			 SX,    SY,    SZ,
-			 spacing*6, spacing*6, spacing*6, /* lattice size= 2.5*fwhm */
-			 9,  9,  9,
+			 step*(num1-1), step*(num1-1), step*(num1-1),  /* lattice size= 3.0*fwhm */
+			 num1, num1, num1, 
 			 ndim);
     
-    if(ndim>2) {
-      go_get_samples(Gd1_dxyz, SX,SY,SZ, Ga1xyz, 5*5*5, 3);
-      go_get_samples(Gd2_dxyz, TX,TY,TZ, Ga2xyz, 10*10*10, 3);
-    }
-    else {
-      go_get_samples(Gd1_dxyz, SX,SY,SZ, Ga1xyz, 5*5, 3);
-      go_get_samples(Gd2_dxyz, TX,TY,TZ, Ga2xyz, 10*10, 3);
-    }
-    if(ndim>2) 
-      ff_len = 16*16*16;
-    else
-      ff_len = 16*16;
+    go_get_samples(Gd1_dxyz, SX,SY,SZ, Ga1xyz, len1, 3);
+    go_get_samples(Gd2_dxyz, TX,TY,TZ, Ga2xyz, len2, 3);
 
-    f1 = vector(0,2*ff_len+1);
-    f2 = vector(0,2*ff_len+1);
-    res = vector(0,2*ff_len+1);
-
-
-
-    copy_data_into_fft_array(Ga1xyz, f1, numsteps+1, 16, ndim);
-    copy_data_into_fft_array(Ga2xyz, f2, numsteps+1, 16, ndim);
-
-
-    print ("f1 = [\n");
-    for_inclusive(i,0,numsteps) {
-      for_inclusive(j,0,numsteps) {
-	print ("%3.1e ",Ga1xyz[i*(numsteps+1)+j+1]>0.01?Ga1xyz[i*(numsteps+1)+j+1]:0.0);
-      }
-      print("\n");
-    }
-    print ("];\n");
+    find_best_offset(Ga1xyz,Ga2xyz, num1,num2, ndim, &dx, &dy, &dz);
     
-    print ("f2 = [\n");
-    for_inclusive(i,0,numsteps) {
-      for_inclusive(j,0,numsteps) {
-	print ("%3.1e ",Ga2xyz[i*(numsteps+1)+j+1]>0.01?Ga2xyz[i*(numsteps+1)+j+1]:0.0);
-      }
-      print("\n");
-    }
-    print ("];\n\n");
-    
-    
-    
-    dims[0] = 1;
-    dims[1] = 16;
-    dims[2] = 16;
-    dims[3] = 16;
-
-    fourn(f1,dims,ndim,1); 
-    fourn(f2,dims,ndim,1);
-    for_less(i,0,ff_len)	/* complex conjugate of F2 */
-      f2[i*2 + 2] *= -1.0;
-
-    muli_vects(res,f1,f2,ff_len);
-    fourn(res,dims,ndim,-1);
-     
-    find_max_in_fft_array(res, 16, ndim, &dx, &dy, &dz);
-      
-      print ("%3d %3d %3d ***\n", dx, dy, dz);
-
-
 /*
-    if (!(dx==0 && dy==0)) {
-      
-      fourn(f1,dims,ndim,-1); 
-      for_less(i,0,ff_len)	/ * complex conjugate of F2 * /
-	f2[i*2 + 2] *= -1.0;
-      fourn(f2,dims,ndim,-1);
-
-      print ("************************************************************\n");
-      print ("*****%3d %3d %3d********************************************\n", dx, dy, dz);
-
-      for_less(i,1,Glen)
-	print ("%f  ->  %f \n",Ga1xyz[i], Ga2xyz[i]);
-
-      print ("f1 = [\n");
-      for_less(i,0,16) {
-	for_less(j,0,16) {
-	  print ("%3.1e ",f1[2*(i*16+j)+1]/256>0.01?f1[2*(i*16+j)+1]/256:0.0);
-	}
-	print("\n");
-      }
-      print ("];\n");
-      
-      print ("f2 = [\n");
-      for_less(i,0,16) {
-	for_less(j,0,16) {
-	  print ("%3.1e ",f2[2*(i*16+j)+1]/256>0.01?f2[2*(i*16+j)+1]/256:0.0);
-	}
-	print("\n");
-      }
-      print ("];\n");
-      
-      print ("rr = [\n");
-      for_less(i,0,16) {
-	for_less(j,0,16) {
-	  print ("%3.1e ",res[2*(i*16+j)+1]);
-	}
-	print("\n");
-      }
-      print ("];\n");
-      print ("ri = [\n");
-      for_less(i,0,16) {
-	for_less(j,0,16) {
-	  print ("%3.1e ",res[2*(i*16+j)+2]);
-	}
-	print("\n");
-      }
-      print ("];\n");
-      print_error("done!",__FILE__,__LINE__);
+if (!(dx==0 && dy==0)) {
+  for_less(i,0,num2) {
+    for_less(j,0,num2) {
+      print ("%9.4f ", Ga2xyz[i*num2 + j +1] - Ga1xyz[(i+(num1-num2)/2)*num1 + (j+(num1-num2)/2) +1]);
     }
+    print ("\n");
+  }
+
+  for_less(i,0,num2){
+    for_less(j,0,num2){
+      print ("%9.4f %9.4f %9.4f (%9.4f) -> (%9.4f) %9.4f %9.4f %9.4f \n",
+	     SX[(i+(num1-num2)/2)*num1 + (j+(num1-num2)/2) +1],
+	     SY[(i+(num1-num2)/2)*num1 + (j+(num1-num2)/2) +1],
+	     SZ[(i+(num1-num2)/2)*num1 + (j+(num1-num2)/2) +1],
+	     Ga1xyz[(i+(num1-num2)/2)*num1 + (j+(num1-num2)/2) +1],
+	     Ga2xyz[i*num2 + j +1],
+	     TX[i*num2 + j +1],
+	     TY[i*num2 + j +1],
+	     TZ[i*num2 + j +1]);
+    }
+  }
+  print ("dx dy = %d %d\n\n", dx, dy);
+
+}
 */
-
-
-    *def_x += ((5.0*spacing/(numsteps))*((Real)(dx)/2.0)) ;
-    *def_y += ((5.0*spacing/(numsteps))*((Real)(dy)/2.0)) ;
+    *def_x -= step*dx;
+    *def_y -= step*dy;
     if (ndim > 2)
-      *def_z += ((5.0*spacing/(numsteps))*((Real)(dz)/2.0)) ;
+      *def_z -= step*dz;
     else
       *def_z = 0.0;
     
     result = sqrt((*def_x * *def_x) + (*def_y * *def_y) + (*def_z * *def_z)) ;      
     
-    free_vector(f1, 0,2*ff_len+1);
-    free_vector(f2, 0,2*ff_len+1);
-    free_vector(res, 0,2*ff_len+1);
-    
-    free_vector(Ga1xyz ,1,len);
-    free_vector(Ga2xyz ,1,len);
-    free_vector(TX ,1,len);
-    free_vector(TY ,1,len);
-    free_vector(TZ ,1,len);
-    free_vector(SX ,1,len);
-    free_vector(SY ,1,len);
-    free_vector(SZ ,1,len);
+    free_vector(Ga1xyz ,1,len1);
+    free_vector(Ga2xyz ,1,len2);
+    free_vector(TX ,1,len2);
+    free_vector(TY ,1,len2);
+    free_vector(TZ ,1,len2);
+    free_vector(SX ,1,len1);
+    free_vector(SY ,1,len1);
+    free_vector(SZ ,1,len1);
     
 
   }
@@ -1667,7 +1608,7 @@ private Real optimize_3D_deformation_for_single_node(Real spacing,
     build_source_lattice(xp, yp, zp, 
 			 SX,    SY,    SZ,
 			 spacing*3, spacing*3, spacing*3, /* lattice size= 1.5*fwhm */
-			 numsteps,  numsteps,  numsteps,
+			 numsteps+1,  numsteps+1,  numsteps+1,
 			 ndim);
     
 				/* map this lattice forward into the target space,
@@ -1681,7 +1622,7 @@ private Real optimize_3D_deformation_for_single_node(Real spacing,
     build_source_lattice(src_x, src_y, src_z,
 			 SX,    SY,    SZ,
 			 spacing*3, spacing*3, spacing*3, /* lattice size= 1.5*fwhm */
-			 numsteps,  numsteps,  numsteps,
+			 numsteps+1,  numsteps+1,  numsteps+1,
 			 ndim);
     
     go_get_samples(Gd2_dxyz, TX,TY,TZ, Ga2xyz, len, 3);
@@ -1774,6 +1715,267 @@ private Real optimize_3D_deformation_for_single_node(Real spacing,
   return(result);
 }
 
+private float correl_value_with_offset(float *data, float *mask, int n1, int n2, float s1_2,
+				       int dim, int dx, int dy, int dz)
+{ 
+  int offset,i,j,k;
+  float s2,s1s2,correl;
+
+  offset = (n1-n2)/2;
+
+  s2 = 0.0;
+  s1s2=0.0;
+
+  if (dim==3) {
+    for_less(i,0,n2) {		/* for every point in the mask */
+      for_less(j,0,n2) {
+	for_less(k,0,n2) {
+
+
+	  s2   += data[(i+offset+dx)*n1*n1 + (j+offset+dy)*n1 + k+offset+dz +1] * 
+	          data[(i+offset+dx)*n1*n1 + (j+offset+dy)*n1 + k+offset+dz +1];
+	  s1s2 += mask[i*n2*n2 + j*n2 +k +1] * 
+	          data[(i+offset+dx)*n1*n1 + (j+offset+dy)*n1 + k+offset+dz +1];
+
+	}
+      }
+    }
+  }
+  else {
+    for_less(i,0,n2) {		/* for every point in the mask */
+      for_less(j,0,n2) {
+
+	s2   += data[(i+offset+dx)*n1 + (j+offset+dy) +1] * 
+	        data[(i+offset+dx)*n1 + (j+offset+dy) +1];
+	s1s2 += mask[i*n2 + j +1] * 
+	        data[(i+offset+dx)*n1 + (j+offset+dy) +1];
+	
+      }
+    }
+  }
+  
+  s2 = fsqrt(s2);
+
+  if ( s2 < 0.0001 && s1_2 < 0.0001) 
+    correl = 1.0;
+  else {
+    if ( s2 < 0.0001 || s1_2 < 0.0001) 
+      correl = 0.0;
+    else 
+      correl = s1s2 / (s2*s1_2);
+  }
+  
+  return(correl);
+}
+
+
+private float cog3(float f1,float f2,float f3)
+{
+  float c;
+
+  c = 0.0;
+
+  if ((2*f2 -f1 - f3) > (0.03*f1)) {
+    if ((f1+f2-2*f3) != 0.0)
+      c = ( (f1 - f3) / ( 2* (f1+f2-2*f3)) )  ;
+  }
+
+  if (ABS(c)>1.0)
+    c = 0.0;
+
+  return(c);
+}
+
+private float cog2(float f1,float f2)
+{
+  float c;
+
+  if (f1+f2 != 0.0)
+    c = ((f1 + 2*f2) / (f1+f2))  -1.0;
+  else
+    c = 0.0;
+
+  return(c);
+}
+
+private void find_best_offset(float *data, float *mask, int n1, int n2, int dim, 
+			      float *dx, float  *dy, float *dz)
+{
+  int 
+    size,
+    len,
+    ni,nj,nk,
+    off_i,off_k,off_j,
+    i,j,k;
+  float 
+    ***cor_mat3,**cor_mat2,s2,
+    c,max;
+  
+
+  
+  size = n1-n2;
+
+  if (dim==3) {
+    ALLOC3D(cor_mat3,size,size,size);
+  }
+  else { 
+    ALLOC2D(cor_mat2,size,size);
+  }
+
+  len = n2;
+  for_less(i,1,dim)
+    len *= n2;
+
+  s2 = 0.0;			
+  for_less(i,0,len) {
+    s2 += mask[i+1]*mask[i+1];
+  }
+  s2 = fsqrt(s2);
+
+  max = -FLT_MAX;
+  *dx = 0;
+  *dy = 0;
+  *dz = 0;
+
+  if (dim==3) {
+    for_less(i,0,size) 
+      for_less(j,0,size)
+	for_less(k,0,size) {
+	  off_i = -size/2 + i;
+	  off_j = -size/2 + j;
+	  off_k = -size/2 + k;
+	  c = correl_value_with_offset(data, mask, n1, n2, s2, 
+				       dim, off_i, off_j, off_k);
+	  cor_mat3[i][j][k] = c;
+	  if (max < c) {
+	    max = c;
+	    *dx = off_i;
+	    *dy = off_j;
+	    *dz = off_k;
+	  }
+	}
+
+    off_i = *dx + size/2; off_j = *dy + size/2; off_k = *dz + size/2;
+
+    if ( (off_i)>0 && (off_i)<size-1 )
+      *dx += cog3(cor_mat3[off_i-1][off_j][off_k],
+		  cor_mat3[off_i  ][off_j][off_k],
+		  cor_mat3[off_i+1][off_j][off_k]);
+    else
+      if ( (off_i)==0 )
+	*dx += cog2(cor_mat3[off_i  ][off_j][off_k],
+		    cor_mat3[off_i+1][off_j][off_k]);
+      else
+	 if ( (off_i)==(size-1) )
+	   *dx -= cog2(cor_mat3[off_i  ][off_j][off_k],
+		       cor_mat3[off_i-1][off_j][off_k]);
+
+    if ( (off_j)>0 && (off_j)<size-1 )
+      *dy += cog3(cor_mat3[off_i][off_j-1][off_k],
+		  cor_mat3[off_i][off_j  ][off_k],
+		  cor_mat3[off_i][off_j+1][off_k]);
+    else
+      if ( (off_i)==0 )
+	*dy += cog2(cor_mat3[off_i][off_j  ][off_k],
+		    cor_mat3[off_i][off_j+1][off_k]);
+      else
+	 if ( (off_i)==(size-1) )
+	   *dy -= cog2(cor_mat3[off_i][off_j  ][off_k],
+		       cor_mat3[off_i][off_j-1][off_k]);
+
+    if ( (off_k)>0 && (off_k)<size-1 )
+      *dz += cog3(cor_mat3[off_i][off_j][off_k-1],
+		  cor_mat3[off_i][off_j][off_k  ],
+		  cor_mat3[off_i][off_j][off_k+1]);
+    else
+      if ( (off_i)==0 )
+	*dz += cog2(cor_mat3[off_i][off_j][off_k  ],
+		    cor_mat3[off_i][off_j][off_k+1]);
+      else
+	 if ( (off_i)==(size-1) )
+	   *dz -= cog2(cor_mat3[off_i][off_j][off_k  ],
+		       cor_mat3[off_i][off_j][off_k-1]);
+
+
+
+
+
+  }
+  else {
+    for_less(i,0,size) {
+      for_less(j,0,size) {
+	off_i = -size/2 + i;
+	off_j = -size/2 + j;
+	off_k = 0;
+	c = correl_value_with_offset(data, mask, n1, n2, s2, 
+				     dim, off_i, off_j, off_k);
+	cor_mat2[i][j] = c;
+/*	print ("%7.5f ",c);  */
+	if (max < c) {
+	  max = c;
+	  *dx = off_i;
+	  *dy = off_j;
+	  *dz = off_k;
+	}
+      }
+/*      print ("\n"); */
+    }
+
+    off_i = *dx + (int)(size/2); off_j = *dy + (int)(size/2); off_k = *dz + (int)(size/2);
+
+/*print ("dxdy %2.0f %2.0f ",*dx,*dy);*/
+
+    if ( (off_i)>0 && (off_i)<size-1 ) {
+      *dx += cog3(cor_mat2[off_i-1][off_j],
+		  cor_mat2[off_i  ][off_j],
+		  cor_mat2[off_i+1][off_j]);
+/*print ("(%4.0f %4.0f %4.0f)",
+       cor_mat2[off_i-1][off_j]*1000,
+       cor_mat2[off_i  ][off_j]*1000,
+       cor_mat2[off_i+1][off_j]*1000);*/
+    }
+    else
+      if ( (off_i)==0 )
+	*dx += cog2(cor_mat2[off_i  ][off_j],
+		    cor_mat2[off_i+1][off_j]);
+      else
+	 if ( (off_i)==(size-1) )
+	   *dx -= cog2(cor_mat2[off_i  ][off_j],
+		       cor_mat2[off_i-1][off_j]);
+
+    if ( (off_j)>0 && (off_j)<size-1 ){
+      *dy += cog3(cor_mat2[off_i][off_j-1],
+		  cor_mat2[off_i][off_j  ],
+		  cor_mat2[off_i][off_j+1]);
+/*print ("[%4.0f %4.0f %4.0f]",
+       cor_mat2[off_i][off_j-1]*1000,
+       cor_mat2[off_i][off_j  ]*1000,
+       cor_mat2[off_i][off_j+1]*1000); */
+    }
+    else
+      if ( (off_i)==0 )
+	*dy += cog2(cor_mat2[off_i][off_j  ],
+		    cor_mat2[off_i][off_j+1]);
+      else
+	if ( (off_i)==(size-1) )
+	  *dy -= cog2(cor_mat2[off_i][off_j  ],
+		      cor_mat2[off_i][off_j-1]);
+  }
+  
+/*print ("-> %8.5f %8.5f \n",*dx,*dy);*/
+
+
+/*  print ("dxdy: %7.5f %7.5f\n\n",*dx, *dy);*/
+
+  if (dim==3) {
+    FREE3D(cor_mat3);
+  }
+  else {
+    FREE2D(cor_mat2);
+  }
+
+}
+
 private void find_max_in_fft_array(float *ffa, int num, int ndim,
 				   int *dx, int *dy, int *dz) 
 {
@@ -1860,21 +2062,21 @@ public void    build_source_lattice(Real x, Real y, Real z,
 
   c = 1;
   if (ndim==2) {
-    for_inclusive(i,0,nx)
-      for_inclusive(j,0,ny) {
-	PX[c] = (float)(x + width_x * (-0.5 + (float)(i)/(float)(nx)));
-	PY[c] = (float)(y + width_y * (-0.5 + (float)(j)/(float)(ny)));
+    for_less(i,0,nx)
+      for_less(j,0,ny) {
+	PX[c] = (float)(x + width_x * (-0.5 + (float)(i)/(float)(nx-1)));
+	PY[c] = (float)(y + width_y * (-0.5 + (float)(j)/(float)(ny-1)));
         PZ[c] = (float)z;
 	c++;
       }
   }
   else {
-    for_inclusive(i,0,nx)
-      for_inclusive(j,0,ny)
-	for_inclusive(k,0,nz) {
-	  PX[c] = (float)(x + width_x * (-0.5 + (float)(i)/(float)(nx)));
-	  PY[c] = (float)(y + width_y * (-0.5 + (float)(j)/(float)(ny)));
-	  PZ[c] = (float)(z + width_z * (-0.5 + (float)(k)/(float)(nz)));
+    for_less(i,0,nx)
+      for_less(j,0,ny)
+	for_less(k,0,nz) {
+	  PX[c] = (float)(x + width_x * (-0.5 + (float)(i)/(float)(nx-1)));
+	  PY[c] = (float)(y + width_y * (-0.5 + (float)(j)/(float)(ny-1)));
+	  PZ[c] = (float)(z + width_z * (-0.5 + (float)(k)/(float)(nz-1)));
 	  c++;
 	}
   }
@@ -1916,12 +2118,17 @@ public void go_get_samples(Volume data,
   for_inclusive(c,1,len) {
     convert_3D_world_to_voxel(data, (Real)x[c], (Real)y[c], (Real)z[c], 
 			      &Point_x(point), &Point_y(point), &Point_z(point));
+
     if (inter_type==3)
       flag = tricubic_interpolant(data,  &point , &val);
     else
-      flag = trilinear_interpolant(data,  &point , &val);
+      if (inter_type==1)
+	flag = trilinear_interpolant(data,  &point , &val);
+      else
+	flag = nearest_neighbour_interpolant(data,  &point , &val);
+
     if (flag)
-      samples[c] = val;
+      samples[c] = (float)val;
     else
       samples[c] = 0.0;
   }
