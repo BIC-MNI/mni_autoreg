@@ -1,3 +1,15 @@
+2000-05-16  Louis COLLINS  <louis@bic.mni.mcgill.ca>
+
+	* Volume/volume_functions.c (normalize_data_to_match_target):
+ 	removed nonfunctional call to qsort and replaced it with a
+ 	homegrown qs_list() to find the median ratio value when
+ 	normalizing intensities.
+	(normalize_data_to_match_target): added a call to
+ 	set_feature_value_threshold() to automatically compute default
+ 	threshold values (if none are given on the command line) _before_
+ 	the computation of the volume-to-volume intensity normalization
+ 	factor.
+
 2000-05-12  Steve ROBBINS  <stever@bic.mni.mcgill.ca>
 
 	* Extra_progs/xfm2param.c: handle all types of

@@ -14,7 +14,12 @@
 
 @CREATED    : Tue Jun 15 08:57:23 EST 1993 LC
 @MODIFIED   :  $Log: volume_functions.c,v $
-@MODIFIED   :  Revision 96.3  2000-05-08 17:40:45  louis
+@MODIFIED   :  Revision 96.4  2000-05-16 15:50:01  louis
+@MODIFIED   :  Now calls set_feature_value_threshold to set default values before calling
+@MODIFIED   :  volume intensity normalization.
+@MODIFIED   :  Also fixed qsort for vol int normlization
+@MODIFIED   :
+@MODIFIED   :  Revision 96.3  2000/05/08 17:40:45  louis
 @MODIFIED   :  addes a dummy change to Volume/volume_functions.c to test cvs and its
 @MODIFIED   :  suspected removal of all working files.
 @MODIFIED   :
@@ -56,7 +61,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/volume_functions.c,v 96.3 2000-05-08 17:40:45 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/volume_functions.c,v 96.4 2000-05-16 15:50:01 louis Exp $";
 #endif
 
 #include <config.h>
@@ -71,6 +76,14 @@ public int point_not_masked(Volume volume,
 			    Real wx, Real wy, Real wz);
 public Real get_value_of_point_in_volume(Real xw, Real yw, Real zw, 
 	  Volume data);
+
+
+public void  set_feature_value_threshold(Volume d1, 
+					 Volume d2,
+					 Real *global_thres1, 
+					 Real *global_thres2, 
+					 Real *threshold1, 
+					 Real *threshold2);
 
 
 #define MIN_ZRANGE -5.0
@@ -332,6 +345,35 @@ private int compare(Real  *a, Real *b)
   else  return(0);
 }
 
+void qs_list(float *item2, int left, int right)
+{
+    register int i,j;
+    float x,y;
+    
+    i=left;
+    j=right;
+    x=item2[(left+right)/2];
+    
+    do
+    {
+	while (item2[i]<x && i<right) i++;
+	while (x<item2[j] && j>left) j--;
+	
+	if (i<=j)
+	{
+	    y=item2[i];
+	    item2[i]=item2[j];
+	    item2[j]=y;
+	    i++;
+	    j--;
+	}
+    } while (i<=j);
+    
+    if (left<j) qs_list(item2,left,j);
+    if (i<right) qs_list(item2,i,right);
+}
+
+
 public void normalize_data_to_match_target(Volume d1,
 					   Volume m1,
 					   Real   *threshold_data, 
@@ -378,6 +420,18 @@ public void normalize_data_to_match_target(Volume d1,
     progress;
 
 
+
+  set_feature_value_threshold(globals->features.data[0], 
+			      globals->features.model[0],
+			      &(globals->threshold[0]), 
+			      &(globals->threshold[1]),
+			      threshold_data,
+			      threshold_target);			      
+
+  if (globals->flags.debug) {
+    print ("In normalize_data_to_match_target, thresh = %10.3f %10.3f\n",*threshold_data,*threshold_target) ;
+  }
+
   ratios_size = globals->count[ROW_IND] * globals->count[COL_IND] * globals->count[SLICE_IND];
 
   ALLOC(ratios, ratios_size);  
@@ -408,7 +462,7 @@ public void normalize_data_to_match_target(Volume d1,
 
 	  value1 = get_value_of_point_in_volume( Point_x(col), Point_y(col), Point_z(col), d1);
 
-	  if ( value1 > globals->threshold[0] ) {
+	  if ( value1 > *threshold_data ) {
 
 	    count1++;
 
@@ -422,7 +476,7 @@ public void normalize_data_to_match_target(Volume d1,
 
 	      value2 = get_value_of_point_in_volume( Point_x(pos2), Point_y(pos2), Point_z(pos2), d2);
 
-	      if ( (value2 > globals->threshold[1])  && 
+	      if ( (value2 > *threshold_target)  && 
 		   ((value2 < -1e-15) || (value2 > 1e-15)) ) {
 		  
 		ratios[count2++] = value1 / value2 ;
@@ -447,11 +501,21 @@ public void normalize_data_to_match_target(Volume d1,
   if (count2 > 0) {
 
     if (globals->flags.debug) (void)print ("Starting qsort of ratios...");
-    qsort ((char *)ratios, (size_t)count2, (size_t)sizeof(ratios[0]), compare );
-    if (globals->flags.debug) (void)print ("Done.");
 
-    for_less(i, count2/2 - 100, count2/2 + 100) {
-      print ("%8.3f\n",ratios[i]);
+
+    qs_list (ratios,0,count2);
+
+    if (globals->flags.debug) {
+
+      (void)print ("Done.\n");
+
+      for_less(i, count2/2 - count2/200, count2/2 + count2/200) {
+	print ("%5d %8.3f",i,ratios[i]);
+	if (i==count2/2)
+	  print (" <==\n");
+	else
+	  print ("\n");
+      }
     }
 
     result = ratios[ (int)(count2/2) ];	/* the median value */
