@@ -16,7 +16,10 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 96.11  2000-05-16 19:48:03  louis
+@MODIFIED   : Revision 96.12  2000-05-23 16:33:02  louis
+@MODIFIED   : Fixed index ordering when normalizing intensities in volume_functions.c
+@MODIFIED   :
+@MODIFIED   : Revision 96.11  2000/05/16 19:48:03  louis
 @MODIFIED   : adjusting code for optical flow
 @MODIFIED   :
 @MODIFIED   : Revision 96.10  2000/05/15 16:10:29  louis
@@ -277,7 +280,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.11 2000-05-16 19:48:03 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.12 2000-05-23 16:33:02 louis Exp $";
 #endif
 
 #include <config.h>		/* MAXtype and MIN defs                      */
@@ -862,12 +865,12 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
       print ("  The similarity function will be evaluated using tri-linear interpolation\n");
     
     if ( Gglobals->trans_info.use_magnitude) {
-      print ("    on a spherical sub-lattice with a diameter of %7.2f (data voxels),\n",
+      print ("    on a spherical sub-lattice with a radius of %7.2f (data voxels),\n",
 	     3.0*steps[xyzv[X]]/MAX3(steps_data[0],steps_data[1],steps_data[2]) );          
       print ("    %7.2f(mm) or %d nodes (%7.2f vox/node or%7.2f mm/node) \n", 
-	     3.0*steps[xyzv[X]], Diameter_of_local_lattice,
-	     3.0*steps[xyzv[X]]/((Diameter_of_local_lattice-1)*MAX3(steps_data[0],steps_data[1],steps_data[2])),
-	     3.0*steps[xyzv[X]]/(Diameter_of_local_lattice-1));
+	     3.0*2*steps[xyzv[X]], Diameter_of_local_lattice,
+	     3.0*2*steps[xyzv[X]]/((Diameter_of_local_lattice-1)*MAX3(steps_data[0],steps_data[1],steps_data[2])),
+	     3.0*2*steps[xyzv[X]]/(Diameter_of_local_lattice-1));
     }
     
     print ("-----------------------\n");
@@ -1784,7 +1787,9 @@ private Real get_optical_flow_vector(Real threshold1,
 				/* compute deformations directly!       */
 
     get_volume_real_range(model, &min, &max);
-    thresh = Min_deriv * (max - min);
+    thresh = Min_deriv * (max - min); /* should compute a better
+    threshold value here, possibly based on a histogram of the
+    grandient magnitudes across the 3D lattice. */
 
     mag = sqrt (dx[0]*dx[0] + dy[0]*dy[0] + dz[0]*dz[0]);
       

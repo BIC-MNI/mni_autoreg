@@ -1,3 +1,9 @@
+2000-05-23  Louis COLLINS  <louis@bic.mni.mcgill.ca>
+
+	* Volume/volume_functions.c (normalize_data_to_match_target):
+ 	fixed the index ordering for i,j,k when normalizing the
+ 	intensities of the source volume. (they were backwards!)
+
 2000-05-16  Louis COLLINS  <louis@bic.mni.mcgill.ca>
 
 	* Optimize/optimize.c (optimize_non_linear_transformation):
