@@ -1,3 +1,10 @@
+Fri Jan 28 12:22:46 2000  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* Makefile.am (EXTRA_DIST): add config.h.in.
+
+	* autogen.sh: added.  Script to generate files not tracked in CVS.
+	* README.CVS: added.
+
 Fri Jan 28 10:39:10 2000  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* configure.in: revamped for automake.  Searching for required
