@@ -13,9 +13,13 @@
 
    @CREATED    : February 3, 1992 - louis louis
    @MODIFIED   : $Log: minctracc.c,v $
-   @MODIFIED   : Revision 1.14  1995-09-28 11:54:52  louis
-   @MODIFIED   : working version, just prior to release 0.9 of mni_autoreg
+   @MODIFIED   : Revision 1.15  1995-09-28 13:24:26  louis
+   @MODIFIED   : added multiple feature volume loading with get_feature_volumes()
+   @MODIFIED   : to be able to correlate multiple features at the same time.
    @MODIFIED   :
+ * Revision 1.14  1995/09/28  11:54:52  louis
+ * working version, just prior to release 0.9 of mni_autoreg
+ *
  * Revision 1.13  1995/02/22  08:56:06  louis
  * Montreal Neurological Institute version.
  * compiled and working on SGI.  this is before any changes for SPARC/
@@ -62,7 +66,7 @@ Wed May 26 13:05:44 EST 1993 lc
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 1.14 1995-09-28 11:54:52 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 1.15 1995-09-28 13:24:26 louis Exp $";
 #endif
 
 #include <limits.h>
@@ -104,7 +108,6 @@ main ( argc, argv )
   prog_name     = argv[0];	
 
   comments = time_stamp(argc, argv); /* build comment history line for below */
-
 
   /* Call ParseArgv to interpret all command line args */
   if (ParseArgv(&argc, argv, argTable, 0) || 
@@ -639,5 +642,82 @@ public int get_mask_file(char *dst, char *key, char *nextArg)
   return TRUE;
   
 }
+
+
+/* ----------------------------- MNI Header -----------------------------------
+@NAME       : get_feature volumes
+@INPUT      : dst - Pointer to client data from argument table
+              key - argument key
+              nextArg - argument following key
+@OUTPUT     : (nothing) 
+@RETURNS    : TRUE so that ParseArgv will discard nextArg
+@DESCRIPTION: Routine called by ParseArgv to read in a binary mask file
+@METHOD     : 
+@GLOBALS    : 
+@CALLS      : 
+@CREATED    : Wed May 26 13:05:44 EST 1993 Louis Collins
+@MODIFIED   : Wed Jun 16 13:21:18 EST 1993 LC
+    added: set of main_args.filenames.mask_model and .mask_data
+
+---------------------------------------------------------------------------- */
+/* ARGSUSED */
+public int get_feature_volumes(char *dst, char *key, int argc, char **argv)
+{ 
+  int i;
+  Status status;
+
+  if ( argc >=2 && argv[0] != NULL && argv[1] != NULL ) {
+    i = main_args.features.number_of_features;
+    main_args.features.number_of_features++;    
+
+    if (i==0) {
+      ALLOC(main_args.features.data,1);
+      ALLOC(main_args.features.model,1);
+      ALLOC(main_args.features.data_name, 1);
+      ALLOC(main_args.features.model_name, 1);
+    }
+    else {
+      REALLOC(main_args.features.data,i+1);
+      REALLOC(main_args.features.model,i+1);
+      REALLOC(main_args.features.data_name, i+1);
+      REALLOC(main_args.features.model_name, i+1);
+    }
+    main_args.features.data_name[i] = argv[0];
+    status = input_volume(argv[0], 3, default_dim_names, 
+			  NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+			  TRUE, &(main_args.features.data[i]), 
+			  (minc_input_options *)NULL );
+    if (status != OK) {
+      (void)fprintf(stderr, "Cannot input feature %s.\n",argv[0]);
+      return(-1);
+    } 
+
+    main_args.features.data_name[i] = argv[1];
+    status = input_volume(argv[1], 3, default_dim_names, 
+			  NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+			  TRUE, &(main_args.features.model[i]), 
+			  (minc_input_options *)NULL );
+    if (status != OK) {
+      (void)fprintf(stderr, "Cannot input feature %s.\n",argv[1]);
+      return(-1);
+    } 
+
+  }
+  else {
+    fprintf (stderr,"the -feature option requires two arguments.\n");
+    return (-1);
+  }
+
+  for_less(i,0,argc-2) {
+    argv[i] = argv[i+2];
+  }
+  argc -= 2;
+
+  return (argc);			/* OK */
+  
+}
+
+
+
 
 
