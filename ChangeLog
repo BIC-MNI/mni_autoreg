@@ -1,3 +1,12 @@
+2000-01-27  Steve ROBBINS  <stever@bic.mni.mcgill.ca>
+
+	* VERSION: set to 0.98g.
+
+	* Makefile (ALL_SUBDIRS): added mincbbox.  This directory was
+ 	manually added to the repository earlier today, by Louis.
+  	Directories make_phantom and mincblur were manually updated at the
+ 	same time.
+
 2000-01-25  Louis COLLINS  <louis@bic.mni.mcgill.ca>
 
 	* configure.in: removed definitions to /usr/local for $PREFIX since

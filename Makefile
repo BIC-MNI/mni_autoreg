@@ -6,6 +6,7 @@ SHELL = /bin/sh
 
 ALL_SUBDIRS = \
 	Proglib \
+	mincbbox \
 	mincblur \
 	minccrop \
 	make_phantom \
@@ -29,7 +30,6 @@ default :
 	@echo "        make install"
 	@echo "        make installman"
 	@echo ""
- 
 
 
 all clean build install: 
