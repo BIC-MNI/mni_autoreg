@@ -23,7 +23,7 @@ int main(int argc, char *argv[])
   char *f1, *f2, *mf;
 
   if (argc<3) {
-    print ("usage:  xcorr_vol.c vol1.mnc vol2.mnc [mask.mnc]\n");
+    print ("usage:  xcorr_vol vol1.mnc vol2.mnc [mask.mnc]\n");
     exit(EXIT_FAILURE);
   }
 

@@ -106,14 +106,14 @@ Questions:
 
       ftp://ftp.bic.mni.mcgill.ca/pub/mni_autoreg/
 
-   Look for mni_autoreg_model-1.01.tar.gz, or possibly a more recent
+   Look for mni_autoreg_model-1.02.tar.gz, or possibly a more recent
    version.  There are four steps to use a new model file: you have to
    build the features volumes, construct a brain mask, install the
    model, and tell mritotal to use the new model.
 
    1 - Building the feature volumes:
 
-   In the mni_autoreg_model package there is a script `make_model' that
+   This package (mni_autoreg) installs a script called `make_model' that
    contains the commands required to build the feature volumes for the
    stereotaxic model.  Your input volume must be in Talairach space, and
    should have a simple name that will identify the model: for example,
@@ -126,44 +126,46 @@ Questions:
 
    2 - Mask creation:
 
-   It is also necessary to have a mask of all voxels in the brain, such as
-   the file average_305_mask.mnc included with the model package.  This
-   particular mask was created semi-automatically using the interactive
-   program Display; presumably, other 3-D volume display/manipulation
-   programs have similar capabilities.  (Display is also available from the
-   MNI, but currently for SGI workstations only.  Contact the author, David
+   It is also necessary to have two mask volumes.  
+
+   One is a mask of all the voxels in the head.  This must be named 
+   <BASE>_headmask.mnc, with <BASE> replaced by the base name of your model.
+   For example, the MNI's model package contains average_305_headmask.mnc.
+
+   The second mask is a mask of all voxels in the brain.  This must be
+   named <BASE>_mask.mnc; e.g. the file average_305_mask.mnc included
+   with the model package.  This particular mask was created
+   semi-automatically using the interactive program Display;
+   presumably, other 3-D volume display/manipulation programs have
+   similar capabilities.  (Display is also available from the MNI, but
+   currently for SGI workstations only.  Contact the author, David
    MacDonald <david@bic.mni.mcgill.ca>, for more information.)
 
    3 - Installation:
 
    You should then install the input volume (<base>.mnc), feature volumes
    (<base>_16_blur.mnc, <base>_8_blur.mnc, <base>_8_dxyz.mnc), and mask
-   volume (<base>_mask.mnc) in your system model directory.  If you
-   correctly edited the definition of MODELDIR in the model package's
-   Makefile, all you have to do is:
-
-      make BASE=<base> install
-
-   in the model package directory.
-
+   volume (<base>_mask.mnc) in your system model directory.
 
    4 - mritotal:
 
    There are two ways to use the new model.  The first is to run 
 
-	mritotal -model /foo/bar/baz/<base> subject.mnc subject.xfm
+	mritotal -modeldir /foo/bar/baz -model <BASE> subject.mnc subject.xfm
 
-   where /foo/bar/baz is the directory specified by MODELDIR, to which the
-   new model files were installed.
+   where /foo/bar/baz is the directory in which the new model files
+   were installed.  In fact, `modeldir /foo/bar/baz' is unnecessary
+   if you installed the model files into the default model directory.
+   You can check the default model directory using `mritotal -help'.
 
    The second is to make a copy of mritotal.cfg in your home directory and
-   replace the -model option with the directory and name of your model.
-   mritotal will read your personal mritotal.cfg, and use the new model by
-   default.
+   replace the -modeldir and -model options with the directory and
+   base name of your model, respectively.  Mritotal will read your
+   personal mritotal.cfg, and use the new model by default.
  
 5- HOW DO I REPORT BUGS?
 
    Your bug reports play an essential role in making MNI AutoReg
    reliable by making the next version of MNI AutoReg work better.  Any
    unexpected, anomalous, weird, or just plain wrong behaviour should be
-   reported to Greg Ward <greg@bic.mni.mcgill.ca>.
+   reported to Louis Collins <louis@bic.mni.mcgill.ca>.

@@ -8,9 +8,15 @@
 #   installed.
 #
 
-if ( $#argv != 1 ) then
+if ( $#argv != 1 || $1 == "-help" ) then
     echo "usage: $0 base_filename"
+    echo "   or: $0 [-version|-help]"
     exit 1
+endif
+
+if ( $1 == "-version" ) then
+    echo "Package MNI AutoReg, version @VERSION@"
+    exit 0
 endif
 
 set BASE=$1

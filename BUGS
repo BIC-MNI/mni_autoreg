@@ -11,6 +11,8 @@ KNOWN BUGS
     - IRIX 5.3 with IRIX cc
     - linux with gcc 2.95.2
 
+  * No known workaround.  If you discover one, let us know.
+
 
 
 Older Bug Notes (not sure if these still apply)

@@ -303,7 +303,8 @@ if test x$old_volumeio = xyes; then
 fi
 
 
-AC_OUTPUT(Makefile
+AC_OUTPUT(make_model
+Makefile
 Proglib/Makefile
 make_phantom/Makefile
 mincbbox/Makefile

@@ -1,6 +1,6 @@
                  MNI Automated Linear Registration Package
-                     Version 0.98f (sixth beta release)
-                            March 12, 1999
+                     Version 0.98h (seventh beta release)
+                            March 2000
 
 DESCRIPTION
 -----------
@@ -69,20 +69,15 @@ Centre at the University Corporation for Atmospheric Research:
    ftp://unidata.ucar.edu/pub/netcdf
 
 but make sure you install a version of NetCDF compatible with MINC.
-(At the time of this writing, MINC does not compile with the newest
-version of NetCDF.)
+(At the time of this writing, MINC does not compile with NetCDF greater
+than 2.3.2.)
 
 You will also need a recent version of Perl 5; Perl 5.002 or later is
 required.
 
-For easy "one-stop shopping", you can find Perl 5.004_02 (the latest
-version at this writing) at
-
-   ftp://ftp.bic.mni.mcgill.ca/pub/perl
-
-Alternately, you can always find the latest version of Perl at at any
-mirror of the Comprehensive Perl Archive Network (CPAN), in src/5.0/.  The
-easiest way is to go to:
+You can always find the latest version of Perl at at any mirror of the
+Comprehensive Perl Archive Network (CPAN), in src/5.0/.  The easiest
+way is to go to:
 
    http://www.perl.com/CPAN/src/5.0/
 
@@ -124,12 +119,10 @@ average MRI volume created at the Montreal Neurological Institute.
 Because of its size, this model is *not* included with the MNI_AutoReg
 package.  But, it too is available from
 
-   ftp://ftp.bic.mni.mcgill.ca/pub/mni_autoreg/mni_autoreg_model-1.01.tar.gz
+   ftp://ftp.bic.mni.mcgill.ca/pub/mni_autoreg/mni_autoreg_model-x.y.tar.gz
 
-Note that this archive only contains the files needed to build the
-full model; you will need to follow the instructions in the README
-file there to have the full set of model files.  (See step 6 in the
-detailed instructions below.)
+The version of mni_autoreg_model is NOT tied to the version of
+mni_autoreg.  Choose the highest numbered version.
 
 There are also two example MRI volumes available that you can use to test
 the package once you have everything built and installed.  They are also
@@ -138,10 +131,45 @@ both available from ftp://ftp.bic.mni.mcgill.ca/pub/mni_autoreg; the first
 T1-weighted scan.  This file is about 23 MB uncompressed, so you may wish
 to consider using mni_autoreg_small_example_mri.mnc (1.1 MB uncompressed),
 which is the same data but with the first preprocessing step (subsampling
-and cropping) performed on it.  In order to check your results, you should
-also get mni_autoreg_example_results-0.98.tar.gz, which contains the output
-from running mritotal (the main user-level fitting program) on the two
-example volumes under various architectures.
+and cropping) performed on it.
+
+
+USING MNI_AUTOREG
+-----------------
+
+The primary scripts for registration are:
+
+   mritotal:      the script that calls mincblur and minctracc to achieve
+                  stereotaxic registration
+
+   mritoself:     intra-subject registration
+
+
+Other scripts or programs installed are:
+
+   autocrop:      for extracting and manipulating bounds of a MINC file
+
+   make_model:    generate appropriate blurred and subsampled images
+                  required for `mritotal'
+
+   make_phantom:  generate ellipsoid or rectangular phantom images
+
+   mincbbox:      extract bounding box of image
+
+   mincblur:      a program for volumetric convolution with a Gaussian 
+                  blurring kernel
+
+   mincchamfer:   compute a Chamfer distance transform of an image
+
+   minctracc:     a program to estimate the transformation required 
+                  for registration
+
+   xfmtool:       perform miscellaneous operations on transform (.xfm) files
+
+
+Some of these ship with manual pages, and all respond to `-help'.  For further
+information, use the source, Luke!  We'd be extremely please to receive
+documentation updates for any of the above!
 
 
 PORTABILITY
@@ -173,7 +201,7 @@ are ANSI compliant.
 CONFIGURATION AND PROTOCOL FILES
 --------------------------------
 
-mritotal requires two external files to run.  These are the
+Mritotal requires two external files to run.  These are the
 configuration file (mritotal.cfg) and protocol file (default is
 mritotal.default.cfg, but you can specify others using the -protocol
 option).  If you follow all the above instructions, then these files
@@ -211,19 +239,12 @@ go wrong, though, you should know the following:
      it uses the new protocol by default.  That is, make sure it has
      "-protocol mysite" instead of "-protocol default".
 
-     That said, please notify Greg Ward <greg@bic.mni.mcgill.ca> if
+     That said, please notify Louis Collins <louis@bic.mni.mcgill.ca> if
      the heuristics used by the default protocol don't work for your
      data.
 
 Good luck!  Please let us know if anything goes wrong with the
 installation or testing:
-
-Greg Ward
-McConnell Brain Imaging Center   e-mail: greg@bic.mni.mcgill.ca
-Montreal Neurological Institute  tel:    (514) 398-4965
-McGill University                fax:    (514) 398-8948
-3801 University St.
-Montreal, Qc, Canada H3A 2B4
 
 Louis Collins                 
 McConnell Brain Imaging Center   e-mail: louis@bic.mni.mcgill.ca

@@ -52,7 +52,8 @@ and their headers using configure's --with-* options, such as
   	--with-netcdf-includes=/usr/strange/include
 
 There are similarly-named options for MINC and Volume_IO; see
-`./configure --help' for the complete list.
+`./configure --help' for the complete list.  (Note carefully the
+spelling of the options.  Spelling errors are silently ignored!)
 
 As described in the file INSTALL, you can affect the installation
 directories using options --prefix, --bindir, and the like.  Besides
@@ -63,15 +64,15 @@ executables, scripts, and their man pages, MNI_Autoreg installs
 
 and will look for 
 
-	model files		in $libdir/model
+	model files		in $datadir/mni_autoreg
 
 These directories can all be set at configure time; by default, they
 are /usr/local/etc/mni_autoreg, /usr/local/lib/mni_autoreg, and
-/usr/local/lib/model, respectively.
+/usr/local/share/mni_autoreg, respectively.
 
 Note that if you feel like setting ALL of these (e.g., to install
-MNI_AutoReg to /tmp or your home directory), you're probably better
-off to use `--prefix'.  If you want to impose a more centralized
+MNI_AutoReg to /tmp or your home directory), you're generally better
+off using `--prefix'.  If you want to impose a more centralized
 structure (eg. with all MNI_AutoReg-related files under
 /usr/local/lib/mni_autoreg), you'll have to override most of the
 defaults with configure arguments.
@@ -79,7 +80,7 @@ defaults with configure arguments.
 *** Important: MNI_AutoReg doesn't actually install anything to
 MODELDIR; that is done by another package, the MNI Average Brain
 Stereotaxic Registration Model (which you should have downloaded as
-mni_autoreg_model-1.0.tar.gz).  However, MNI_AutoReg produces a custom
+mni_autoreg_model-x.y.tar.gz).  However, MNI_AutoReg produces a custom
 version of the mritotal program (the main driver for stereotaxic
 registration) with MODELDIR hard-coded into it.  Be sure to use the
 same MODELDIR when configuring and installing the two packages, or you
@@ -96,6 +97,4 @@ README file for more information.
 
 Finally, you should test the package on real data -- one example is
 the file mni_autoreg_small_example_mri.mnc, available from
-ftp.mni.mcgill.ca:/pub/mni_autoreg.
-
-See the TESTING file for details.
+ftp.mni.mcgill.ca:/pub/mni_autoreg.  See the TESTING file for details.
