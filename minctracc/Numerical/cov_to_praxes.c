@@ -29,9 +29,12 @@
                       using numerical recipes routines jacobi() and eigsrt().  
 		      See Hotelling Transform
 @MODIFIED   : $Log: cov_to_praxes.c,v $
-@MODIFIED   : Revision 96.0  1996-08-21 18:21:58  louis
-@MODIFIED   : Release of MNI_AutoReg version 0.96
+@MODIFIED   : Revision 96.1  1997-11-03 19:59:49  louis
+@MODIFIED   : now include internal_volume_io.h instead of volume_io.h
 @MODIFIED   :
+ * Revision 96.0  1996/08/21  18:21:58  louis
+ * Release of MNI_AutoReg version 0.96
+ *
  * Revision 9.6  1996/08/21  18:21:52  louis
  * Pre-release
  *
@@ -56,10 +59,10 @@
 
 ---------------------------------------------------------------------------- */
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/cov_to_praxes.c,v 96.0 1996-08-21 18:21:58 louis Rel $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/cov_to_praxes.c,v 96.1 1997-11-03 19:59:49 louis Exp $";
 #endif
 
-#include <volume_io.h>
+#include <internal_volume_io.h>
 
 public BOOLEAN eigen(double **inputMat, int ndim, 
 		     double *eigen_val, double **eigen_vec, 
@@ -92,9 +95,10 @@ void cov_to_praxes(int ndim, float **covar, float **pr_axes)
   
   /* Get the principal axes: 
      each eigen vector 'j' (which is in  column 'j') */
+
   for (i=1; i<=ndim; i++) {
     for (j=1; j<=ndim; j++) {
-      pr_axes[i][j]=sqrt(fabs((double)eigval[i-1]))*eigvec[i-1][j-1];
+      pr_axes[j][i]=sqrt(fabs((double)eigval[i-1]))*eigvec[j-1][i-1];
     }
   }
   
@@ -213,23 +217,31 @@ void eigsrt(d,v,n)
 double d[],**v;
 int n;
 {
-  int k,j,i;
-  double p;
+  int max_index,j,i;
+  double max_val;
   
   for (i=1;i<n;i++) {
-    p=d[k=i];
-    for (j=i+1;j<=n;j++)
-      if (d[j] >= p) p=d[k=j];
-    if (k != i) {
-      d[k]=d[i];
-      d[i]=p;
-      for (j=1;j<=n;j++) {
-	p=v[j][i];
-	v[j][i]=v[j][k];
-	v[j][k]=p;
+      
+      max_index=i;
+      max_val=d[max_index];
+
+      for (j=i+1;j<=n;j++)
+	  if (d[j] >= max_val) {
+	      max_index=j;
+	      max_val=d[max_index];
+	  }
+      
+      if (max_index != i) {
+	  d[max_index]=d[i];
+	  d[i]=max_val;
+	  for (j=1;j<=n;j++) {	/* swap columns */
+	      max_val=v[j][i];
+	      v[j][i]=v[j][max_index];
+	      v[j][max_index]=max_val;
+	  }
       }
-    }
   }
+  
 }
 
 
