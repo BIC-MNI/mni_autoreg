@@ -93,5 +93,6 @@ struct Arg_Data_struct {
   double                 threshold[2]; /* lower limit of voxels considered           */
   double                 speckle;      /* percent noise speckle                      */
   int                    groups;       /* number of groups to use for ratio of variance */
+  int                    blur_pdf;     /* number of voxels for blurring in -mi pdfs */
 };
 
