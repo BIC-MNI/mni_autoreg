@@ -15,7 +15,7 @@
      
 @CREATED    : Mon Nov  3, 1997 , Louis Collins
 @MODIFIED   : not yet!
-@VERSION    : $Id: sub_lattice.c,v 1.1 1997-11-03 20:05:41 louis Exp $
+@VERSION    : $Id: sub_lattice.c,v 1.2 1997-11-12 21:07:43 louis Exp $
 #-----------------------------------------------------------------------------
 */
 
@@ -32,6 +32,9 @@ extern General_transform
                 *Glinear_transform;/* defined in do_nonlinear.c */
 
                                 /* prototypes for functions used here: */
+
+extern float
+  *SX, *SY, *SZ;
 
 public  void  general_transform_point_in_trans_plane(
     General_transform   *transform,
@@ -51,7 +54,11 @@ public  void  general_transform_point_in_trans_plane(
    - *length coordinates are returned in PX[], PY[], PZ[]. 
    - The radius of the lattice is defined by width_{x,y,z}.
    - The equivalent retangular lattice has (nx)(ny)(nz) samples,
-     but the round lattice returned has *length samples.  */
+     but the round lattice returned has *length samples.  
+
+   the coordinate coming in, and those going out are all in WORLD
+   coordinates 
+*/
 
 public void    build_source_lattice(Real x, Real y, Real z,
 				    float PX[], float PY[], float PZ[],
@@ -119,17 +126,18 @@ public void go_get_samples_in_source(Volume data,
   
   
   for_inclusive(c,1,len) {
-    evaluate_volume_in_world(data,
-			     (Real)x[c], (Real)y[c], (Real)z[c], 
-			     inter_type,
-			     TRUE,
-			     0.0, 
-			     val,
-			     NULL, NULL, NULL, 
-			     NULL, NULL, NULL, 
-			     NULL, NULL, NULL );
-  
-    samples[c] = val[0];
+     val[0] = 0.0;
+     evaluate_volume_in_world(data,
+                              (Real)x[c], (Real)y[c], (Real)z[c], 
+                              inter_type,
+                              TRUE,
+                              0.0, 
+                              val,
+                              NULL, NULL, NULL, 
+                              NULL, NULL, NULL, 
+                              NULL, NULL, NULL );
+     
+     samples[c] = (float)val[0];
   }
   
 }
@@ -139,8 +147,11 @@ public void go_get_samples_in_source(Volume data,
    voxel offset stored in dx, dy, dz to interpolate len samples from
    the volume 'data' 
 
-   return the value of the normalized correlation between the list of
-   values in *a1 and the values interpolated from data.
+   return the value of the (pseudo) normalized objective function
+   (indicated by obf_func) between the list of values in *a1 and the values
+   interpolated from data.  The value returned _should_ (but is not
+   garenteed) to be between -1.0 and 1.0 with 1.0 indicating a PERFECT FIT
+   (ie, greater values indicate better fits)
 
    note: the volume is assumed to be in x,y,z order.
 
@@ -157,13 +168,15 @@ public void go_get_samples_in_source(Volume data,
 
 */
 
-public float go_get_samples_with_offset(Volume data,
-					float *x, float *y, float *z,
-					Real  dx, Real  dy, Real dz,
-					int obj_func,
-					int len, 
-					float sqrt_s1, float *a1,
-					BOOLEAN use_nearest_neighbour)
+public float go_get_samples_with_offset(
+     Volume data,                  /* The volume of data */
+     float *x, float *y, float *z, /* the positions of the sub-lattice */
+     Real  dx, Real  dy, Real dz,  /* the local displacement to apply  */
+     int obj_func,                 /* the type of obj function req'd   */
+     int len,                      /* number of sub-lattice nodes      */
+     float sqrt_s1,                /* normalization factor for obj func*/
+     float *a1,                    /* feature value for (x,y,z) nodes  */
+     BOOLEAN use_nearest_neighbour) /* interpolation flag              */
 {
   float
     tmp,
@@ -172,7 +185,7 @@ public float go_get_samples_with_offset(Volume data,
   int 
     sizes[3],
     ind0, ind1, ind2, 
-    c;  
+    c,number_of_nonzero_samples;  
   int xs,ys,zs;
   float
     f_trans, f_scale;
@@ -189,6 +202,8 @@ public float go_get_samples_with_offset(Volume data,
     data_type;
   
 
+  number_of_nonzero_samples = 0;
+
   data_type = get_volume_data_type(data);
   get_volume_sizes(data, sizes);  
   xs = sizes[0];  
@@ -202,7 +217,9 @@ public float go_get_samples_with_offset(Volume data,
   s1 = 0.0;
   s3 = 0.0;
 
-  ++a1; 
+  ++a1;                         /* inc pointer, so that we are pointing to
+                                   the first feature value, corresponding
+                                   to the first sub-lattice point x,y,z   */
 
 
   if (use_nearest_neighbour) {
@@ -215,8 +232,8 @@ public float go_get_samples_with_offset(Volume data,
     switch( data_type ) {
     case UNSIGNED_BYTE:  
       
-      byte_ptr = VOXEL_DATA (data);
-      
+      byte_ptr = VOXEL_DATA (data); 
+
       ++x; ++y; ++z; 
       
       for_inclusive(c,1,len) {
@@ -263,8 +280,8 @@ public float go_get_samples_with_offset(Volume data,
       break;
     case SIGNED_SHORT:  
       
-      sshort_ptr = VOXEL_DATA (data);
-      
+      sshort_ptr = VOXEL_DATA (data); 
+
       ++x; ++y; ++z; 
       
       for_inclusive(c,1,len) {
@@ -287,8 +304,11 @@ public float go_get_samples_with_offset(Volume data,
       break;
     case UNSIGNED_SHORT:  
       
-      ushort_ptr = VOXEL_DATA (data);
-      
+      ushort_ptr = VOXEL_DATA (data); 
+
+
+      ushort_ptr = (unsigned short ***)data->array.data;
+
       ++x; ++y; ++z; 
       
       for_inclusive(c,1,len) {
@@ -319,8 +339,8 @@ public float go_get_samples_with_offset(Volume data,
     switch( data_type ) {
     case UNSIGNED_BYTE:  
       
-      byte_ptr = VOXEL_DATA (data);
-      
+       byte_ptr = VOXEL_DATA (data);
+
       ++x; ++y; ++z; 
       
       for_inclusive(c,1,len) {
@@ -375,7 +395,8 @@ public float go_get_samples_with_offset(Volume data,
 		   f1f2 * v111);
 	  
 	  sample = sample * f_scale + f_trans;
-	  
+
+
 	}
 	else
 	  sample = 0.0;
@@ -387,8 +408,8 @@ public float go_get_samples_with_offset(Volume data,
       break;
     case SIGNED_SHORT:  
       
-      sshort_ptr = VOXEL_DATA (data);
-      
+       sshort_ptr = VOXEL_DATA (data); 
+
       ++x; ++y; ++z; 
       
       for_inclusive(c,1,len) {
@@ -454,8 +475,8 @@ public float go_get_samples_with_offset(Volume data,
       break;
     case UNSIGNED_SHORT:  
       
-      ushort_ptr = VOXEL_DATA (data);
-      
+       ushort_ptr = VOXEL_DATA (data);
+
       ++x; ++y; ++z; 
       
       for_inclusive(c,1,len) {
@@ -527,10 +548,13 @@ public float go_get_samples_with_offset(Volume data,
     
   
 				/* do the last bits of the similarity function
-				   calculation here: */
+				   calculation here - normalizing each obj_func
+                                   where-ever possible: */
   r = 0.0;
   switch (obj_func) {
-  case NONLIN_XCORR:
+
+  case NONLIN_XCORR:            /* use standard normalized cross-correlation 
+                                   where 0.0 < r < 1.0, where 1.0 is best*/
     if ( sqrt_s1 < 0.001 && s3 < 0.00001) {
       r = 1.0;
     }
@@ -542,11 +566,41 @@ public float go_get_samples_with_offset(Volume data,
 	r = s1 / (sqrt_s1*sqrt((double)s3));
       }
     }
-    
+    /* r = 1.0 - r;                 now, 0 is best                   */
     break;
-  case NONLIN_DIFF:
+
+  case NONLIN_DIFF:             /* sqrt_s1 stores the number of samples in
+                                   the sub-lattice 
+                                   s1 stores the sum of the magnitude of
+                                   the differences*/
+
+    r = -s1 / sqrt_s1;	        /* r = average intensity difference ; with
+                                   -max(intensity range) < r < 0,
+                                   where 0 is best                  */
+    break;
   case NONLIN_LABEL:
-    r = s1 / sqrt_s1;		/* sqrt_s1 can't be 0, since = Glen */
+    r = s1 / sqrt_s1;           /* r = average label agreement,
+                                   s1 stores the number of similar labels
+                                   0 < r < 1.0                      
+                                   where 1.0 is best                */
+    break;
+  case NONLIN_CHAMFER:
+    if (number_of_nonzero_samples>0) {
+       r = 1.0 - (s1 / (20.0*number_of_nonzero_samples));	
+    }
+    else
+       r = 1.0;
+                                /* r = 1- average distance / 20mm 
+                                       0 < r < ~1.0 
+                                   where 1.0 is best     
+                                       and where 2.0cm is an arbitrary value to
+                                       norm the dist, corresponding to a guess
+                                       at the maximum average cortical variability
+
+                                       so the max(r) could be greater than
+                                       1.0, but when it is, shouldn't
+                                       chamfer have larger weight to drive
+                                       the fit? */
     break;
   default:
     print_error_and_line_num("Objective function %d not supported in go_get_samples_with_offset",__FILE__, __LINE__,obj_func);
@@ -560,6 +614,9 @@ public float go_get_samples_with_offset(Volume data,
    current non-linear transformation stored in:
 
         Gglobals->trans_info.transformation                        
+
+   both input (px,py,pz) and output (tx,ty,tz) coordinate lists are in
+   WORLD COORDINATES
 
 */
 public void    build_target_lattice(float px[], float py[], float pz[],
@@ -591,6 +648,9 @@ public void    build_target_lattice(float px[], float py[], float pz[],
    current non-linear transformation stored in:
 
         Glinear_transform and Gsuper_d{x,y,z} deformation volumes  
+
+   both input (px,py,pz) and output (tx,ty,tz) coordinate lists are in
+   WORLD COORDINATES
 
 */
 public void    build_target_lattice_using_super_sampled_def(
