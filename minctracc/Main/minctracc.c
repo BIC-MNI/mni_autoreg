@@ -22,7 +22,12 @@
    @GLOBALS    : 
    @CALLS      : 
    @CREATED    : February 3, 1992 - louis collins
-   @MODIFIED   : Thu May 20 11:21:22 EST 1993 lc
+   @MODIFIED   : $Log: minctracc.c,v $
+   @MODIFIED   : Revision 1.7  1993-11-15 13:12:10  louis
+   @MODIFIED   : working version, deform deform installation
+   @MODIFIED   :
+
+Thu May 20 11:21:22 EST 1993 lc
              complete re-write to use minc library
 
 Wed May 26 13:05:44 EST 1993 lc
@@ -38,9 +43,20 @@ Wed May 26 13:05:44 EST 1993 lc
 	- calculate the bounding box of both source and model,
 	  to map samples from smallest volume into larger one (for speed)
 
-   ---------------------------------------------------------------------------- */
+@MODIFIED   : $Log: minctracc.c,v $
+@MODIFIED   : Revision 1.7  1993-11-15 13:12:10  louis
+@MODIFIED   : working version, deform deform installation
+@MODIFIED   :
+---------------------------------------------------------------------------- */
 
-#include <def_mni.h>
+#ifndef lint
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 1.7 1993-11-15 13:12:10 louis Exp $";
+#endif
+
+
+
+
+#include <mni.h>
 #include <recipes.h>
 #include <limits.h>
 #include <print_error.h>
@@ -78,6 +94,12 @@ main ( argc, argv )
   char 
     *comments;
 
+  Real thickness[3];
+
+
+
+
+
   prog_name     = argv[0];	
 
 
@@ -85,7 +107,16 @@ main ( argc, argv )
 
 
   /* Call ParseArgv to interpret all command line args */
-  if (ParseArgv(&argc, argv, argTable, 0) || (argc!=4)) {
+  if (ParseArgv(&argc, argv, argTable, 0) || 
+      ((argc!=4) && (main_args.filenames.measure_file==NULL)) || 
+      ((argc!=3) && (main_args.filenames.measure_file!=NULL))
+      ) {
+
+    print ("Parameters left:\n");
+    for_less(i,0,argc)
+      print ("%s ",argv[i]);
+    print ("\n");
+    
     (void) fprintf(stderr, 
 		   "\nUsage: %s [<options>] <sourcefile> <targetfile> <output transfile>\n", 
 		   prog_name);
@@ -93,10 +124,29 @@ main ( argc, argv )
     exit(EXIT_FAILURE);
   }
 
+				/* reset the order of step sizes!,
+				   since they come in x,y,z and the data is forced
+				   to be read in as z,y,x                           */ 
+  thickness[COL_IND] = main_args.step[0]; 
+  thickness[ROW_IND] = main_args.step[1];
+  thickness[SLICE_IND] = main_args.step[2];
+  for_less(i,0,3) 
+    main_args.step[i]=thickness[i];
+
+
+
 
   main_args.filenames.data  = argv[1];	/* set up necessary file names */
   main_args.filenames.model = argv[2];
-  main_args.filenames.output_trans = argv[3];
+  if (main_args.filenames.measure_file==NULL) 
+    main_args.filenames.output_trans = argv[3];
+
+  if ( (main_args.filenames.measure_file==NULL) && !clobber_flag && file_exists(argv[3])) {
+    print ("File %s exists.\n",argv[3]);
+    print ("Use -clobber to overwrite.\n");
+    return ERROR;
+  }
+
   
 
 				/* set up linear transformation to identity, if
@@ -128,21 +178,22 @@ main ( argc, argv )
     DEBUG_PRINT1 ( "Measure filename    = %s\n\n",main_args.filenames.measure_file );
   DEBUG_PRINT  ( "Objective function  = ");
   if (main_args.obj_function == xcorr_objective) {
-    DEBUG_PRINT1("cross correlation (threshold = %f)\n",main_args.threshold);
+    DEBUG_PRINT2("cross correlation (threshold = %f %f)\n",
+		 main_args.threshold[0],main_args.threshold[1]);
   }
   else
     if (main_args.obj_function == zscore_objective) {
-      DEBUG_PRINT1( "zscore (threshold = %f)\n", main_args.threshold );
+      DEBUG_PRINT2( "zscore (threshold = %f %f)\n", main_args.threshold[0],main_args.threshold[1] );
     }
     else
       if (main_args.obj_function == vr_objective) {
-	DEBUG_PRINT2( "ratio of variance (threshold = %f, groups = %d)\n", 
-		     main_args.threshold, main_args.groups);
+	DEBUG_PRINT3( "ratio of variance (threshold = %f %f, groups = %d)\n", 
+		     main_args.threshold[0],main_args.threshold[1], main_args.groups);
       }
       else
 	if (main_args.obj_function == ssc_objective) {
-	  DEBUG_PRINT2( "stochastic sign change (threshold = %f, speckle %f %%)\n",
-		       main_args.threshold, main_args.speckle);
+	  DEBUG_PRINT3( "stochastic sign change (threshold = %f %f, speckle %f %%)\n",
+		       main_args.threshold[0],main_args.threshold[1], main_args.speckle);
 	}
 	else {
 	  DEBUG_PRINT("unknown!\n");
@@ -192,19 +243,15 @@ main ( argc, argv )
 
   ALLOC( data, 1 );		/* read in source data and target model */
   ALLOC( model, 1 );
-  status = input_volume( main_args.filenames.data, default_dim_names, FALSE,  &data );
+  status = input_volume( main_args.filenames.data, 3, default_dim_names, 
+			NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+			TRUE, &data, (minc_input_options *)NULL );
   if (status != OK)
     print_error("Cannot input volume '%s'",__FILE__, __LINE__,main_args.filenames.data);
   get_volume_separations(data, step);
   get_volume_sizes(data, sizes);
   get_volume_voxel_range(data, &min_value, &max_value);
-  if (mask_data != NULL) {
-    get_volume_sizes(mask_data, msizes);
-    if (! (sizes[0]==msizes[0] && sizes[1]==msizes[1] && sizes[2]==msizes[2]) ) {
-      print_error("Data and mask must have the same voxel sampling",
-		  __FILE__, __LINE__);
-    }
-  }
+
   DEBUG_PRINT3 ( "Source volume %3d cols by %3d rows by %d slices\n",
 		 sizes[X], sizes[Y], sizes[Z]);
   DEBUG_PRINT3 ( "Source voxel = %8.3f %8.3f %8.3f\n", 
@@ -215,20 +262,16 @@ main ( argc, argv )
 
 
 
-  status = input_volume( main_args.filenames.model, default_dim_names, FALSE, &model );
+  status = input_volume( main_args.filenames.model, 3, default_dim_names, 
+			NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+			TRUE, &model, (minc_input_options *)NULL );
   if (status != OK)
     print_error("Cannot input volume '%s'",
 		__FILE__, __LINE__,main_args.filenames.model);
   get_volume_separations(model, step);
   get_volume_sizes(model, sizes);
   get_volume_voxel_range(model, &min_value, &max_value);
-  if (mask_model != NULL) {
-    get_volume_sizes(mask_model, msizes);
-    if (! (sizes[0]==msizes[0] && sizes[1]==msizes[1] && sizes[2]==msizes[2]) ) {
-      print_error("Model and mask must have the same voxel sampling",
-		  __FILE__, __LINE__);
-    }
-  }
+
   DEBUG_PRINT3 ( "Target volume %3d cols by %3d rows by %d slices\n",
 		 sizes[X], sizes[Y], sizes[Z]);
   DEBUG_PRINT3 ( "Target voxel = %8.3f %8.3f %8.3f\n", 
@@ -252,6 +295,12 @@ main ( argc, argv )
                                   transformation parameters */
 
   init_params( data, model, mask_data, mask_model, &main_args );
+
+  if (main_args.filenames.matlab_file != NULL) {
+    init_lattice( data, model, mask_data, mask_model, &main_args );
+    make_matlab_data_file( data, model, mask_data, mask_model, comments, &main_args );
+    exit( OK );
+  }
 
   DEBUG_PRINT  ("AFTER init_params()\n");
   if (get_transform_type(main_args.trans_info.transformation)==LINEAR) {
@@ -291,11 +340,13 @@ main ( argc, argv )
 				   requested is the Principal Axes Transformation 
 				   then:
 		                   =======   do linear fitting =============== */
+  
+
 
   if (main_args.filenames.measure_file != NULL) {
 
-    init_lattice( data, model, mask_data, mask_model, &main_args );
 
+    init_lattice( data, model, mask_data, mask_model, &main_args );
 
     if (main_args.smallest_vol == 1) {
       DEBUG_PRINT("Source volume is smallest\n");
@@ -324,11 +375,16 @@ main ( argc, argv )
     (void)fflush(ofd);
     DEBUG_PRINT1 ( "%f - zscore\n",obj_func_val);
     
-    /*  save_volume(data,"data_z.mnc");save_volume(model,"model_z.mnc"); */
     delete_volume(data);  
     delete_volume(model);  
-    status = input_volume( main_args.filenames.data, default_dim_names, FALSE, &data );
-    status = input_volume( main_args.filenames.model, default_dim_names, FALSE, &model );
+
+
+    status = input_volume( main_args.filenames.data, 3, default_dim_names, 
+			  NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+			  TRUE, &data, (minc_input_options *)NULL );
+    status = input_volume( main_args.filenames.model, 3, default_dim_names, 
+			  NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+			  TRUE, &model, (minc_input_options *)NULL );
 
 				/* do xcorr   */
 
@@ -337,9 +393,6 @@ main ( argc, argv )
     (void)fprintf (ofd, "%f - xcorr\n",obj_func_val);
     (void)fflush(ofd);
     DEBUG_PRINT1 ( "%f - xcorr\n",obj_func_val);
-
-    delete_volume(data);  
-    delete_volume(model);  
 
 				/* do var_ratio */
 
@@ -354,6 +407,13 @@ main ( argc, argv )
 
 				/* do ssc / zero-crossings */
 
+    status = input_volume( main_args.filenames.data, 3, default_dim_names, 
+			  NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+			  TRUE, &data, (minc_input_options *)NULL );
+    status = input_volume( main_args.filenames.model, 3, default_dim_names, 
+			  NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+			  TRUE, &model, (minc_input_options *)NULL ); 
+
     main_args.obj_function = ssc_objective;
     obj_func_val = measure_fit( data, model, mask_data, mask_model, &main_args );
     (void)fprintf (ofd, "%f - ssc\n",obj_func_val);
@@ -366,7 +426,8 @@ main ( argc, argv )
       print_error ("filename `%s' cannot be closed.", 
 		   __FILE__, __LINE__, main_args.filenames.measure_file);
 
-    return( status );
+
+    exit( status ) ;
 
   }
 
@@ -557,13 +618,17 @@ public int get_mask_file(char *dst, char *key, char *nextArg)
 
   if (strncmp ( "-model_mask", key, 2) == 0) {
     ALLOC( mask_model, 1 );
-    status = input_volume( nextArg, default_dim_names, FALSE, &mask_model );
+    status = input_volume( nextArg, 3, default_dim_names, 
+			  NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+			  TRUE, &mask_model, (minc_input_options *)NULL );
     dst = nextArg;
     main_args.filenames.mask_model = nextArg;
   }
   else {
     ALLOC( mask_data, 1);
-    status = input_volume( nextArg, default_dim_names, FALSE, &mask_data );
+    status = input_volume( nextArg, 3, default_dim_names, 
+			  NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+			  TRUE, &mask_data, (minc_input_options *)NULL );
     dst = nextArg;
     main_args.filenames.mask_data = nextArg;
   }

@@ -5,7 +5,10 @@
 @GLOBALS    : 
 @CALLS      : 
 @CREATED    : Thu May 20 14:20:21 EST 1993 Louis Collins
-@MODIFIED   : 
+@MODIFIED   : $Log: minctracc.h,v $
+@MODIFIED   : Revision 1.7  1993-11-15 13:12:53  louis
+@MODIFIED   : working version, deform deform installation
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 
 #include <minc.h>
@@ -14,11 +17,11 @@
 
 /* ------------------------  Constants used in program  -------------------- */
 
-#include "def_constants.h"
+#include "constants.h"
 
 /* ------------------------  Types used in program  ------------------------ */
 
-#include "def_arg_data.h"
+#include "arg_data.h"
 
 /*  ------------------------ Function prototypes  ------------------------ */
 
@@ -34,7 +37,8 @@ public void do_Ncubic_interpolation(Volume volume,
 
 public int nearest_neighbour_interpolant(Volume volume, 
                                          PointR *coord, double *result);
-
+public int point_not_masked(Volume volume,
+                            Real wx, Real wy, Real wz);
 
 public int get_transformation(char *dst, char *key, char *nextArg);
 
@@ -64,7 +68,7 @@ public float check_function(float *x);      /* calculate the squared error betwe
 
 public void invertmatrix(int n, float **mat, float **mat_invert);
 
-public Boolean init_params(Volume d1,
+public BOOLEAN init_params(Volume d1,
 			   Volume d2,
 			   Volume m1,
 			   Volume m2, 
@@ -76,7 +80,7 @@ public void init_lattice(Volume d1,
 			 Volume m2, 
 			 Arg_Data *globals);
 
-public Boolean optimize_linear_transformation(Volume d1,
+public BOOLEAN optimize_linear_transformation(Volume d1,
 					      Volume d2,
 					      Volume m1,
 					      Volume m2, 
@@ -89,6 +93,13 @@ public float measure_fit(Volume d1,
 			 Volume m1,
 			 Volume m2, 
 			 Arg_Data *globals);
+
+public void make_matlab_data_file(Volume d1,
+				  Volume d2,
+				  Volume m1,
+				  Volume m2, 
+				  char *comments,
+				  Arg_Data *globals);
 
 
 
@@ -121,9 +132,14 @@ Arg_Data main_args = {
   {4.0,4.0,4.0},		/* default step sizes for lattice         */
   {0.0,0.0,0.0},		/* default start for lattice, reset in init_lattice */
   {0,0,0},                      /* default number of element in lattice, also reset */
+
+  {1.0,0.0,0.0},		/* default sampling lattice axes directions */
+  {0.0,1.0,0.0},
+  {0.0,0.0,1.0},
+
   1,                            /* use first volume as default smallest volume      */
   {FALSE, FALSE, FALSE, FALSE},
-  0.0,				/* lower limit of voxels considered                 */
+  {0.0,0.0},			/* lower limit of voxels considered                 */
   5.0,				/* percent noise speckle                            */
   16				/* number of groups to use for ratio of variance    */
 };
