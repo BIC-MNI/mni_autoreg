@@ -6,7 +6,7 @@ SUBDIRS = Files Numerical Optimize Volume Main Extra_progs
 # subdirectory Main.  The extra programs are likewise built in their
 # subdirectory, Extra_progs.
 
-EXTRA_DIST = $(man_MANS) $(docs) $(includes) #$(oddities)
+EXTRA_DIST = $(man_MANS) $(docs) $(includes)
 
 man_MANS = minctracc.1
 
@@ -92,15 +92,6 @@ notes = \
 
 oddities = $(matlab) $(notes) \
 	todo \
-	Include/boolean.h \
-	Include/def_segment_table.h \
-	Include/def_tag_io.h \
-	Include/def_tps.h \
-	Include/deform_field.h \
-	Include/line_data.h \
-	Include/procrustes.h \
-	Include/recipes.h \
-	Main/debug_lines1.c \
 	Numerical/FROM_LIONEL/fem.h \
 	Numerical/FROM_LIONEL/similar_correlate.c \
 	Numerical/Other_progs/align_z.c \
@@ -111,7 +102,6 @@ oddities = $(matlab) $(notes) \
 	Numerical/random_numbers.c \
 	Numerical/transformations.c \
 	Optimize/amoeba2.c \
-	Optimize/3d_surf_fit \
 	Optimize/d.c \
 	Optimize/m.c \
 	Optimize/old_methods.c
