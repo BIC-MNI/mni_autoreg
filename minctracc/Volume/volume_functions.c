@@ -29,6 +29,9 @@ public void make_scale_and_translation_with_offset(Volume volume,
 
 public void make_scale_and_translation(Volume volume, Real real_min, Real real_max);
 
+public void save_volume(Volume d, char *filename);
+
+
 
 public void make_zscore_volume(Volume d1, Volume m1, 
 			       float threshold)
@@ -39,6 +42,8 @@ public void make_zscore_volume(Volume d1, Volume m1,
     sizes[MAX_DIMENSIONS],
     s,r,c;
   Real
+    valid_min_mvoxel, valid_max_mvoxel,
+    valid_min_dvoxel, valid_max_dvoxel,
     min,max,
     scale, offset,
     sum, sum2, mean, var, std,
@@ -55,6 +60,9 @@ public void make_zscore_volume(Volume d1, Volume m1,
 
   get_volume_sizes( d1, sizes );
 
+  get_volume_voxel_range(d1, &valid_min_dvoxel, &valid_max_dvoxel);
+  get_volume_voxel_range(m1, &valid_min_mvoxel, &valid_max_mvoxel);
+
 				/* do first pass, to get mean and std */
   for_less( s, 0,  sizes[Z]) {
     for_less( r, 0, sizes[Y]) {
@@ -64,9 +72,9 @@ public void make_zscore_volume(Volume d1, Volume m1,
 	  GET_VOXEL_3D( mask_vox, m1 , c, r, s ); 
 	}
 	else
-	  mask_vox = 1.0;
+	  mask_vox = -DBL_MAX;
 
-	if (mask_vox != 0) { /* should be m1->fill_value */
+	if (mask_vox >= valid_min_mvoxel && mask_vox <= valid_max_mvoxel) { 
 	  
 	  GET_VOXEL_3D( data_vox,  d1 , c, r, s );
 
@@ -77,19 +85,21 @@ public void make_zscore_volume(Volume d1, Volume m1,
 				   since these values are changed with respect to the
 				   new z-score volume*/
 
-	  data_val = data_vox*scale + offset;
-
-	  if (data_val > threshold) {
-	    sum  += data_val;
-	    sum2 += data_val*data_val;
+	  if (data_vox >= valid_min_dvoxel && data_vox <= valid_max_dvoxel) { 
+	    data_val = data_vox*scale + offset;
 	    
-	    count++;
-
-	    if (data_val < min)
-	      min = data_val;
-	    else
-	      if (data_val > max)
-		max = data_val;
+	    if (data_val > threshold) {
+	      sum  += data_val;
+	      sum2 += data_val*data_val;
+	      
+	      count++;
+	      
+	      if (data_val < min)
+		min = data_val;
+	      else
+		if (data_val > max)
+		  max = data_val;
+	    }
 	  }
 	}
       }
@@ -114,7 +124,7 @@ public void make_zscore_volume(Volume d1, Volume m1,
 	
 	GET_VOXEL_3D( data_vox,  d1, c, r, s );
 	
-	if (data_vox != 0) { /* should be m1->fill_value */
+	if (data_vox >= valid_min_dvoxel && data_vox <= valid_max_dvoxel) { 
 	  
 	  data_val = data_vox*scale + offset;
 	  
@@ -131,7 +141,7 @@ public void make_zscore_volume(Volume d1, Volume m1,
 	    }
 	  }
 	  else
-	    data_vox = 0;   /* should be fill_value! */
+	    data_vox = -DBL_MAX;   /* should be fill_value! */
 	  
 	  SET_VOXEL_3D( d1 , c, r, s, data_vox );
 	}
@@ -157,6 +167,7 @@ public void add_speckle_to_volume(Volume d1,
     slice,
     row,
     col;
+  Real valid_min_voxel, valid_max_voxel;
 
   double
     tx,ty,tz,
@@ -172,6 +183,8 @@ public void add_speckle_to_volume(Volume d1,
   fill_Point( starting_position, start[X], start[Y], start[Z]);
 
   flip_flag = FALSE;
+
+  get_volume_voxel_range(d1,&valid_min_voxel, &valid_max_voxel);
 
   for_inclusive(s,0,count[Z]) {
 
@@ -194,7 +207,8 @@ public void add_speckle_to_volume(Volume d1,
 
 	GET_VOXEL_3D( voxel_value, d1 , xi, yi, zi ); 
 
-	if (voxel_value != d1->fill_value) {
+
+	if (voxel_value >= valid_min_voxel && voxel_value <= valid_max_voxel) {
 	  if (flip_flag)
 	    voxel_value = voxel_value * (1 + 0.01*speckle);
 	  else
@@ -254,8 +268,8 @@ public void make_scale_and_translation_with_offset(Volume volume,
     break;  
   }
 
-  volume->min_value = min_value;
-  volume->max_value = max_value;
+  volume->min_voxel = min_value;
+  volume->max_voxel = max_value;
 
   if( real_min == real_max )
     volume->value_scale = 1.0;
@@ -271,5 +285,45 @@ public void make_scale_and_translation(Volume volume, Real real_min, Real real_m
 {
 
   make_scale_and_translation_with_offset(volume, (long)0, (long)0, real_min, real_max);
+
+}
+
+
+public void save_volume(Volume d, char *filename)
+{
+  Minc_file minc_fp;
+  Real vox,val,min_val,max_val;
+  int i,j,k,sizes[3];
+  Status status;
+
+  get_volume_sizes(d, sizes);
+  min_val = FLT_MAX;
+  max_val = -FLT_MAX;
+
+  for_less(i,0,sizes[0])
+    for_less(j,0,sizes[1])
+      for_less(k,0,sizes[2]) {
+	GET_VOXEL_3D(vox, d, i,j,k);
+	val = CONVERT_VOXEL_TO_VALUE(d, vox);
+
+	if (val < min_val)
+	  min_val = val;
+	else
+	  if (val > max_val)
+	    max_val = val;
+
+      }
+
+
+  minc_fp = initialize_minc_output(filename, 3, d->dimension_names, d->sizes,
+                                   d->nc_data_type, FALSE, min_val, max_val,
+                                   &(d->voxel_to_world_transform));
+
+  status = output_minc_volume(minc_fp, d);
+
+  if (status == OK)
+    close_minc_output(minc_fp);
+  else
+    print_error("problems writing  volume `%s'.",__FILE__, __LINE__, filename,0,0,0,0);
 
 }

@@ -46,8 +46,6 @@ Wed May 26 13:05:44 EST 1993 lc
 #include <recipes.h>
 #include <limits.h>
 
-public void save_volume(Volume d, char *filename);
-
 
 /*************************************************************************/
 main ( argc, argv )
@@ -55,6 +53,9 @@ main ( argc, argv )
      char *argv[];
 {   /* main */
   
+  static String   default_dim_names[N_DIMENSIONS] =
+    { MIzspace, MIyspace, MIxspace };
+
   global_data_struct 
     main_data;
 
@@ -186,7 +187,7 @@ main ( argc, argv )
 
   ALLOC( data, 1 );		/* read in source data and target model */
   ALLOC( model, 1 );
-  status = input_volume( main_args.filenames.data, &data );
+  status = input_volume( main_args.filenames.data, default_dim_names, FALSE,  &data );
   if (status != OK)
     print_error("Cannot input volume '%s'",
 		__FILE__, __LINE__,main_args.filenames.data,0,0,0,0);
@@ -210,7 +211,7 @@ main ( argc, argv )
 
 
 
-  status = input_volume( main_args.filenames.model, &model );
+  status = input_volume( main_args.filenames.model, default_dim_names, FALSE, &model );
   if (status != OK)
     print_error("Cannot input volume '%s'",
 		__FILE__, __LINE__,main_args.filenames.model,0,0,0,0);
@@ -322,8 +323,8 @@ main ( argc, argv )
     /*  save_volume(data,"data_z.mnc");save_volume(model,"model_z.mnc"); */
     delete_volume(data);  
     delete_volume(model);  
-    status = input_volume( main_args.filenames.data, &data );
-    status = input_volume( main_args.filenames.model, &model );
+    status = input_volume( main_args.filenames.data, default_dim_names, FALSE, &data );
+    status = input_volume( main_args.filenames.model, default_dim_names, FALSE, &model );
 
 				/* do xcorr   */
 
@@ -565,13 +566,13 @@ public int get_mask_file(char *dst, char *key, char *nextArg)
 
   if (strncmp ( "-model_mask", key, 2) == 0) {
     ALLOC( mask_model, 1 );
-    status = input_volume( nextArg, &mask_model );
+    status = input_volume( nextArg, default_dim_names, FALSE, &mask_model );
     dst = nextArg;
     main_args.filenames.mask_model = nextArg;
   }
   else {
     ALLOC( mask_data, 1);
-    status = input_volume( nextArg, &mask_data );
+    status = input_volume( nextArg, default_dim_names, FALSE, &mask_data );
     dst = nextArg;
     main_args.filenames.mask_data = nextArg;
   }
@@ -596,41 +597,3 @@ public void print_error(char *s, char * d1, int d2, int d3, int d4, int d5, int 
 
 
 
-public void save_volume(Volume d, char *filename)
-{
-  Minc_file minc_fp;
-  Real vox,val,min_val,max_val;
-  int i,j,k,sizes[3];
-  Status status;
-
-  get_volume_sizes(d, sizes);
-  min_val = FLT_MAX;
-  max_val = -FLT_MAX;
-
-  for_less(i,0,sizes[0])
-    for_less(j,0,sizes[1])
-      for_less(k,0,sizes[2]){
-	GET_VOXEL_3D(vox, data, i,j,k);
-	val = CONVERT_VOXEL_TO_VALUE(d, vox);
-
-	if (val < min_val)
-	  min_val = val;
-	else
-	  if (val > max_val)
-	    max_val = val;
-
-      }
-
-
-  minc_fp = initialize_minc_output(filename, 3, d->dimension_names, d->sizes,
-                                   d->nc_data_type, FALSE, min_val, max_val,
-                                   &(d->voxel_to_world_transform));
-
-  status = output_minc_volume(minc_fp, d);
-
-  if (status == OK)
-    close_minc_output(minc_fp);
-  else
-    print_error("problems writing  volume `%s'.",__FILE__, __LINE__, filename,0,0,0,0);
-
-}
