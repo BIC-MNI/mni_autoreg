@@ -17,9 +17,13 @@
 
 @CREATED    : Thu May 20 14:20:21 EST 1993 Louis Collins
 @MODIFIED   : $Log: minctracc.h,v $
-@MODIFIED   : Revision 1.11  1994-05-28 16:18:55  louis
-@MODIFIED   : working version before modification of non-linear optimiation
+@MODIFIED   : Revision 1.12  1994-06-06 09:46:52  louis
+@MODIFIED   : modified the initialization of main_args to reflect the use_magnitude
+@MODIFIED   : field in the trans_info struct.
 @MODIFIED   :
+ * Revision 1.11  94/05/28  16:18:55  louis
+ * working version before modification of non-linear optimiation
+ * 
  * Revision 1.10  94/04/26  12:55:22  louis
  * updated with new versions of make_rots, extract2_parameters_from_matrix 
  * that include proper interpretation of skew.
@@ -188,6 +192,7 @@ Arg_Data main_args = {
   {1,FALSE},			/* verbose, debug      */
   {				/* transformation info */
     TRUE,			/*   do default Principal Axis Transformation start */
+    FALSE,			/*   use_mag=FALSE i.e. use Lvv by default          */
     (char *)NULL,			/*   filename */
     (char *)NULL,			/*   file_contents */
     0,                          /* buffer_length   */
