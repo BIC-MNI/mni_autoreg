@@ -9,7 +9,10 @@
 @CALLS      : 
 @CREATED    : Mon Nov 29 11:01:47 EST 1993 Louis
 @MODIFIED   : $Log: param2xfm.c,v $
-@MODIFIED   : Revision 96.3  2000-03-15 08:42:37  stever
+@MODIFIED   : Revision 96.4  2002-03-26 14:15:31  stever
+@MODIFIED   : Update includes to <volume_io/foo.h> style.
+@MODIFIED   :
+@MODIFIED   : Revision 96.3  2000/03/15 08:42:37  stever
 @MODIFIED   : Code cleanup: all functions prototyped (except ParseArgs.c), no useless declarations, etc
 @MODIFIED   :
 @MODIFIED   : Revision 96.2  2000/02/20 04:01:02  stever
@@ -69,7 +72,7 @@ static char rcsid[]="";
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <internal_volume_io.h>
+#include <volume_io/internal_volume_io.h>
 #include <config.h>
 #include <Proglib.h>
 #include "make_rots.h"

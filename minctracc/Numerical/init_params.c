@@ -17,8 +17,11 @@
 @CREATED    : Thu May 27 16:50:50 EST 1993
                   
 @MODIFIED   :  $Log: init_params.c,v $
-@MODIFIED   :  Revision 96.1  1997-11-03 19:59:49  louis
-@MODIFIED   :  - now include internal_volume_io.h instead of volume_io.h
+@MODIFIED   :  Revision 96.2  2002-03-26 14:15:40  stever
+@MODIFIED   :  Update includes to <volume_io/foo.h> style.
+@MODIFIED   :
+@MODIFIED   :  Revision 96.1  1997/11/03 19:59:49  louis
+@MODIFIED   :  - now include volume_io/internal_volume_io.h instead of volume_io.h
 @MODIFIED   :  - changed for_inclusive to for_less when stepping through the lattice
 @MODIFIED   :
  * Revision 96.0  1996/08/21  18:21:58  louis
@@ -83,12 +86,12 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 96.1 1997-11-03 19:59:49 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 96.2 2002-03-26 14:15:40 stever Exp $";
 #endif
 
 
 #include "config.h"
-#include <internal_volume_io.h>
+#include <volume_io/internal_volume_io.h>
 
 #include "constants.h"
 #include "arg_data.h"

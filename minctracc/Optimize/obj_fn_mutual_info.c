@@ -21,7 +21,10 @@
 
 @CREATED    : Tue Mar 12 09:37:44 MET 1996
 @MODIFIED   : $Log: obj_fn_mutual_info.c,v $
-@MODIFIED   : Revision 96.4  2000-03-15 08:42:47  stever
+@MODIFIED   : Revision 96.5  2002-03-26 14:15:44  stever
+@MODIFIED   : Update includes to <volume_io/foo.h> style.
+@MODIFIED   :
+@MODIFIED   : Revision 96.4  2000/03/15 08:42:47  stever
 @MODIFIED   : Code cleanup: all functions prototyped (except ParseArgs.c), no useless declarations, etc
 @MODIFIED   :
 @MODIFIED   : Revision 96.3  1999/10/25 19:59:08  louis
@@ -56,10 +59,10 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/obj_fn_mutual_info.c,v 96.4 2000-03-15 08:42:47 stever Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/obj_fn_mutual_info.c,v 96.5 2002-03-26 14:15:44 stever Exp $";
 #endif
 
-#include <internal_volume_io.h>
+#include <volume_io/internal_volume_io.h>
 #include "constants.h"
 #include "local_macros.h"
 #include "arg_data.h"

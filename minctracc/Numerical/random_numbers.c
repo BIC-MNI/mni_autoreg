@@ -21,17 +21,20 @@
 
 @CREATED    : Jan 8, 1996 LC
 @MODIFIED   : $Log: random_numbers.c,v $
-@MODIFIED   : Revision 1.1  1997-11-03 19:59:49  louis
+@MODIFIED   : Revision 1.2  2002-03-26 14:15:41  stever
+@MODIFIED   : Update includes to <volume_io/foo.h> style.
+@MODIFIED   :
+@MODIFIED   : Revision 1.1  1997/11/03 19:59:49  louis
 @MODIFIED   : Initial revision
 @MODIFIED   :
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/random_numbers.c,v 1.1 1997-11-03 19:59:49 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/random_numbers.c,v 1.2 2002-03-26 14:15:41 stever Exp $";
 #endif
 
 
-#include <internal_volume_io.h>
+#include <volume_io/internal_volume_io.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <time.h>

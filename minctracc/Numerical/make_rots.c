@@ -14,8 +14,11 @@
               express or implied warranty.
 @CREATED    : Tue Jun  8 08:44:59 EST 1993 LC
 @MODIFIED   : $Log: make_rots.c,v $
-@MODIFIED   : Revision 96.1  1997-11-03 19:59:49  louis
-@MODIFIED   : - now include internal_volume_io.h instead of volume_io.h
+@MODIFIED   : Revision 96.2  2002-03-26 14:15:40  stever
+@MODIFIED   : Update includes to <volume_io/foo.h> style.
+@MODIFIED   :
+@MODIFIED   : Revision 96.1  1997/11/03 19:59:49  louis
+@MODIFIED   : - now include volume_io/internal_volume_io.h instead of volume_io.h
 @MODIFIED   :
  * Revision 96.0  1996/08/21  18:21:58  louis
  * Release of MNI_AutoReg version 0.96
@@ -57,10 +60,10 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/make_rots.c,v 96.1 1997-11-03 19:59:49 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/make_rots.c,v 96.2 2002-03-26 14:15:40 stever Exp $";
 #endif
 
-#include <internal_volume_io.h>
+#include <volume_io/internal_volume_io.h>
 #include "matrix_basics.h"
 #include "rotmat_to_ang.h"
 #include "local_macros.h"

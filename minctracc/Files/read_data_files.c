@@ -17,7 +17,10 @@
 
 @CREATED    : Tue Nov 16 13:56:34 EST 1993 LC
 @MODIFIED   : $Log: read_data_files.c,v $
-@MODIFIED   : Revision 1.1  1999-10-25 19:52:13  louis
+@MODIFIED   : Revision 1.2  2002-03-26 14:15:36  stever
+@MODIFIED   : Update includes to <volume_io/foo.h> style.
+@MODIFIED   :
+@MODIFIED   : Revision 1.1  1999/10/25 19:52:13  louis
 @MODIFIED   : final checkin before switch to CVS
 @MODIFIED   :
  * Revision 1.3  1995/02/22  08:56:06  collins
@@ -35,10 +38,10 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Files/read_data_files.c,v 1.1 1999-10-25 19:52:13 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Files/read_data_files.c,v 1.2 2002-03-26 14:15:36 stever Exp $";
 #endif
 
-#include <internal_volume_io.h>
+#include <volume_io/internal_volume_io.h>
 #include <print_error.h>
 
 static char *default_dim_names[N_DIMENSIONS] =

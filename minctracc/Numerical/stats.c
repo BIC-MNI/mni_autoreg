@@ -15,7 +15,10 @@
 
 @CREATED    : February 23, 1996
 @MODIFIED   : $Log: stats.c,v $
-@MODIFIED   : Revision 1.2  2000-03-15 08:42:44  stever
+@MODIFIED   : Revision 1.3  2002-03-26 14:15:42  stever
+@MODIFIED   : Update includes to <volume_io/foo.h> style.
+@MODIFIED   :
+@MODIFIED   : Revision 1.2  2000/03/15 08:42:44  stever
 @MODIFIED   : Code cleanup: all functions prototyped (except ParseArgs.c), no useless declarations, etc
 @MODIFIED   :
 @MODIFIED   : Revision 1.1  1997/11/03 19:59:49  louis
@@ -24,10 +27,10 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/stats.c,v 1.2 2000-03-15 08:42:44 stever Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/stats.c,v 1.3 2002-03-26 14:15:42 stever Exp $";
 #endif
 
-#include <internal_volume_io.h>
+#include <volume_io/internal_volume_io.h>
 #include <config.h>
 #include <stats.h>
 

@@ -35,11 +35,14 @@
       created by removing build_default_deformation_field from 
       transformations.c
 @MODIFIED   : $Log: default_def.c,v $
-@MODIFIED   : Revision 96.2  2000-02-07 19:33:05  stever
+@MODIFIED   : Revision 96.3  2002-03-26 14:15:40  stever
+@MODIFIED   : Update includes to <volume_io/foo.h> style.
+@MODIFIED   :
+@MODIFIED   : Revision 96.2  2000/02/07 19:33:05  stever
 @MODIFIED   : replaced HAVE_RECENT_VOLUME_IO with more specific feature tests.
 @MODIFIED   :
 @MODIFIED   : Revision 96.1  1997/11/03 19:59:49  louis
-@MODIFIED   : - now include internal_volume_io.h instead of volume_io.h
+@MODIFIED   : - now include volume_io/internal_volume_io.h instead of volume_io.h
 @MODIFIED   : - used xyzv[X] instead of 0 for the index for the x variable
 @MODIFIED   :
  * Revision 96.0  1996/08/21  18:21:58  louis
@@ -71,7 +74,7 @@ static char rcsid[]="";
 #endif
 
 #include <config.h>
-#include <internal_volume_io.h>
+#include <volume_io/internal_volume_io.h>
 #include <print_error.h>
 #include "arg_data.h"
 #include "local_macros.h"

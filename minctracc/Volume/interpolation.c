@@ -16,7 +16,10 @@
 @CREATED    : Wed May 26 13:05:44 EST 1993 LC using routines from NEELIN's
               mincresample.
 @MODIFIED   :  $Log: interpolation.c,v $
-@MODIFIED   :  Revision 96.2  2000-03-17 01:11:31  stever
+@MODIFIED   :  Revision 96.3  2002-03-26 14:15:47  stever
+@MODIFIED   :  Update includes to <volume_io/foo.h> style.
+@MODIFIED   :
+@MODIFIED   :  Revision 96.2  2000/03/17 01:11:31  stever
 @MODIFIED   :  code simplification
 @MODIFIED   :
 @MODIFIED   :  Revision 96.1  1999/10/25 19:59:17  louis
@@ -50,10 +53,10 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/interpolation.c,v 96.2 2000-03-17 01:11:31 stever Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/interpolation.c,v 96.3 2002-03-26 14:15:47 stever Exp $";
 #endif
 
-#include <internal_volume_io.h>
+#include <volume_io/internal_volume_io.h>
 #include "point_vector.h"
 
 #define VOL_NDIMS 3

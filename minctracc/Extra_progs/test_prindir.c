@@ -9,7 +9,10 @@
 @CALLS      : 
 @CREATED    : Mon Sep 25 08:45:43 MET 1995
 @MODIFIED   : $Log: test_prindir.c,v $
-@MODIFIED   : Revision 1.1  1999-10-25 19:52:11  louis
+@MODIFIED   : Revision 1.2  2002-03-26 14:15:34  stever
+@MODIFIED   : Update includes to <volume_io/foo.h> style.
+@MODIFIED   :
+@MODIFIED   : Revision 1.1  1999/10/25 19:52:11  louis
 @MODIFIED   : final checkin before switch to CVS
 @MODIFIED   :
 
@@ -26,11 +29,11 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/test_prindir.c,v 1.1 1999-10-25 19:52:11 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/test_prindir.c,v 1.2 2002-03-26 14:15:34 stever Exp $";
 #endif
 
 #include <stdio.h>
-#include <internal_volume_io.h>
+#include <volume_io/internal_volume_io.h>
 #include <time_stamp.h>
 
 /* Constants */

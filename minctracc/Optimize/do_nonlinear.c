@@ -16,7 +16,10 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 96.13  2002-03-07 19:08:55  louis
+@MODIFIED   : Revision 96.14  2002-03-26 14:15:43  stever
+@MODIFIED   : Update includes to <volume_io/foo.h> style.
+@MODIFIED   :
+@MODIFIED   : Revision 96.13  2002/03/07 19:08:55  louis
 @MODIFIED   : Added -lattice_diameter as an optionto minctracc to account for a
 @MODIFIED   : problem with the automated calculation of the sub-lattice diameter.
 @MODIFIED   : It used to be step*3*2 - which was pretty big, when step = 8mm.
@@ -290,11 +293,11 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.13 2002-03-07 19:08:55 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.14 2002-03-26 14:15:43 stever Exp $";
 #endif
 
 #include <config.h>		/* MAXtype and MIN defs                      */
-#include <internal_volume_io.h>	/* structs & tools to deal with volumes data */
+#include <volume_io/internal_volume_io.h>	/* structs & tools to deal with volumes data */
 #include <amoeba.h>		/* simplex optimization struct               */
 
 #include <stdlib.h>		/* to get header info for drand48()          */

@@ -9,7 +9,10 @@
 @CALLS      : 
 @CREATED    : Mon Nov 29 11:01:47 EST 1993 Louis
 @MODIFIED   : $Log: check_scale.c,v $
-@MODIFIED   : Revision 96.2  2000-03-15 08:42:36  stever
+@MODIFIED   : Revision 96.3  2002-03-26 14:15:27  stever
+@MODIFIED   : Update includes to <volume_io/foo.h> style.
+@MODIFIED   :
+@MODIFIED   : Revision 96.2  2000/03/15 08:42:36  stever
 @MODIFIED   : Code cleanup: all functions prototyped (except ParseArgs.c), no useless declarations, etc
 @MODIFIED   :
 @MODIFIED   : Revision 96.1  1999/10/25 19:52:05  louis
@@ -62,7 +65,7 @@
 static char rcsid[]="";
 #endif
 
-#include <internal_volume_io.h>
+#include <volume_io/internal_volume_io.h>
 
 #include "constants.h"
 #include "matrix_basics.h"

@@ -15,11 +15,14 @@
 
 @CREATED    : Mon May 22 14:14:50 MET DST 1995
 @MODIFIED   : $Log: quad_max_fit.c,v $
-@MODIFIED   : Revision 96.2  2000-03-15 08:42:43  stever
+@MODIFIED   : Revision 96.3  2002-03-26 14:15:41  stever
+@MODIFIED   : Update includes to <volume_io/foo.h> style.
+@MODIFIED   :
+@MODIFIED   : Revision 96.2  2000/03/15 08:42:43  stever
 @MODIFIED   : Code cleanup: all functions prototyped (except ParseArgs.c), no useless declarations, etc
 @MODIFIED   :
 @MODIFIED   : Revision 96.1  1997/11/03 19:59:49  louis
-@MODIFIED   : - now include internal_volume_io.h instead of volume_io.h
+@MODIFIED   : - now include volume_io/internal_volume_io.h instead of volume_io.h
 @MODIFIED   : - now include quad_max_fit.h for prototypes and struc defs
 @MODIFIED   :
  * Revision 96.0  1996/08/21  18:21:58  louis
@@ -52,7 +55,7 @@
 
 ---------------------------------------------------------------------------- */
 
-#include <internal_volume_io.h>		
+#include <volume_io/internal_volume_io.h>		
 #include <math.h>
 #include <quad_max_fit.h>
 

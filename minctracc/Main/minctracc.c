@@ -13,7 +13,10 @@
 
    @CREATED    : February 3, 1992 - louis collins
    @MODIFIED   : $Log: minctracc.c,v $
-   @MODIFIED   : Revision 96.4  2002-03-07 19:08:34  louis
+   @MODIFIED   : Revision 96.5  2002-03-26 14:15:38  stever
+   @MODIFIED   : Update includes to <volume_io/foo.h> style.
+   @MODIFIED   :
+   @MODIFIED   : Revision 96.4  2002/03/07 19:08:34  louis
    @MODIFIED   : Added -lattice_diameter as an optionto minctracc to account for a
    @MODIFIED   : problem with the automated calculation of the sub-lattice diameter.
    @MODIFIED   : It used to be step*3*2 - which was pretty big, when step = 8mm.
@@ -101,11 +104,11 @@ Wed May 26 13:05:44 EST 1993 lc
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.4 2002-03-07 19:08:34 louis Exp $";
+static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.5 2002-03-26 14:15:38 stever Exp $";
 #endif
 
 #include <config.h>
-#include <internal_volume_io.h>
+#include <volume_io/internal_volume_io.h>
 #include <minctracc.h>
 #include <globals.h>
 

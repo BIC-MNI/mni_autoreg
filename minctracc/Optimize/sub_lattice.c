@@ -14,9 +14,12 @@
                                     to create a sublattice defined on the target.
      
 @CREATED    : Mon Nov  3, 1997 , Louis Collins
-@VERSION    : $Id: sub_lattice.c,v 1.4 2000-03-15 08:42:47 stever Exp $
+@VERSION    : $Id: sub_lattice.c,v 1.5 2002-03-26 14:15:46 stever Exp $
 @MODIFIED   : $Log: sub_lattice.c,v $
-@MODIFIED   : Revision 1.4  2000-03-15 08:42:47  stever
+@MODIFIED   : Revision 1.5  2002-03-26 14:15:46  stever
+@MODIFIED   : Update includes to <volume_io/foo.h> style.
+@MODIFIED   :
+@MODIFIED   : Revision 1.4  2000/03/15 08:42:47  stever
 @MODIFIED   : Code cleanup: all functions prototyped (except ParseArgs.c), no useless declarations, etc
 @MODIFIED   :
 @MODIFIED   : Revision 1.3  1998/03/13 20:22:22  louis
@@ -33,7 +36,7 @@
 
 
 #include <config.h>		
-#include <internal_volume_io.h>	
+#include <volume_io/internal_volume_io.h>	
 
 #include <Proglib.h>
 #include "constants.h"

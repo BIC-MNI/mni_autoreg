@@ -9,7 +9,10 @@
 @CALLS      : 
 @CREATED    : Mon May  8 11:29:40 MET DST 1995  LC
 @MODIFIED   : $Log: def_to_vols.c,v $
-@MODIFIED   : Revision 1.1  1999-10-25 19:52:06  louis
+@MODIFIED   : Revision 1.2  2002-03-26 14:15:29  stever
+@MODIFIED   : Update includes to <volume_io/foo.h> style.
+@MODIFIED   :
+@MODIFIED   : Revision 1.1  1999/10/25 19:52:06  louis
 @MODIFIED   : final checkin before switch to CVS
 @MODIFIED   :
 
@@ -26,13 +29,13 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/def_to_vols.c,v 1.1 1999-10-25 19:52:06 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/def_to_vols.c,v 1.2 2002-03-26 14:15:29 stever Exp $";
 #endif
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <internal_volume_io.h>
+#include <volume_io/internal_volume_io.h>
 
 /* Constants */
 #ifndef TRUE

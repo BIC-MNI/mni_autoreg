@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <internal_volume_io.h>
+#include <volume_io/internal_volume_io.h>
 #include <config.h>
 #include <Proglib.h>
 

@@ -11,6 +11,9 @@
 	* Makefile.am: Invoke aclocal with "-I m4" option.  Distribute
 	the m4/*.m4 files.
 
+	* Globally replace include of <internal_volume_io.h> by
+	<volume_io/internal_volume_io.h> to match practice of MINC 0.7.
+
 2001-02-16  Steve ROBBINS  <stever@bic.mni.mcgill.ca>
 
 	* configure.in: Set VERSION to 0.98k.

@@ -8,7 +8,10 @@
 
 @CREATED    : Tue Oct 24 14:22:51 MET 1995 Collins
 @MODIFIED   : $Log: random_def.c,v $
-@MODIFIED   : Revision 1.1  1999-10-25 19:52:09  louis
+@MODIFIED   : Revision 1.2  2002-03-26 14:15:31  stever
+@MODIFIED   : Update includes to <volume_io/foo.h> style.
+@MODIFIED   :
+@MODIFIED   : Revision 1.1  1999/10/25 19:52:09  louis
 @MODIFIED   : final checkin before switch to CVS
 @MODIFIED   :
 @COPYRIGHT  :
@@ -30,7 +33,7 @@ static char rcsid[]="$Header:";
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <internal_volume_io.h>
+#include <volume_io/internal_volume_io.h>
 #include <sys/types.h>
 #include <time.h>
 

@@ -16,7 +16,10 @@
 
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   :  $Log: objectives.c,v $
-@MODIFIED   :  Revision 96.4  2000-03-17 01:11:30  stever
+@MODIFIED   :  Revision 96.5  2002-03-26 14:15:45  stever
+@MODIFIED   :  Update includes to <volume_io/foo.h> style.
+@MODIFIED   :
+@MODIFIED   :  Revision 96.4  2000/03/17 01:11:30  stever
 @MODIFIED   :  code simplification
 @MODIFIED   :
 @MODIFIED   :  Revision 96.3  2000/03/15 08:42:47  stever
@@ -78,10 +81,10 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/objectives.c,v 96.4 2000-03-17 01:11:30 stever Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/objectives.c,v 96.5 2002-03-26 14:15:45 stever Exp $";
 #endif
 
-#include <internal_volume_io.h>
+#include <volume_io/internal_volume_io.h>
 #include "constants.h"
 #include "arg_data.h"
 #include "interpolation.h"

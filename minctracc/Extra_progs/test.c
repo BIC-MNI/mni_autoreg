@@ -9,7 +9,10 @@
 @CALLS      : 
 @CREATED    : Mon Nov 29 11:01:47 EST 1993 Louis
 @MODIFIED   : $Log: test.c,v $
-@MODIFIED   : Revision 1.1  1999-10-25 19:52:10  louis
+@MODIFIED   : Revision 1.2  2002-03-26 14:15:32  stever
+@MODIFIED   : Update includes to <volume_io/foo.h> style.
+@MODIFIED   :
+@MODIFIED   : Revision 1.1  1999/10/25 19:52:10  louis
 @MODIFIED   : final checkin before switch to CVS
 @MODIFIED   :
  * Revision 1.4  1995/02/22  08:56:06  collins
@@ -47,7 +50,7 @@ static char rcsid[]="";
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <internal_volume_io.h>
+#include <volume_io/internal_volume_io.h>
 #include <ParseArgv.h>
 
 char *prog_name;

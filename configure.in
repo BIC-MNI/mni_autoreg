@@ -10,19 +10,7 @@ AC_CONFIG_SRCDIR(minctracc/Include/minctracc.h)
 AM_CONFIG_HEADER(config.h)
 
 # Add extra include or link directories.
-# Some files include internal volume_io headers as <foo.h>
-# rather than <volume_io/foo.h>.  We fiddle with the build path
-# to support that.  This is a modified version of smr_WITH_BUILD_PATH
-#
-AC_ARG_WITH([build-path],
-[  --with-build-path=DIR   build using DIR/include and DIR/lib],
-[
-    for d in `echo $withval | tr : ' '`; do
-        test -d $d/include && CPPFLAGS="$CPPFLAGS -I$d/include"
-        test -d $d/include/volume_io && CPPFLAGS="$CPPFLAGS -I$d/include/volume_io"
-        test -d $d/lib && LDFLAGS="$LDFLAGS -L$d/lib"
-    done
-])
+smr_WITH_BUILD_PATH
 
 #------------------------------------------------------------------------
 # Define symbols specifying the package version number,

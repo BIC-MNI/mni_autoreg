@@ -12,10 +12,10 @@
 
 #@CREATED    : Wed Jun 25, 1997, Louis Collins
 #@MODIFIED   : not yet!
-#@VERSION    : $Id: vox_space.c,v 1.4 2000-03-15 08:42:48 stever Exp $
+#@VERSION    : $Id: vox_space.c,v 1.5 2002-03-26 14:15:46 stever Exp $
 #----------------------------------------------------------------------------- */
 
-#include <internal_volume_io.h>
+#include <volume_io/internal_volume_io.h>
 #include "constants.h"
 #include "arg_data.h"
 #include "vox_space.h"

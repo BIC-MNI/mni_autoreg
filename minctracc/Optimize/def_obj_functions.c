@@ -3,9 +3,12 @@
 @DESCRIPTION: routines to calculate the objective function used for local
               optimization              
 @CREATED    : Nov 4, 1997, Louis Collins
-@VERSION    : $Id: def_obj_functions.c,v 1.5 2000-03-15 08:42:45 stever Exp $
+@VERSION    : $Id: def_obj_functions.c,v 1.6 2002-03-26 14:15:43 stever Exp $
 @MODIFIED   : $Log: def_obj_functions.c,v $
-@MODIFIED   : Revision 1.5  2000-03-15 08:42:45  stever
+@MODIFIED   : Revision 1.6  2002-03-26 14:15:43  stever
+@MODIFIED   : Update includes to <volume_io/foo.h> style.
+@MODIFIED   :
+@MODIFIED   : Revision 1.5  2000/03/15 08:42:45  stever
 @MODIFIED   : Code cleanup: all functions prototyped (except ParseArgs.c), no useless declarations, etc
 @MODIFIED   :
 @MODIFIED   : Revision 1.4  1999/06/10 12:51:23  louis
@@ -18,7 +21,7 @@
 -----------------------------------------------------------------------------*/
 
 #include <config.h>		
-#include <internal_volume_io.h>	
+#include <volume_io/internal_volume_io.h>	
 #include "constants.h"
 #include <arg_data.h>           /* definition of the global data struct      */
 #include <Proglib.h>

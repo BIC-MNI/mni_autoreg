@@ -20,7 +20,10 @@
 
 @CREATED    : 
 @MODIFIED   : $Log: super_sample_def.c,v $
-@MODIFIED   : Revision 96.4  2002-03-07 19:08:56  louis
+@MODIFIED   : Revision 96.5  2002-03-26 14:15:46  stever
+@MODIFIED   : Update includes to <volume_io/foo.h> style.
+@MODIFIED   :
+@MODIFIED   : Revision 96.4  2002/03/07 19:08:56  louis
 @MODIFIED   : Added -lattice_diameter as an optionto minctracc to account for a
 @MODIFIED   : problem with the automated calculation of the sub-lattice diameter.
 @MODIFIED   : It used to be step*3*2 - which was pretty big, when step = 8mm.
@@ -64,11 +67,11 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/super_sample_def.c,v 96.4 2002-03-07 19:08:56 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/super_sample_def.c,v 96.5 2002-03-26 14:15:46 stever Exp $";
 #endif
 
 #include <config.h>
-#include <internal_volume_io.h>
+#include <volume_io/internal_volume_io.h>
 #include <print_error.h>
 #include "constants.h"
 #include "point_vector.h"

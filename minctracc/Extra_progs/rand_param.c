@@ -10,7 +10,10 @@
 @CALLS      : 
 @CREATED    : Tue Aug 23 15:32:30 EST 1994 - Louis
 @MODIFIED   : $Log: rand_param.c,v $
-@MODIFIED   : Revision 96.1  1999-10-25 19:52:09  louis
+@MODIFIED   : Revision 96.2  2002-03-26 14:15:31  stever
+@MODIFIED   : Update includes to <volume_io/foo.h> style.
+@MODIFIED   :
+@MODIFIED   : Revision 96.1  1999/10/25 19:52:09  louis
 @MODIFIED   : final checkin before switch to CVS
 @MODIFIED   :
  * Revision 96.0  1996/08/21  18:21:36  louis
@@ -38,7 +41,7 @@ static char rcsid[]="";
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <internal_volume_io.h>
+#include <volume_io/internal_volume_io.h>
 #include <config.h>
 #include <Proglib.h>
 

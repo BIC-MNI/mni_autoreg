@@ -29,11 +29,14 @@
                       using numerical recipes routines jacobi() and eigsrt().  
 		      See Hotelling Transform
 @MODIFIED   : $Log: cov_to_praxes.c,v $
-@MODIFIED   : Revision 96.2  2000-03-15 08:42:43  stever
+@MODIFIED   : Revision 96.3  2002-03-26 14:15:39  stever
+@MODIFIED   : Update includes to <volume_io/foo.h> style.
+@MODIFIED   :
+@MODIFIED   : Revision 96.2  2000/03/15 08:42:43  stever
 @MODIFIED   : Code cleanup: all functions prototyped (except ParseArgs.c), no useless declarations, etc
 @MODIFIED   :
 @MODIFIED   : Revision 96.1  1997/11/03 19:59:49  louis
-@MODIFIED   : now include internal_volume_io.h instead of volume_io.h
+@MODIFIED   : now include volume_io/internal_volume_io.h instead of volume_io.h
 @MODIFIED   :
  * Revision 96.0  1996/08/21  18:21:58  louis
  * Release of MNI_AutoReg version 0.96
@@ -62,10 +65,10 @@
 
 ---------------------------------------------------------------------------- */
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/cov_to_praxes.c,v 96.2 2000-03-15 08:42:43 stever Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/cov_to_praxes.c,v 96.3 2002-03-26 14:15:39 stever Exp $";
 #endif
 
-#include <internal_volume_io.h>
+#include <volume_io/internal_volume_io.h>
 
 public BOOLEAN eigen(double **inputMat, int ndim, 
 		     double *eigen_val, double **eigen_vec, 

@@ -23,7 +23,10 @@
 
 @CREATED    : Mon Oct  4 13:06:17 EST 1993 Louis
 @MODIFIED   : $Log: make_matlab_data_file.c,v $
-@MODIFIED   : Revision 96.2  2000-02-15 19:02:07  stever
+@MODIFIED   : Revision 96.3  2002-03-26 14:15:38  stever
+@MODIFIED   : Update includes to <volume_io/foo.h> style.
+@MODIFIED   :
+@MODIFIED   : Revision 96.2  2000/02/15 19:02:07  stever
 @MODIFIED   : Add tests for param2xfm, minctracc -linear.
 @MODIFIED   :
 @MODIFIED   : Revision 96.1  1999/10/25 19:52:18  louis
@@ -63,12 +66,12 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/make_matlab_data_file.c,v 96.2 2000-02-15 19:02:07 stever Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/make_matlab_data_file.c,v 96.3 2002-03-26 14:15:38 stever Exp $";
 #endif
 
 
 #include <config.h>
-#include <internal_volume_io.h>
+#include <volume_io/internal_volume_io.h>
 
 #include "constants.h"
 #include "arg_data.h"

@@ -1,7 +1,7 @@
 #ifndef  _DEF_AMOEBA_H
 #define  _DEF_AMOEBA_H
 
-#include  <internal_volume_io.h>
+#include  <volume_io.h>
 
 typedef  Real    (*amoeba_function) ( void *, float [] );
 

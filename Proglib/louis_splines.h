@@ -2,7 +2,7 @@
 #ifndef  DEF_SPLINES
 #define  DEF_SPLINES
 
-#include  <basic.h>
+#include  <volume_io/basic.h>
 
 #define  LINEAR_COEF_00     1.0
 #define  LINEAR_COEF_01     0.0

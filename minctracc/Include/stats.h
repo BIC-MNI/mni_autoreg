@@ -15,7 +15,10 @@
 
 @CREATED    : February 23, 1996
 @MODIFIED   : $Log: stats.h,v $
-@MODIFIED   : Revision 1.2  2000-03-15 08:42:40  stever
+@MODIFIED   : Revision 1.3  2002-03-26 14:15:37  stever
+@MODIFIED   : Update includes to <volume_io/foo.h> style.
+@MODIFIED   :
+@MODIFIED   : Revision 1.2  2000/03/15 08:42:40  stever
 @MODIFIED   : Code cleanup: all functions prototyped (except ParseArgs.c), no useless declarations, etc
 @MODIFIED   :
 @MODIFIED   : Revision 1.1  1997/11/03 19:52:55  louis
@@ -26,7 +29,7 @@
 #ifndef  DEF_STATS
 #define  DEF_STATS
 
-#include  <basic.h>
+#include  <volume_io/basic.h>
 
 typedef  struct
 {

@@ -14,7 +14,10 @@
               express or implied warranty.
 
 @MODIFIED   : $Log: optimize.c,v $
-@MODIFIED   : Revision 96.6  2000-05-16 19:48:04  louis
+@MODIFIED   : Revision 96.7  2002-03-26 14:15:45  stever
+@MODIFIED   : Update includes to <volume_io/foo.h> style.
+@MODIFIED   :
+@MODIFIED   : Revision 96.6  2000/05/16 19:48:04  louis
 @MODIFIED   : adjusting code for optical flow
 @MODIFIED   :
 @MODIFIED   : Revision 96.5  2000/05/05 17:57:04  louis
@@ -123,11 +126,11 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 96.6 2000-05-16 19:48:04 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 96.7 2002-03-26 14:15:45 stever Exp $";
 #endif
 
 #include <config.h>
-#include <internal_volume_io.h>
+#include <volume_io/internal_volume_io.h>
 #include <print_error.h>
 #include <amoeba.h>
 

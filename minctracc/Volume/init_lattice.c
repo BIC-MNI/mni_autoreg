@@ -28,7 +28,10 @@
 
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   :  $Log: init_lattice.c,v $
-@MODIFIED   :  Revision 96.2  2000-02-07 19:33:07  stever
+@MODIFIED   :  Revision 96.3  2002-03-26 14:15:47  stever
+@MODIFIED   :  Update includes to <volume_io/foo.h> style.
+@MODIFIED   :
+@MODIFIED   :  Revision 96.2  2000/02/07 19:33:07  stever
 @MODIFIED   :  replaced HAVE_RECENT_VOLUME_IO with more specific feature tests.
 @MODIFIED   :
 @MODIFIED   :  Revision 96.1  1999/10/25 19:59:16  louis
@@ -77,11 +80,11 @@ made change to init lattice to not change start when there is only 1 slice.
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/init_lattice.c,v 96.2 2000-02-07 19:33:07 stever Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/init_lattice.c,v 96.3 2002-03-26 14:15:47 stever Exp $";
 #endif
 
 #include <config.h>
-#include <internal_volume_io.h>
+#include <volume_io/internal_volume_io.h>
 
 #include "matrix_basics.h"
 #include "make_rots.h"

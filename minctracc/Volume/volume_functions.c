@@ -14,7 +14,10 @@
 
 @CREATED    : Tue Jun 15 08:57:23 EST 1993 LC
 @MODIFIED   :  $Log: volume_functions.c,v $
-@MODIFIED   :  Revision 96.8  2001-01-17 14:26:07  louis
+@MODIFIED   :  Revision 96.9  2002-03-26 14:15:47  stever
+@MODIFIED   :  Update includes to <volume_io/foo.h> style.
+@MODIFIED   :
+@MODIFIED   :  Revision 96.8  2001/01/17 14:26:07  louis
 @MODIFIED   :  added a delete_volume() after the copy_volume_definition_no_alloc,
 @MODIFIED   :  just to make sure that there is no leak.
 @MODIFIED   :
@@ -76,11 +79,11 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/volume_functions.c,v 96.8 2001-01-17 14:26:07 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/volume_functions.c,v 96.9 2002-03-26 14:15:47 stever Exp $";
 #endif
 
 #include <config.h>
-#include <internal_volume_io.h>
+#include <volume_io/internal_volume_io.h>
 #include "point_vector.h"
 #include "constants.h"
 #include <print_error.h>
