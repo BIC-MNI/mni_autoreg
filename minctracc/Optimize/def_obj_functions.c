@@ -3,8 +3,11 @@
 @DESCRIPTION: routines to calculate the objective function used for local
               optimization              
 @CREATED    : Nov 4, 1997, Louis Collins
-@MODIFIED   : not yet!
-@VERSION    : $Id: def_obj_functions.c,v 1.2 1998-03-13 20:16:44 louis Exp $
+@VERSION    : $Id: def_obj_functions.c,v 1.3 1999-06-09 13:10:51 louis Exp $
+@MODIFIED   : $Log: def_obj_functions.c,v $
+@MODIFIED   : Revision 1.3  1999-06-09 13:10:51  louis
+@MODIFIED   : clean up
+@MODIFIED   :
 -----------------------------------------------------------------------------*/
 
 #include <config.h>		
@@ -122,7 +125,6 @@ private Real similarity_fn(float *d)
             norm += ABS(Gglobals->features.weight[i]);
             s += Gglobals->features.weight[i] * func_sim;
          }
-/*  print ("s%12.9f ",func_sim); !!! */
          
       }
       
@@ -131,54 +133,15 @@ private Real similarity_fn(float *d)
       else
          print_error_and_line_num("The feature weights are null.", 
                                   __FILE__, __LINE__);
-      
-      
-   } else {
-      /* calc correlation based on projection data */
-      voxel[0] = Gtarget_vox_x + d[3];
-      voxel[1] = Gtarget_vox_y + d[2]; 
-      voxel[2] = Gtarget_vox_z + d[1];
-      voxel[3] = 0.0;
-      voxel[4] = 0.0;
-      
-      convert_voxel_to_world(Gglobals->features.model[0], voxel, &xw, &yw, &zw);
-      
-      evaluate_volume_in_world(Gglobals->features.model[0], xw, yw, zw, 
-                               0, TRUE, 0.0, val,
-                               NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
-      Gproj_d2 = val[0];
-      evaluate_volume_in_world(Gglobals->features.model[1], xw, yw, zw, 
-                               0, TRUE, 0.0, val,
-                               NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
-      Gproj_d2x = 2.0*val[0];
-      evaluate_volume_in_world(Gglobals->features.model[2], xw, yw, zw, 
-                               0, TRUE, 0.0, val,
-                               NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
-      Gproj_d2y = 2.0*val[0];
-      evaluate_volume_in_world(Gglobals->features.model[3], xw, yw, zw, 
-                               0, TRUE, 0.0, val,
-                               NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
-      Gproj_d2z = 2.0*val[0];
-      
-      s  = (Gproj_d1*Gproj_d2   + Gproj_d1x*Gproj_d2x + 
-            Gproj_d1y*Gproj_d2y + Gproj_d1z*Gproj_d2z);
-      s1 = (Gproj_d1*Gproj_d1   +  Gproj_d1x*Gproj_d1x + 
-            Gproj_d1y*Gproj_d1y + Gproj_d1z*Gproj_d1z);
-      s2 = (Gproj_d2*Gproj_d2   + Gproj_d2x*Gproj_d2x + 
-            Gproj_d2y*Gproj_d2y + Gproj_d2z*Gproj_d2z);
-      
-      if ((s1!=0.0) && (s2 !=0.0)) {
-         s = s / ( sqrt(s1) * sqrt(s2) );
-      }
-      else {
-         s = 0.0;
-      }
-      
    }
+
    return( s );
 }
 
-/* this is the function that needs to be minimized */
+/* 
+   this is the objective function that needs to be minimized 
+   to give a local deformation
+*/
 public Real local_objective_function(float *d)
      
 {
@@ -189,20 +152,18 @@ public Real local_objective_function(float *d)
   
   similarity = (Real)similarity_fn( d );
   cost       = (Real)cost_fn( d[1], d[2], d[3], Gcost_radius );
-
-/*  print ("c%12.9f ",cost);  !!! */
+  
   
   r = 1.0 - 
       similarity * similarity_cost_ratio + 
       cost       * (1.0-similarity_cost_ratio);
 
-/*  print ("  -> %12.9f\n",r);  !!! */
-  
   return(r);
 }
 
 
-/*  amoeba_NL_obj_function() is minimized in the amoeba() optimization function
+/*  
+    amoeba_NL_obj_function() is minimized in the amoeba() optimization function
 */
 public Real amoeba_NL_obj_function(void * dummy, float d[])
 {
