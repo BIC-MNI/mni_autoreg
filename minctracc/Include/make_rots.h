@@ -19,23 +19,23 @@ public void
 				  float *rot_x,float *rot_y,float *rot_z,
 				  float *scale_x,float *scale_y,float *scale_z);
 
-public void build_transformation_matrix(double lt[3][4], 
+public void build_transformation_matrix(Transform *trans,
 					double *center,
 					double *translations,
 					double *scales,
 					double *shears,
 					double *rotations);
 
-public void build__inverse_transformation_matrix(double lt[3][4], 
+public void build_inverse_transformation_matrix(Transform *trans,
 						 double *center,
 						 double *translations,
 						 double *scales,
 						 double *shears,
 						 double *rotations);
 
-public Boolean extract_parameters_from_matrix(double lt[3][4], 
-					   double *center,
-					   double *translations,
-					   double *scales,
-					   double *shears,
-					   double *rotations);
+public Boolean extract_parameters_from_matrix(Transform *trans,
+					      double *center,
+					      double *translations,
+					      double *scales,
+					      double *shears,
+					      double *rotations);

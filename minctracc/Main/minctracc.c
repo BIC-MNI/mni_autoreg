@@ -46,6 +46,9 @@ Wed May 26 13:05:44 EST 1993 lc
 #include <recipes.h>
 #include <limits.h>
 
+static char *default_dim_names[N_DIMENSIONS] =
+   { MIzspace, MIyspace, MIxspace };
+
 
 /*************************************************************************/
 main ( argc, argv )
@@ -53,16 +56,14 @@ main ( argc, argv )
      char *argv[];
 {   /* main */
   
-  static String   default_dim_names[N_DIMENSIONS] =
-    { MIzspace, MIyspace, MIxspace };
-
-  global_data_struct 
-    main_data;
 
   Status 
     status;
-  Linear_Transformation 
-    *lt;
+  General_transform
+    tmp_invert;
+  
+  Transform 
+    *lt, ident_trans;
   int 
     sizes[3],msizes[3],i,j;
   Real
@@ -72,7 +73,13 @@ main ( argc, argv )
 
   FILE *ofd;
 
+  char 
+    *comments;
+
   prog_name     = argv[0];	
+
+
+  comments = time_stamp(argc, argv); /* build comment history line for below */
 
 
   /* Call ParseArgv to interpret all command line args */
@@ -93,26 +100,19 @@ main ( argc, argv )
 				/* set up linear transformation to identity, if
 				   not set up in the argument list */
 
-  if (main_args.trans_info.transformation.transform == NULL) { /* then use identity */
-    main_args.trans_info.transformation = identity_transformation;
-    main_args.trans_info.transformation.trans_data = malloc(sizeof(Linear_Transformation));
-    (void) memcpy(main_args.trans_info.transformation.trans_data,
-		  identity_transformation.trans_data,
-		  sizeof(Linear_Transformation));
+  if (main_args.trans_info.transformation == (General_transform *)NULL) { /* then use identity */
+
+				/* build identity General_transform */
+    make_identity_transform(&ident_trans);
+				/* attach it to global w-to-w transformation */
+    ALLOC(main_args.trans_info.transformation,1);
+    create_linear_transform(main_args.trans_info.transformation,&ident_trans);
+
   }
 
-				/* set up main data struct, for file writing below */
-  main_data.n_tags = 0;
-  main_data.n_vols = 2;
-  main_data.dim    = 3;
-  main_data.tags1  = NULL;
-  main_data.tags2  = NULL;
-  main_data.labels = NULL;
-  main_data.tps    = NULL;
-  strcpy(main_data.filename1,main_args.filenames.data);
-  strcpy(main_data.filename2,main_args.filenames.model);
-
-
+  ALLOC(main_args.trans_info.orig_transformation,1);
+  copy_general_transform(main_args.trans_info.transformation,
+			 main_args.trans_info.orig_transformation);
 
   DEBUG_PRINT1 ( "===== Debugging information from %s =====\n", prog_name);
   DEBUG_PRINT1 ( "Data filename       = %s\n", main_args.filenames.data);
@@ -149,21 +149,24 @@ main ( argc, argv )
 	}
 
 
-  DEBUG_PRINT1 ( "Transform linear    = %s\n", (main_args.trans_info.transformation.linear ? "TRUE" : "FALSE") );
-  DEBUG_PRINT1 ( "Transform inverted? = %s\n", (main_args.trans_info.invert_mapping_flag ? "TRUE" : "FALSE") );
+  DEBUG_PRINT1 ( "Transform linear    = %s\n", 
+		(get_transform_type(main_args.trans_info.transformation)==LINEAR ? 
+		 "TRUE" : "FALSE") );
+  DEBUG_PRINT1 ( "Transform inverted? = %s\n", (main_args.trans_info.invert_mapping_flag ? 
+						"TRUE" : "FALSE") );
   DEBUG_PRINT1 ( "Transform type      = %d\n", main_args.trans_info.transform_type );
 
-  if (main_args.trans_info.transformation.linear) {
-    lt = (Linear_Transformation *) main_args.trans_info.transformation.trans_data;
+  if (get_transform_type(main_args.trans_info.transformation)==LINEAR) {
+    lt = get_linear_transform_ptr(main_args.trans_info.transformation);
 
     DEBUG_PRINT ( "Transform matrix    = ");
-    for_less(i,0,4) DEBUG_PRINT1 ("%9.4f ",lt->mat[0][i]);
+    for_less(i,0,4) DEBUG_PRINT1 ("%9.4f ",Transform_elem(*lt,0,i));
     DEBUG_PRINT ( "\n" );
     DEBUG_PRINT ( "                      ");
-    for_less(i,0,4) DEBUG_PRINT1 ("%9.4f ",lt->mat[1][i]);
+    for_less(i,0,4) DEBUG_PRINT1 ("%9.4f ",Transform_elem(*lt,1,i));
     DEBUG_PRINT ( "\n" );
     DEBUG_PRINT ( "                      ");
-    for_less(i,0,4) DEBUG_PRINT1 ("%9.4f ",lt->mat[2][i]);
+    for_less(i,0,4) DEBUG_PRINT1 ("%9.4f ",Transform_elem(*lt,2,i));
     DEBUG_PRINT ( "\n" );
   }
 
@@ -189,16 +192,15 @@ main ( argc, argv )
   ALLOC( model, 1 );
   status = input_volume( main_args.filenames.data, default_dim_names, FALSE,  &data );
   if (status != OK)
-    print_error("Cannot input volume '%s'",
-		__FILE__, __LINE__,main_args.filenames.data,0,0,0,0);
+    print_error("Cannot input volume '%s'",__FILE__, __LINE__,main_args.filenames.data);
   get_volume_separations(data, step);
   get_volume_sizes(data, sizes);
-  get_volume_range(data, &min_value, &max_value);
+  get_volume_voxel_range(data, &min_value, &max_value);
   if (mask_data != NULL) {
     get_volume_sizes(mask_data, msizes);
     if (! (sizes[0]==msizes[0] && sizes[1]==msizes[1] && sizes[2]==msizes[2]) ) {
       print_error("Data and mask must have the same voxel sampling",
-		  __FILE__, __LINE__,0,0,0,0,0);
+		  __FILE__, __LINE__);
     }
   }
   DEBUG_PRINT3 ( "Source volume %3d cols by %3d rows by %d slices\n",
@@ -214,15 +216,15 @@ main ( argc, argv )
   status = input_volume( main_args.filenames.model, default_dim_names, FALSE, &model );
   if (status != OK)
     print_error("Cannot input volume '%s'",
-		__FILE__, __LINE__,main_args.filenames.model,0,0,0,0);
+		__FILE__, __LINE__,main_args.filenames.model);
   get_volume_separations(model, step);
   get_volume_sizes(model, sizes);
-  get_volume_range(model, &min_value, &max_value);
+  get_volume_voxel_range(model, &min_value, &max_value);
   if (mask_model != NULL) {
     get_volume_sizes(mask_model, msizes);
     if (! (sizes[0]==msizes[0] && sizes[1]==msizes[1] && sizes[2]==msizes[2]) ) {
       print_error("Model and mask must have the same voxel sampling",
-		  __FILE__, __LINE__,0,0,0,0,0);
+		  __FILE__, __LINE__);
     }
   }
   DEBUG_PRINT3 ( "Target volume %3d cols by %3d rows by %d slices\n",
@@ -236,11 +238,11 @@ main ( argc, argv )
   
   if (data->n_dimensions!=3) {
     print_error ("File %s has %d dimensions.  Only 3 dims supported.", 
-		 __FILE__, __LINE__, main_args.filenames.data, data->n_dimensions,0,0,0);
+		 __FILE__, __LINE__, main_args.filenames.data, data->n_dimensions);
   }
   if (model->n_dimensions!=3) {
     print_error ("File %s has %d dimensions.  Only 3 dims supported.", 
-		 __FILE__, __LINE__, main_args.filenames.model, model->n_dimensions,0,0,0);
+		 __FILE__, __LINE__, main_args.filenames.model, model->n_dimensions);
   }
 
 
@@ -250,17 +252,17 @@ main ( argc, argv )
   init_params( data, model, mask_data, mask_model, &main_args );
 
   DEBUG_PRINT  ("AFTER init_params()\n");
-  if (main_args.trans_info.transformation.linear) {
-    lt = (Linear_Transformation *) main_args.trans_info.transformation.trans_data;
+  if (get_transform_type(main_args.trans_info.transformation)==LINEAR) {
+    lt = get_linear_transform_ptr(main_args.trans_info.transformation);
 
     DEBUG_PRINT ( "Transform matrix    = ");
-    for_less(i,0,4) DEBUG_PRINT1 ("%9.4f ",lt->mat[0][i]);
+    for_less(i,0,4) DEBUG_PRINT1 ("%9.4f ",Transform_elem(*lt,0,i));
     DEBUG_PRINT ( "\n" );
     DEBUG_PRINT ( "                      ");
-    for_less(i,0,4) DEBUG_PRINT1 ("%9.4f ",lt->mat[1][i]);
+    for_less(i,0,4) DEBUG_PRINT1 ("%9.4f ",Transform_elem(*lt,1,i));
     DEBUG_PRINT ( "\n" );
     DEBUG_PRINT ( "                      ");
-    for_less(i,0,4) DEBUG_PRINT1 ("%9.4f ",lt->mat[2][i]);
+    for_less(i,0,4) DEBUG_PRINT1 ("%9.4f ",Transform_elem(*lt,2,i));
     DEBUG_PRINT ( "\n" );
   }
   DEBUG_PRINT ( "\n" );
@@ -310,7 +312,7 @@ main ( argc, argv )
     status = open_file(  main_args.filenames.measure_file, WRITE_FILE, BINARY_FORMAT,  &ofd );
     if ( status != OK ) 
       print_error ("filename `%s' cannot be opened.", 
-		   __FILE__, __LINE__, main_args.filenames.measure_file, 0,0,0,0);
+		   __FILE__, __LINE__, main_args.filenames.measure_file);
 
 				/* do zscore and reload */
 
@@ -360,7 +362,7 @@ main ( argc, argv )
     status = close_file(ofd);
     if ( status != OK ) 
       print_error ("filename `%s' cannot be closed.", 
-		   __FILE__, __LINE__, main_args.filenames.measure_file, 0,0,0,0);
+		   __FILE__, __LINE__, main_args.filenames.measure_file);
 
     return( status );
 
@@ -399,50 +401,37 @@ main ( argc, argv )
 
   /* ===========================   write out transformation =============== */
 
-  if (main_args.trans_info.transformation.linear) {
-    
-    lt = (Linear_Transformation *) main_args.trans_info.transformation.trans_data;
-    
-    for_less ( i, 0, 3 )       /* copy to main_data transform matrix */
-      for_less ( j, 0, 4)
-	main_data.xform[i][j] = lt->mat[i][j];
-    
-  } 
-  else {
-    (void) fprintf(stderr, 
-		   "\n%s: Error - non-linear transformations not yet supported\n", 
-		   prog_name);
-    exit(EXIT_FAILURE);
-  }
+				/* if I have internally inverted the transform,
+				   than flip it back forward before the save.   */
 
-  if (main_args.trans_info.invert_mapping_flag && main_args.trans_info.transformation.linear) {
-    
-    the_matrix= matrix(1,4,1,4);
-    inv_matrix= matrix(1,4,1,4);
-    
-    for (i=1; i<=4; ++i) {      /* copy to main transform matrix */
-      for (j=1; j<=3; ++j)
-	the_matrix[i][j] = main_data.xform[j-1][i-1];
-      if (i!=4)
-	the_matrix[i][4] = 0.0;
-      else
-	the_matrix[i][4] = 1.0;
-    }
-    
-    invertmatrix(4,the_matrix,inv_matrix);
-    
-    for (i=1; i<=4; ++i)        /* copy to main transform matrix */
-      for (j=1; j<=3; ++j)
-	main_data.xform[j-1][i-1] = inv_matrix[i][j];
-    
-    free_matrix(inv_matrix,1,4,1,4);
-    free_matrix(the_matrix,1,4,1,4);
+  if (main_args.trans_info.invert_mapping_flag) {
+
+    DEBUG_PRINT ("Re-inverting transformation\n");
+    create_inverse_general_transform(main_args.trans_info.transformation,
+				     &tmp_invert);
+
+    copy_general_transform(&tmp_invert,main_args.trans_info.transformation);
+
   }
+				/* note: - I use the comment string built above! */
+				/* open file */
+
+  status = open_file(  main_args.filenames.output_trans, WRITE_FILE, BINARY_FORMAT,  &ofd );
+  if ( status != OK ) 
+    print_error ("filename `%s' cannot be opened.", 
+		 __FILE__, __LINE__, main_args.filenames.output_trans);
   
-  if (!save_transform(&main_data, main_args.filenames.output_trans)) {
-    (void) fprintf(stderr,"Error saving transformation to %s.\n",main_args.filenames.output_trans);
-    return ERROR_STATUS;
-  }
+  				/* save transformation */
+
+  status = output_transform(ofd, comments, main_args.trans_info.transformation );
+
+				/* close file */
+  if (status == OK)
+    status = close_file(ofd);
+  else
+    print_error ("Problems writing  `%s'.",
+		 __FILE__, __LINE__, main_args.filenames.output_trans);
+
   
   return( status );
 }
@@ -464,84 +453,84 @@ main ( argc, argv )
 ---------------------------------------------------------------------------- */
 public int get_transformation(char *dst, char *key, char *nextArg)
 {     /* ARGSUSED */
-   Transformation *transformation;
-   Linear_Transformation *matrx;
-   Thin_plate_spline       *tps;
+   Program_Transformation *transform_info;
+   General_transform *transformation;
+   General_transform input_transformation;
    FILE *fp;
-   
-   int dim;
-   int num_pts;
-   double **warps;
-   double **coords;
+   int ch, index;
 
-   /* Get pointer to transformation structure */
-   transformation = (Transformation *) dst;
+   /* Check for following argument */
+   if (nextArg == NULL) {
+      (void) fprintf(stderr, 
+                     "\"%s\" option requires an additional argument\n",
+                     key);
+      return FALSE;
+   }
+
+   /* Get pointer to transform info structure */
+   transform_info = (Program_Transformation *) dst;
+
+   /* Save file name */
+   transform_info->file_name = nextArg;
+
+   if (transform_info->transformation == (General_transform *)NULL) 
+     ALLOC(transform_info->transformation, 1);
+
+   transformation =  transform_info->transformation;
+
 
    /* Open the file */
    if (strcmp(nextArg, "-") == 0) {
-      fp = stdin;
+      /* Create a temporary for standard input */
+      fp=tmpfile();
+      if (fp==NULL) {
+         (void) fprintf(stderr, "Error opening temporary file.\n");
+         exit(EXIT_FAILURE);
+      }
+      while ((ch=getc(stdin))!=EOF) (void) putc(ch, fp);
+      rewind(fp);
    }
    else {
       fp = fopen(nextArg, "r");
       if (fp==NULL) {
-         (void) fprintf(stderr, "Error opening transformation file.\n");
+         (void) fprintf(stderr, "Error opening transformation file %s.\n",
+                        nextArg);
          exit(EXIT_FAILURE);
       }
    }
 
-   /* figure out what type of transformation file, linear or thin plate spline */
-   
-   if ( is_tps_file(fp) ) {
-     transformation->linear = FALSE;
-     transformation->transform = do_non_linear_transformation;
-     if (transformation->trans_data != NULL) FREE(transformation->trans_data);
-     ALLOC( tps, 1 );
-     transformation->trans_data = tps;
-
-     if (!input_tps_transform(fp,
-			      &num_pts,
-			      &dim,
-			      &warps,
-			      &coords)) {
-       (void) fprintf(stderr, "Cannot input Thin Plate Spline transformation.\n");
-       return(FALSE);
-     } 
-     else {
-       tps->num_points = num_pts;
-       tps->dim = dim;
-       tps->warps = warps;
-       tps->coords = coords;
-     }
+   /* Read in the file for later use */
+   if (transform_info->file_contents == NULL) {
+      ALLOC(transform_info->file_contents,TRANSFORM_BUFFER_INCREMENT);
+      transform_info->buffer_length = TRANSFORM_BUFFER_INCREMENT;
    }
-   else {
-				/* Must be a linear transformation */
-     transformation->linear = TRUE;
-     transformation->transform = do_linear_transformation;
-     if (transformation->trans_data != NULL) FREE(transformation->trans_data);
-     ALLOC( matrx, 1 );
-     transformation->trans_data = matrx;
-     
-     /* Read the file */
-     if (!input_transform(fp, matrx->mat)) {
-       (void) fprintf(stderr, "Error reading transformation file.\n");
-       exit(EXIT_FAILURE);
-     }
-     
-     /* Invert the transformation */
-
-/*
-     invert_transformation(transformation, transformation);  only needed for resampling!
-*/
+   for (index = 0; (ch=getc(fp)) != EOF; index++) {
+      if (index >= transform_info->buffer_length-1) {
+         transform_info->buffer_length += TRANSFORM_BUFFER_INCREMENT;
+	 REALLOC(transform_info->file_contents, 
+		 transform_info->buffer_length);
+      }
+      transform_info->file_contents[index] = ch;
    }
-   
+   transform_info->file_contents[index] = '\0';
+   rewind(fp);
+
+   /* Read the file */
+   if (input_transform(fp, &input_transformation)!=OK) {
+      (void) fprintf(stderr, "Error reading transformation file.\n");
+      exit(EXIT_FAILURE);
+   }
+   (void) fclose(fp);
 
    /* set a GLOBAL flag, to show that a transformation has been read in */
 
-   main_args.trans_info.use_default = FALSE;	
+   main_args.trans_info.use_default = FALSE;
+
+
+   copy_general_transform(&input_transformation,transformation);
 
    return TRUE;
 }
-
 
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : get_mask_file
@@ -587,13 +576,6 @@ public int get_mask_file(char *dst, char *key, char *nextArg)
   
 }
 
-
-public void print_error(char *s, char * d1, int d2, int d3, int d4, int d5, int d6, int d7)
-{
-  (void) fprintf(stderr, "Error in %s in file %s, line %d\n",prog_name,d1,d2);
-  (void) fprintf(stderr, "   %s\n", s, d3,d4,d5,d6,d7);
-  exit(EXIT_FAILURE);
-}
 
 
 

@@ -66,13 +66,13 @@ Tue Jun  8 08:44:59 EST 1993 LC
 
 extern char *prog_name;
 
-extern void 
-  print_error(char *s, char * d1, int d2, int d3, int d4, int d5, int d6, int d7);
-
 
 #define EPS  0.00000000001	/* epsilon, should be calculated */
 
 #include "matrix_basics.h"
+
+/* VARARGS */
+public  void  print_error( char format[], char *name, int line, ... );
 
 public Boolean rotmat_to_ang(float **rot, float *ang)
 {
@@ -118,13 +118,13 @@ public Boolean rotmat_to_ang(float **rot, float *ang)
    k = t[3][1];
 
    if (i<EPS) {			/* if i is not already in the positive X range, */
-      print_error("step one: rz not in the range -pi/2..pi/2",__FILE__, __LINE__,0,0,0,0,0);
+      print_error("step one: rz not in the range -pi/2..pi/2",__FILE__, __LINE__);
       return(FALSE);
    }
 
    len = sqrt(i*i + j*j);	/* length of vect x on XY plane */
    if (ABS(len)<EPS) {
-      print_error("step one: length of vect x null.",__FILE__, __LINE__,0,0,0,0,0);
+      print_error("step one: length of vect x null.",__FILE__, __LINE__);
       return(FALSE);
    }
 
@@ -159,14 +159,14 @@ public Boolean rotmat_to_ang(float **rot, float *ang)
    k = s[3][1];
 
    if (i<EPS) {
-      print_error("step two: ry not in the range -pi/2..pi/2",__FILE__, __LINE__,0,0,0,0,0);
+      print_error("step two: ry not in the range -pi/2..pi/2",__FILE__, __LINE__);
       return(FALSE);
    }
 
    len = sqrt(i*i + k*k);		/* length of vect x in XZ plane, after RZ */
 
    if (ABS(len)<EPS) {
-      print_error("step two: length of vect z null.",__FILE__, __LINE__,0,0,0,0,0);
+      print_error("step two: length of vect z null.",__FILE__, __LINE__);
       return(FALSE);
    }
 
@@ -204,7 +204,7 @@ public Boolean rotmat_to_ang(float **rot, float *ang)
    len = sqrt(j*j + k*k);	/* length of vect x in Y,Z plane */
 
    if (ABS(len)<EPS) {
-      print_error("step three: length of vect z null.",__FILE__, __LINE__,0,0,0,0,0);
+      print_error("step three: length of vect z null.",__FILE__, __LINE__);
       return(FALSE);
    }
 

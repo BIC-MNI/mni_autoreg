@@ -1,9 +1,14 @@
-#include "def_mni.h"
-#include "minctracc.h"
+#include <def_mni.h>
 #include <recipes.h>
-#include <def_segment_table.h>
 #include <limits.h>
 
+#include "def_constants.h"
+#include "def_arg_data.h"
+#include "objectives.h"
+
+#include "def_segment_table.h"
+
+extern Arg_Data main_args;
 
 /* external calls: */
 
@@ -39,7 +44,7 @@ extern   double   simplex_size ;
 private float fit_function(float *params) 
 {
 
-  Linear_Transformation *mat;
+  Transform *mat;
   int i;
   float r;
 
@@ -72,26 +77,27 @@ private float fit_function(float *params)
     scale[2] = 1.0;
   }
 
-  if (Gndim==12) {
-    for_less( i, 0, 3 )		/* set shears */
+  for_less( i, 0, 3 )		/* set shears */
+    shear[i] = 0.0;
+  
+  if (Gndim==10) {
+      shear[0] = params[10]; 
+  }
+  else if (Gndim==12) {
+    for_less( i, 0, 3 )		
       shear[i] = params[10+i]; 
   }
-  else
-    for_less( i, 0, 3 )		/* set shears */
-      shear[i] = 0.0;
-  
+
   for_less( i, 0, 3 )
     cent[i] = main_args.trans_info.center[i]; /* GLOBAL MAIN_ARGS USED HERE */
   
 
-  mat = (Linear_Transformation *)main_args.trans_info.transformation.trans_data;
+  mat = get_linear_transform_ptr(main_args.trans_info.transformation);
 
   if (Ginverse_mapping_flag)
     build_inverse_transformation_matrix(mat, cent, trans, scale, shear, rots);
   else
     build_transformation_matrix(mat, cent, trans, scale, shear, rots);
-
-
 
 				/* call the needed objective function */
   r = (main_args.obj_function)(Gdata1,Gdata2,Gmask1,Gmask2,&main_args);
@@ -136,7 +142,7 @@ public Boolean optimize_simplex(Volume d1,
     i,j, 
     ndim, nfunk;
 
-  Linear_Transformation 
+  Transform
     *mat;
 
   double trans[3];
@@ -240,10 +246,13 @@ public Boolean optimize_simplex(Volume d1,
       p[10][9]=p[1][9]+ simplex_size/50;
     }
 
-    if (ndim==12) {
-      for_less( i, 0, 3 )
-	p[11+i][10+i]=p[1][10+i] + (simplex_size);
-    }
+    if (ndim==10) {
+	p[11][10]=p[1][10] + (simplex_size*DEG_TO_RAD);
+    } else
+      if (ndim==12) {
+	for_less( i, 0, 3 )
+	  p[11+i][10+i]=p[1][10+i] + (simplex_size*DEG_TO_RAD);
+      }
 
 
     for (i=1; i<=(ndim+1); ++i)	{   /* set up value of correlation at all points of simplex */
@@ -320,7 +329,7 @@ public Boolean optimize_simplex(Volume d1,
       cent[i]  = globals->trans_info.center[i];
     }
 
-    mat = (Linear_Transformation *)(globals->trans_info.transformation.trans_data);
+    mat = get_linear_transform_ptr(globals->trans_info.transformation);
     
     build_transformation_matrix(mat, cent, trans, scale, shear, rots);
 
@@ -458,7 +467,7 @@ public float measure_fit(Volume d1,
     i,j, 
     ndim;
 
-  Linear_Transformation 
+  Transform
     *mat;
 
   double trans[3];

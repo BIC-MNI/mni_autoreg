@@ -22,7 +22,7 @@ static ArgvInfo argTable[] = {
   {NULL, ARGV_HELP, NULL, NULL,
 	"Initial transformation information."},
   {"-transformation", ARGV_FUNC, (char *) get_transformation, 
-     (char *) &main_args.trans_info.transformation,
+     (char *) &main_args.trans_info,
      "Initial world transformation. (Default = identity)."},
   {"-est_center", ARGV_CONSTANT, (char *) TRUE, (char *) &main_args.trans_flags.estimate_center,
      "use center estimated from Principal axis trans."},
@@ -147,14 +147,4 @@ static ArgvInfo argTable[] = {
   {NULL, ARGV_END, NULL, NULL, NULL}
 };
 
-
-static Linear_Transformation identity_matrix = {
-  1.0, 0.0, 0.0, 0.0,
-  0.0, 1.0, 0.0, 0.0,
-  0.0, 0.0, 1.0, 0.0
-};
-
-static Transformation identity_transformation = {
-  TRUE, do_linear_transformation, &identity_matrix
-};
 

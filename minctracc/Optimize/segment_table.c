@@ -26,7 +26,7 @@ public Boolean build_segment_table(Segment_Table **s_table, Volume d1, int group
     break;
   default:
     print_error("Currently an unsupported data type (%d).", __FILE__, __LINE__, 
-		d1->data_type,0,0,0,0);
+		d1->data_type);
     return(FALSE);
   }
 

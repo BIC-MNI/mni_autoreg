@@ -67,7 +67,8 @@ void   make_rots(float **xmat, float rot_x, float rot_y, float rot_z)
    nr_rotzf(TRZ, rot_z);             /* create the rotate Z matrix */
    
    nr_multf(TRY,1,4,1,4,  TRX,1,4,1,4,  T1); /* apply rx and ry */
-   nr_multf(TRZ,1,4,1,4,  T1,1,4,1,4,  xmat); /* apply rz */
+   nr_multf(TRZ,1,4,1,4,  T1,1,4,1,4,   xmat); /* apply rz */
+
 
    free_matrix(TRX,1,4,1,4);
    free_matrix(TRY,1,4,1,4);
@@ -85,8 +86,8 @@ void   make_rots(float **xmat, float rot_x, float rot_y, float rot_z)
 @INPUT      : center, translations, scales, rotations
 @OUTPUT     : *lt->mat - a linear transformation matrix
 @RETURNS    : nothing
-@DESCRIPTION: mat = (t)(c)(s*r)(-c),
-               the matrix is to be  PREmultiplied with a vector (mat*vec)
+@DESCRIPTION: mat = (T)(C)(SH)(S)(R)(-C)
+               the matrix is to be  PREmultiplied with a column vector (mat*colvec)
 	       when used in the application
 @METHOD     : 
 @GLOBALS    : 
@@ -95,7 +96,7 @@ void   make_rots(float **xmat, float rot_x, float rot_y, float rot_z)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-public void build_transformation_matrix(double lt[3][4], 
+public void build_transformation_matrix(Transform *trans,
 					double *center,
 					double *translations,
 					double *scales,
@@ -104,72 +105,127 @@ public void build_transformation_matrix(double lt[3][4],
 {
   
   float
-    **TEMP1,
-    **TEMP2,
-    **R,
+    **T,
+    **SH,
     **S,
+    **R,
+    **C,
     **T1,
-    **T2;
+    **T2,
+    **T3,
+    **T4;
   int
     i,j;
   
-  TEMP1  = matrix(1,4,1,4);
-  TEMP2  = matrix(1,4,1,4);
-  R      = matrix(1,4,1,4);
-  S      = matrix(1,4,1,4);
-  T1     = matrix(1,4,1,4);
-  T2     = matrix(1,4,1,4);
+  T  = matrix(1,4,1,4);
+  SH = matrix(1,4,1,4);
+  S  = matrix(1,4,1,4);
+  R  = matrix(1,4,1,4);
+  C  = matrix(1,4,1,4);
+  T1 = matrix(1,4,1,4);
+  T2 = matrix(1,4,1,4);
+  T3 = matrix(1,4,1,4);
+  T4 = matrix(1,4,1,4);
   
-				             /* mat = (T)(C)(S)(R)(-C) */
+				             /* mat = (T)(C)(SH)(S)(R)(-C) */
 
-  nr_identf(T1,1,4,1,4);	             /* make (T)(C) */
+  nr_identf(T,1,4,1,4);	             /* make (T)(C) */
   for_less( i, 0, 3 ) {
-    T1[1+i][4] = translations[i] + center[i];		
+    T[1+i][4] = translations[i] - center[i];		
   }
-				             /* make rotation matix */
+                                /* make rotation matix */
   make_rots(R,
 	    (float)(rotations[0]),
 	    (float)(rotations[1]),
 	    (float)(rotations[2])); 
 
+                                /* make shear rotation matrix */
+  make_rots(SH,
+	    (float)(shears[0]),
+	    (float)(shears[1]),      
+	    (float)(shears[2])); 
 
-  nr_identf(S,1,4,1,4);	                     /* make scaling matrix */
+                                /* make scaling matrix */
+  nr_identf(S,1,4,1,4);	           
   for_less( i, 0, 3 ) {
     S[1+i][1+i] = scales[i];
   }
 
-  nr_multf(S,1,4,1,4,  R,1,4,1,4,  T2);      /* make   scale*rotation */
-
-  nr_multf(T1,1,4,1,4,  T2,1,4,1,4,  TEMP1); /* apply centering and rotation*scale */
-
-  nr_identf(T2,1,4,1,4);	             /* make -center          */
+  nr_identf(C,1,4,1,4);      /* make center          */
   for_less( i, 0, 3 ) {
-    T2[1+i][4] = -center[i];		
+    C[1+i][4] = center[i];		
   }
 
-  nr_multf(TEMP1,1,4,1,4, T2,1,4,1,4, TEMP2); /* reposition           */
-   
+  nr_multf(C,1,4,1,4,    SH  ,1,4,1,4, T1 );  
+  nr_multf(T1,1,4,1,4,   S ,1,4,1,4, T2 );  
+  nr_multf(T2,1,4,1,4,   R   ,1,4,1,4, T3 );  
+  nr_multf(T3,1,4,1,4,   T,1,4,1,4, T4 );  
 
-  for (i=1; i<=3; ++i)
-    for (j=1; j<=4; ++j)
-      lt[i-1][j-1] = TEMP2[i][j];
+  for_less(i,0,4)
+    for_less(j,0,4)
+      Transform_elem(*trans, i, j ) = T4[i+1][j+1];
 
-  free_matrix(TEMP1,1,4,1,4);
-  free_matrix(TEMP2,1,4,1,4);
-  free_matrix(R    ,1,4,1,4);
+  free_matrix(T    ,1,4,1,4);
+  free_matrix(SH   ,1,4,1,4);
   free_matrix(S    ,1,4,1,4);
+  free_matrix(R    ,1,4,1,4);
+  free_matrix(C ,1,4,1,4);
   free_matrix(T1   ,1,4,1,4);
   free_matrix(T2   ,1,4,1,4);
+  free_matrix(T3   ,1,4,1,4);
+  free_matrix(T4   ,1,4,1,4);
+}
+
+
+
+private void  build_homogeneous_from_parameters(float **calc_transformation,
+						int ndim, 
+						float *centre, 
+						float *translation,
+						float *scales,
+						float *shears,
+						float *angles)
+{
+  double cent[3];
+  double trans[3];
+  double sc[3];
+  double sh[3];
+  double ang[3];
+  Transform mat;
+
+  int i,j;
+  
+  for(i=0; i<ndim; i++) {
+    cent[i]  = (double)centre[i+1];
+    trans[i] = (double)translation[i+1];
+    sc[i]    = (double)scales[i+1];
+    sh[i]    = (double)shears[i+1];
+    ang[i]   = (double)angles[i+1];
+  }
+
+  build_transformation_matrix(&mat,cent, trans, sc, sh, ang);
+
+  for (i=0; i<ndim; i++) 
+    for (j=0; j<=ndim; j++)
+      calc_transformation[j+1][i+1] = Transform_elem(mat,i,j);
+
+  for (i=0; i<ndim; i++) 
+    calc_transformation[i+1][ndim+1] = 0;
+
+  calc_transformation[ndim+1][ndim+1] = 1.0;
+
 }
 
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : build_inverse_transformation_matrix
 @INPUT      : center, translations, scales, rotations
 @OUTPUT     : the inverse linear transformation matrix of mat:
-                   invmat = (c)*inv(s*r)*(-c)*(-t)
-(t)(c)(s*r)(-c)
+                since mat = (T)(C)(SH)(S)(R)(-C), then
+
+		invmat = (C)(inv(r))(inv(S))(inv(SH))(-C)(-T)
+
 @RETURNS    : nothing
-@DESCRIPTION: mat = (t)(c)(s*r)(-c),
+@DESCRIPTION: 
                the matrix is to be  PREmultiplied with a vector (mat*vec)
 	       when used in the application
 @METHOD     : 
@@ -178,7 +234,7 @@ public void build_transformation_matrix(double lt[3][4],
 @CREATED    : Tue Jun 15 16:45:35 EST 1993 LC
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public void build_inverse_transformation_matrix(double lt[3][4], 
+public void build_inverse_transformation_matrix(Transform *trans,
 						double *center,
 						double *translations,
 						double *scales,
@@ -186,75 +242,91 @@ public void build_inverse_transformation_matrix(double lt[3][4],
 						double *rotations)
 {
   float
-    **TEMP1,
-    **TEMP2,
-    **R,
+    **T,
+    **SH,
     **S,
+    **R,
+    **C,
     **T1,
-    **T2;
+    **T2,
+    **T3,
+    **T4;
   int
     i,j;
   
-  TEMP1  = matrix(1,4,1,4);
-  TEMP2  = matrix(1,4,1,4);
-  R      = matrix(1,4,1,4);
+  T      = matrix(1,4,1,4);
+  SH     = matrix(1,4,1,4);
   S      = matrix(1,4,1,4);
+  R      = matrix(1,4,1,4);
+  C   = matrix(1,4,1,4);
   T1     = matrix(1,4,1,4);
   T2     = matrix(1,4,1,4);
+  T3     = matrix(1,4,1,4);
+  T4     = matrix(1,4,1,4);
   
-				             /* invmat = (C)*inv(S*R)*(-C)*(-T) */
+				/* invmat = (C)(inv(r))(inv(S))(inv(SH))(-C)(-T)
+				   mat = (T)(C)(SH)(S)(R)(-C) */
 
-  nr_identf(T1,1,4,1,4);	             /* make (-C)(-T) */
+  nr_identf(T,1,4,1,4);	             /* make (-T)(-C) */
   for_less( i, 0, 3 ) {
-    T1[1+i][4] = -translations[i] - center[i];		
+    T[1+i][4] = -translations[i] + center[i];		
   }
-
-				             /* make rotation matix */
-  make_rots(R,
+                                /* make rotation matix */
+  make_rots(T1,
 	    (float)(rotations[0]),
 	    (float)(rotations[1]),
 	    (float)(rotations[2])); 
+  transpose(4,4,T1,R);
 
-  nr_identf(S,1,4,1,4);	                     /* make scaling matrix */
+                                /* make shear rotation matrix */
+  make_rots(T1,
+	    (float)(shears[0]),
+	    (float)(shears[1]),      
+	    (float)(shears[2])); 
+  transpose(4,4,T1,SH);
+
+                                /* make scaling matrix */
+  nr_identf(S,1,4,1,4);	           
   for_less( i, 0, 3 ) {
-    S[1+i][1+i] = scales[i];
+    if (scales[i] != 0.0)
+      S[1+i][1+i] = 1/scales[i];
+    else
+      S[1+i][1+i] = 1.0;
   }
 
-  nr_multf(S,1,4,1,4,  R,1,4,1,4,  T2);      /* make   scale*rotation */
-
-  transpose(4,4,T2,T2);		/* to get inv(S*R) */
-
-  
-  nr_multf(T2,1,4,1,4,  T1,1,4,1,4,  TEMP1); /* apply centering and rotation*scale */
-
-  nr_identf(T2,1,4,1,4);	             /* make (C)              */
+  nr_identf(C,1,4,1,4);      /* make center          */
   for_less( i, 0, 3 ) {
-    T2[1+i][4] = center[i];		
+    C[1+i][4] = -center[i];		
   }
 
-  nr_multf(T2,1,4,1,4, TEMP1,1,4,1,4, TEMP2); /* reposition           */
-   
+  nr_multf(T,1,4,1,4,  R ,1,4,1,4, T1 );  
+  nr_multf(T1,1,4,1,4, S ,1,4,1,4, T2 );  
+  nr_multf(T2,1,4,1,4, SH,1,4,1,4, T3 );  
+  nr_multf(T3,1,4,1,4, C ,1,4,1,4, T4 );  
 
-  for (i=1; i<=3; ++i)
-    for (j=1; j<=4; ++j)
-      lt[i-1][j-1] = TEMP2[i][j];
+  for_less(i,0,4)
+    for_less(j,0,4)
+      Transform_elem(*trans, i, j ) = T4[i+1][j+1];
 
-  free_matrix(TEMP1,1,4,1,4);
-  free_matrix(TEMP2,1,4,1,4);
-  free_matrix(R    ,1,4,1,4);
+  free_matrix(T    ,1,4,1,4);
+  free_matrix(SH   ,1,4,1,4);
   free_matrix(S    ,1,4,1,4);
+  free_matrix(R    ,1,4,1,4);
+  free_matrix(C ,1,4,1,4);
   free_matrix(T1   ,1,4,1,4);
   free_matrix(T2   ,1,4,1,4);
+  free_matrix(T3   ,1,4,1,4);
+  free_matrix(T4   ,1,4,1,4);
 }
 
 
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : extract_parameters_from_matrix
-@INPUT      : lt[3][4] - a linear transformation matrix
+@INPUT      : trans    - a linear transformation matrix structure
               center   - an array of the desired center of rotation and scaling.
 @OUTPUT     : translations, scales, rotations
 @RETURNS    : nothing
-@DESCRIPTION: mat = (t)(c)(s*r)(-c)
+@DESCRIPTION: mat = (C)(SH)(S)(R)(-C)(T)
 @METHOD     : 
 @GLOBALS    : 
 @CALLS      : 
@@ -262,7 +334,7 @@ public void build_inverse_transformation_matrix(double lt[3][4],
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-public Boolean extract_parameters_from_matrix(double lt[3][4], 
+public Boolean extract_parameters_from_matrix(Transform *trans,
 					      double *center,
 					      double *translations,
 					      double *scales,
@@ -280,17 +352,17 @@ public Boolean extract_parameters_from_matrix(double lt[3][4],
     *ang,*tmp,
     **xmat,**T,**Tinv,**C,**Sinv,**R,**SR,**SRinv,**Cinv,**TMP1,**TMP2;
 
-  xmat  = matrix(1,4,1,4); nr_identf(xmat,1,4,1,4);
-  TMP1  = matrix(1,4,1,4); nr_identf(TMP1,1,4,1,4);
-  TMP2  = matrix(1,4,1,4); nr_identf(TMP2,1,4,1,4);
-  Cinv  = matrix(1,4,1,4); nr_identf(Cinv,1,4,1,4);
-  SR    = matrix(1,4,1,4); nr_identf(SR  ,1,4,1,4);
+  xmat  = matrix(1,4,1,4); nr_identf(xmat ,1,4,1,4);
+  TMP1  = matrix(1,4,1,4); nr_identf(TMP1 ,1,4,1,4);
+  TMP2  = matrix(1,4,1,4); nr_identf(TMP2 ,1,4,1,4);
+  Cinv  = matrix(1,4,1,4); nr_identf(Cinv ,1,4,1,4);
+  SR    = matrix(1,4,1,4); nr_identf(SR   ,1,4,1,4);
   SRinv = matrix(1,4,1,4); nr_identf(SRinv,1,4,1,4);
-  Sinv  = matrix(1,4,1,4); nr_identf(Sinv,1,4,1,4); 
-  T     = matrix(1,4,1,4); nr_identf(T   ,1,4,1,4);
-  Tinv  = matrix(1,4,1,4); nr_identf(Tinv,1,4,1,4);
-  C     = matrix(1,4,1,4); nr_identf(C   ,1,4,1,4);
-  R     = matrix(1,4,1,4); nr_identf(R   ,1,4,1,4);
+  Sinv  = matrix(1,4,1,4); nr_identf(Sinv ,1,4,1,4); 
+  T     = matrix(1,4,1,4); nr_identf(T    ,1,4,1,4);
+  Tinv  = matrix(1,4,1,4); nr_identf(Tinv ,1,4,1,4);
+  C     = matrix(1,4,1,4); nr_identf(C    ,1,4,1,4);
+  R     = matrix(1,4,1,4); nr_identf(R    ,1,4,1,4);
 
   center_of_rotation = matrix(1,4,1,1);	/* make column vectors */
   result             = matrix(1,4,1,1);
@@ -300,9 +372,9 @@ public Boolean extract_parameters_from_matrix(double lt[3][4],
   ang = vector(1,3);
 
 
-  for_inclusive( i, 0, 2)	/* copy the input matrix */
+  for_inclusive( i, 0, 3)	/* copy the input matrix */
     for_inclusive( j, 0, 3)
-      xmat[i+1][j+1] = (float)lt[i][j];
+      xmat[i+1][j+1] = (float)Transform_elem(*trans,i,j);
 
   
 
@@ -312,12 +384,14 @@ public Boolean extract_parameters_from_matrix(double lt[3][4],
 
   FILL_NR_COLVEC( center_of_rotation, center[0], center[1], center[2] );
 
-  raw_matrix_multiply( 4, 4, 1, xmat, center_of_rotation, result);
+  invertmatrix(4, xmat, TMP1);	/* get inverse of the matrix */
+
+  raw_matrix_multiply( 4, 4, 1, TMP1, center_of_rotation, result);
 
   SUB_NR_COLVEC( result, result, center_of_rotation );
 
   for_inclusive( i, 0, 2) 
-    translations[i] = result[i+1][1];
+    translations[i] = -result[i+1][1];
 
   /* -------------NOW GET THE SCALING VALUES! ----------------- */
 
@@ -332,11 +406,11 @@ public Boolean extract_parameters_from_matrix(double lt[3][4],
     tmp[i+1] = -center[i];
   translation_to_homogeneous(3, tmp, Cinv); 
 
-  matrix_multiply(4,4,4, Cinv, Tinv, TMP1);    /* get scaling*rotation matrix */
+  matrix_multiply(4,4,4, Cinv, xmat, TMP1);    /* get scaling*rotation matrix */
 
-  matrix_multiply(4,4,4, TMP1, xmat, TMP1);
+  matrix_multiply(4,4,4, TMP1, C, TMP1);
 
-  matrix_multiply(4,4,4, TMP1, C,    SR);
+  matrix_multiply(4,4,4, TMP1, Tinv,    SR);
 
   invertmatrix(4, SR, SRinv);	/* get inverse of scaling*rotation */
 
