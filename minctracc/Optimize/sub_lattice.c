@@ -14,9 +14,12 @@
                                     to create a sublattice defined on the target.
      
 @CREATED    : Mon Nov  3, 1997 , Louis Collins
-@VERSION    : $Id: sub_lattice.c,v 1.5 2002-03-26 14:15:46 stever Exp $
+@VERSION    : $Id: sub_lattice.c,v 1.6 2002-08-09 18:31:33 stever Exp $
 @MODIFIED   : $Log: sub_lattice.c,v $
-@MODIFIED   : Revision 1.5  2002-03-26 14:15:46  stever
+@MODIFIED   : Revision 1.6  2002-08-09 18:31:33  stever
+@MODIFIED   : Fix error messages: it is UNsigned bytes that are allowed.
+@MODIFIED   :
+@MODIFIED   : Revision 1.5  2002/03/26 14:15:46  stever
 @MODIFIED   : Update includes to <volume_io/foo.h> style.
 @MODIFIED   :
 @MODIFIED   : Revision 1.4  2000/03/15 08:42:47  stever
@@ -371,7 +374,7 @@ public float go_get_samples_with_offset(
       }
       break;
     default:
-      print_error_and_line_num("Data type not supported in go_get_samples_with_offset (only signed_byte, signed_short, unsigned_short allowed)",__FILE__, __LINE__);
+      print_error_and_line_num("Image data type not supported in go_get_samples_with_offset (only unsigned_byte, signed_short, unsigned_short allowed)",__FILE__, __LINE__);
     }
     
   }
@@ -606,7 +609,7 @@ public float go_get_samples_with_offset(
         }
         break;
         default:
-        print_error_and_line_num("Data type not supported in go_get_samples_with_offset (only signed_byte, signed_short, unsigned_short allowed)",__FILE__, __LINE__);
+        print_error_and_line_num("Image data type not supported in go_get_samples_with_offset (only unsigned_byte, signed_short, unsigned_short allowed)",__FILE__, __LINE__);
      }
      
   }

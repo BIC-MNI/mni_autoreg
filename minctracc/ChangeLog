@@ -1,3 +1,8 @@
+2002-08-09  Steve M. Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* Optimize/sub_lattice.c (go_get_samples_with_offset): Fix error
+	message.
+
 2001-01-17  Louis COLLINS  <louis@bic.mni.mcgill.ca>
 
 	* Volume/volume_functions.c (normalize_data_to_match_target):
