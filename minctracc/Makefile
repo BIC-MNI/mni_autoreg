@@ -3,9 +3,12 @@
 # registration
 # 
 # version 0.1e
-# $Id: Makefile,v 1.2 2000-01-19 18:18:03 louis Exp $
+# $Id: Makefile,v 1.3 2000-01-19 18:47:48 louis Exp $
 # $Log: Makefile,v $
-# Revision 1.2  2000-01-19 18:18:03  louis
+# Revision 1.3  2000-01-19 18:47:48  louis
+# Updating the Makefile for nonlinear minctracc
+#
+# Revision 1.2  2000/01/19 18:18:03  louis
 # Updated minctracc/Makefile to be the saem as in mni_autoreg_0.98f
 #
 # Revision 1.2  1995/09/11  12:50:01  collins
@@ -27,6 +30,7 @@ EXTRA_PROGS = \
 	Extra_progs/xfm2param.c \
 	Extra_progs/test_cov.c \
 	Extra_progs/volume_cog.c \
+	Extra_progs/reverse_def.c \
 	Extra_progs/zscore_vol.c
 
   PROG = minctracc
@@ -43,28 +47,36 @@ MANPAGES=minctracc.1
 	Numerical/matrix_basics.c \
 	Numerical/rotmat_to_ang.c \
 	Numerical/default_def.c \
+	Numerical/quad_max_fit.c \
+	Numerical/stats.c \
+	Optimize/def_obj_functions.c \
+	Optimize/extras.c \
+	Optimize/sub_lattice.c \
 	Optimize/amoeba.c \
 	Optimize/vox_space.c \
 	Optimize/objectives.c \
-	Optimize/obj_fn_mutual_info.c \
 	Optimize/optimize.c \
 	Optimize/segment_table.c \
 	Optimize/deform_support.c \
+	Optimize/super_sample_def.c \
 	Optimize/my_grid_support.c \
-	Optimize/do_nonlinear.c \
+	Optimize/obj_fn_mutual_info.c \
 	Volume/init_lattice.c \
 	Volume/interpolation.c \
-	Volume/volume_functions.c
+	Volume/volume_functions.c \
+	Optimize/do_nonlinear.c 
 
  HEADER_SRCS =  \
 	Include/boolean.h \
 	Include/cov_to_praxes.h \
 	Include/def_segment_table.h \
+	Include/def_tps.h \
 	Include/globals.h \
 	Include/make_rots.h \
 	Include/matrix_basics.h \
 	Include/minctracc.h \
-	Include/rotmat_to_ang.h
+	Include/def_tag_io.h \
+	Include/rotmat_to_ang.h 
 
   OBJS = \
 	$(SRCS:.c=.o)
@@ -80,6 +92,7 @@ MANPAGES=minctracc.1
 
    ALL_LINTS = lint_$(PROG)
 
+
 default: $(ALL_PROGS)
 
 $(PROG_LIB_DIR)/lib$(PROG_LIB).a:
@@ -88,7 +101,7 @@ $(PROG_LIB_DIR)/lib$(PROG_LIB).a:
 $(ALL_PROGS): $(PROG_LIB_DIR)/lib$(PROG_LIB).a
 
 $(PROG): $(OBJS) $(HEADER_SRCS)
-	$(CC) $(OPT) $(OBJS) -o $@ $(LDOPT)
+	$(CC) $(OPT)  $(OBJS) -o $@ $(LDOPT)
 
 lint_$(PROG): $(LINT_LIST1)                # how to lint the executable source
 	lint -u $(LINTFLAGS) $(LINT_LIST1)
