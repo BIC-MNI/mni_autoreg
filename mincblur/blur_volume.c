@@ -29,9 +29,12 @@
               express or implied warranty.
 
 @MODIFIED   : $Log: blur_volume.c,v $
-@MODIFIED   : Revision 9.5  1996-08-12 14:16:28  louis
-@MODIFIED   : Release of MNI_AutoReg version 1.0
+@MODIFIED   : Revision 9.6  1996-08-21 18:22:17  louis
+@MODIFIED   : Pre-release
 @MODIFIED   :
+ * Revision 9.5  1996/08/12  14:16:28  louis
+ * Never released version 0.95
+ *
  * Revision 1.13  1996/08/12  14:16:19  louis
  * Pre-release
  *
@@ -59,7 +62,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/blur_volume.c,v 9.5 1996-08-12 14:16:28 louis Rel $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/blur_volume.c,v 9.6 1996-08-21 18:22:17 louis Exp $";
 #endif
 
 #include <volume_io.h>

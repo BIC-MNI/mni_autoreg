@@ -1,6 +1,6 @@
 
 #include <volume_io.h>
-#include <limits.h>
+#include <config.h>
 
 static char *default_dim_names[N_DIMENSIONS] =
    { MIzspace, MIyspace, MIxspace };

@@ -19,9 +19,12 @@
 
 @CREATED    : some time in 1993
 @MODIFIED   : $Log: gradmag_volume.c,v $
-@MODIFIED   : Revision 9.5  1996-08-12 14:16:28  louis
-@MODIFIED   : Release of MNI_AutoReg version 1.0
+@MODIFIED   : Revision 9.6  1996-08-21 18:22:18  louis
+@MODIFIED   : Pre-release
 @MODIFIED   :
+ * Revision 9.5  1996/08/12  14:16:28  louis
+ * Never released version 0.95
+ *
  * Revision 1.12  1996/08/12  14:16:22  louis
  * Pre-release
  *
@@ -49,7 +52,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/gradmag_volume.c,v 9.5 1996-08-12 14:16:28 louis Rel $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/gradmag_volume.c,v 9.6 1996-08-21 18:22:18 louis Exp $";
 #endif
 
 #include <config.h>             /* for EXIT_FAILURE (on some systems) */
@@ -57,7 +60,6 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur
 #include <stdlib.h>
 #include <stdio.h>
 #include <float.h>
-#include <limits.h>
 #include <string.h>
 #include <math.h>
 #include <minc.h>

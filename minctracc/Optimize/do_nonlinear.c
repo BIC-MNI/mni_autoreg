@@ -16,9 +16,12 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 9.5  1996-08-12 14:16:03  louis
-@MODIFIED   : Release of MNI_AutoReg version 1.0
+@MODIFIED   : Revision 9.6  1996-08-21 18:22:02  louis
+@MODIFIED   : Pre-release
 @MODIFIED   :
+ * Revision 9.5  1996/08/12  14:16:03  louis
+ * Never released version 0.95
+ *
  * Revision 1.26  1996/08/12  14:15:54  louis
  * Pre-release
  *
@@ -222,7 +225,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 9.5 1996-08-12 14:16:03 louis Rel $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 9.6 1996-08-21 18:22:02 louis Exp $";
 #endif
 
 #include <config.h>		/* MAXtype and MIN defs                      */

@@ -17,9 +17,12 @@
 
 @CREATED    : 
 @MODIFIED   : $Log: amoeba.c,v $
-@MODIFIED   : Revision 9.5  1996-08-12 14:16:03  louis
-@MODIFIED   : Release of MNI_AutoReg version 1.0
+@MODIFIED   : Revision 9.6  1996-08-21 18:22:01  louis
+@MODIFIED   : Pre-release
 @MODIFIED   :
+ * Revision 9.5  1996/08/12  14:16:03  louis
+ * Never released version 0.95
+ *
  * Revision 1.4  1996/08/12  14:15:52  louis
  * Pre-release
  *
@@ -92,7 +95,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/amoeba.c,v 9.5 1996-08-12 14:16:03 louis Rel $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/amoeba.c,v 9.6 1996-08-21 18:22:01 louis Exp $";
 #endif
 
 

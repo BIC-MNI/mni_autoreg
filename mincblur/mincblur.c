@@ -54,9 +54,12 @@
               express or implied warranty.
    @CREATED    : January 25, 1992 louis collins (Original using .iff files)
    @MODIFIED   : $Log: mincblur.c,v $
-   @MODIFIED   : Revision 9.5  1996-08-12 14:16:28  louis
-   @MODIFIED   : Release of MNI_AutoReg version 1.0
+   @MODIFIED   : Revision 9.6  1996-08-21 18:22:20  louis
+   @MODIFIED   : Pre-release
    @MODIFIED   :
+ * Revision 9.5  1996/08/12  14:16:28  louis
+ * Never released version 0.95
+ *
  * Revision 1.14  1996/08/12  14:16:24  louis
  * Pre-release
  *
@@ -85,14 +88,14 @@
         rewrite using mnc files and David Macdonald's libmni.a
    ---------------------------------------------------------------------------- */
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/mincblur.c,v 9.5 1996-08-12 14:16:28 louis Rel $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/mincblur.c,v 9.6 1996-08-21 18:22:20 louis Exp $";
 #endif
 
+#include <config.h>
 #include <volume_io.h>
 #include <Proglib.h>
 #include <minc.h>
 #include "kernel.h"
-#include <config.h>
 #include "mincblur.h"
 
 static char *default_dim_names[N_DIMENSIONS] = { MIzspace, MIyspace, MIxspace };

@@ -9,9 +9,12 @@
 @CALLS      : 
 @CREATED    : August 13, 1993 (Peter Neelin)
 @MODIFIED   : $Log: xfminvert.c,v $
-@MODIFIED   : Revision 9.5  1996-08-12 14:15:18  louis
-@MODIFIED   : Release of MNI_AutoReg version 1.0
+@MODIFIED   : Revision 9.6  1996-08-21 18:21:32  louis
+@MODIFIED   : Pre-release
 @MODIFIED   :
+ * Revision 9.5  1996/08/12  14:15:18  louis
+ * Never released version 0.95
+ *
  * Revision 1.4  1996/08/12  14:15:12  louis
  * Pre-release
  *
@@ -53,7 +56,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/xfminvert.c,v 9.5 1996-08-12 14:15:18 louis Rel $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/xfminvert.c,v 9.6 1996-08-21 18:21:32 louis Exp $";
 #endif
 
 #include <stdlib.h>

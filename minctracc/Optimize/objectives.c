@@ -16,9 +16,12 @@
 
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   :  $Log: objectives.c,v $
-@MODIFIED   :  Revision 9.5  1996-08-12 14:16:03  louis
-@MODIFIED   :  Release of MNI_AutoReg version 1.0
+@MODIFIED   :  Revision 9.6  1996-08-21 18:22:04  louis
+@MODIFIED   :  Pre-release
 @MODIFIED   :
+ * Revision 9.5  1996/08/12  14:16:03  louis
+ * Never released version 0.95
+ *
  * Revision 1.12  1996/08/12  14:15:56  louis
  * Pre-release
  *
@@ -55,7 +58,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/objectives.c,v 9.5 1996-08-12 14:16:03 louis Rel $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/objectives.c,v 9.6 1996-08-21 18:22:04 louis Exp $";
 #endif
 
 #include <volume_io.h>

@@ -19,9 +19,12 @@
 
 @CREATED    : 
 @MODIFIED   : $Log: switch_obj_func.c,v $
-@MODIFIED   : Revision 9.5  1996-08-12 14:16:03  louis
-@MODIFIED   : Release of MNI_AutoReg version 1.0
+@MODIFIED   : Revision 9.6  1996-08-21 18:22:06  louis
+@MODIFIED   : Pre-release
 @MODIFIED   :
+ * Revision 9.5  1996/08/12  14:16:03  louis
+ * Never released version 0.95
+ *
  * Revision 1.2  1996/08/12  14:15:59  louis
  * Pre-release
  *

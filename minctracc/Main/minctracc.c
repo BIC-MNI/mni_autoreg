@@ -13,9 +13,12 @@
 
    @CREATED    : February 3, 1992 - louis collins
    @MODIFIED   : $Log: minctracc.c,v $
-   @MODIFIED   : Revision 9.5  1996-08-12 14:15:42  louis
-   @MODIFIED   : Release of MNI_AutoReg version 1.0
+   @MODIFIED   : Revision 9.6  1996-08-21 18:21:49  louis
+   @MODIFIED   : Pre-release
    @MODIFIED   :
+ * Revision 9.5  1996/08/12  14:15:42  louis
+ * Never released version 0.95
+ *
  * Revision 1.16  1996/08/12  14:15:40  louis
  * Pre-release
  *
@@ -72,7 +75,7 @@ Wed May 26 13:05:44 EST 1993 lc
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 9.5 1996-08-12 14:15:42 louis Rel $";
+static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 9.6 1996-08-21 18:21:49 louis Exp $";
 #endif
 
 #include <config.h>
