@@ -44,15 +44,23 @@
 	      recurrence relation ) to increase speed.
 
 @MODIFIED   : $Log: fft.c,v $
-@MODIFIED   : Revision 1.2  1995-09-18 06:45:42  louis
-@MODIFIED   : this file is a working version of mincblur.  All references to numerical
-@MODIFIED   : recipes routines have been removed.  This version is included in the
-@MODIFIED   : package mni_reg-0.1i
+@MODIFIED   : Revision 1.3  1996-08-12 14:16:20  louis
+@MODIFIED   : Pre-release
 @MODIFIED   :
+ * Revision 1.2  1995/09/18  06:45:42  collins
+ * this file is a working version of mincblur.  All references to numerical
+ * recipes routines have been removed.  This version is included in the
+ * package mni_reg-0.1i
+ *
+ * Revision 1.2  1995/09/18  06:45:42  collins
+ * this file is a working version of mincblur.  All references to numerical
+ * recipes routines have been removed.  This version is included in the
+ * package mni_reg-0.1i
+ *
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/fft.c,v 1.2 1995-09-18 06:45:42 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/fft.c,v 1.3 1996-08-12 14:16:20 louis Exp $";
 #endif
 
 

@@ -28,11 +28,14 @@
 
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   :  $Log: init_lattice.c,v $
-@MODIFIED   :  Revision 1.9  1995-02-22 08:56:06  louis
-@MODIFIED   :  Montreal Neurological Institute version.
-@MODIFIED   :  compiled and working on SGI.  this is before any changes for SPARC/
-@MODIFIED   :  Solaris.
+@MODIFIED   :  Revision 1.10  1996-08-12 14:16:12  louis
+@MODIFIED   :  Pre-release
 @MODIFIED   :
+ * Revision 1.9  1995/02/22  08:56:06  collins
+ * Montreal Neurological Institute version.
+ * compiled and working on SGI.  this is before any changes for SPARC/
+ * Solaris.
+ *
  * Revision 1.8  94/06/02  20:16:00  louis
  * made modifications to allow deformations to be calulated in 2D on slices. 
  * changes had to be made in set_up_lattice, init_lattice when defining
@@ -62,15 +65,13 @@ made change to init lattice to not change start when there is only 1 slice.
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/init_lattice.c,v 1.9 1995-02-22 08:56:06 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/init_lattice.c,v 1.10 1996-08-12 14:16:12 louis Exp $";
 #endif
 
-
+#include <config.h>
 #include <volume_io.h>
-#include <recipes.h>
 
 #include "matrix_basics.h"
-#include "cov_to_praxes.h"
 #include "make_rots.h"
 
 #include "constants.h"
@@ -82,137 +83,229 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 
 extern Arg_Data main_args;
 
+	/* prototype from interpolation.c */
+public int point_not_masked(Volume volume, 
+			    Real wx, Real wy, Real wz);
 
 
-/* find the largest lattice array that will fit in the data volume,
+
+
+public void get_volume_XYZV_indices(Volume data, int xyzv[])
+{
+  
+  int 
+    axis, i, vol_dims;
+  char 
+    **data_dim_names;
+
+  vol_dims       = get_volume_n_dimensions(data);
+  data_dim_names = get_volume_dimension_names(data);
+
+  for_less(i,0,N_DIMENSIONS+1) xyzv[i] = -1;
+  for_less(i,0,vol_dims) {
+    if (convert_dim_name_to_spatial_axis(data_dim_names[i], &axis )) {
+      xyzv[axis] = i; 
+    } 
+    else {     /* not a spatial axis */
+      xyzv[Z+1] = i;
+    }
+  }
+#ifdef HAVE_RECENT_VOLUME_IO
+  delete_dimension_names(data, data_dim_names);
+#else
+  delete_dimension_names(data_dim_names);
+#endif
+
+}
+
+
+/* 
+   find the largest lattice array, aligned with the existing data volume,
+   that will fit inside the volumetric space define by the data volume,
    given the user spacing.
+   
+   return the lattice info in start, count, step and directions. 
 
-   return the lattice info in start, count and step. 
+   count is constrained to be positive,
+   step is constrained to have the same sign as the data volume.
+
+   if one of the dimensions of the input volume is of length 1, then the
+   output lattice will be of the same length.
+
 */
 
-public void set_up_lattice(Volume data, 
-			   double *user_step, /* user requested spacing for lattice */
-			   double *start,     /* world starting position of lattice */
-			   int    *count,     /* number of steps in each direction */
-			   double *step,      /* step size in each direction */
-			   VectorR directions[])/* array of vector directions for each index*/
+public void set_up_lattice(Volume data,       /* in: volume  */
+			   double *user_step, /* in: user requested spacing for lattice */
+			   double *start,     /* out:world starting position of lattice */
+			   int    *count,     /* out:number of steps in each direction */
+			   double *step,      /* out:step size in each direction */
+			   VectorR directions[])/* out: vector directions for each index*/
+
+				/* note that user_step, start, count, step and directions
+				   are in x,y,z order*/
+
 {
   int 
-    sizes[3], 
-    i,j;
-
+    xyzv[MAX_DIMENSIONS],	/* the indices for the x,y,z and vect directions in
+				   the data volume. */
+    sizes[MAX_DIMENSIONS], 
+    i,j,verbose;
   Real 
     sign,
-    starts[3],
-    start_voxel[3],
-    vect_voxel[3],
-    tmp_point[3],
+    starts[N_DIMENSIONS],
+    start_voxel[MAX_DIMENSIONS],
+    vect_voxel[MAX_DIMENSIONS],
+    tmp_point[N_DIMENSIONS],
     num_steps,
-    offset[3],
-    separations[3];
-
-  BOOLEAN debug; int verbose;
+    offset[MAX_DIMENSIONS],
+    separations[MAX_DIMENSIONS];
+  BOOLEAN 
+    debug; 
 
   debug  = main_args.flags.debug;
   verbose= main_args.flags.verbose;
-
-  for_less(i,0,3)
-    step[i] = user_step[i]; 
-
+  
 				/* get the volume sizes and voxel spacing */
   get_volume_sizes(data, sizes );
   get_volume_separations(data, separations );
-
-  
-
-  if (debug && verbose>1) {
-
-    convert_3D_voxel_to_world(data, 0.0,0.0,0.0,
-			      &starts[0], &starts[1], &starts[2]);
-    
-    print ("In set_up_lattice, for orig data volume:\n");
-    print ("sizes: %7d %7d %7d\n",sizes[0],sizes[1],sizes[2]);
-    print ("steps: %7.2f %7.2f %7.2f\n",separations[0],separations[1],separations[2]);
-    print ("start: %7.2f %7.2f %7.2f\n",starts[0],starts[1],starts[2]); 
+				/* set up the x_ y_ and z_ind indices to be
+				   able to access the volume data below.     */
+  get_volume_XYZV_indices(data, xyzv);
+  if (debug) {
+    print ("In set_up_lattice, xyzv[axes] = %d, %d, %d, %d\n",
+	   xyzv[X],xyzv[Y],xyzv[Z],xyzv[Z+1]);
   }
+    
+  for_less(i,0,3)		/* copy the requested step values for X, Y, Z */
+    step[i] = user_step[i]; 
   
-				/* for each direction */
-  for_less( i, 0, 3) {	
-
+  
+  if (debug && verbose>1) {
+    print ("In set_up_lattice, data volume is (in x y z order):\n");
+    print ("sizes: %7d %7d %7d\n",
+	   xyzv[X]>-1 ? sizes[xyzv[X]]: 0,
+	   xyzv[Y]>-1 ? sizes[xyzv[Y]]: 0,
+	   xyzv[Z]>-1 ? sizes[xyzv[Z]]: 0);
+    print ("steps: %7.2f %7.2f %7.2f\n",
+	   xyzv[X]>-1 ? separations[xyzv[X]] : 0.0,
+	   xyzv[Y]>-1 ? separations[xyzv[Y]] : 0.0,
+	   xyzv[Z]>-1 ? separations[xyzv[Z]] : 0.0);
+    for_less(i,0,MAX_DIMENSIONS) start_voxel[i] = 0.0;
+    convert_voxel_to_world(data, start_voxel,
+			   &starts[X], &starts[Y], &starts[Z]);
+    print ("start: %7.2f %7.2f %7.2f\n",starts[X],starts[Y],starts[Z]); 
+  }
+				/* given the input step size,
+				   figure out the count and starting offset */
+  for_less( i, 0, N_DIMENSIONS) {	
+    
+    count[i] = 1;
+    offset[xyzv[i]] = 0.0;
+    
+    if (xyzv[i] >= 0 && sizes[ xyzv[i] ] > 1) {
 				/* force step to have the same SIGN as the 
 				   volume voxel spacing. */
-    step[i] = ABS( step[i] );
-    if (separations[i] < 0.0)  step[i] *= (-1.0);
-
-    num_steps = separations[i] * sizes[i] / step[i];
-    num_steps = ABS(num_steps);
-
-    count[i] = ROUND(num_steps);
-    if (count[i] == 0) count[i] = 1;
+      step[i] = ABS( step[i] );
+      if (separations[xyzv[i]] < 0.0)  step[i] *= (-1.0);
+      
+      num_steps = separations[xyzv[i]] * sizes[xyzv[i]] / step[i];
+      num_steps = ABS(num_steps);
+      
+      count[i] = ROUND(num_steps);
+      if (count[i] == 0) count[i] = 1;
     
 				/* this is the offset for the start of the
 				   lattice from the corner of the volume 
 				   in world distance mm                   */
-    offset[i] = (separations[i]*sizes[i] - step[i]*count[i]) / 2.0;
-
+      offset[xyzv[i]] = 0.5 * (separations[xyzv[i]]*sizes[xyzv[i]] - 
+			      step[i]*count[i]);
+    }
   }
 
 				/* get the voxel position of the lattice start,
-				   in voxel coordinates of the data volume       */
-  for_less(i,0,3) {
-
+				   in voxel coordinates of the data volume  */
+    
+  for_less(i,0,MAX_DIMENSIONS) start_voxel[i] = 0.0;
+  
+  for_less(i,0,N_DIMENSIONS) {
+    
     if (separations[i] > 0)
       sign = 1.0;
     else
       sign = -1.0;
-
-    if (sizes[i]>1) {
-      start_voxel[i] = sign*((-0.5)  	/* to get to the edge of the voxel,
-                                           since the voxel's  coordinates is at its center */
+    
+    if (xyzv[i]>=0 && sizes[xyzv[i]]>1) {
+      start_voxel[xyzv[i]]= sign*((-0.5)  /* to get to the edge of the voxel,
+                                            since the voxel's  coordinates is 
+					    at its center */
 			     
-			     + (offset[i]/separations[i]) /* the offset to edge of lattice */
-			     
-			     + step[i]/(2*separations[i]));/* the offset to the center of the 
-						    lattice voxel */
-    }
-    else {
-      start_voxel[i] = 0.0;
+				 + (offset[xyzv[i]]/separations[xyzv[i]]) 
+				         /* the offset to edge of lattice */
+				 + step[i]/(2*separations[xyzv[i]]));
+			   	         /* the offset to the center of the 
+					    lattice voxel */
     }
     
   }
+    
 				/* get the world start.  */
-
-  convert_3D_voxel_to_world(data, start_voxel[0],start_voxel[1], start_voxel[2],
-			    &tmp_point[0], &tmp_point[1], &tmp_point[2]);
+  convert_voxel_to_world(data, start_voxel,
+			 &tmp_point[0], &tmp_point[1], &tmp_point[2]);
   
-  for_less(i,0,3)
+  for_less(i,0,N_DIMENSIONS)
     start[i] = tmp_point[i];
-
+  
 				/* build direction vectors*/
-  for_less(i,0,3) {
+  for_less(i,0,N_DIMENSIONS) {
+    
+    for_less(j,0,N_DIMENSIONS)
+      vect_voxel[xyzv[j]] = start_voxel[xyzv[j]];
 
-    for_less(j,0,3)
-      vect_voxel[j] = start_voxel[j];
-
-    vect_voxel[i] += step[i]/separations[i];
-
-    convert_3D_voxel_to_world(data, vect_voxel[0], vect_voxel[1], vect_voxel[2],
-			      &tmp_point[0], &tmp_point[1], &tmp_point[2]);
-
-    fill_Vector( directions[i], tmp_point[0]-start[0], tmp_point[1]-start[1], tmp_point[2]-start[2]);
+    vect_voxel[xyzv[i]] += step[i]/separations[xyzv[i]];
+    
+    convert_voxel_to_world(data, vect_voxel,
+			   &tmp_point[0], &tmp_point[1], &tmp_point[2]);
+    
+    fill_Vector(directions[i], 
+		tmp_point[0]-start[0], tmp_point[1]-start[1], tmp_point[2]-start[2]);
   }
   
   if (debug && verbose>1) {
     
-    print ("                   for lattice volume:\n");
-    print ("sizes: %7d %7d %7d\n",count[0],count[1],count[2]);
-    print ("steps: %7.2f %7.2f %7.2f\n",step[0],step[1],step[2]);
-    print ("start: %7.2f %7.2f %7.2f\n",start[0],start[1],start[2]);
+    print ("       for lattice volume:\n");
+    print ("sizes: %7d %7d %7d\n",count[X],count[Y],count[Z]);
+    print ("steps: %7.2f %7.2f %7.2f\n",step[X],step[Y],step[Z]);
+    print ("start: %7.2f %7.2f %7.2f\n",start[X],start[Y],start[Z]);
+    print ("dir_x: %7.2f %7.2f %7.2f\n",directions[X].coords[X],
+	                                directions[X].coords[Y],
+	                                directions[X].coords[Z]);
+    print ("dir_y: %7.2f %7.2f %7.2f\n",directions[Y].coords[X],
+	                                directions[Y].coords[Y],
+	                                directions[Y].coords[Z]);
+    print ("dir_z: %7.2f %7.2f %7.2f\n",directions[Z].coords[X],
+	                                directions[Z].coords[Y],
+	                                directions[Z].coords[Z]);
     print ("leaving set_up_lattice()\n\n");
   }
  
 
 }
+
+/* 
+   in this procedure, the smallest (in number of samples) 3D lattice
+   is defined that complete covers either d1 or d2 (taking into account
+   the mask volumes m1 and m2).  The lattice spacing is defined by the 
+   globals->step variable, where the steps are stored in X,Y,Z order.
+
+   The procedure returns the globals->start, globals->count and 
+   globals->step that define the lattice (each in X Y Z order).  
+
+   globals->smallest_vol ==1 or ==2, indicating on which volume space
+   the lattice is defined.  (This volume always ==2 when NONLIN 
+   transformations are optimized.
+
+*/
+
 
 public void init_lattice(Volume d1,
 			 Volume d2,
@@ -252,24 +345,28 @@ public void init_lattice(Volume d1,
     tmp_threshold;
 
   int
-    count1[3], count2[3];
+    count1[MAX_DIMENSIONS], count2[MAX_DIMENSIONS];
   double 
-    start1[3], start2[3],
-    step1[3],  step2[3];
+    start1[MAX_DIMENSIONS], start2[MAX_DIMENSIONS],
+    step1[MAX_DIMENSIONS],  step2[MAX_DIMENSIONS];
   VectorR
-    directions1[3],
-    directions2[3];  
+    directions1[MAX_DIMENSIONS],
+    directions2[MAX_DIMENSIONS];  
 
+  if (globals->flags.debug && globals->flags.verbose>1)
+    print ("\n***** entering init_lattice\n");
 				/* build default sampling lattice info
 				   on first data set (d1)               */
   set_up_lattice(d1, globals->step,
 		 start1, count1, step1, directions1);
 
   if (globals->flags.debug && globals->flags.verbose>1) {
+    print ("in init_lattice: for the source data set\n");
     print ("start = %8.2f %8.2f %8.2f \n",start1[0],start1[1],start1[2]);
     print ("count = %8d %8d %8d \n",count1[0],count1[1],count1[2]);
     print ("step  = %8.2f %8.2f %8.2f \n",step1[0],step1[1],step1[2]);
-    
+    print ("thres  = %f %f\n",globals->threshold[0],globals->threshold[1]);
+
     for_less(i,0,3)
       print ("direct= %8.2f %8.2f %8.2f \n",
 	     Point_x(directions1[i]),
@@ -337,18 +434,16 @@ public void init_lattice(Volume d1,
          (max1_col - min1_col + 1) *
          (max1_slice - min1_slice + 1);
 
-  if (globals->flags.debug && globals->flags.verbose>1) {
+  if (globals->flags.debug && globals->flags.verbose>1) 
+    print ("volume =  %d\n",vol1);
+
+  if ((max1_row < min1_row) || (max1_col < min1_col) || 
+      (max1_slice < min1_slice)) {
 
     print ("slice lim %d %d\n",min1_slice, max1_slice);
     print ("row lim   %d %d\n",min1_row, max1_row);
     print ("col lim   %d %d\n",min1_col, max1_col);
-    print ("volume =  %d\n",vol1);
-
-  }
-
-  if ((max1_row < min1_row) || (max1_col < min1_col) || 
-      (max1_slice < min1_slice)) {
-    print_error("%s", __FILE__, __LINE__,"Cannot calculate size of volume 1\n.");
+    print_error_and_line_num("%s", __FILE__, __LINE__,"Cannot calculate size of volume 1\n.");
   }
 
 
@@ -361,7 +456,7 @@ public void init_lattice(Volume d1,
 		 start2, count2, step2, directions2);
 
   if (globals->flags.debug && globals->flags.verbose>1) {
-
+    print ("in init_lattice: for the target data set\n");
     print ("start = %8.2f %8.2f %8.2f \n",start2[0],start2[1],start2[2]);
     print ("count = %8d %8d %8d \n",count2[0],count2[1],count2[2]);
     print ("step  = %8.2f %8.2f %8.2f \n",step2[0],step2[1],step2[2]);
@@ -422,7 +517,10 @@ public void init_lattice(Volume d1,
 
   if ((max2_row < min2_row) || (max2_col < min2_col) || 
       (max2_slice < min2_slice)) {
-    print_error("%s", __FILE__, __LINE__,"Cannot calculate size of volume 2\n." );
+    print ("slice lim %d %d\n",min2_slice, max2_slice);
+    print ("row lim   %d %d\n",min2_row, max2_row);
+    print ("col lim   %d %d\n",min2_col, max2_col);
+    print_error_and_line_num("%s", __FILE__, __LINE__,"Cannot calculate size of volume 2\n." );
   }
 
   vol2 = (max2_row - min2_row + 1) *
@@ -430,13 +528,8 @@ public void init_lattice(Volume d1,
          (max2_slice - min2_slice + 1);
 
 
-  if (globals->flags.debug && globals->flags.verbose>1) {
-
-    print ("slice lim %d %d\n",min2_slice, max2_slice);
-    print ("row lim   %d %d\n",min2_row, max2_row);
-    print ("col lim   %d %d\n",min2_col, max2_col);
+  if (globals->flags.debug && globals->flags.verbose>1) 
     print ("volume =  %d\n",vol2);
-  }
 
   if ( !(globals->trans_info.transform_type==TRANS_NONLIN) && vol1<=vol2) {
     globals->smallest_vol = 1;
@@ -463,6 +556,9 @@ public void init_lattice(Volume d1,
     }
   }
   else {
+				/* The lattice is always defined on the target volume
+				   when computing non-linear transformations.          */
+
     globals->smallest_vol = 2;
     globals->count[COL_IND] = max2_col - min2_col + 1;
     globals->count[ROW_IND] = max2_row - min2_row + 1;
@@ -490,5 +586,8 @@ public void init_lattice(Volume d1,
     globals->threshold[0] = globals->threshold[1];
     globals->threshold[1] = tmp_threshold;
   }
-  
+
+  if (globals->flags.debug && globals->flags.verbose>1)
+    print ("***** leaving init_lattice\n");
+
 }

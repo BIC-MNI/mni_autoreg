@@ -9,11 +9,14 @@
 @CALLS      : 
 @CREATED    : Mon Nov 29 11:01:47 EST 1993 Louis
 @MODIFIED   : $Log: param2xfm.c,v $
-@MODIFIED   : Revision 1.4  1995-02-22 08:56:06  louis
-@MODIFIED   : Montreal Neurological Institute version.
-@MODIFIED   : compiled and working on SGI.  this is before any changes for SPARC/
-@MODIFIED   : Solaris.
+@MODIFIED   : Revision 1.5  1996-08-12 14:15:09  louis
+@MODIFIED   : Pre-release
 @MODIFIED   :
+ * Revision 1.4  1995/02/22  08:56:06  collins
+ * Montreal Neurological Institute version.
+ * compiled and working on SGI.  this is before any changes for SPARC/
+ * Solaris.
+ *
  * Revision 1.3  94/04/26  12:54:34  louis
  * updated with new versions of make_rots, extract2_parameters_from_matrix 
  * that include proper interpretation of skew.
@@ -45,7 +48,8 @@ static char rcsid[]="";
 #include <stdio.h>
 #include <string.h>
 #include <volume_io.h>
-#include <ParseArgv.h>
+#include <config.h>
+#include <Proglib.h>
 
 char *prog_name;
 
@@ -59,6 +63,7 @@ int main(int argc, char *argv[])
      lt;
    static Real 
      scales[3], trans[3], rots[3], skews[3], center[3];
+   static int clobber = FALSE;
    int i;
 
    static ArgvInfo argTable[] = {
@@ -72,6 +77,10 @@ int main(int argc, char *argv[])
 	"Scaling factors."},
      {"-shears",      ARGV_FLOAT, (char *) 3, (char *)skews,
 	"Scaling factors."},
+     {"-clobber",     ARGV_CONSTANT, (char *) TRUE, (char *) &clobber,
+	"Overwrite existing file (default = no clobber)."},
+     {"-version", ARGV_FUNC, (char *) print_version_info, (char *)MNI_AUTOREG_LONG_VERSION,
+	  "Print out version info and exit."},
      {NULL, ARGV_END, NULL, NULL, NULL}
    };
    
@@ -94,7 +103,7 @@ int main(int argc, char *argv[])
    }
 
 
-   if (file_exists(argv[1])) {
+   if (!clobber && file_exists(argv[1])) {
       (void) fprintf(stderr, "%s: file exists already - %s\n",
                      argv[0], argv[1]);
       exit(EXIT_FAILURE);

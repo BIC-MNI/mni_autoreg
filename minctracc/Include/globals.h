@@ -22,6 +22,8 @@ double  iteration_weight         = 0.6;
 double  smoothing_weight         = 0.5;
 double  similarity_cost_ratio    = 0.5;
 int     number_dimensions        = 3;
+int     Matlab_num_steps         = 15;
+int     Diameter_of_local_lattice= 5;
 
 int     invert_mapping_flag      = FALSE;
 int     clobber_flag             = FALSE;
@@ -83,6 +85,12 @@ static ArgvInfo argTable[] = {
      "Recover inverted transformation (model -> source).\n"},
   
   {NULL, ARGV_HELP, NULL, NULL,
+     "\nOptions for feature volumes."},
+  {"-feature_vol", ARGV_GENFUNC, (char *) get_feature_volumes, 
+     (char *) &main_args.filenames.mask_model,
+     "Specify extra featurs <f1.mnc> <f2.mnc> [obj_func] [weight]."},
+
+  {NULL, ARGV_HELP, NULL, NULL,
      "\nOptions for mask volumes."},
   {"-model_mask", ARGV_FUNC, (char *) get_mask_file, 
      (char *) &main_args.filenames.mask_model,
@@ -104,7 +112,7 @@ static ArgvInfo argTable[] = {
      "Do nearest neighbour interpolation"},
   
   {NULL, ARGV_HELP, NULL, NULL,
-     "\nOptimization objective functions. (default = -xcorr)"},
+     "\nLinear optimization objective functions. (default = -xcorr)"},
   {"-xcorr", ARGV_CONSTANT, (char *) xcorr_objective, 
      (char *) &main_args.obj_function,
      "Use cross correlation."},
@@ -125,7 +133,7 @@ static ArgvInfo argTable[] = {
      "Number of groups for -vr and -mi."},
   {"-threshold", ARGV_FLOAT, (char *) 2, 
      (char *) main_args.threshold,
-     "Lower limit for voxel threshold"},
+     "Lower limit for voxel real value threshold"},
   {"-speckle", ARGV_FLOAT, (char *) 0, 
      (char *) &main_args.speckle,
      "percent speckle noise to add to source"},
@@ -155,7 +163,9 @@ static ArgvInfo argTable[] = {
      "\nOptions for measurement comparison."},
   {"-matlab", ARGV_STRING, (char *) 0, 
      (char *) &main_args.filenames.matlab_file,
-     "Output selected objective function value curves."},
+     "Output curves for selected objective function vs parameter."},
+  {"-num_steps", ARGV_INT, (char *) 0, (char *) &Matlab_num_steps,
+     "Number of steps at which to measure obj fn for matlab output."},
   {"-measure", ARGV_STRING, (char *) 0, 
      (char *) &main_args.filenames.measure_file,
      "Output value of each obj. func. for given x-form."},
@@ -185,6 +195,8 @@ static ArgvInfo argTable[] = {
      "Estimate the non-lin fit on a 2D slice only."},
   {"-3D-non-lin", ARGV_CONSTANT, (char *) 3, (char *) &number_dimensions,
      "Estimate the non-lin fit on a 3D volume (default)."},
+  {"-sub_lattice", ARGV_INT, (char *) 0, (char *) &Diameter_of_local_lattice,
+     "Diameter (in number of nodes) of local sub-lattice."},
   {"-use_magnitude", ARGV_CONSTANT, (char *) TRUE, (char *) &main_args.trans_info.use_magnitude,
      "use magnitude data local deformation (default)."},
   {"-use_projections", ARGV_CONSTANT, (char *) FALSE, (char *) &main_args.trans_info.use_magnitude,
@@ -193,6 +205,10 @@ static ArgvInfo argTable[] = {
      "use 3D simplex optimization for local deformation (default)."},
   {"-quadratic", ARGV_CONSTANT, (char *) FALSE, (char *) &main_args.trans_info.use_simplex,
      "use quadratic fit for local deformation."},
+  {"-use_local", ARGV_CONSTANT, (char *) TRUE, (char *) &main_args.trans_info.use_local_smoothing,
+     "Turn on local smoothing (default = global smoothing)."},
+  {"-use_nonisotropic", ARGV_CONSTANT, (char *) FALSE, (char *) &main_args.trans_info.use_local_isotropic,
+     "Turn on directionally sensitive smoothing (def=isotropic smoothing)."},
   {"-super", ARGV_INT, (char *) 0, (char *) &main_args.trans_info.use_super,
      "super sample deformation field during optimization (default)."},
   {"-no_super", ARGV_CONSTANT, (char *) 0, (char *) &main_args.trans_info.use_super,
@@ -220,6 +236,8 @@ static ArgvInfo argTable[] = {
      "Do not write log messages"},
   {"-debug", ARGV_CONSTANT, (char *) TRUE, (char *) &main_args.flags.debug,
      "Print out debug info."},
+  {"-version", ARGV_FUNC, (char *) print_version_info, (char *)MNI_AUTOREG_LONG_VERSION,
+     "Print out version info and exit."},
   {NULL, ARGV_END, NULL, NULL, NULL}
 };
 

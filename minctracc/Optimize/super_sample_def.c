@@ -20,13 +20,16 @@
 
 @CREATED    : 
 @MODIFIED   : $Log: super_sample_def.c,v $
-@MODIFIED   : Revision 1.1  1996-04-01 09:16:29  louis
-@MODIFIED   : Initial revision
+@MODIFIED   : Revision 1.2  1996-08-12 14:15:58  louis
+@MODIFIED   : Pre-release
 @MODIFIED   :
+ * Revision 1.1  1996/04/01  09:16:29  collins
+ * Initial revision
+ *
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/super_sample_def.c,v 1.1 1996-04-01 09:16:29 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/super_sample_def.c,v 1.2 1996-08-12 14:15:58 louis Exp $";
 #endif
 
 #include <limits.h>
@@ -636,6 +639,8 @@ public void interpolate_super_sampled_data_by2(
 
       for_less( index[ orig_xyzv[Z+1] ], 0, orig_count[ xyzv[Z+1] ]) {
 
+	sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+
 
 				/* do faces near the edge first */
 
@@ -698,7 +703,7 @@ public void interpolate_super_sampled_data_by2(
 	  
 	}
 	update_progress_report( &progress, count+1 );
-
+      
 				/* now do faces in the middle */
 
 
@@ -754,6 +759,8 @@ public void interpolate_super_sampled_data_by2(
       sindex[ xyzv[Y] ] = 2*index[ orig_xyzv[Y] ];
 
       for_less( index[ orig_xyzv[Z+1] ], 0, orig_count[ xyzv[Z+1] ]) {
+
+	sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
 
 
 				/* do faces near the edge first */
@@ -863,7 +870,7 @@ public void interpolate_super_sampled_data_by2(
 	  update_progress_report( &progress, count+1 );
 	}
 
-      } /* index[ orig_xyzv[X+1] ] */
+      } /* index[ orig_xyzv[Z+1] ] */
       
     }
 
@@ -874,6 +881,8 @@ public void interpolate_super_sampled_data_by2(
       sindex[ xyzv[Z] ] = 2*index[ orig_xyzv[Z] ];
 
       for_less( index[ orig_xyzv[Z+1] ], 0, orig_count[ xyzv[Z+1] ]) {
+
+	sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
 
 
 				/* do faces near the edge first */
@@ -989,6 +998,8 @@ public void interpolate_super_sampled_data_by2(
     /* LEVEL 3: center interpolation, identified as 'c' in desc above */
 
     for_less( index[ orig_xyzv[Z+1] ], 0, orig_count[ xyzv[Z+1] ]) {
+
+      sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
 
                          /* do all centers that are 1 sample from
 			    the edge of the super-sampled volume */

@@ -35,14 +35,17 @@
       created by removing build_default_deformation_field from 
       transformations.c
 @MODIFIED   : $Log: default_def.c,v $
-@MODIFIED   : Revision 1.3  1995-09-11 12:49:12  louis
-@MODIFIED   : removed reference to get_linear_part_of_transformation(), which was no
-@MODIFIED   : longer needed or used.
+@MODIFIED   : Revision 1.4  1996-08-12 14:15:44  louis
+@MODIFIED   : Pre-release
 @MODIFIED   :
- * Revision 1.2  1995/09/11  12:37:16  louis
+ * Revision 1.3  1995/09/11  12:49:12  collins
+ * removed reference to get_linear_part_of_transformation(), which was no
+ * longer needed or used.
+ *
+ * Revision 1.2  1995/09/11  12:37:16  collins
  * updated working version - corresponds to mni_reg-0.1g
  *
- * Revision 1.1  1995/05/02  11:31:53  louis
+ * Revision 1.1  1995/05/02  11:31:53  collins
  * Initial revision
  *
 ---------------------------------------------------------------------------- */
@@ -51,6 +54,7 @@
 static char rcsid[]="";
 #endif
 
+#include <config.h>		/* to have HAVE_RECENT_VOLUME_IO macro */
 #include <volume_io.h>
 #include <print_error.h>
 #include "arg_data.h"
@@ -139,6 +143,7 @@ private void resample_the_deformation_field(Arg_Data *globals)
 				/* get the nonlinear part
 				   of the transformation           */
   
+  existing_field = (Volume)NULL;
   non_lin_part = get_nth_general_transform(globals->trans_info.transformation,
 					   get_n_concated_transforms(
 					       globals->trans_info.transformation)
@@ -205,8 +210,11 @@ private void resample_the_deformation_field(Arg_Data *globals)
 	  strlen(MIvector_dimension  ) + 1 );
     (void) strcpy( (new_field)->dimension_names[xyzv[Z+1]], MIvector_dimension );
   }
+#ifdef HAVE_RECENT_VOLUME_IO
+  delete_dimension_names(new_field, data_dim_names);
+#else
   delete_dimension_names(data_dim_names);
-
+#endif
 
   if (globals->flags.debug) {
     print ("in resample_deformation_field:\n");

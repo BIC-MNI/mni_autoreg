@@ -9,11 +9,14 @@
 @CALLS      : 
 @CREATED    : August 13, 1993 (Peter Neelin)
 @MODIFIED   : $Log: xfminvert.c,v $
-@MODIFIED   : Revision 1.3  1995-02-22 08:56:06  louis
-@MODIFIED   : Montreal Neurological Institute version.
-@MODIFIED   : compiled and working on SGI.  this is before any changes for SPARC/
-@MODIFIED   : Solaris.
+@MODIFIED   : Revision 1.4  1996-08-12 14:15:12  louis
+@MODIFIED   : Pre-release
 @MODIFIED   :
+ * Revision 1.3  1995/02/22  08:56:06  collins
+ * Montreal Neurological Institute version.
+ * compiled and working on SGI.  this is before any changes for SPARC/
+ * Solaris.
+ *
  * Revision 1.2  94/04/06  11:49:01  louis
  * working linted version of linear + non-linear registration based on Lvv
  * operator working in 3D
@@ -47,7 +50,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/xfminvert.c,v 1.3 1995-02-22 08:56:06 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/xfminvert.c,v 1.4 1996-08-12 14:15:12 louis Exp $";
 #endif
 
 #include <stdlib.h>

@@ -28,23 +28,29 @@
               express or implied warranty.
 
 @MODIFIED   : $Log: gradient_volume.c,v $
-@MODIFIED   : Revision 1.12  1995-09-18 06:45:42  louis
-@MODIFIED   : this file is a working version of mincblur.  All references to numerical
-@MODIFIED   : recipes routines have been removed.  This version is included in the
-@MODIFIED   : package mni_reg-0.1i
+@MODIFIED   : Revision 1.13  1996-08-12 14:16:21  louis
+@MODIFIED   : Pre-release
 @MODIFIED   :
+ * Revision 1.12  1995/09/18  06:45:42  collins
+ * this file is a working version of mincblur.  All references to numerical
+ * recipes routines have been removed.  This version is included in the
+ * package mni_reg-0.1i
+ *
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/gradient_volume.c,v 1.12 1995-09-18 06:45:42 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/gradient_volume.c,v 1.13 1996-08-12 14:16:21 louis Exp $";
 #endif
 
 #include <volume_io.h>
 #include "blur_support.h"
-#include <limits.h>
+#include <config.h>
+#include <print_error.h>
 
 extern int debug;
 
+
+public void fft1(float *signal, int numpoints, int direction);
 
 public Status gradient3D_volume(FILE *ifd, 
 				Volume data, 
@@ -122,6 +128,8 @@ public Status gradient3D_volume(FILE *ifd,
 
   set_file_position(ifd,(long)0);
   status = io_binary_data(ifd,READ_FILE, fdata, sizeof(float), total_voxels);
+  if (status != OK)
+    print_error_and_line_num("problems reading binary data...\n",__FILE__, __LINE__);
 
 
   /*--------------------------------------------------------------------------------------*/
@@ -173,6 +181,7 @@ public Status gradient3D_volume(FILE *ifd,
 
   /*    2nd now convolve this kernel with the rows of the dataset            */  
   
+  slice_limit = 0;
   switch (ndim) {
   case 1: slice_limit = 0; break;
   case 2: slice_limit = sizes[Z]; break;
@@ -260,6 +269,8 @@ public Status gradient3D_volume(FILE *ifd,
 
   set_file_position(ifd,0);
   status = io_binary_data(ifd,READ_FILE, fdata, sizeof(float), total_voxels);
+  if (status != OK)
+    print_error_and_line_num("problems reading binary data...\n",__FILE__, __LINE__);
 
 
 
@@ -374,8 +385,6 @@ public Status gradient3D_volume(FILE *ifd,
 
   status = output_modified_volume(full_outfilename, NC_UNSPECIFIED, FALSE, 
 				  min_val, max_val, data, infile, history, NULL);
-
-
   if (status != OK)
     print_error_and_line_num("problems writing dy gradient data...",__FILE__, __LINE__);
   
@@ -390,6 +399,8 @@ public Status gradient3D_volume(FILE *ifd,
 
   set_file_position(ifd,0);
   status = io_binary_data(ifd,READ_FILE, fdata, sizeof(float), total_voxels);
+  if (status != OK)
+    print_error_and_line_num("problems reading binary data...\n",__FILE__, __LINE__);
   f_ptr = fdata;
   
   vector_size_data = sizes[Z];
@@ -519,6 +530,7 @@ public Status gradient3D_volume(FILE *ifd,
 
   FREE(fdata);
 
+  return(status);
   
 }
 

@@ -17,11 +17,14 @@
 
 @CREATED    : Thu May 20 14:20:21 EST 1993 Louis Collins
 @MODIFIED   : $Log: minctracc.h,v $
-@MODIFIED   : Revision 1.14  1995-02-22 08:56:06  louis
-@MODIFIED   : Montreal Neurological Institute version.
-@MODIFIED   : compiled and working on SGI.  this is before any changes for SPARC/
-@MODIFIED   : Solaris.
+@MODIFIED   : Revision 1.15  1996-08-12 14:15:26  louis
+@MODIFIED   : Pre-release
 @MODIFIED   :
+ * Revision 1.14  1995/02/22  08:56:06  collins
+ * Montreal Neurological Institute version.
+ * compiled and working on SGI.  this is before any changes for SPARC/
+ * Solaris.
+ *
  * Revision 1.13  94/06/19  15:42:15  louis
  * clean working version of 3D local deformation with simplex optimization
  * (by default) on magnitude data (default).  No more FFT stuff.
@@ -52,8 +55,7 @@
 ---------------------------------------------------------------------------- */
 
 #include <minc.h>
-#include <ParseArgv.h>
-#include <time_stamp.h>
+#include <Proglib.h>
 
 
 /* ------------------------  Constants used in program  -------------------- */
@@ -61,8 +63,6 @@
 #include "constants.h"
 
 /* ------------------------  Types used in program  ------------------------ */
-
-#include "deform_field.h"
 
 #include "arg_data.h"
 
@@ -86,6 +86,8 @@ public int point_not_masked(Volume volume,
 public int get_transformation(char *dst, char *key, char *nextArg);
 
 public int get_mask_file(char *dst, char *key, char *nextArg);
+
+public int get_feature_volumes(char *dst, char *key, int argc, char **argv);
 
 public void procrustes(int npoints, int ndim, 
                        float **Apoints, float **Bpoints,
@@ -129,27 +131,7 @@ public BOOLEAN optimize_linear_transformation(Volume d1,
 					      Volume m2, 
 					      Arg_Data *globals);
 
-public BOOLEAN optimize_non_linear_transformation(Volume d1,
-						  Volume d1_dx, 
-						  Volume d1_dy, 
-						  Volume d1_dz, 
-						  Volume d1_dxyz,
-						  Volume d2,
-						  Volume d2_dx, 
-						  Volume d2_dy, 
-						  Volume d2_dz, 
-						  Volume d2_dxyz,
-						  Volume m1,
-						  Volume m2, 
-						  Arg_Data *globals);
-public  Status  output_deformation_file(
-    char                filename[],
-    char                comments[],
-    General_transform   *transform );
-
-public  Status  input_deformation(
-    FILE                *file,
-    General_transform   *transform );
+public BOOLEAN optimize_non_linear_transformation(Arg_Data *globals);
 
 #include "objectives.h"
 
@@ -173,24 +155,24 @@ Status read_all_data(Volume *dblur,
 		     Volume *dxyz, 
 		     char *name);
 
-Status read_deform_data(Volume *dx,
-			Volume *dy,
-			Volume *dz,
-			char *name,
-			char *history);
-
-Status save_deform_data(Volume dx,
-			Volume dy,
-			Volume dz,
-			char *name,
-			char *history);
-
-public  Status  output_deformation_file(
-    char                filename[],
-    char                comments[],
-    General_transform   *transform );
-
 public void build_default_deformation_field(Arg_Data *globals);
+
+
+int allocate_a_new_feature(Feature_volumes *features);
+
+void add_a_feature_for_matching(Feature_volumes *features,
+				Volume data,
+				Volume model,
+				Volume data_mask,
+				Volume model_mask,
+				char *data_name,
+				char *model_name,
+				char *mask_data_name,
+				char *mask_model_name,
+				char obj_func,
+				Real weight,
+				Real thresh_data,
+				Real thresh_model);
 
 /*  ------------------------ Macros used in program  ------------------------ */
 
@@ -202,23 +184,27 @@ Arg_Data main_args = {
   {"","","","","","",""},	/* filenames           */
   {1,FALSE},			/* verbose, debug      */
   {				/* transformation info */
-    TRUE,			/*   do default Principal Axis Transformation start */
-    TRUE,			/*   use_mag=TRUE i.e. do not use Lvv by default    */
-    TRUE,			/*   use_simplex=TRUE i.e. use 3d simplex by default      */
-    TRUE,			/*   use super sampling of deformation field        */
+    FALSE,			/*   use identity tranformation to start */
+    TRUE,			/*   do default tranformation (PAT) to start */
+    TRUE,			/*   use_mag=TRUE; do not use projections by default */
+    TRUE,			/*   use_simplex=TRUE ie use 3d simplex by default */
+    2,				/*   use super sampling of deformation field  */
+    FALSE,			/* use local smoothing       */
+    TRUE,			/* use isotropic smoothing */
     "",			/*   filename */
-    "",			/*   file_contents */
+    NULL,			/*   file_contents */
     0,                          /* buffer_length   */
     (General_transform *)NULL,	/*   General transform */
     (General_transform *)NULL,	/*   General transform copy of input */
     TRANS_PROCRUSTES,		/*   default type      */
-    {0.0, 0.0, 0.0},		/*   center            */
+    {-DBL_MAX, -DBL_MAX, -DBL_MAX},		/*   center            */
     {1.0, 1.0, 1.0},		/*   scale             */
     {0.0, 0.0, 0.0},		/*   shears            */
     {0.0, 0.0, 0.0},		/*   rotations         */
     {0.0, 0.0, 0.0},		/*   translations      */
     {1.0, 1.0, 1.0,  3.1415927/180.0, 3.1415927/180.0, 3.1415927/180.0,   0.02, 0.02, 0.02,  0.02, 0.02, 0.02}, /* optimization weights*/
     FALSE},			/*   invert_mapping_flag                  */
+  {0,NULL, NULL, NULL, NULL, NULL, NULL},	/* FEATURE VOL */
   trilinear_interpolant,	/* use trilinear interpolation by default */
   xcorr_objective,              /* use cross-correlation by default       */
   OPT_SIMPLEX,                  /* use simplex optimization strategy      */
@@ -226,15 +212,15 @@ Arg_Data main_args = {
   {0.0,0.0,0.0},		/* default start for lattice, reset in init_lattice */
   {0,0,0},                      /* default number of element in lattice, also reset */
 
-  {{1.0,0.0,0.0},		/* default sampling lattice axes directions */
-   {0.0,1.0,0.0},
-   {0.0,0.0,1.0}},
+  {{{1.0,0.0,0.0}},		/* default sampling lattice axes directions */
+   {{0.0,1.0,0.0}},
+   {{0.0,0.0,1.0}}},
 
   1,                            /* use first volume as default smallest volume      */
-  {FALSE, FALSE, FALSE, FALSE},
+  {FALSE, FALSE, FALSE, FALSE},	/* Transform flags: est_cent, _scale, _rots, _trans */
   {0.0,0.0},			/* lower limit of voxels considered                 */
   5.0,				/* percent noise speckle                            */
-  16				/* number of groups to use for ratio of variance    */
+  64				/* number of groups to use for ratio of variance    */
 };
 
 

@@ -16,21 +16,24 @@
 
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   :  $Log: objectives.c,v $
-@MODIFIED   :  Revision 1.11  1996-03-25 10:33:15  louis
-@MODIFIED   :  removed the mutual info objective function and moved it
-@MODIFIED   :  into the separate file obj_fn_mutual_info.c
+@MODIFIED   :  Revision 1.12  1996-08-12 14:15:56  louis
+@MODIFIED   :  Pre-release
 @MODIFIED   :
- * Revision 1.10  1996/03/07  13:25:19  louis
+ * Revision 1.11  1996/03/25  10:33:15  collins
+ * removed the mutual info objective function and moved it
+ * into the separate file obj_fn_mutual_info.c
+ *
+ * Revision 1.10  1996/03/07  13:25:19  collins
  * small reorganisation of procedures and working version of non-isotropic
  * smoothing.
  *
- * Revision 1.9  1995/09/07  10:05:11  louis
+ * Revision 1.9  1995/09/07  10:05:11  collins
  * All references to numerical recipes routines are being removed.  At this
  * stage, any num rec routine should be local in the file.  All memory
  * allocation calls to vector(), matrix(), free_vector() etc... have been
  * replaced with ALLOC and FREE from the volume_io library of routines.
  *
- * Revision 1.8  1995/02/22  08:56:06  louis
+ * Revision 1.8  1995/02/22  08:56:06  collins
  * Montreal Neurological Institute version.
  * compiled and working on SGI.  this is before any changes for SPARC/
  * Solaris.
@@ -49,7 +52,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/objectives.c,v 1.11 1996-03-25 10:33:15 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/objectives.c,v 1.12 1996-08-12 14:15:56 louis Exp $";
 #endif
 
 #include <volume_io.h>

@@ -15,11 +15,14 @@
 
 @CREATED    : Mon May 22 14:14:50 MET DST 1995
 @MODIFIED   : $Log: quad_max_fit.c,v $
-@MODIFIED   : Revision 1.3  1995-09-11 12:37:16  louis
-@MODIFIED   : this is a working version. While this file is not used in mni_reg-0.1g,
-@MODIFIED   : it will be part of the non-linear release.
+@MODIFIED   : Revision 1.4  1996-08-12 14:15:47  louis
+@MODIFIED   : Pre-release
 @MODIFIED   :
- * Revision 1.2  1995/08/21  11:31:14  louis
+ * Revision 1.3  1995/09/11  12:37:16  collins
+ * this is a working version. While this file is not used in mni_reg-0.1g,
+ * it will be part of the non-linear release.
+ *
+ * Revision 1.2  1995/08/21  11:31:14  collins
  * This version of the quadratic fit seems to work reasonably well in 3D
  * and compares favorably to the simplex optimization for hoge/jacob fitting
  * at 16mm.
@@ -27,14 +30,14 @@
  * The use of quadratic fitting is twice as fast as simplex (6.4 vs 15.2 min)
  * for the 16mm fit (again with {hoge,jacob}_16_dxyz.mnc and -step 8 8 8.
  *
- * Revision 1.1  1995/06/12  14:30:23  louis
+ * Revision 1.1  1995/06/12  14:30:23  collins
  * Initial revision
  *
 
 ---------------------------------------------------------------------------- */
 
 #include <volume_io.h>		
-
+#include <math.h>
     /* local structures */
 
 typedef struct {
@@ -52,23 +55,46 @@ typedef struct {
     uv;
 } deriv_2D_struct;
 
-#define MINIMUM_DET_ALLOWED 0.000001
+#define SMALL_EPS 0.000000001
+
+#define MINIMUM_DET_ALLOWED 0.00000001
+
+extern int stat_quad_total;
+extern int stat_quad_zero;
+extern int stat_quad_two;
+extern int stat_quad_plus;
+extern int stat_quad_minus;
+extern int stat_quad_semi;
 
     /* local prototypes */
 
 private BOOLEAN negative_2D_definite(deriv_2D_struct *c);
 private BOOLEAN negative_3D_definite(deriv_3D_struct *c);
+private BOOLEAN positive_3D_semidefinite(deriv_3D_struct *c);
 private BOOLEAN positive_3D_definite(deriv_3D_struct *c);
 public   void    estimate_3D_derivatives(Real r[3][3][3], 
 					deriv_3D_struct *c);	     
+public   void    estimate_3D_derivatives_new(Real r[3][3][3], 
+					     deriv_3D_struct *c);	     
+public   void    estimate_3D_derivatives_weighted(Real r[3][3][3], 
+						  deriv_3D_struct *c);	     
 private void    estimate_2D_derivatives(Real r[3][3], 
 					deriv_2D_struct *c);	     
 public BOOLEAN return_2D_disp_from_quad_fit(Real r[3][3], 
 					    Real *dispu, 
 					    Real *dispv);
 
+
+public BOOLEAN eigen(double **inputMat, 
+		     int    ndim, 
+		     double *eigen_val, 
+		     double **eigen_vec, 
+		     int    *iters);
+
+
+
 /* this procedure will return TRUE with the dx,dy,dz (offsets) that 
-   correspond to the maximum value of the quadratic function fit through 
+   correspond to the MAXIMUM value of the quadratic function fit through 
    data points represented in r[u][v][w], unless the maxtrix represented in 
    r[u][v][w] is negative definite
    in which case, the function will return FALSE.                         */
@@ -240,6 +266,184 @@ public BOOLEAN return_3D_disp_from_quad_fit(Real r[3][3][3],
     return(FALSE);
 }
 
+/*
+   This procedure will return the displacements corresponding to the
+   'closest minimum' of the quadratic function represented by the
+   positive semi-definite covariance matrix stored in 'd'.
+
+   Essentially:  
+      1-calculate the eigen-vectors/eigen values
+      2-find the minimum along the eigen-vectors that
+        have non-null eigen vectors.
+      3-return dispu, dispv, dispw.
+*/
+#define INV_SQRT2 0.70710678
+
+
+private void get_disp_from_positive_semidefinite(deriv_3D_struct *d, 
+						 Real *dispu, 
+						 Real *dispv, 
+						 Real *dispw)
+{
+  Real **eigvec, *eigval, **covar, **proj_deriv_on_eigvec;
+  int i,j,eigflag, iters;
+
+  ALLOC2D(eigvec,3,3);
+  ALLOC2D(covar,3,3);
+  ALLOC2D(proj_deriv_on_eigvec,6,3);
+  ALLOC(eigval,3);
+
+  covar[0][0] = d->uu;
+  covar[1][1] = d->vv;
+  covar[2][2] = d->ww;
+  covar[0][1] = covar[1][0] = d->uv;
+  covar[0][2] = covar[2][0] = d->uw;
+  covar[1][2] = covar[2][1] = d->vw;
+  
+  eigflag = eigen(covar, 3, eigval, eigvec, &iters);
+
+  /* now project the derivative information from 'd' onto the eigen vectors */
+
+  for_less(i,0,3) {
+    if (eigval[i] > 0.0) {
+      proj_deriv_on_eigvec[0][i] = d->uu * eigvec[X][i];
+      proj_deriv_on_eigvec[1][i] = d->vv * eigvec[Y][i];
+      proj_deriv_on_eigvec[2][i] = d->ww * eigvec[Z][i];
+      proj_deriv_on_eigvec[3][i] = d->uv * INV_SQRT2 * (eigvec[X][i] + eigvec[Y][i]);
+      proj_deriv_on_eigvec[4][i] = d->uw * INV_SQRT2 * (eigvec[X][i] + eigvec[Z][i]);
+      proj_deriv_on_eigvec[5][i] = d->vw * INV_SQRT2 * (eigvec[Y][i] + eigvec[Z][i]);
+    }
+    else {
+      for_less(j,0,6) proj_deriv_on_eigvec[5][i] = 0.0;
+    }
+  }
+  
+
+  FREE(eigval);
+  FREE2D(eigvec);
+  FREE2D(covar);
+  FREE2D(proj_deriv_on_eigvec);
+}
+#undef INV_SQRT2
+
+/* this procedure will return TRUE with the dx,dy,dz (offsets) that
+   correspond to the MINIMUM of the quadratic function fit through
+   data points represented in r[u][v][w], which must be at least
+   positve semi-definite.  
+   if positive-definite, 
+       then the inverse of the covariance matrix is used to
+       directly calculate the MINIMUM of the quadratic
+       and return TRUE
+   if positive semi-definite,
+       then find the MINIMUM only along the directions that 
+       have NON-NULL eigenvectors, and return TRUE
+   otherwise,
+       return half the distance required to get the minimum value
+       represented in r[][][], and return FALSE */
+
+
+public BOOLEAN return_3D_disp_from_min_quad_fit(Real r[3][3][3], 
+						Real *dispu, 
+						Real *dispv, 
+						Real *dispw)	
+{
+  deriv_3D_struct 
+    d;			/* the 1st and second order derivatives */
+  Real
+    a[3][3],
+    detA;
+  int 
+    hack_to_min_val,
+    count_u, count_v, count_w,
+    i,j,k;
+
+  *dispu = *dispv = *dispw = 0.0;
+  estimate_3D_derivatives_new(r,&d);
+  hack_to_min_val = FALSE;
+  stat_quad_total++;
+
+  /*    /          \    the values that form the matrix A come from the  */
+  /*    | uu uv uw |    second order derivatives in 'd'.  If this matrix */
+  /* A= | uv vv vw |    is not positive definite, then we can not find   */  
+  /*    | uw vw ww |    a minimum in the region defined by r[][][].      */
+  /*    \          /                                                     */
+
+  if (positive_3D_definite(&d)) {
+			/* I have the derivatives, now get the 
+			   displacements that correspond to a minimum
+			   in r[][][]                                     */
+
+    detA = d.uu * (d.vv*d.ww - d.vw*d.vw) -            
+           d.uv * (d.uv*d.ww - d.vw*d.uw) + 	       
+	   d.uw * (d.uv*d.vw - d.vv*d.uw) ;	       
+						       
+    if ( ABS( detA ) <= MINIMUM_DET_ALLOWED ) {
+      hack_to_min_val = TRUE; stat_quad_zero++;
+    }
+    else {
+				/* a = inv(A) */
+
+      a[0][0] = (d.vv*d.ww - d.vw*d.vw) / detA;
+      a[1][0] = (d.uw*d.vw - d.uv*d.ww) / detA;
+      a[2][0] = (d.uv*d.vw - d.uw*d.vv) / detA;
+      a[0][1] = (d.vw*d.uw - d.uv*d.ww) / detA;
+      a[1][1] = (d.uu*d.ww - d.uw*d.uw) / detA;
+      a[2][1] = (d.uw*d.uv - d.uu*d.vw) / detA;
+      a[0][2] = (d.uv*d.vw - d.vv*d.uw) / detA;
+      a[1][2] = (d.uw*d.uv - d.uu*d.vw) / detA;
+      a[2][2] = (d.uu*d.vv - d.uv*d.uv) / detA;
+
+				/* Ax = -b  -->  x = inv(A) (-b) ,
+				   where b is the vector of first derivatives*/
+
+      *dispu = -a[0][0]*d.u - a[0][1]*d.v - a[0][2]*d.w;
+      *dispv = -a[1][0]*d.u - a[1][1]*d.v - a[1][2]*d.w;
+      *dispw = -a[2][0]*d.u - a[2][1]*d.v - a[2][2]*d.w;
+
+      if ( ABS( *dispu ) < 2.0 && ABS( *dispv ) < 2.0 && ABS( *dispw ) < 2.0 ) {	
+	stat_quad_plus++; return (TRUE);
+      }
+      else {
+	hack_to_min_val = TRUE; stat_quad_two++;    
+      }
+    }
+  }
+  else {
+    if (positive_3D_semidefinite(&d)) {
+      stat_quad_semi++;
+      /* get_disp_from_positive_semidefinite(&d, dispu, dispv, dispw); */
+    }
+    else{
+      stat_quad_minus++;;
+      hack_to_min_val = TRUE;    
+    }
+  }
+
+  hack_to_min_val = FALSE;
+
+  if (hack_to_min_val) {
+    
+    *dispu = *dispv = *dispw = 0.0;
+    count_u = count_v = count_w = 0;
+    
+    count_u=1;count_v=1;count_w=1;
+    for_less(i,0,3)
+      for_less(j,0,3)
+	for_less(k,0,3)
+	  if (r[i][j][k]<r[count_u][count_v][count_w]) {
+	    count_u=i; count_v=j; count_w=k;
+	  }
+    
+    *dispu = (count_u - 1.0) /2.0;
+    *dispv = (count_v - 1.0) /2.0;
+    *dispw = (count_w - 1.0) /2.0;
+    
+    return(TRUE);
+  }
+
+  return(FALSE);
+}
+
 public BOOLEAN return_2D_disp_from_quad_fit(Real r[3][3], /* the values used in the quad fit */
 					    Real *dispu, /* the displacements returned */
 					    Real *dispv)	
@@ -291,19 +495,6 @@ public BOOLEAN return_2D_disp_from_quad_fit(Real r[3][3], /* the values used in 
       *dispu = -a[0][0]*d.u - a[0][1]*d.v;
       *dispv = -a[1][0]*d.u - a[1][1]*d.v;
 
-/*
- print ("       %8.5f %8.5f %8.5f \n",	r[0][0], r[1][0], r[2][0]);
- print ("r =    %8.5f %8.5f %8.5f  du = %12.7f\n",r[0][1], r[1][1], r[2][1], *dispu);
- print ("       %8.5f %8.5f %8.5f  dv = %12.7f\n\n",r[0][2], r[1][2], r[2][2], *dispv);
-*/
-
-/*
- print ("  / %8.5f %8.5f \\ -1 / %8.5f %8.5f  \\   du = %12.7f\n",   
-	d.uu, d.uv, a[0][0], a[0][1], *dispu);
- print ("A=\\ %8.5f %8.5f / A =\\ %8.5f %8.5f /   dv = %12.7f\n\n", 
-	d.uv, d.vv, a[0][1], a[1][1], *dispv);
-*/
-
       if ( ABS( *dispu ) > 1.5 || ABS( *dispv ) > 1.5 ) {
 	*dispu = *dispv = 0.0;
 	return(FALSE);
@@ -318,14 +509,13 @@ public BOOLEAN return_2D_disp_from_quad_fit(Real r[3][3], /* the values used in 
 }
 
 
-
 /********************************************************************
    estimate first and second order derivatives by fitting a quadratic
    to given small neighborhood of values stored in r[u][v][w]. 
  ********************************************************************/
 
 public void estimate_3D_derivatives(Real r[3][3][3], 
-				   deriv_3D_struct *d) 
+				    deriv_3D_struct *d) 
 
 {
 
@@ -408,11 +598,138 @@ public void estimate_3D_derivatives(Real r[3][3][3],
   d->uu = (slice_u3 + slice_u1 - 2*slice_u2) / 9.0;                   
   d->vv = (slice_v3 + slice_v1 - 2*slice_v2) / 9.0;                   
   d->ww = (slice_w3 + slice_w1 - 2*slice_w2) / 9.0;                   
-  d->uv = (edge_u3_v3 + edge_u1_v1 - edge_u3_v1 - edge_u1_v3) / 12.0;
+  d->uv = (edge_u3_v3 + edge_u1_v1 - edge_u3_v1 - edge_u1_v3) / 12.0; 
   d->uw = (edge_u3_w3 + edge_u1_w1 - edge_u3_w1 - edge_u1_w3) / 12.0;  
   d->vw = (edge_v3_w3 + edge_v1_w1 - edge_v3_w1 - edge_v1_w3) / 12.0;  
   
 } /* estimate_3D_derivatives */
+
+#define INV_SQRT2 1.0
+/*0.70710678*/
+#define INV_SQRT3 1.0
+/*0.57735027*/
+public void estimate_3D_derivatives_weighted(Real r[3][3][3], 
+					     deriv_3D_struct *d) 
+
+{
+
+  Real	*p11, *p12, *p13;
+  Real	*p21, *p22, *p23;
+  Real	*p31, *p32, *p33;
+
+  Real	slice_u1, slice_u2, slice_u3;
+  Real	slice_v1, slice_v2, slice_v3;
+  Real	slice_w1, slice_w2, slice_w3;
+  
+  Real	edge_u1_v1, /* edge_u1_v2,*/ edge_u1_v3;
+/*  Real	edge_u2_v1, edge_u2_v2, edge_u2_v3; */
+  Real	edge_u3_v1,  /* edge_u3_v2,*/ edge_u3_v3;
+  Real	edge_u1_w1, edge_u1_w2, edge_u1_w3;
+  Real	edge_u2_w1, edge_u2_w2, edge_u2_w3;
+  Real	edge_u3_w1, edge_u3_w2, edge_u3_w3;
+  Real	edge_v1_w1, edge_v1_w2, edge_v1_w3;
+  Real	edge_v2_w1, edge_v2_w2, edge_v2_w3;
+  Real	edge_v3_w1, edge_v3_w2, edge_v3_w3;
+  
+  /* --- 3x3x3 [u][v][w] --- */
+  
+  p11 = r[0][0]; 
+  p12 = r[0][1]; 
+  p13 = r[0][2]; 
+  p21 = r[1][0]; 
+  p22 = r[1][1]; 
+  p23 = r[1][2]; 
+  p31 = r[2][0]; 
+  p32 = r[2][1]; 
+  p33 = r[2][2]; 
+  
+				/* lines varying along w */
+  edge_u1_v1 = ( INV_SQRT3 * *p11     + INV_SQRT2 * *(p11+1) + INV_SQRT3 * *(p11+2));
+  edge_u1_v3 = ( INV_SQRT3 * *p13     + INV_SQRT2 * *(p13+1) + INV_SQRT3 * *(p13+2));
+  edge_u3_v1 = ( INV_SQRT3 * *p31     + INV_SQRT2 * *(p31+1) + INV_SQRT3 * *(p31+2));
+  edge_u3_v3 = ( INV_SQRT3 * *p33     + INV_SQRT2 * *(p33+1) + INV_SQRT3 * *(p33+2));
+  
+				/* lines varying along v */
+  edge_u1_w1 = ( INV_SQRT3 * *p11    +  INV_SQRT2 * *p12    +  INV_SQRT3 * *p13   );
+  edge_u1_w2 = ( INV_SQRT3 * *(p11+1) + INV_SQRT2 * *(p12+1) + INV_SQRT3 * *(p13+1));
+  edge_u1_w3 = ( INV_SQRT3 * *(p11+2) + INV_SQRT2 * *(p12+2) + INV_SQRT3 * *(p13+2));
+  edge_u2_w1 = ( INV_SQRT2 * *p21    +             *p22    +  INV_SQRT2 * *p23   );
+  edge_u2_w2 = ( INV_SQRT2 * *(p21+1) +            *(p22+1) + INV_SQRT2 * *(p23+1));
+  edge_u2_w3 = ( INV_SQRT2 * *(p21+2) +            *(p22+2) + INV_SQRT2 * *(p23+2));
+  edge_u3_w1 = ( INV_SQRT3 * *p31    +  INV_SQRT2 * *p32    +  INV_SQRT3 * *p33   );
+  edge_u3_w2 = ( INV_SQRT3 * *(p31+1) + INV_SQRT2 * *(p32+1) + INV_SQRT3 * *(p33+1)); 
+  edge_u3_w3 = ( INV_SQRT3 * *(p31+2) + INV_SQRT2 * *(p32+2) + INV_SQRT3 * *(p33+2));
+  
+				/* lines varying along u */
+  edge_v1_w1 = ( INV_SQRT3 * *p11    +  INV_SQRT2 * *p21    +  INV_SQRT3 * *p31   );
+  edge_v1_w2 = ( INV_SQRT3 * *(p11+1) + INV_SQRT2 * *(p21+1) + INV_SQRT3 * *(p31+1));
+  edge_v1_w3 = ( INV_SQRT3 * *(p11+2) + INV_SQRT2 * *(p21+2) + INV_SQRT3 * *(p31+2));
+  edge_v2_w1 = ( INV_SQRT2 * *p12    +             *p22    +  INV_SQRT2 * *p32   );
+  edge_v2_w2 = ( INV_SQRT2 * *(p12+1) +            *(p22+1) + INV_SQRT2 * *(p32+1));
+  edge_v2_w3 = ( INV_SQRT2 * *(p12+2) +            *(p22+2) + INV_SQRT2 * *(p32+2));
+  edge_v3_w1 = ( INV_SQRT3 * *p13    +  INV_SQRT2 * *p23    +  INV_SQRT3 * *p33   );
+  edge_v3_w2 = ( INV_SQRT3 * *(p13+1) + INV_SQRT2 * *(p23+1) + INV_SQRT3 * *(p33+1));
+  edge_v3_w3 = ( INV_SQRT3 * *(p13+2) + INV_SQRT2 * *(p23+2) + INV_SQRT3 * *(p33+2));
+  
+  slice_u1 =  (edge_u1_w1 + edge_u1_w2 + edge_u1_w3);
+  slice_u2 =  (edge_u2_w1 + edge_u2_w2 + edge_u2_w3);
+  slice_u3 =  (edge_u3_w1 + edge_u3_w2 + edge_u3_w3);
+  slice_v1 =  (edge_v1_w1 + edge_v1_w2 + edge_v1_w3);
+  slice_v2 =  (edge_v2_w1 + edge_v2_w2 + edge_v2_w3);
+  slice_v3 =  (edge_v3_w1 + edge_v3_w2 + edge_v3_w3);
+  slice_w1 =  (edge_u1_w1 + edge_u2_w1 + edge_u3_w1);
+  slice_w2 =  (edge_u1_w2 + edge_u2_w2 + edge_u3_w2);
+  slice_w3 =  (edge_u1_w3 + edge_u2_w3 + edge_u3_w3);
+  
+  d->u  = (slice_u3 - slice_u1) / ((4*(INV_SQRT3 + INV_SQRT2) +1)*2.0);
+  d->v  = (slice_v3 - slice_v1) / ((4*(INV_SQRT3 + INV_SQRT2) +1)*2.0);
+  d->w  = (slice_w3 - slice_w1) / ((4*(INV_SQRT3 + INV_SQRT2) +1)*2.0);
+  d->uu = (slice_u3 + slice_u1 - 2*slice_u2) / (4*(INV_SQRT3 + INV_SQRT2) +1);
+  d->vv = (slice_v3 + slice_v1 - 2*slice_v2) / (4*(INV_SQRT3 + INV_SQRT2) +1);
+  d->ww = (slice_w3 + slice_w1 - 2*slice_w2) / (4*(INV_SQRT3 + INV_SQRT2) +1);
+  d->uv = (edge_u3_v3 + edge_u1_v1 - edge_u3_v1 - edge_u1_v3) / (4.0 * (2.0*INV_SQRT3 + INV_SQRT2));
+  d->uw = (edge_u3_w3 + edge_u1_w1 - edge_u3_w1 - edge_u1_w3) / (4.0 * (2.0*INV_SQRT3 + INV_SQRT2));
+  d->vw = (edge_v3_w3 + edge_v1_w1 - edge_v3_w1 - edge_v1_w3) / (4.0 * (2.0*INV_SQRT3 + INV_SQRT2));
+
+
+/*
+
+  d->u  = (slice_u3 - slice_u1) /  18.0;
+  d->v  = (slice_v3 - slice_v1) /  18.0;
+  d->w  = (slice_w3 - slice_w1) /  18.0;
+  d->uu = (slice_u3 + slice_u1 - 2*slice_u2) / 9.0; 
+  d->vv = (slice_v3 + slice_v1 - 2*slice_v2) / 9.0; 
+  d->ww = (slice_w3 + slice_w1 - 2*slice_w2) / 9.0; 
+  d->uv = (edge_u3_v3 + edge_u1_v1 - edge_u3_v1 - edge_u1_v3) / 12.0;
+  d->uw = (edge_u3_w3 + edge_u1_w1 - edge_u3_w1 - edge_u1_w3) / 12.0;
+  d->vw = (edge_v3_w3 + edge_v1_w1 - edge_v3_w1 - edge_v1_w3) / 12.0;
+*/
+  
+} /* estimate_3D_derivatives */
+#undef INV_SQRT2 
+#undef INV_SQRT3 
+
+
+/* the procedure above 'smooths' the derivative estimates,
+   the procedure here will use the minimum amount of info
+   to estimate the derivatives */
+public void estimate_3D_derivatives_new(Real r[3][3][3], 
+					deriv_3D_struct *d) 
+
+{
+
+  d->u  = (r[2][1][1] - r[0][1][1] ) / 2.0;
+  d->v  = (r[1][2][1] - r[1][0][1] ) / 2.0;
+  d->w  = (r[1][1][2] - r[1][1][0] ) / 2.0;
+  d->uu = (r[2][1][1] + r[0][1][1] -2*r[1][1][1]);
+  d->vv = (r[1][2][1] + r[1][0][1] -2*r[1][1][1]);
+  d->ww = (r[1][1][2] + r[1][1][0] -2*r[1][1][1]);
+  d->uv = (r[2][2][1] + r[0][0][1] - r[0][2][1] - r[2][0][1]) / 4.0;
+  d->uw = (r[2][1][2] + r[0][1][0] - r[0][1][2] - r[2][1][0]) / 4.0;
+  d->vw = (r[1][2][2] + r[1][0][0] - r[1][0][2] - r[1][2][0]) / 4.0;
+  
+} /* estimate_3D_derivatives */
+
 
 
 private void estimate_2D_derivatives(Real r[3][3], 
@@ -494,6 +811,24 @@ private BOOLEAN positive_3D_definite(deriv_3D_struct *c)
 	  );
 }
 
+private BOOLEAN positive_3D_semidefinite(deriv_3D_struct *c)
+{
+
+  return ((c->uu > -SMALL_EPS) &&
+	  (c->vv > -SMALL_EPS) &&
+	  (c->ww > -SMALL_EPS) &&
+
+	  ((c->uu*c->vv - c->uv*c->uv) > -SMALL_EPS ) &&
+	  ((c->uu*c->ww - c->uw*c->uw) > -SMALL_EPS ) &&
+	  ((c->vv*c->ww - c->vw*c->vw) > -SMALL_EPS ) &&
+
+	  ((c->uu * (c->vv*c->ww - c->vw*c->vw) -            
+	    c->uv * (c->uv*c->ww - c->vw*c->uw) + 	       
+	    c->uw * (c->uv*c->vw - c->vv*c->uw)) > -SMALL_EPS) 
+
+	  );
+}
+
 private BOOLEAN negative_2D_definite(deriv_2D_struct *c)
 
 {
@@ -505,5 +840,537 @@ private BOOLEAN negative_2D_definite(deriv_2D_struct *c)
 }
 
     
+/*
+   this procedure is based on the paper of Thirion and Gourdon,
+   "Computing the differential characteristics of isointensity surfaces"
+   CVIU 61(2) march 190-202, 1995
+
+   The goal is to return the differential charateristics of an
+   iso-surface passing through r[1][1][1] contained within a volume
+   represented in r[][][].
+
+   The characteristics returned:
+
+       dir_1[], 
+       dir_2[] - the vector directions of min amd max curvature
+       r_K     - The scalar value of Gaussian curvature
+       r_S     - The scalar value of the mean curvature
+       r_k1    - The scalar value of the max curvature
+       r_k2    - The scalar value of the min curvature
+       r_norm[]- the vector normal to the isosurf at r[1][1][1] 
+       Lvv     - is actually the mean Lvv value.
+
+   bugs: if the normal to the iso surface has u and v componants
+         equal ( du=dv ) then
+	 the procedure fails to find dir_1 and dir_2.
+
+	 Also, the authors state that there is a preferred direction
+	 with grad(f) = (1,1,1).  In this case, beta=(0,0,0) and
+	 alpha = (0,0,0) -> so no direction vectors found.
+
+	 In either case, the Gaussian, mean, maximum and minimum
+	 curvature values are found correctly.  The problems concern
+	 the curvature directions only.  */
+
+
+public BOOLEAN return_principal_directions(Real r[3][3][3],
+					   Real dir_1[3],
+					   Real dir_2[3],
+					   Real *r_K,
+					   Real *r_S,
+					   Real *r_k1,
+					   Real *r_k2,
+					   Real *r_norm,
+					   Real *r_Lvv,
+					   Real eps)
+
+{
+  deriv_3D_struct 
+    d;			
+
+  Real
+    K,				/* Gaussian curvature      */
+    S,				/* mean curvature          */
+    k1,				/* value of max curvature  */
+    k2,				/* value of min curvature  */
+    Lvv,
+    tmp,
+    det,sq_det,			/* determinant             */
+    len1,len2,			/* length of vector        */
+    sq_mag_grad,		/* square of gradient mag  */
+    beta[3],			/* the vector beta         */
+    alpha[3],			/* the vector alpha        */
+    x,y,z,			/* first order derivatives */
+    xx,yy,zz,xy,xz,yz;		/* second order derivative */
+  int 
+    i;
+
+
+  estimate_3D_derivatives(r,&d);
+
+  x  = d.u;			/* for notational simplicity below */
+  y  = d.v;
+  z  = d.w;
+  xx = d.uu;
+  yy = d.vv;
+  zz = d.ww;
+  xy = d.uv;
+  yz = d.vw;
+  xz = d.uw;
+
+  print ("in return_principal_directions() covar:\n");
+  print ("%12.8f %12.8f %12.8f \n",xx,xy,xz);
+  print ("%12.8f %12.8f %12.8f \n",xy,yy,yz);
+  print ("%12.8f %12.8f %12.8f \n",xz,yz,zz);
+
+  sq_mag_grad = x*x + y*y + z*z;
+
+  *r_K = *r_S = *r_k1 = *r_k2 = 0.0;
+
+  if (r_norm != NULL) {
+    r_norm[X] = x ;
+    r_norm[Y] = y ;
+    r_norm[Z] = z ;
+  }
+  
+  if ( ABS(sq_mag_grad)<eps ) 
+    return(FALSE);
+    
+				/* Gaussian curvature: */
+  K = (
+       x*x*(yy*zz - yz*yz) + 2*y*z*(xz*xy - xx*yz) +
+       y*y*(xx*zz - xz*xz) + 2*x*z*(yz*xy - yy*xz) +
+       z*z*(xx*yy - xy*xy) + 2*x*y*(xz*yz - zz*xy)
+      )
+       /(sq_mag_grad*sq_mag_grad);
+
+				/* Mean curvature */
+  S = (
+       x*x*(yy + zz) - 2*y*z*yz +
+       y*y*(xx + zz) - 2*x*z*xz +
+       z*z*(xx + yy) - 2*x*y*xy
+      )
+       / (2 * sqrt(sq_mag_grad*sq_mag_grad*sq_mag_grad));
+
+
+  det = S*S - K; 
+
+  if ( ABS(det) < SMALL_EPS ) det = 0.0;
+
+  if (det<0.0) {
+    print ("det (S*S - K) is negative, and this shouldn't be...\n");
+    det = ABS(det);
+  }
+
+  sq_det = sqrt(det);
+
+				/* min and max curvatures */
+  k1 = S + sq_det;
+  k2 = S - sq_det;
+
+  Lvv =  sq_mag_grad * S;
+
+  print ("K, S, k1, k2, Lvv, sq_det:   %f %f %f %f %f\n",K, S, k1, k2, Lvv,sq_det);
+
+  len1 = len2 = 0.0;
+
+  if (dir_1  != NULL && dir_2 != NULL) {
+    /* calc principal directions */
+    beta[X] = z-y;
+    beta[Y] = x-z;
+    beta[Z] = y-x;
+    
+    alpha[X] = (-2.0*z*z*z*xy + y*y*y*zz + 2.0*y*y*y*xz - 2.0*y*y*z*xy
+		+2.0*z*z*x*yz  + 2.0*z*z*y*xz - 2.0*y*y*x*yz - 2.0*z*x*y*zz
+		+2.0*x*y*z*yy + y*y*z*xx - 2.0*z*z*x*xz + z*x*x*zz
+		-x*x*z*yy + 2.0*z*z*y*yz - z*y*y*zz +z*z*z*xx - z*z*z*yy
+		-2.0*y*y*x*xz + 2.0*x*x*y*yz - y*y*y*xx + 2.0*x*z*z*xy - y*z*z*xx
+		-2.0*z*y*y*yz + y*z*z*yy - 2.0*z*x*x*yz + 2.0*x*y*y*xy
+		+x*x*y*zz - x*x*y*yy
+		);
+    
+    alpha[Y] = (-2.0*x*x*x*yz + z*z*z*xx + 2.0*z*z*z*xy - 2.0*z*z*x*yz
+		+2.0*x*x*y*xz  + 2.0*x*x*z*xy - 2.0*z*z*y*xz - 2.0*x*y*z*xx
+		+2.0*y*z*x*zz + z*z*x*yy - 2.0*x*x*y*xy + x*y*y*xx
+		-y*y*x*zz + 2.0*x*x*z*xz - x*z*z*xx +x*x*x*yy - x*x*x*zz
+		-2.0*z*z*y*xy + 2.0*y*y*z*xz - z*z*z*yy + 2.0*y*x*x*yz - z*x*x*yy
+		-2.0*x*z*z*xz + z*x*x*zz - 2.0*x*y*y*xz + 2.0*y*z*z*yz
+		+y*y*z*xx - y*y*z*zz
+		);
+    
+    alpha[Z] = (-2.0*y*y*y*xz + x*x*x*yy + 2.0*x*x*x*yz - 2.0*x*x*y*xz
+		+2.0*y*y*z*xy  + 2.0*y*y*x*yz - 2.0*x*x*z*xy - 2.0*y*z*x*yy
+		+2.0*z*x*y*xx + x*x*y*zz - 2.0*y*y*z*yz + y*z*z*yy
+		-z*z*y*xx + 2.0*y*y*x*xy - y*x*x*yy +y*y*y*zz - y*y*y*xx
+		-2.0*x*x*z*yz + 2.0*z*z*x*xy - x*x*x*zz + 2.0*z*y*y*xz - x*y*y*zz
+		-2.0*y*x*x*xy + x*y*y*xx - 2.0*y*z*z*xy + 2.0*z*x*x*xz
+		+z*z*x*yy - z*z*x*xx
+		);
+    
+    for_inclusive(i,X,Z)
+      alpha[i] = alpha[i] / (2 * sqrt(sq_mag_grad*sq_mag_grad*sq_mag_grad));
+    
+    /* t_i = alpha +/- sqrt(det)*beta */
+    
+    for_inclusive(i,X,Z)
+      dir_1[i] = alpha[i] + sq_det*beta[i];
+    
+    for_inclusive(i,X,Z)
+      dir_2[i] = alpha[i] - sq_det*beta[i];
+    
+
+    print ("dir1: %12.8f %12.8f %12.8f\n", dir_1[0],dir_1[1],dir_1[2]);
+    print ("dir2: %12.8f %12.8f %12.8f\n", dir_2[0],dir_2[1],dir_2[2]);
+    print ("alph: %12.8f %12.8f %12.8f\n", alpha[0],alpha[1],alpha[2]);
+    print ("beta: %12.8f %12.8f %12.8f\n", beta[0],beta[1],beta[2]);
+    
+    len1 = sqrt(dir_1[X]*dir_1[X] + dir_1[Y]*dir_1[Y] + dir_1[Z]*dir_1[Z]);
+    for_inclusive(i,X,Z)
+      dir_1[i] /= len1;
+    
+    len2 = sqrt(dir_2[X]*dir_2[X] + dir_2[Y]*dir_2[Y] + dir_2[Z]*dir_2[Z]);
+    for_inclusive(i,X,Z)
+      dir_2[i] /= len2;
+  }
+
+
+  if (ABS(k1)<ABS(k2)) {	/* ensure k1>k2  */
+    
+    /* swap curvatures */
+    tmp= k1;    k1 = k2;    k2 = tmp;
+
+    if (dir_1  != NULL && dir_2 != NULL) {
+      /* swap min and max direction vectors */
+      tmp = dir_1[X]; dir_1[X] = dir_2[X]; dir_2[X] = tmp;
+      tmp = dir_1[Y]; dir_1[Y] = dir_2[Y]; dir_2[Y] = tmp;
+      tmp = dir_1[Z]; dir_1[Z] = dir_2[Z]; dir_2[Z] = tmp;
+    }
+  }
+
+				/* set return vals */
+  *r_k1 = k1;
+  *r_k2 = k2;
+  *r_K = K;
+  *r_S = S;
+  *r_Lvv = Lvv;
+
+  if (dir_1  != NULL && dir_2 != NULL) {
+    
+				/* ensure that directions found
+				   are perpendicular */
+
+    tmp = dir_1[X]*dir_2[X] + dir_1[Y]*dir_2[Y] + dir_1[Z]*dir_2[Z];
+    
+    if ( ABS(tmp)>eps  && len1>3.0e-9 && len2>3.0e-9) {
+      return(FALSE);
+    }
+  }
+
+
+  return(TRUE);
+}
+	
+
+/*
+   The goal of this procedure is to return the differential
+   charateristics of an iso-contour passing through r[1][1] 
+   contained within an image region represented in r[][].
+
+   The characteristics returned:
+
+       r_tan[] - the tangent vector of the isocontour at r[1][1]
+       r_norm[]- the normal vector of the isocontour at r[1][1]
+       r_K     - the curvature of the isocontour at r[1][1]
+*/
+
+
+public BOOLEAN return_2D_principal_directions(Real r[3][3],
+					      Real norm[3],
+					      Real tang[3],
+					      Real *K,
+					      Real eps)
+
+{
+  deriv_2D_struct 
+    d;			
+
+  Real
+    sq_mag_grad,		/* square of gradient mag  */
+    mag_grad,			/* gradient mag            */
+    x,y,			/* first order derivatives */
+    xx,yy,xy;			/* second order derivative */
+
+  *K = 0.0;
+
+  estimate_2D_derivatives(r,&d);
+
+  x  = d.u;			/* for notational simplicity below */
+  y  = d.v;
+  xx = d.uu;
+  yy = d.vv;
+  xy = d.uv;
+
+  sq_mag_grad = x*x + y*y; mag_grad = sqrt(sq_mag_grad);
+
+  if ( ABS(sq_mag_grad)<eps )  {
+    return(FALSE);
+  }
+  else {
+    
+    norm[X] = x/mag_grad;	/* vect normal to isocontour */
+    norm[Y] = y/mag_grad; 
+    norm[Z] = 0.0;
+
+    tang[X] = -y/mag_grad;	/* vect tangent to isocontour */
+    tang[Y] = x/mag_grad; 
+    tang[Z] = 0.0;
+
+				/* curvature */
+
+    *K = (2*x*y*xy - x*x*yy -xx*y*y) / sqrt(sq_mag_grad * sq_mag_grad * sq_mag_grad);
+
+    return(TRUE);
+  }
+}
+		
+			
+public Real return_Lvv(Real r[3][3][3],
+		       Real eps)
+     
+{
+  deriv_3D_struct 
+    d;			
+
+  Real
+    S,				/* mean curvature          */
+    Lvv,
+    sq_mag_grad,		/* square of magnitude of gradient   */
+    x,y,z,			/* first order derivatives */
+    xx,yy,zz,xy,xz,yz;		/* second order derivative */
+
+  estimate_3D_derivatives_new(r,&d);
+
+  x  = d.u;  y  = d.v;  z  = d.w;
+  xx = d.uu; yy = d.vv; zz = d.ww;
+  xy = d.uv; yz = d.vw; xz = d.uw;
+
+  Lvv = 0.0;
+  sq_mag_grad = x*x + y*y + z*z;
+
+  if ( ABS(sq_mag_grad) > eps )  {
+				/* Mean curvature */
+    S = (
+	 x*x*(yy + zz) - 2*y*z*yz +
+	 y*y*(xx + zz) - 2*x*z*xz +
+	 z*z*(xx + yy) - 2*x*y*xy
+	 )
+          / (2 * sqrt(sq_mag_grad*sq_mag_grad*sq_mag_grad));
+
+    Lvv =  sq_mag_grad * S;
+  }
+
+  return(Lvv);
+}
+					
+
+
+
+
+/*
+   this procedure will use principal component analysis to extract the
+   eigen vectors and eigen values of the 3x3x3 objective function grid
+   that represent the maximum, middle and minimum variation of the obj
+   func.
+
+   The procedure is based on information taken from "Probabilites et
+   analyse des donnees et statistique" by G. Saporta (QA 273 SAP)
+   p 159-186
+
+   The charateristics returned are
+       dir_1[], 
+       dir_2[],
+       dir_3[] - the vector directions of max, mid and min curvature,
+                 (normalized vectors are returned)
+       val[]   - the corresponding eigen values
+*/
+
+
+public BOOLEAN return_local_eigen(Real r[3][3][3],
+				  Real dir_1[3],
+				  Real dir_2[3],
+				  Real dir_3[3],
+				  Real val[3])
+
+{
+  int 
+    eig_flag,iters,cnt,m,n,i,j,k;
+  Real 
+    **data, **weighted_data, **covar, **eigvec, *eigval;
+
+  ALLOC2D(data,27,4);
+  ALLOC2D(weighted_data,27,4);
+  ALLOC2D(eigvec,3,3);
+  ALLOC2D(covar,3,3);
+  ALLOC(eigval,3);
+
+  cnt = 0;
+				
+  for_less(i,0,3)		/* set up data matrix for easy manipulation */
+    for_less(j,0,3)
+      for_less(k,0,3){
+	data[cnt][0] = i-1.0;
+	data[cnt][1] = j-1.0;
+	data[cnt][2] = k-1.0;
+ 	data[cnt][3] = r[i][j][k];
+	cnt++;
+      }
+				/* covar = data[:,0:2]' * w * data[:,0:2],
+				      where w is stored in data[:,3]      */
+  for_less(i,0,3)
+    for_less(j,0,27) 
+      weighted_data[j][i] = data[j][i] * data[j][3];
+
+  for_less(m,0,3) {
+    for_less(n,0,3) {
+      covar[m][n] = 0.0;
+      for_less(i,0,27)		
+	covar[m][n] += weighted_data[i][m] * data[i][n];
+
+      if (ABS(covar[m][n]) < SMALL_EPS) covar[m][n] = 0.0;
+    }
+  }
+  
+  				/* is the covariance matrix positive definite? */
+  
+/*
+  flag = (covar[0][0]>0.0 &&
+	  (covar[0][0]*covar[1][1] - covar[0][1]*covar[1][0])>0 &&
+	  ((covar[0][0] * (covar[1][1]*covar[2][2] - covar[1][2]*covar[2][1])) -
+	   (covar[0][1] * (covar[1][0]*covar[2][2] - covar[1][2]*covar[2][0])) +
+	   (covar[0][2] * (covar[1][0]*covar[2][1] - covar[1][1]*covar[2][0]))
+	   ) > 0.0
+	  );
+
+  if (!flag)
+    print ("Not positive definite!\n");
+*/
+
+				/* calculate eigen vectors/values, returning the 
+				   eigen vectors in column format within the matrix
+                                   eigvec */
+  eig_flag = eigen(covar, 3, eigval, eigvec, &iters);
+
+  if (eig_flag) {
+    for_less(i,0,3) {
+      dir_1[i] = eigvec[i][0];
+      dir_2[i] = eigvec[i][1];
+      dir_3[i] = eigvec[i][2];
+      val[i] = eigval[i];
+    }
+    
+  } 
+  else {
+    for_less(i,0,3) {
+      dir_1[i] = 0.0;
+      dir_2[i] = 0.0;
+      dir_3[i] = 0.0;
+      val[i] = 0.0;
+    }
+  }
+  
+  
+  FREE2D(data);
+  FREE2D(weighted_data);
+  FREE2D(covar); 
+  FREE2D(eigvec);
+  FREE(eigval);
+
+  return(eig_flag);
+}
+	
+
+/* 
+   The data stored in r[][][] must have a positive semi-definite
+   symmetric covariance matrix for eigen values/vectors to be found
+   using jacobi (This is tested by positive_3D_semidefinite() in the
+   code below).  
+
+   The goal is to have the data fit by a 3D quadratic function,
+   with a single (local) minimum.  
+
+   If this is the case, then the routine will return TRUE as well as
+   the eigenvectors (dir_1, dir2, dir_3) and the eigenvalues (val[])
+   (vectors and values sorted in order of mag(val[]).
+
+*/
+
+public BOOLEAN return_local_eigen_from_hessian(Real r[3][3][3],
+					       Real dir_1[3],
+					       Real dir_2[3],
+					       Real dir_3[3],
+					       Real val[3])
+
+{
+  int 
+    iters,eig_flag,i;
+  Real 
+    **covar, **eigvec, *eigval;
+
+  deriv_3D_struct 
+    d;			/* the 1st and second order derivatives */
+
+
+  ALLOC2D(covar,3,3);		/* ALLOC the matrices */
+  ALLOC2D(eigvec,3,3);
+  ALLOC(eigval,3);
+
+				/* get the data for the Hessian */
+  estimate_3D_derivatives_new(r,&d);
+
+				/* adjust Hessian matrix, if necessary */
+
+  if ( ABS(d.uu) < SMALL_EPS ) d.uu = 0.0;
+  if ( ABS(d.vv) < SMALL_EPS ) d.vv = 0.0;
+  if ( ABS(d.ww) < SMALL_EPS ) d.ww = 0.0;
+  if ( ABS(d.uv) < SMALL_EPS ) d.uv = 0.0;
+  if ( ABS(d.uw) < SMALL_EPS ) d.uw = 0.0;
+  if ( ABS(d.vw) < SMALL_EPS ) d.vw = 0.0;
+
+
+  covar[0][0] = d.uu;
+  covar[1][1] = d.vv;
+  covar[2][2] = d.ww;
+  covar[0][1] = covar[1][0] = d.uv;
+  covar[0][2] = covar[2][0] = d.uw;
+  covar[1][2] = covar[2][1] = d.vw;
+
+  eig_flag = ( positive_3D_semidefinite(&d) && eigen(covar, 3, eigval, eigvec, &iters));
+
+  if (eig_flag) {
+    for_less(i,0,3) {
+      val[i] = eigval[i];
+      dir_1[i] = eigvec[i][0];
+      dir_2[i] = eigvec[i][1];
+      dir_3[i] = eigvec[i][2];
+    }
+  }
+  else {
+    for_less(i,0,3) {
+      val[i] = 0.0;
+      dir_1[i] = 0.0;
+      dir_2[i] = 0.0;
+      dir_3[i] = 0.0;
+    }
+    dir_3[2] = dir_2[1] = dir_1[0] = 1.0;
+  }
+
+  FREE2D(covar);		/* FREE UP the matrices */
+  FREE2D(eigvec);
+  FREE(eigval);
+
+
+  return(eig_flag);
+}
+	
 
 

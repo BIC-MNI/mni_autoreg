@@ -9,11 +9,14 @@
 @CALLS      : 
 @CREATED    : Mon Nov 29 11:01:47 EST 1993 Louis
 @MODIFIED   : $Log: check_scale.c,v $
-@MODIFIED   : Revision 1.5  1995-02-22 08:56:06  louis
-@MODIFIED   : Montreal Neurological Institute version.
-@MODIFIED   : compiled and working on SGI.  this is before any changes for SPARC/
-@MODIFIED   : Solaris.
+@MODIFIED   : Revision 1.6  1996-08-12 14:15:08  louis
+@MODIFIED   : Pre-release
 @MODIFIED   :
+ * Revision 1.5  1995/02/22  08:56:06  collins
+ * Montreal Neurological Institute version.
+ * compiled and working on SGI.  this is before any changes for SPARC/
+ * Solaris.
+ *
  * Revision 1.4  94/06/06  09:30:58  louis
  * *** empty log message ***
  * 
@@ -45,11 +48,9 @@ static char rcsid[]="";
 #endif
 
 #include <volume_io.h>
-#include <recipes.h>
 
 #include "constants.h"
 #include "matrix_basics.h"
-#include "cov_to_praxes.h"
 #include "make_rots.h"
 #include "point_vector.h"
 
@@ -251,8 +252,8 @@ BOOLEAN get_cog(char *file, double *c1)
   step[1] = 4.0;
   step[2] = 4.0;
 
-  cov = matrix(1,3,1,3); 
-  cog = vector(1,3);
+  ALLOC2D(cov,4,4);
+  ALLOC(cog,4);
 
   if ( vol_to_cov(vol, NULL, cog, cov, step ) ) {
     c1[0] = cog[1];
@@ -263,6 +264,8 @@ BOOLEAN get_cog(char *file, double *c1)
   else
     return(FALSE);
 
+  FREE2D(cov);
+  FREE(cog);
 
 }
 

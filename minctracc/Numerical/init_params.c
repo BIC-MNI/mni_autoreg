@@ -17,10 +17,13 @@
 @CREATED    : Thu May 27 16:50:50 EST 1993
                   
 @MODIFIED   :  $Log: init_params.c,v $
-@MODIFIED   :  Revision 1.14  1996-02-22 09:47:08  louis
-@MODIFIED   :  Fixed loop limits for i and j when norming the principal axes (line 613)
+@MODIFIED   :  Revision 1.15  1996-08-12 14:15:44  louis
+@MODIFIED   :  Pre-release
 @MODIFIED   :
- * Revision 1.13  1995/09/11  12:37:16  louis
+ * Revision 1.14  1996/02/22  09:47:08  collins
+ * Fixed loop limits for i and j when norming the principal axes (line 613)
+ *
+ * Revision 1.13  1995/09/11  12:37:16  collins
  * changes to init_transformation(): I not ensure that the principal
  * axes returned from cov_to_praxes form a righ-handed coordinate sytem.
  *
@@ -28,12 +31,12 @@
  *
  * this is an updated working version - corresponds to mni_reg-0.1g
  *
- * Revision 1.12  1995/03/17  10:59:35  louis
+ * Revision 1.12  1995/03/17  10:59:35  collins
  * corrected a memory bug - I was freeing two centroid vectors that were
  * not supposed to be freed in init_transformation.  These variables are
  * freed in the calling procedure init_params.
  *
- * Revision 1.11  1995/02/22  08:56:06  louis
+ * Revision 1.11  1995/02/22  08:56:06  collins
  * Montreal Neurological Institute version.
  * compiled and working on SGI.  this is before any changes for SPARC/
  * Solaris.
@@ -67,7 +70,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 1.14 1996-02-22 09:47:08 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 1.15 1996-08-12 14:15:44 louis Exp $";
 #endif
 
 

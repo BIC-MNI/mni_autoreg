@@ -23,11 +23,14 @@
 
 @CREATED    : Mon Oct  4 13:06:17 EST 1993 Louis
 @MODIFIED   : $Log: make_matlab_data_file.c,v $
-@MODIFIED   : Revision 1.5  1995-02-22 08:56:06  louis
-@MODIFIED   : Montreal Neurological Institute version.
-@MODIFIED   : compiled and working on SGI.  this is before any changes for SPARC/
-@MODIFIED   : Solaris.
+@MODIFIED   : Revision 1.6  1996-08-12 14:15:40  louis
+@MODIFIED   : Pre-release
 @MODIFIED   :
+ * Revision 1.5  1995/02/22  08:56:06  collins
+ * Montreal Neurological Institute version.
+ * compiled and working on SGI.  this is before any changes for SPARC/
+ * Solaris.
+ *
  * Revision 1.4  94/04/26  12:54:23  louis
  * updated with new versions of make_rots, extract2_parameters_from_matrix 
  * that include proper interpretation of skew.
@@ -45,13 +48,12 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/make_matlab_data_file.c,v 1.5 1995-02-22 08:56:06 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/make_matlab_data_file.c,v 1.6 1996-08-12 14:15:40 louis Exp $";
 #endif
 
 
-#include <volume_io.h>
-#include <recipes.h>
 #include <limits.h>
+#include <volume_io.h>
 
 #include "constants.h"
 #include "arg_data.h"
@@ -66,10 +68,16 @@ extern   int      Ginverse_mapping_flag, Gndim;
 extern   double   simplex_size ;
 extern   Segment_Table  *segment_table;
 
+extern Real            **prob_hash_table; 
+extern Real            *prob_fn1;         
+extern Real            *prob_fn2;         
+
+extern int Matlab_num_steps;
+
 public float fit_function(float *params);
 
 public void make_zscore_volume(Volume d1, Volume m1, 
-			       float threshold); 
+			       Real *threshold); 
 
 public void add_speckle_to_volume(Volume d1, 
 				  float speckle,
@@ -82,6 +90,8 @@ public void parameters_to_vector(double *trans,
 				  float  *op_vector,
 				  double *weights);
 
+public BOOLEAN replace_volume_data_with_ubyte(Volume data);
+
 public void make_matlab_data_file(Volume d1,
 				  Volume d2,
 				  Volume m1,
@@ -90,7 +100,6 @@ public void make_matlab_data_file(Volume d1,
 				  Arg_Data *globals)
 {
 
-#define NUM_STEPS 15
 
   Status
     status;
@@ -104,15 +113,18 @@ public void make_matlab_data_file(Volume d1,
   Real
     start,step;
   double trans[3], rots[3], shears[3], scales[3];
+  Data_types
+    data_type;
 
+  start = 0.0;
   if (globals->obj_function == zscore_objective) { /* replace volume d1 and d2 by zscore volume  */
-    make_zscore_volume(d1,m1,(float)globals->threshold[0]);
-    make_zscore_volume(d2,m2,(float)globals->threshold[1]);
+    make_zscore_volume(d1,m1,&globals->threshold[0]);
+    make_zscore_volume(d2,m2,&globals->threshold[1]);
   } 
   else  if (globals->obj_function == ssc_objective) {	/* add speckle to the data set */
     
-    make_zscore_volume(d1,m1,(float)globals->threshold[0]); /* need to make data sets comparable */
-    make_zscore_volume(d2,m2,(float)globals->threshold[1]); /* in mean and sd...                 */
+    make_zscore_volume(d1,m1,&globals->threshold[0]); /* need to make data sets comparable */
+    make_zscore_volume(d2,m2,&globals->threshold[1]); /* in mean and sd...                 */
     
     if (globals->smallest_vol == 1)
       add_speckle_to_volume(d1, 
@@ -125,11 +137,11 @@ public void make_matlab_data_file(Volume d1,
   } else if (globals->obj_function == vr_objective) {
     if (globals->smallest_vol == 1) {
       if (!build_segment_table(&segment_table, d1, globals->groups))
-	print_error("%s",__FILE__, __LINE__,"Could not build segment table for source volume\n");
+	print_error_and_line_num("%s",__FILE__, __LINE__,"Could not build segment table for source volume\n");
     }
     else {
       if (!build_segment_table(&segment_table, d2, globals->groups))
-	print_error("%s",__FILE__, __LINE__,"Could not build segment table for target volume\n");
+	print_error_and_line_num("%s",__FILE__, __LINE__,"Could not build segment table for target volume\n");
     }
     if (globals->flags.debug && globals->flags.verbose>1) {
       print ("groups = %d\n",segment_table->groups);
@@ -139,7 +151,39 @@ public void make_matlab_data_file(Volume d1,
       }
     }
     
-  }
+  } else if (globals->obj_function == mutual_information_objective)
+				/* Collignon's mutual information */
+    {
+
+      if ( globals->groups != 256 ) {
+	print ("WARNING: -groups was %d, but will be forced to 256 in this run\n",globals->groups);
+	globals->groups = 256;
+      }
+
+      data_type = get_volume_data_type (d1);
+      if (data_type != UNSIGNED_BYTE) {
+	print ("WARNING: source volume not UNSIGNED_BYTE, will do conversion now.\n");
+	if (!replace_volume_data_with_ubyte(d1)) {
+	  print_error_and_line_num("Can't replace volume data with unsigned bytes\n",
+			     __FILE__, __LINE__);
+	}
+      }
+
+      data_type = get_volume_data_type (d2);
+      if (data_type != UNSIGNED_BYTE) {
+	print ("WARNING: target volume not UNSIGNED_BYTE, will do conversion now.\n");
+	if (!replace_volume_data_with_ubyte(d2)) {
+	  print_error_and_line_num("Can't replace volume data with unsigned bytes\n",
+			     __FILE__, __LINE__);
+	}
+      }
+
+      ALLOC(   prob_fn1,   globals->groups);
+      ALLOC(   prob_fn2,   globals->groups);
+      ALLOC2D( prob_hash_table, globals->groups, globals->groups);
+
+    } 
+    
 
   /* ---------------- prepare the weighting array for for the objective function  ---------*/
 
@@ -160,12 +204,9 @@ public void make_matlab_data_file(Volume d1,
       globals->trans_info.shears[i] = 0.0;
     }
     break;
+				/* collapsed because PROCRUSTES and LSQ7 are 
+				   the same */
   case TRANS_PROCRUSTES: 
-    for_less(i,7,12) globals->trans_info.weights[i] = 0.0;
-    for_less(i,0,3) {
-      globals->trans_info.shears[i] = 0.0;
-    }
-    break;
   case TRANS_LSQ7: 
     for_less(i,7,12) globals->trans_info.weights[i] = 0.0;
     for_less(i,0,3) {
@@ -197,6 +238,11 @@ public void make_matlab_data_file(Volume d1,
     stat = FALSE;
   }
 
+  if ( !stat ) 
+    print_error_and_line_num ("Can't calculate measure (stat is false).", 
+			      __FILE__, __LINE__);
+
+
 				/* find number of dimensions for obj function */
   ndim = 0;
   for_less(i,0,12)
@@ -222,7 +268,7 @@ print ("scale: %10.5f %10.5f %10.5f \n",
 
   if (ndim>0) {
 
-    p = vector(1,ndim); /* parameter values */
+    ALLOC(p,ndim+1); /* parameter values */
     
     /*  translation +/- simplex_size
 	rotation    +/- simplex_size*DEG_TO_RAD
@@ -233,7 +279,7 @@ print ("scale: %10.5f %10.5f %10.5f \n",
     
     status = open_file(  globals->filenames.matlab_file, WRITE_FILE, BINARY_FORMAT,  &ofd );
     if ( status != OK ) 
-      print_error ("filename `%s' cannot be opened.", 
+      print_error_and_line_num ("filename `%s' cannot be opened.", 
 		   __FILE__, __LINE__, globals->filenames.matlab_file);
     
     
@@ -264,9 +310,9 @@ print ("scale: %10.5f %10.5f %10.5f \n",
 	  rots[i]   = globals->trans_info.rotations[i];
 	}
 
-	step =  globals->trans_info.weights[j-1] * simplex_size/ NUM_STEPS;
+	step =  globals->trans_info.weights[j-1] * simplex_size/ Matlab_num_steps;
 	
-	for_inclusive(i,-NUM_STEPS,NUM_STEPS) {
+	for_inclusive(i,-Matlab_num_steps,Matlab_num_steps) {
 	  
 	  switch (j) {
 	  case  1: trans[0] =start + i*step; break;
@@ -290,7 +336,7 @@ print ("scale: %10.5f %10.5f %10.5f \n",
 			       p,
 			       globals->trans_info.weights);
     
-	  (void)fprintf (ofd, "%f %f\n",start+i*step, fit_function(p));
+	  (void)fprintf (ofd, "%f %f %f\n",i*step, start+i*step, fit_function(p));
 	}
 
 	(void)fprintf (ofd,"];\n"); 
@@ -299,12 +345,27 @@ print ("scale: %10.5f %10.5f %10.5f \n",
     
     status = close_file(ofd);
     if ( status != OK ) 
-      print_error ("filename `%s' cannot be closed.", 
+      print_error_and_line_num ("filename `%s' cannot be closed.", 
 		   __FILE__, __LINE__, globals->filenames.matlab_file);
     
     
-    free_vector(p,1,ndim);
+    FREE(p);
   }
+
+  if (globals->obj_function == vr_objective) {
+    if (!free_segment_table(segment_table)) {
+      (void)fprintf(stderr, "Can't free segment table.\n");
+      (void)fprintf(stderr, "Error in line %d, file %s\n",__LINE__, __FILE__);
+    }
+  } else
+  if (globals->obj_function == mutual_information_objective)
+				/* Collignon's mutual information */
+    {
+      FREE(   prob_fn1 );
+      FREE(   prob_fn2 );
+      FREE2D( prob_hash_table);
+    }
+
 
 
 }

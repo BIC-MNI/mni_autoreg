@@ -110,10 +110,12 @@ main(int argc, char *argv[])
 
   if (s1==0.0 || s12==0.0 || s2==0.0) {
     print ("Null value somewhere: s1=%f, s2=%f, s12=%f.\n",s1,s2,s12);
+    exit(EXIT_FAILURE);
   }
   else {
     corr = s12 / (sqrt(s1)*sqrt(s2));
     print ("%15.12f\n",corr);
+    exit(EXIT_SUCCESS);
   }
 
 }

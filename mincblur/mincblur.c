@@ -52,25 +52,28 @@
               make no representations about the suitability of this
               software for any purpose.  It is provided "as is" without
               express or implied warranty.
-   @CREATED    : January 25, 1992 louis louis (Original using .iff files)
+   @CREATED    : January 25, 1992 louis collins (Original using .iff files)
    @MODIFIED   : $Log: mincblur.c,v $
-   @MODIFIED   : Revision 1.13  1995-09-18 09:02:42  louis
-   @MODIFIED   : new functional version of mincblur with new and improved default behavior.
-   @MODIFIED   : By default, only the blurred volume is created. If you want the gradient
-   @MODIFIED   : magnitude volumes, you have to ask for it (-gradient).
+   @MODIFIED   : Revision 1.14  1996-08-12 14:16:24  louis
+   @MODIFIED   : Pre-release
    @MODIFIED   :
-   @MODIFIED   : The temporary files (corresponding to the REAL data, and partial derivatives)
-   @MODIFIED   : are removed by mincblur, so now it runs cleanly.  Unfortunately, these files
-   @MODIFIED   : are _not_ deleted if mincblur fails, or is stopped.  I will have to use
-   @MODIFIED   : unlink for this, but its a bit to much to do right now, since I would have
-   @MODIFIED   : to change the way files are dealt with in gradient_volume.c, blur_volume.c
-   @MODIFIED   : and gradmag_volume.c.
-   @MODIFIED   :
-   @MODIFIED   : Also, it is possible to keep the partial derivative volumes (-partial).
-   @MODIFIED   :
-   @MODIFIED   : this version is in mni_reg-0.1j
-   @MODIFIED   :
- * Revision 1.12  1995/09/18  06:45:42  louis
+ * Revision 1.13  1995/09/18  09:02:42  collins
+ * new functional version of mincblur with new and improved default behavior.
+ * By default, only the blurred volume is created. If you want the gradient
+ * magnitude volumes, you have to ask for it (-gradient).
+ *
+ * The temporary files (corresponding to the REAL data, and partial derivatives)
+ * are removed by mincblur, so now it runs cleanly.  Unfortunately, these files
+ * are _not_ deleted if mincblur fails, or is stopped.  I will have to use
+ * unlink for this, but its a bit to much to do right now, since I would have
+ * to change the way files are dealt with in gradient_volume.c, blur_volume.c
+ * and gradmag_volume.c.
+ *
+ * Also, it is possible to keep the partial derivative volumes (-partial).
+ *
+ * this version is in mni_reg-0.1j
+ *
+ * Revision 1.12  1995/09/18  06:45:42  collins
  * this file is a working version of mincblur.  All references to numerical
  * recipes routines have been removed.  This version is included in the
  * package mni_reg-0.1i
@@ -79,23 +82,21 @@
         rewrite using mnc files and David Macdonald's libmni.a
    ---------------------------------------------------------------------------- */
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/mincblur.c,v 1.13 1995-09-18 09:02:42 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/mincblur.c,v 1.14 1996-08-12 14:16:24 louis Exp $";
 #endif
 
 #include <volume_io.h>
-#include <ParseArgv.h>
+#include <Proglib.h>
 #include <minc.h>
 #include "kernel.h"
+#include <config.h>
 #include "mincblur.h"
-#include <time_stamp.h>
-#include <print_error.h>
-#include <limits.h>
 
 static char *default_dim_names[N_DIMENSIONS] = { MIzspace, MIyspace, MIxspace };
  
 
 
-main (int argc, char *argv[] )
+int main (int argc, char *argv[] )
 {   
   
   FILE 
@@ -107,9 +108,7 @@ main (int argc, char *argv[] )
     *output_basename,
     *temp_basename,
     tempname[1024],
-    reals_filename[1024],
-    blur_datafile[1024];
-  
+    reals_filename[1024];
   Status 
     status;
   
@@ -119,6 +118,7 @@ main (int argc, char *argv[] )
     min_value, max_value,
     step[3];
   int
+    n_dimensions,
     i,
     sizes[3];
   char *history;
@@ -148,7 +148,8 @@ main (int argc, char *argv[] )
 
   history = time_stamp(argc, argv);
 
-  /******************************************************************************/
+
+   /******************************************************************************/
   /* Call ParseArgv to interpret all command line args                          */
 
   if (ParseArgv(&argc, argv, argTable, 0) || (argc!=3)) {
@@ -181,8 +182,8 @@ main (int argc, char *argv[] )
   output_basename = argv[2]; 
 
   ALLOC(tname, strlen(output_basename)+strlen("_blur.mnc")+2);
-  tname = strcat(tname,output_basename);
-  tname = strcat(tname,"_blur.mnc");
+  strcpy(tname,output_basename);
+  strcat(tname,"_blur.mnc");
 
 				/* check to see if the output file can be written */
 
@@ -205,7 +206,7 @@ main (int argc, char *argv[] )
 
   if ((do_partials_flag || do_gradient_flag)) {
 
-    temp_basename = tempnam("./","mnc_");
+    temp_basename = tempnam(NULL,"mblur");
     
     if (temp_basename == (char *)NULL) {
       print_error_and_line_num ("Can't build temporary filename.", 
@@ -247,9 +248,10 @@ main (int argc, char *argv[] )
     printf ( "min/max value     = %8.3f %8.3f\n", min_value, max_value);
   }
   
-  if (data->n_dimensions!=3) {
+  n_dimensions = get_volume_n_dimensions (data);
+  if (n_dimensions!=3) {
     print_error_and_line_num ("File %s has %d dimensions.  Only 3 dims supported.", 
-			      __FILE__, __LINE__, infilename, data->n_dimensions);
+			      __FILE__, __LINE__, infilename, n_dimensions);
   }
   
 				/* apodize data if needed */
@@ -289,9 +291,12 @@ main (int argc, char *argv[] )
       partials_name = temp_basename;
 
 
-    gradient3D_volume(reals_fp, data, infilename, partials_name, dimensions,
-		      history, FALSE);
-      
+    status = gradient3D_volume(reals_fp, data, infilename, partials_name, dimensions,
+			       history, FALSE);
+    if (status!=OK)
+      print_error_and_line_num("Can't calculate the gradient volumes.",__FILE__, __LINE__);
+
+
 				/* close and delete the REALS temp data file */
     status = close_file( reals_fp );
     if (status!=OK)

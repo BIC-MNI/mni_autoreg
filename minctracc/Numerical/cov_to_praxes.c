@@ -29,44 +29,338 @@
                       using numerical recipes routines jacobi() and eigsrt().  
 		      See Hotelling Transform
 @MODIFIED   : $Log: cov_to_praxes.c,v $
-@MODIFIED   : Revision 1.8  1995-09-11 12:32:29  louis
-@MODIFIED   : all refs to numerical recipes routines have been removed. The procedure
-@MODIFIED   : eigen() replaces calls to jacobi() and eigsrt(). eigen calculates the
-@MODIFIED   : eigen vectors and eigen values of a symmetric matrix, and returns the
-@MODIFIED   : eigen vectors (sorted by eigen value) in columns of the eigen_vec matrix.
+@MODIFIED   : Revision 1.9  1996-08-12 14:15:43  louis
+@MODIFIED   : Pre-release
 @MODIFIED   :
+ * Revision 1.8  1995/09/11  12:32:29  collins
+ * all refs to numerical recipes routines have been removed. The procedure
+ * eigen() replaces calls to jacobi() and eigsrt(). eigen calculates the
+ * eigen vectors and eigen values of a symmetric matrix, and returns the
+ * eigen vectors (sorted by eigen value) in columns of the eigen_vec matrix.
+ *
+ * Revision 1.8  1995/09/11  12:32:29  collins
+ * all refs to numerical recipes routines have been removed. The procedure
+ * eigen() replaces calls to jacobi() and eigsrt(). eigen calculates the
+ * eigen vectors and eigen values of a symmetric matrix, and returns the
+ * eigen vectors (sorted by eigen value) in columns of the eigen_vec matrix.
+ *
+
+---------------------------------------------------------------------------- */
+#ifndef lint
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/cov_to_praxes.c,v 1.9 1996-08-12 14:15:43 louis Exp $";
+#endif
+
+#include <volume_io.h>
+
+public BOOLEAN eigen(double **inputMat, int ndim, 
+		     double *eigen_val, double **eigen_vec, 
+		     int    *iters);
+
+
+void cov_to_praxes(int ndim, float **covar, float **pr_axes)
+{
+  double **amat,*eigval,**eigvec;
+  int nrot,i,j;
+  
+  ALLOC2D(amat,ndim+1,ndim+1);
+  ALLOC2D(eigvec,ndim+1,ndim+1);
+  ALLOC(eigval,ndim+1);
+
+  /* copy the input matrix and transpose it, since eigen() modifies
+     it, and eigen returns 'right-eigenvectors' ie 
+          amat * eigvec = eigvec * eigval */
+
+  for (i=1; i<=ndim; i++) {
+    for (j=1; j<=ndim; j++) {
+      amat[i-1][j-1]=covar[i][j];
+    }
+  }
+  
+  /* Get the sorted eigen values and eigen vectors, while ignoring the
+     return value from eigen */
+
+  (void)eigen(amat, ndim, eigval, eigvec, &nrot);
+  
+  /* Get the principal axes: 
+     each eigen vector 'j' (which is in  column 'j') */
+  for (i=1; i<=ndim; i++) {
+    for (j=1; j<=ndim; j++) {
+      pr_axes[i][j]=sqrt(fabs((double)eigval[i-1]))*eigvec[i-1][j-1];
+    }
+  }
+  
+  /* Free up the matrices */
+  FREE2D(amat);
+  FREE2D(eigvec);
+  FREE(eigval);
+  
+}
+
+
+
+#include <math.h>
+
+void nrerror()
+{
+  print("ERROR...\n");
+  exit(-1);
+}
+
+
+#define ROTATE(a,i,j,k,l) g=a[i][j];h=a[k][l];a[i][j]=g-s*(h+g*tau);\
+	a[k][l]=h+s*(g-h*tau);
+
+private BOOLEAN jacobi(double **a,
+		       int n,
+		       double *d,
+		       double **v,
+		       int *nrot)
+{
+  int j,iq,ip,i;
+  double tresh,theta,tau,t,sm,s,h,g,c,*b,*z;
+  
+  ALLOC(b,n+1);
+  ALLOC(z,n+1);
+  for (ip=1;ip<=n;ip++) {
+    for (iq=1;iq<=n;iq++) v[ip][iq]=0.0;
+    v[ip][ip]=1.0;
+  }
+  for (ip=1;ip<=n;ip++) {
+    b[ip]=d[ip]=a[ip][ip];
+    z[ip]=0.0;
+  }
+  *nrot=0;
+  for (i=1;i<=150;i++) {
+    sm=0.0;
+    for (ip=1;ip<=n-1;ip++) {
+      for (iq=ip+1;iq<=n;iq++)
+	sm += fabs(a[ip][iq]);
+    }
+    if (sm == 0.0) {
+      FREE(z);
+      FREE(b);
+      return(TRUE);		/* we have a result! */
+    }
+    if (i < 4)
+      tresh=0.2*sm/(n*n);
+    else
+      tresh=0.0;
+    for (ip=1;ip<=n-1;ip++) {
+      for (iq=ip+1;iq<=n;iq++) {
+	g=100.0*fabs(a[ip][iq]);
+	if (i > 4 && (double)(fabs(d[ip])+g) == (double)fabs(d[ip])
+	    && (double)(fabs(d[iq])+g) == (double)fabs(d[iq]))
+	  a[ip][iq]=0.0;
+	else {
+	  if (fabs(a[ip][iq]) > tresh) {
+	    h=d[iq]-d[ip];
+	    if ((double)(fabs(h)+g) == (double)fabs(h))
+	      t=(a[ip][iq])/h;
+	    else {
+	      theta=0.5*h/(a[ip][iq]);
+	      t=1.0/(fabs(theta)+sqrt(1.0+theta*theta));
+	      if (theta < 0.0) t = -t;
+	    }
+	    c=1.0/sqrt(1+t*t);
+	    s=t*c;
+	    tau=s/(1.0+c);
+	    h=t*a[ip][iq];
+	    z[ip] -= h;
+	    z[iq] += h;
+	    d[ip] -= h;
+	    d[iq] += h;
+	    a[ip][iq]=0.0;
+	    for (j=1;j<=ip-1;j++) {
+	      ROTATE(a,j,ip,j,iq)
+	    }
+	    for (j=ip+1;j<=iq-1;j++) {
+	      ROTATE(a,ip,j,j,iq)
+	    }
+	    for (j=iq+1;j<=n;j++) {
+	      ROTATE(a,ip,j,iq,j)
+	    }
+	    for (j=1;j<=n;j++) {
+	      ROTATE(v,j,ip,j,iq)
+	    }
+	    ++(*nrot);
+	  }
+	}
+      }
+    }
+    for (ip=1;ip<=n;ip++) {
+      b[ip] += z[ip];
+      d[ip]=b[ip];
+      z[ip]=0.0;
+    }
+  }
+  return(FALSE);		/* if we fall through here, then the 
+				   maximum number of iterations has been
+				   exceeded, and there is no result possible */
+}
+
+#undef ROTATE
+
+void eigsrt(d,v,n)
+double d[],**v;
+int n;
+{
+  int k,j,i;
+  double p;
+  
+  for (i=1;i<n;i++) {
+    p=d[k=i];
+    for (j=i+1;j<=n;j++)
+      if (d[j] >= p) p=d[k=j];
+    if (k != i) {
+      d[k]=d[i];
+      d[i]=p;
+      for (j=1;j<=n;j++) {
+	p=v[j][i];
+	v[j][i]=v[j][k];
+	v[j][k]=p;
+      }
+    }
+  }
+}
+
+
+public BOOLEAN eigen(double **inputMat, 
+		     int    ndim, 
+		     double *eigen_val, 
+		     double **eigen_vec, 
+		     int    *iters)
+{
+
+  double sum,**copy_of_input,**eigvec,*eigval;
+  int eig_flag, i,j;
+
+  ALLOC2D(copy_of_input,ndim+1,ndim+1);
+  ALLOC2D(eigvec,ndim+1,ndim+1);
+  ALLOC(eigval,ndim+1);
+
+  for_less(i,0,ndim) {
+    for_less(j,0,ndim) {
+      copy_of_input[i+1][j+1] = inputMat[i][j];
+    }
+  }
+
+  eig_flag = jacobi(copy_of_input,ndim,eigval,eigvec,iters);
+
+  if (eig_flag) {
+    eigsrt(eigval, eigvec, ndim);
+    
+    for_less(i,0,ndim)		/* copy to calling parameters */
+      for_less(j,0,ndim)
+	eigen_vec[i][j] = eigvec[i+1][j+1];
+    
+    for_less(i,0,ndim)
+      eigen_val[i] = eigval[i+1];
+    
+    for_less(i,0,ndim) {		/* normalize the eigen_Vectors */
+      
+      sum = 0.0;
+      for_less(j,0,ndim)
+	sum += eigen_vec[j][i]*eigen_vec[j][i];
+      
+      sum = sqrt(sum);
+      if (sum > 0.0) {
+	for_less(j,0,ndim)
+	  eigen_vec[j][i] /= sum;
+      }
+      else {
+	print ("Can't norm %d (%f) %f %f %f\n",i,sum,eigen_vec[0][i],eigen_vec[1][i],eigen_vec[2][i]);
+      }
+      
+    }
+  }
+  else {
+
+    for_less(i,0,ndim)		
+      for_less(j,0,ndim)
+	eigen_vec[i][j] = 0.0;
+
+    for_less(i,0,ndim) {
+      eigen_val[i] = 0.0;
+      eigen_vec[i][i] = 1.0;
+    }
+
+  }
+  
+  FREE2D(copy_of_input);
+  FREE2D(eigvec);
+  FREE(eigval);
+
+  return(eig_flag);
+}
+
+
+
+
+/* ----------------------------------------------------------------------------
+@NAME       : eigen
+@INPUT      : **inputMat - symetric square input matrix 
+              ndim       - dimension of input matrix
+@OUTPUT     : *eigen_val - array of sorted (decending order) eigen values
+             **eigen_vec - matrix of eigen vectors (stored in columns)
+	      *iters     - the number of iterations required to find the 
+                           result
+@RETURNS    : FALSE if possible numerical error, TRUE otherwise
+@DESCRIPTION: 
+
+   the goal is to find eigen_val & eigen_vec such that
+
+   inputmat * eigen_vec = eigen_vec * eigen_val
+
+   note: inputMat is modified by the routine.
 
    the current bit of code for eigen originally came from Pascal @
    Rennes for the analysis of 37 element meg data.  It has been
    modified by LC to replace jacobi() and eigsrt() originally used in
    cov_to_praxes.
- 
+
+@GLOBALS    : none
+@CALLS      : macro ABS
+@CREATED    : sept 95 Louis Collins
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
-#ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/cov_to_praxes.c,v 1.8 1995-09-11 12:32:29 louis Exp $";
-#endif
 
-#include <volume_io.h>
-
-public void eigen(double **inputMat, 
-		  int    ndim, 
-		  double *eigen_val, 
-		  double **eigen_vec, 
-		  int    *iters)
+public BOOLEAN eigen2(double **inputMat, 
+		     int    ndim, 
+		     double *eigen_val, 
+		     double **eigen_vec, 
+		     int    *iters)
 
 {
 
   double
-    vec[37], test_vec[37],
+    *vec, *test_vec,
     x, 
     vec_sum, previous_sum, 
     val,     previous_val,
     max_val;
   int 
-    i,j,k,iterations;
+    possible_error, i,j,k,iterations;
 
   
   *iters = 0;
+  possible_error = FALSE;
+
+  ALLOC(vec, ndim);
+  ALLOC(test_vec, ndim);
+
+
+/*
+  print ("[\n");
+  for_less(i,0,ndim) {
+    for_less(j,0,ndim) {
+      print ("%f ",inputMat[i][j] );
+    }
+    print ("\n");
+  }
+*/
+
+  /* NOTE: the code here actually treats and stores the eigen vectors
+     in row format.  The matrix will be transposed below */
 
   for_less(k,0,ndim) {
 
@@ -78,7 +372,7 @@ public void eigen(double **inputMat,
     vec_sum=(double)ndim;	/* since  sum += vec[i]  */
 
 
-    do {			/* interate  */
+    do {			/* iterate  */
 
       iterations++;
       previous_val=val;
@@ -102,29 +396,36 @@ public void eigen(double **inputMat,
       val     = vec_sum/previous_sum;
       vec_sum = vec_sum/max_val;
 
-      for_less(i,0,ndim)	/* nomalize */
+      for_less(i,0,ndim)	/* normalize to largest element*/
 	vec[i]=test_vec[i]/max_val;
 
-    } while((iterations<3000)&&(fabs(1-previous_val/val)>1e-15));
-    
+    } while( (iterations<3000) && (fabs(1.0-previous_val/val)>1e-15) );
+
+print ("%3d (%5d) -> (%15.10f) %15.10f %15.10f %15.10f  \n", k, iterations, val, vec[0], vec[1],vec[2]);
+
     *iters += iterations;
 
-    if((fabs(val)>1e-6)&&(iterations>2900))	
-      printf(" Possible numerical error(%d iter, %12.9f)\n",iterations,fabs(val));
-    
+    if((fabs(val)>1e-6)&&(iterations>2900)) {
+      possible_error = TRUE;
+    }
+
     vec_sum=0.0;
     for_less(i,0,ndim) 
-      vec_sum+=vec[i]*vec[i];
+      vec_sum += vec[i]*vec[i];
 
     for_less(i,0,ndim)
       for_less(j,0,ndim)
-	inputMat[i][j]-=vec[i]*vec[j]/vec_sum*val;
+	inputMat[i][j] -= (vec[i]*vec[j]/vec_sum)*val;
 
+    vec_sum = sqrt(vec_sum);
     for_less(i,0,ndim)
-      eigen_vec[k][i]=vec[i]/sqrt(vec_sum); /* store eig vec in row 'k' */
+      eigen_vec[k][i]=vec[i]/vec_sum; /* store eig vec in row 'k' */
 
     eigen_val[k]=val;
   }
+
+
+
 				/* sort eig vectors in order of eigval */
   for_less(i,0,ndim) {
     max_val=eigen_val[k=i];
@@ -144,56 +445,23 @@ public void eigen(double **inputMat,
     }
 
   }
-				/* transpose eigen vector (so that
-                                   each eigen-vector is in a column,
-                                   so that the result is similar to
-                                   the old call to jacobi() and
-                                   eigsrt() */
+				/* transpose eigen vector matrix, to return
+				   eigen vectors in the columns */
+
   for_less(i,0,ndim) {
-    for_less (j,i+1,ndim) {
-      	val=eigen_vec[i][j];
-	eigen_vec[i][j]=eigen_vec[j][i];
-	eigen_vec[j][i]=val;
+    for_less(j,i+1,ndim) {
+      val = eigen_vec[i][j];
+      eigen_vec[i][j] = eigen_vec[j][i];
+      eigen_vec[j][i] = val;
     }
   }
 
-}
 
+  FREE(vec);
+  FREE(test_vec);
 
-void cov_to_praxes(int ndim, float **covar, float **pr_axes)
-{
-  double **amat,*eigval,**eigvec;
-  int nrot,i,j;
-  
-  /* Set up the matrices, copying covar since jacobi modifies its
-     input matrix */
-  ALLOC2D(amat,ndim+1,ndim+1);
-  ALLOC2D(eigvec,ndim+1,ndim+1);
-  ALLOC(eigval,ndim+1);
-  
-				/* copy the input matrix, since
-				   eigen() modifies it */
-  for (i=1; i<=ndim; i++) {
-    for (j=1; j<=ndim; j++) {
-      amat[i-1][j-1]=covar[i][j];
-    }
-  }
-  
-  /* Get the sorted eigen values and eigen vectors  */
-  eigen(amat, ndim, eigval, eigvec, &nrot);
-  
-  /* Get the principal axes /* each eigen vector 'j' is in column 'j' */
-  for (i=1; i<=ndim; i++) {
-    for (j=1; j<=ndim; j++) {
-      pr_axes[i][j]=sqrt(fabs((double)eigval[i-1]))*eigvec[i-1][j-1];
-    }
-  }
-  
-  /* Free up the matrices */
-  FREE2D(amat);
-  FREE2D(eigvec);
-  FREE(eigval);
-  
+  return(!possible_error);
+
 }
 
 

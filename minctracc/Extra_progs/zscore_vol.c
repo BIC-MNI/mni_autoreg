@@ -135,12 +135,14 @@ main(int argc, char *argv[])
   }
 
   if (count==0) {
+    exit(EXIT_FAILURE);
     print ("No masked voxels\n");
   }
   else {
     corr = s12 / count;
 
     print ("%15.12f\n",corr);
+    exit(EXIT_SUCCESS);
   }
 
 }

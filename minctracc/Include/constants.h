@@ -31,6 +31,11 @@
 #define TRANS_LSQ12       7
 #define TRANS_PAT         8
 #define TRANS_NONLIN      9
+#define TRANS_IDENT       10
+
+#define NONLIN_XCORR      0
+#define NONLIN_DIFF       1
+#define NONLIN_LABEL      2
 
 #define OPT_SIMPLEX       0
 

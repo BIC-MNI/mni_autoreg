@@ -17,27 +17,30 @@
 
 @CREATED    : 
 @MODIFIED   : $Log: amoeba.c,v $
-@MODIFIED   : Revision 1.3  1996-03-25 10:33:15  louis
-@MODIFIED   : changed perform_amoeba() so that it counts the actual number of
-@MODIFIED   : objective function evaluations instead of the number of calls to
-@MODIFIED   : perform_amoeba().  (the previous version was underestimating the
-@MODIFIED   : number of function calls by a factor of 1.8-2.0!)
+@MODIFIED   : Revision 1.4  1996-08-12 14:15:52  louis
+@MODIFIED   : Pre-release
 @MODIFIED   :
- * Revision 1.2  1995/09/14  09:56:02  louis
+ * Revision 1.3  1996/03/25  10:33:15  collins
+ * changed perform_amoeba() so that it counts the actual number of
+ * objective function evaluations instead of the number of calls to
+ * perform_amoeba().  (the previous version was underestimating the
+ * number of function calls by a factor of 1.8-2.0!)
+ *
+ * Revision 1.2  1995/09/14  09:56:02  collins
  * removed the call to numerically_close and replaced it with the same
  * terminating condition as used in the previous version of amoeba, so
  * that the same termination tolerance can be used.
  *
  * Also removed the warning message "No improvement after X steps..."
  *
- * Revision 1.2  1995/09/14  09:56:02  louis
+ * Revision 1.2  1995/09/14  09:56:02  collins
  * removed the call to numerically_close and replaced it with the same
  * terminating condition as used in the previous version of amoeba, so
  * that the same termination tolerance can be used.
  *
  * Also removed the warning message "No improvement after X steps..."
  *
- * Revision 1.1  1995/09/07  10:05:11  louis
+ * Revision 1.1  1995/09/07  10:05:11  collins
  * Initial revision
  *
 
@@ -86,7 +89,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/amoeba.c,v 1.3 1996-03-25 10:33:15 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/amoeba.c,v 1.4 1996-08-12 14:15:52 louis Exp $";
 #endif
 
 
@@ -97,7 +100,6 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #define  CONTRACT_RATIO  0.5
 #define  STRETCH_RATIO   2.0
 
-extern int FLAG_HAHA;
 
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : numerically_close
@@ -384,8 +386,6 @@ public  BOOLEAN  perform_amoeba(
 
     tol = 2.0 * ABS(amoeba->values[high]-amoeba->values[low]) /
       (ABS(amoeba->values[high]) + ABS(amoeba->values[low]));
-
-if (FLAG_HAHA) print ("(%f)",tol);
 
     if (tol < amoeba->tolerance)
    {

@@ -16,43 +16,46 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 1.25  1996-03-25 10:33:15  louis
-@MODIFIED   : removed jiggle in do_nonlinear.c - The jiggle was causing multiple
-@MODIFIED   : local minima in the local objective function.  This in turn was the
-@MODIFIED   : MAJOR  CAUSE of errors in the estimation of the deformation field when
-@MODIFIED   : using simplex optimization (and in fact was caused error for quad fit
-@MODIFIED   : as well).
+@MODIFIED   : Revision 1.26  1996-08-12 14:15:54  louis
+@MODIFIED   : Pre-release
 @MODIFIED   :
-@MODIFIED   : ----
-@MODIFIED   : go_get_samples_in_source called with -1 for inter_type (before
-@MODIFIED   : the value for inter_type was ignored).
-@MODIFIED   :
-@MODIFIED   : ----
-@MODIFIED   : completed non-isotropic smoothing in return_locally_smoothed_def()
-@MODIFIED   : that is based on the eigen vectors of the hessian matrix (that is
-@MODIFIED   : derived from the differential geometry of the shape of the local
-@MODIFIED   : objective function).  The estimated deformation vectors are modulated
-@MODIFIED   : by a confidence function (see next para) such that the vectors are
-@MODIFIED   : smoothed less in the direction where the obj function has greater
-@MODIFIED   : curvature.
-@MODIFIED   :
-@MODIFIED   : ----
-@MODIFIED   : confidence_function has been implemented to give a confidence of
-@MODIFIED   :      -> 1.0 to eigen values >= the mean largest eigen_val (eval'd over
-@MODIFIED   :         the previous iteration)
-@MODIFIED   :      -> 0.0 to eigen values <= the mean smallest eigen_val
-@MODIFIED   :      -> [0.0 .. 0.5] to eigen_vals between smallest and middle mean
-@MODIFIED   :         eigen val
-@MODIFIED   :      -> [0.5 .. 1.0] to eigen_vals between middle and largest mean
-@MODIFIED   :         eigen val
-@MODIFIED   : This confidence_function is used to weight the amount of the additional
-@MODIFIED   : deformation vector added to the current def in return_locally_smoothed_def().
-@MODIFIED   :
- * Revision 1.24  1996/03/07  13:25:19  louis
+ * Revision 1.25  1996/03/25  10:33:15  collins
+ * removed jiggle in do_nonlinear.c - The jiggle was causing multiple
+ * local minima in the local objective function.  This in turn was the
+ * MAJOR  CAUSE of errors in the estimation of the deformation field when
+ * using simplex optimization (and in fact was caused error for quad fit
+ * as well).
+ *
+ * ----
+ * go_get_samples_in_source called with -1 for inter_type (before
+ * the value for inter_type was ignored).
+ *
+ * ----
+ * completed non-isotropic smoothing in return_locally_smoothed_def()
+ * that is based on the eigen vectors of the hessian matrix (that is
+ * derived from the differential geometry of the shape of the local
+ * objective function).  The estimated deformation vectors are modulated
+ * by a confidence function (see next para) such that the vectors are
+ * smoothed less in the direction where the obj function has greater
+ * curvature.
+ *
+ * ----
+ * confidence_function has been implemented to give a confidence of
+ *      -> 1.0 to eigen values >= the mean largest eigen_val (eval'd over
+ *         the previous iteration)
+ *      -> 0.0 to eigen values <= the mean smallest eigen_val
+ *      -> [0.0 .. 0.5] to eigen_vals between smallest and middle mean
+ *         eigen val
+ *      -> [0.5 .. 1.0] to eigen_vals between middle and largest mean
+ *         eigen val
+ * This confidence_function is used to weight the amount of the additional
+ * deformation vector added to the current def in return_locally_smoothed_def().
+ *
+ * Revision 1.24  1996/03/07  13:25:19  collins
  * small reorganisation of procedures and working version of non-isotropic
  * smoothing.
  *
- * Revision 1.23  1995/10/13  11:16:55  louis
+ * Revision 1.23  1995/10/13  11:16:55  collins
  * added comments for local fitting process.
  *
  * changed the objective function used in the quadratic fitting routines to
@@ -63,7 +66,7 @@
  * started to add code for non-isotropic smoothing, but it is not completely
  * working in this version.
  *
- * Revision 1.22  1995/10/06  09:25:02  louis
+ * Revision 1.22  1995/10/06  09:25:02  collins
  * working version.  Added multiple feature support.  The extra features
  * can included in the global similarity function with user-selectable
  * individual similarity functions (straight diff, xcorr, label diff).
@@ -85,17 +88,17 @@
  * this version has been tested and seems to work with multiple features in
  * 2D and in 3D.
  *
- * Revision 1.21  1995/09/14  09:53:49  louis
+ * Revision 1.21  1995/09/14  09:53:49  collins
  * working version, using David's simplex optimization replacing the
  * numerical recipes amoeba() routine.
  *
- * Revision 1.20  1995/09/07  10:05:11  louis
+ * Revision 1.20  1995/09/07  10:05:11  collins
  * All references to numerical recipes routines are being removed.  At this
  * stage, any num rec routine should be local in the file.  All memory
  * allocation calls to vector(), matrix(), free_vector() etc... have been
  * replaced with ALLOC and FREE from the volume_io library of routines.
  *
- * Revision 1.19  1995/08/21  11:36:43  louis
+ * Revision 1.19  1995/08/21  11:36:43  collins
  * This version of get_deformation_vector_for_node with the 3x3x3 weights
  * of 1.0, 1.0, 1.0, 1.0 for all nodes used in the quadratic fit and works
  * well with return_3D_disp_from_quad_fit() in ver 1.2 of quad_max_fit.c
@@ -107,21 +110,21 @@
  * The use of quadratic fitting is twice as fast as simplex (6.4 vs 15.2 min)
  * for the 16mm fit (again with {hoge,jacob}_16_dxyz.mnc and -step 8 8 8.
  *
- * Revision 1.18  1995/08/17  12:17:59  louis
+ * Revision 1.18  1995/08/17  12:17:59  collins
  * bug fixed for warping problems at the scalp region.  This was
  * caused by adding a deoformation vector to the field, even when
  * it was not estimated.  In this case, the deformation vector was
  * an average of the neighbourhood warp and caused an amplification
  * of the deformation field where the field should be simply smoothed.
  *
- * Revision 1.17  1995/06/12  14:28:57  louis
+ * Revision 1.17  1995/06/12  14:28:57  collins
  * working version - 2d,3d w/ simplex and -direct.
  *
- * Revision 1.16  1995/05/04  14:25:18  louis
+ * Revision 1.16  1995/05/04  14:25:18  collins
  * compilable version, seems to run a bit with GRID_TRANSFORM, still
  * needs work for the super sampled volumes... and lots of testing.
  *
- * Revision 1.14  1995/02/22  08:56:06  louis
+ * Revision 1.14  1995/02/22  08:56:06  collins
  * Montreal Neurological Institute version.
  * compiled and working on SGI.  this is before any changes for SPARC/
  * Solaris.
@@ -216,10 +219,10 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 1.25 1996-03-25 10:33:15 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 1.26 1996-08-12 14:15:54 louis Exp $";
 #endif
 
-#include <limits.h>		/* MAXtype and MIN defs                      */
+#include <config.h>		/* MAXtype and MIN defs                      */
 #include <volume_io.h>		/* structs & tools to deal with volumes data */
 #include <amoeba.h>		/* simplex optimization struct               */
 
@@ -307,23 +310,38 @@ extern Real       initial_corr, final_corr;
 				         /* value of correlation before/after
 					    optimization                     */
 
+				/* diameter of the local neighbourhood
+				   sub-lattice, in number of elements-1 */
+
+extern int        Diameter_of_local_lattice;
+#define MAX_G_LEN (Diameter_of_local_lattice)*\
+                  (Diameter_of_local_lattice)*\
+                  (Diameter_of_local_lattice)
+
+
 				/* absolute maximum range for deformation
 				   allowed */
 #define ABSOLUTE_MAX_DEFORMATION       50.0
 
-				/* diameter of the local neighbourhood
-				   sub-lattice, in number of elements-1 */
-#define DIAMETER_OF_LOCAL_LATTICE   7
-#define MAX_G_LEN (DIAMETER_OF_LOCAL_LATTICE+1)*\
-                  (DIAMETER_OF_LOCAL_LATTICE+1)*\
-                  (DIAMETER_OF_LOCAL_LATTICE+1)
+				/* constants for non-isotropic smoothing, used
+				   for first iteration only.  They are updated
+				   for each following iteration.              */
 
-#define DEFAULT_MEAN_E0  0.738
-#define DEFAULT_MEAN_E1  0.189
-#define DEFAULT_MEAN_E2  0.073
-#define DEFAULT_STD_E0   0.140
-#define DEFAULT_STD_E1   0.102
-#define DEFAULT_STD_E2   0.053
+/*
+#define DEFAULT_MEAN_E0  0.048457
+#define DEFAULT_MEAN_E1  0.008863
+#define DEFAULT_MEAN_E2  0.004401
+#define DEFAULT_STD_E0   0.024583
+#define DEFAULT_STD_E1   0.006246
+#define DEFAULT_STD_E2   0.002482
+*/
+
+#define DEFAULT_MEAN_E0  0.023836
+#define DEFAULT_MEAN_E1  0.005587
+#define DEFAULT_MEAN_E2  0.000871
+#define DEFAULT_STD_E0   0.018712
+#define DEFAULT_STD_E1   0.010252
+#define DEFAULT_STD_E2   0.002711
 
 static Real
    previous_mean_eig_val[3] = {DEFAULT_MEAN_E0,DEFAULT_MEAN_E1,DEFAULT_MEAN_E2},
@@ -362,7 +380,6 @@ public void    build_target_lattice_using_super_sampled_def(
                                     float px[], float py[], float pz[],
 				    float tx[], float ty[], float tz[],
 				    int len);
-
 
 private Real cost_fn(float x, float y, float z, Real max_length);
 
@@ -528,6 +545,7 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 
   progress_struct		/* to print out program progress report */
     progress;
+  STRING filenamestring;
 
   /*******************************************************************************/
 
@@ -595,7 +613,7 @@ public Status do_non_linear_optimization(Arg_Data *globals)
   ALLOC(another_warp,1);	/* build a debugging volume/xform */
   copy_general_transform(current_warp, another_warp);
   another_vol = another_warp->displacement_volume;
-  set_volume_real_range(another_vol, -2.0 , 5.0);
+  set_volume_real_range(another_vol, -20.0 , 20.0);
   init_the_volume_to_zero(another_vol);
 
 
@@ -673,9 +691,16 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 				   current transformation, if needed     */
   if (globals->trans_info.use_super>0) {
     ALLOC(Gsuper_sampled_warp,1);
-    create_super_sampled_data_volumes(current_warp, 
-				      Gsuper_sampled_warp,
-				      globals->trans_info.use_super);
+
+    if (globals->trans_info.use_super==2) {
+      create_super_sampled_data_volumes_by2(current_warp, 
+					    Gsuper_sampled_warp);
+    }
+    else
+      create_super_sampled_data_volumes(current_warp, 
+					Gsuper_sampled_warp,
+					globals->trans_info.use_super);
+
     Gsuper_sampled_vol = Gsuper_sampled_warp->displacement_volume;
 
     if (globals->flags.debug) {
@@ -687,7 +712,7 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 		       debug_sizes);
       get_volume_separations(current_warp->displacement_volume, 
 			     debug_steps);
-      print ("After super sampling:\n");
+      print ("Before super sampling, orig def field:\n");
       print ("curnt sizes: %7d  %7d  %7d  %7d  %7d\n",
 	     debug_sizes[0],debug_sizes[1],debug_sizes[2],debug_sizes[3],debug_sizes[4]);
       print ("curnt steps: %7.2f  %7.2f  %7.2f  %7.2f  %7.2f\n",
@@ -707,8 +732,6 @@ public Status do_non_linear_optimization(Arg_Data *globals)
       print ("super steps: %7.2f  %7.2f  %7.2f  %7.2f  %7.2f\n",
 	     debug_steps[0],debug_steps[1],debug_steps[2],debug_steps[3],debug_steps[4]);
       print ("super start: %7.2f  %7.2f  %7.2f  \n", wx, wy, wz);
-
-
     }
   }
 
@@ -747,24 +770,25 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 
 
     if ( Gglobals->trans_info.use_simplex) 
-      print ("This fit will use local simplex optimization\n");
+      print ("This fit will use local simplex optimization and\n");
     else
-      print ("This fit will use local quadratic fitting\n");
+      print ("This fit will use local quadratic fitting and\n");
 
     if (Gglobals->trans_info.use_local_smoothing) {
       if ( Gglobals->trans_info.use_local_isotropic) 
-	print ("and local isotroptic smoothing.\n");
+	print ("  local isotroptic smoothing.\n");
       else
-	print ("and local non-isotroptic smoothing.\n");
+	print ("  local non-isotroptic smoothing.\n");
     }
     else {
-      print ("and global smoothing.\n");
+      print ("  global smoothing.\n");
     }
     if (Gglobals->interpolant==nearest_neighbour_interpolant) 
-      print ("The similarity function will be evaluated using NN interpolation.\n");
+      print ("The similarity function will be evaluated using NN interpolation\n");
     else
-      print ("The similarity function will be evaluated using tri-linear interpolation.\n");
-    
+      print ("The similarity function will be evaluated using tri-linear interpolation\n");
+    print ("  on a spherical sub-lattice with a diameter of %d nodes.\n",
+	   Diameter_of_local_lattice);
 
     print("loop: (%d %d) (%d %d) (%d %d)\n",
 	  start[0],end[0],start[1],end[1],start[2],end[2]);
@@ -808,19 +832,33 @@ public Status do_non_linear_optimization(Arg_Data *globals)
     if (globals->trans_info.use_super>0) {
 
       temp_start_time = time(NULL);
-      interpolate_super_sampled_data(current_warp,
+
+      if (globals->trans_info.use_super==2) {
+	interpolate_super_sampled_data_by2(current_warp,
+					       Gsuper_sampled_warp,
+					       number_dimensions);
+      }
+      else
+	interpolate_super_sampled_data(current_warp,
 				     Gsuper_sampled_warp,
 				     number_dimensions);
       temp_end_time = time(NULL);
 
       if (globals->flags.debug) {	
 	time_total = (Real)(temp_end_time-temp_start_time);
+
+#ifdef HAVE_RECENT_VOLUME_IO
+	time_total_string = format_time("%g %s", time_total);
+#else
 	format_time( time_total_string,"%g %s", time_total);
+#endif
+
 	print ("\nInterpolating super-sampled data %s (%d seconds)\n", 
 	       time_total_string, 
 	       temp_end_time-temp_start_time);
       }
     }  
+
     init_the_volume_to_zero(estimated_flag_vol);
     
     print("Iteration %2d of %2d\n",iters+1, iteration_limit);
@@ -859,13 +897,12 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 
     for_less(i,0,MAX_DIMENSIONS) index[i]=0;
 
-    /* FLAG_HAHA stuff: 
+    /* FLAG_HAHA stuff:   
 
        start[X] = 7;  end[X] = start[X]+1;
        start[Y] = 13; end[Y] = start[Y]+1;
        start[Z] = 15; end[Z] = start[Z]+1;
-    */
-
+       */
 
     /* step index[] through all the nodes in the deformation field. */
 
@@ -1047,7 +1084,10 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 
     if (globals->flags.debug) {
 
-      (void)output_transform_file("pr_axes2.xfm",NULL,another_warp);
+/*
+      sprintf (filenamestring,"pr_axes2_%d.xfm",iters);
+      (void)output_transform_file(filenamestring,NULL,another_warp);
+*/
 
       stat_title();
       report_stats(&stat_num_funks);
@@ -1113,13 +1153,13 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 
     if (Gglobals->trans_info.use_local_smoothing) {
 
-				/* extrapolate the warp to 
+				/* extrapolate (and smooth) the warp to 
 				   un-estimated nodes in additional_vol */
       
       extrapolate_to_unestimated_nodes(current_warp,
 				       additional_warp,
 				       estimated_flag_vol);
-      
+
 				/* current = current + additional */
 
       add_additional_warp_to_current(current_warp,
@@ -1140,7 +1180,11 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 
       if (globals->flags.debug) {	
 	time_total = (Real)(temp_end_time-temp_start_time);
+#ifdef HAVE_RECENT_VOLUME_IO
+	time_total_string = format_time("%g %s", time_total);
+#else
 	format_time( time_total_string,"%g %s", time_total);
+#endif
 	print ("\nAdding additional to current took  %s (%d seconds)\n", 
 	       time_total_string, 
 	       temp_end_time-temp_start_time);
@@ -1162,7 +1206,11 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 
       if (globals->flags.debug) {	
 	time_total = (Real)(temp_end_time-temp_start_time);
+#ifdef HAVE_RECENT_VOLUME_IO
+	time_total_string = format_time("%g %s", time_total);
+#else
 	format_time( time_total_string,"%g %s", time_total);
+#endif
 	print ("\nSmoothing the current warp took  %s (%d seconds)\n", 
 	       time_total_string, 
 	       temp_end_time-temp_start_time);
@@ -1175,7 +1223,7 @@ public Status do_non_linear_optimization(Arg_Data *globals)
     clamp_warp_deriv(current->dx, current->dy, current->dz); */
 
     
-    if (FALSE && iters<iteration_limit-1) {
+    if (/*FALSE && */iters<iteration_limit-1) {
 
 				/* reset additional warp to zero */
       init_the_volume_to_zero(additional_vol);
@@ -1339,7 +1387,7 @@ public Status do_non_linear_optimization(Arg_Data *globals)
     init_the_volume_to_zero(additional_mag);
 
     if (globals->flags.debug && 
-	globals->flags.verbose == 3)
+	globals->flags.verbose == 3 && FALSE)
       save_data(globals->filenames.output_trans, 
 		iters+1, iteration_limit, 
 		globals->trans_info.transformation);
@@ -1348,7 +1396,11 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 
       iteration_end_time = time(NULL);
       time_total = (Real)(iteration_end_time-iteration_start_time);
-      format_time( time_total_string,"%g %s", time_total);
+#ifdef HAVE_RECENT_VOLUME_IO
+	time_total_string = format_time("%g %s", time_total);
+#else
+	format_time( time_total_string,"%g %s", time_total);
+#endif
       print ("\nThis iteration took %s (%d seconds)\n", 
 	     time_total_string, 
 	     iteration_end_time-iteration_start_time);
@@ -1466,14 +1518,21 @@ private double confidence_function(double x) {
     (x > previous_mean_eig_val[0]) t = 1.0;
   else { 
     if  
+
       (x < previous_mean_eig_val[2]) t = 0.0;
+
     else {
+
       if (x > previous_mean_eig_val[1]) /* first linear part */
+
 	t = 0.5 + 0.5 * (x -  previous_mean_eig_val[1]) / 
 	  (  previous_mean_eig_val[0] - previous_mean_eig_val[1]);
+
       else			      /* second linear part */
+
 	t = 0.5 * (x -  previous_mean_eig_val[2]) / 
 	  (  previous_mean_eig_val[1] - previous_mean_eig_val[2]);
+
     }
   }
 
@@ -1585,9 +1644,9 @@ private double return_locally_smoothed_def(int isotropic_smoothing,
       for_inclusive(i,-1,1)
 	for_inclusive(j,-1,1)
 	  for_inclusive(k,-1,1) {
-	    pos_vector[1] = (float) (i * Gsimplex_size)/2.0;
-	    pos_vector[2] = (float) (j * Gsimplex_size)/2.0;
-	    pos_vector[3] = (float) (k * Gsimplex_size)/2.0;
+	    pos_vector[1] = (float) (i * Gsimplex_size)/4.0;
+	    pos_vector[2] = (float) (j * Gsimplex_size)/4.0;
+	    pos_vector[3] = (float) (k * Gsimplex_size)/4.0;
 
 	    local_corr3D[i+1][j+1][k+1] = xcorr_fitting_function(pos_vector); 
 
@@ -1602,17 +1661,17 @@ private double return_locally_smoothed_def(int isotropic_smoothing,
     }
     
     if ( flag ) {		/* if eigen vectors found, then use them */
-
-      mag_eig_vals = eig_vals[0] + eig_vals[1] + eig_vals[2];
-      if (mag_eig_vals > 0.0) {
-	for_less(i,0,3)
-	  eig_vals[i] = eig_vals[i] / mag_eig_vals;
-      }
-
 				/* get associated confidence values */
+
+
       for_less(i,0,3)
 	conf[i] = confidence_function( eig_vals[i] );
-      
+
+      conf[0] = 0.2;
+      conf[1] = 0.5;
+      conf[2] = 0.5;
+
+
       tally_stats(&stat_eigval0, eig_vals[0]);
       tally_stats(&stat_eigval1, eig_vals[1]);
       tally_stats(&stat_eigval2, eig_vals[2]);
@@ -1641,17 +1700,19 @@ private double return_locally_smoothed_def(int isotropic_smoothing,
 
 				/* for debugging volume... */
 
-      another_vector[X] = eig_vals[0];
-      another_vector[Y] = eig_vals[1];
-      another_vector[Z] = eig_vals[2];
-
+      another_vector[X] = 200.0*eig_vals[0]*eig_vecs[0][X];
+      another_vector[Y] = 200.0*eig_vals[0]*eig_vecs[0][Y];
+      another_vector[Z] = 200.0*eig_vals[0]*eig_vecs[0][Z];
+/*
+      another_vector[X] = 100.0*eig_vals[0];
+      another_vector[Y] = 100.0*eig_vals[1];
+      another_vector[Z] = 100.0*eig_vals[2];
+*/
 
     }
-    else {			/* return the neighbourhood mean
-				   vector, since no local data can
-				   give any info... */
+    else {			/* default to local isotropic smoothing */
       for_inclusive(i,X,Z) 
-	smoothed_result[i] = mean_vector[i]+(1.0 - smoothing_wght)*diff[i];
+	smoothed_result[i] = mean_vector[i]  +(1.0 - smoothing_wght)*diff[i]; 
 
       for_inclusive(i,X,Z)	/* debugging volume */
 	another_vector[i] = 0.0;
@@ -1868,9 +1929,9 @@ private Real get_deformation_vector_for_node(Real spacing,
       build_source_lattice(xp, yp, zp, 
 			   SX, SY, SZ,
 			   spacing*3, spacing*3, spacing*3,
-			   DIAMETER_OF_LOCAL_LATTICE+1,  
-			   DIAMETER_OF_LOCAL_LATTICE+1,  
-			   DIAMETER_OF_LOCAL_LATTICE+1,
+			   Diameter_of_local_lattice,  
+			   Diameter_of_local_lattice,  
+			   Diameter_of_local_lattice,
 			   ndim, &Glen);
     }
     else {			/* use projections */
@@ -1881,7 +1942,6 @@ private Real get_deformation_vector_for_node(Real spacing,
       SX[1] = xp; SY[1] = yp; SZ[1] = zp;
       Glen = 1;
     }
-
 
     /* -------------------------------------------------------------- */
     /* BUILD THE TARGET VOLUME LOCAL NEIGHBOURHOOD INFO */

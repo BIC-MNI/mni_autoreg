@@ -11,16 +11,19 @@
               software for any purpose.  It is provided "as is" without
               express or implied warranty.
 
-   @CREATED    : February 3, 1992 - louis louis
+   @CREATED    : February 3, 1992 - louis collins
    @MODIFIED   : $Log: minctracc.c,v $
-   @MODIFIED   : Revision 1.15  1995-09-28 13:24:26  louis
-   @MODIFIED   : added multiple feature volume loading with get_feature_volumes()
-   @MODIFIED   : to be able to correlate multiple features at the same time.
+   @MODIFIED   : Revision 1.16  1996-08-12 14:15:40  louis
+   @MODIFIED   : Pre-release
    @MODIFIED   :
- * Revision 1.14  1995/09/28  11:54:52  louis
+ * Revision 1.15  1995/09/28  13:24:26  collins
+ * added multiple feature volume loading with get_feature_volumes()
+ * to be able to correlate multiple features at the same time.
+ *
+ * Revision 1.14  1995/09/28  11:54:52  collins
  * working version, just prior to release 0.9 of mni_autoreg
  *
- * Revision 1.13  1995/02/22  08:56:06  louis
+ * Revision 1.13  1995/02/22  08:56:06  collins
  * Montreal Neurological Institute version.
  * compiled and working on SGI.  this is before any changes for SPARC/
  * Solaris.
@@ -66,23 +69,21 @@ Wed May 26 13:05:44 EST 1993 lc
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 1.15 1995-09-28 13:24:26 louis Exp $";
+static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 1.16 1996-08-12 14:15:40 louis Exp $";
 #endif
 
-#include <limits.h>
+#include <config.h>
 #include <volume_io.h>
-#include <print_error.h>
 #include <minctracc.h>
 #include <globals.h>
 
-       Real initial_corr;
+       Real initial_corr, final_corr;
 static char *default_dim_names[N_DIMENSIONS] =
                   { MIzspace, MIyspace, MIxspace };
 
 
-
 /*************************************************************************/
-main ( argc, argv )
+int main ( argc, argv )
      int argc;
      char *argv[];
 {   /* main */
@@ -94,8 +95,11 @@ main ( argc, argv )
     tmp_invert;
   Transform 
     *lt, ident_trans;
-  int 
-    sizes[3],i;
+  int
+    parse_flag,
+    measure_matlab_flag,
+    
+    sizes[3],i,num_features;
   Real
     min_value, max_value, step[3];
   char 
@@ -109,11 +113,23 @@ main ( argc, argv )
 
   comments = time_stamp(argc, argv); /* build comment history line for below */
 
-  /* Call ParseArgv to interpret all command line args */
-  if (ParseArgv(&argc, argv, argTable, 0) || 
+  /* Call ParseArgv to interpret all command line args (returns TRUE if error) */
+  parse_flag = ParseArgv(&argc, argv, argTable, 0);
+
+  measure_matlab_flag = 
+    (strlen(main_args.filenames.matlab_file)  != 0) ||
+    (strlen(main_args.filenames.measure_file) != 0);
+
+
+  if (parse_flag || 
+      (measure_matlab_flag && argc!=3) ||
+      (!measure_matlab_flag && argc!=4)) {
+
+/*
       ((argc!=4) && (strlen(main_args.filenames.measure_file) == 0)) || 
-      ((argc!=3) && (strlen(main_args.filenames.measure_file) != 0))
+      ((argc!=3) && (strlen(main_args.filenames.matlab_file)  == 0))
       ) {
+*/
     
     print ("Parameters left:\n");
     for_less(i,0,argc)
@@ -124,18 +140,54 @@ main ( argc, argv )
 		  "\nUsage: %s [<options>] <sourcefile> <targetfile> <output transfile>\n", 
 		  prog_name);
     (void)fprintf(stderr,"       %s [-help]\n\n", prog_name);
+
+
+				/* helpful hints */
+    if ((argc == 4) && 
+	((strlen(main_args.filenames.matlab_file)  != 0) ||
+	 (strlen(main_args.filenames.measure_file) != 0))) {
+      (void)fprintf(stderr, "\nNote: No output transform file needs to be specified for -matlab\n");
+      (void)fprintf(stderr, "      or -measure options.\n");
+    }
+
     exit(EXIT_FAILURE);
   }
 
   main_args.filenames.data  = argv[1];	/* set up necessary file names */
   main_args.filenames.model = argv[2];
-  if (strlen(main_args.filenames.measure_file)==0) 
+  if (strlen(main_args.filenames.measure_file)==0 &&
+      strlen(main_args.filenames.matlab_file)==0) 
     main_args.filenames.output_trans = argv[3];
 
-  if ( (strlen(main_args.filenames.measure_file)==0) && !clobber_flag && file_exists(argv[3])) {
-    (void)fprintf (stderr,"File %s exists.\n",argv[3]);
+
+				/* check to see if they can be overwritten */
+  if (!clobber_flag && 
+      (strlen(main_args.filenames.measure_file)!=0) && 
+      file_exists(main_args.filenames.measure_file)) {
+    (void)fprintf (stderr,"Measure file %s exists.\n",main_args.filenames.measure_file);
     (void)fprintf (stderr,"Use -clobber to overwrite.\n");
     exit(EXIT_FAILURE);
+  }
+
+  if (!clobber_flag && 
+      (strlen(main_args.filenames.matlab_file)!=0) && 
+      file_exists(main_args.filenames.matlab_file)) {
+    (void)fprintf (stderr,"Matlab file %s exists.\n",main_args.filenames.matlab_file);
+    (void)fprintf (stderr,"Use -clobber to overwrite.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  if (!clobber_flag && 
+      (strlen(main_args.filenames.output_trans)!=0) && 
+      file_exists(main_args.filenames.output_trans)) {
+    (void)fprintf (stderr,"Output file %s exists.\n",main_args.filenames.output_trans);
+    (void)fprintf (stderr,"Use -clobber to overwrite.\n");
+    exit(EXIT_FAILURE);
+  }
+  if (strlen(main_args.filenames.matlab_file)  != 0 &&
+      strlen(main_args.filenames.measure_file) != 0) {
+    (void)fprintf(stderr, "\nWARNING: -matlab and -measure are mutually exclusive.  Only\n");
+    (void)fprintf(stderr, "          the matlab option will be executed here.\n");
   }
 
 				/* set up linear transformation to identity, if
@@ -148,19 +200,22 @@ main ( argc, argv )
     ALLOC(main_args.trans_info.transformation,1);
     create_linear_transform(main_args.trans_info.transformation,&ident_trans);    
   } 
+
 				/* don't use default PAT if user req -identity */
   if (main_args.trans_info.use_identity)
     main_args.trans_info.use_default = FALSE;
+
 
 				/* make a copy of the original transformation */
   ALLOC(main_args.trans_info.orig_transformation,1);
   copy_general_transform(main_args.trans_info.transformation,
 			 main_args.trans_info.orig_transformation);
 
+
   if (main_args.flags.debug) {
     /*
        this is simply to print out debugging info at the beginning of a run
-       */
+    */
 
     print ( "===== Debugging information from %s =====\n", prog_name);
     print ( "Data filename       = %s\n", main_args.filenames.data);
@@ -168,9 +223,10 @@ main ( argc, argv )
     print ( "Data mask filename  = %s\n", main_args.filenames.mask_data);
     print ( "Model mask filename = %s\n", main_args.filenames.mask_model);
     print ( "Input xform name    = %s\n", main_args.trans_info.file_name);
-    print ( "Output filename     = %s\n", main_args.filenames.output_trans);
-    if (strlen(main_args.filenames.matlab_file) != 0)
-      print ( "Matlab filename     = %s\n\n",main_args.filenames.matlab_file );
+    if (strlen(main_args.filenames.output_trans) != 0)
+      print ( "Output filename     = %s\n", main_args.filenames.output_trans);
+    if (strlen(main_args.filenames.matlab_file)  != 0)
+      print ( "Matlab filename     = %s (num_steps=%d)\n\n",main_args.filenames.matlab_file,Matlab_num_steps );
     if (strlen(main_args.filenames.measure_file) != 0)
       print ( "Measure filename    = %s\n\n",main_args.filenames.measure_file );
     print ( "Step size           = %f %f %f\n",
@@ -255,7 +311,7 @@ main ( argc, argv )
 
 
   }
-  
+
 
   ALLOC( data, 1 );		/* read in source data and target model */
   ALLOC( model, 1 );
@@ -297,6 +353,10 @@ main ( argc, argv )
 
     if (main_args.trans_info.transform_type == TRANS_NONLIN)
       DEBUG_PRINT( "This run will use projection correlation between the 10 input vols.\n");
+
+    print_error_and_line_num("Ask Louis to change the code for loading into *features!\n",
+		     __FILE__, __LINE__);
+
     status = read_all_data(&data, &data_dx, &data_dy, &data_dz, &data_dxyz,
 			   main_args.filenames.data );
     if (status!=OK)
@@ -344,6 +404,39 @@ main ( argc, argv )
   }
 
 
+				/* shift features to be able to
+				   insert the main source/target
+				   volumes first. */
+
+  num_features = allocate_a_new_feature(&(main_args.features));
+  for_down(i,num_features,1) {
+    main_args.features.data[i]            = main_args.features.data[i-1];
+    main_args.features.model[i]           = main_args.features.model[i-1];
+    main_args.features.data_name[i]       = main_args.features.data_name[i-1];
+    main_args.features.model_name[i]      = main_args.features.model_name[i-1];
+    main_args.features.data_mask[i]       = main_args.features.data_mask[i-1];
+    main_args.features.model_mask[i]      = main_args.features.model_mask[i-1];
+    main_args.features.mask_data_name[i]  = main_args.features.mask_data_name[i-1];
+    main_args.features.mask_model_name[i] = main_args.features.mask_model_name[i-1];
+    main_args.features.thresh_data[i]     = main_args.features.thresh_data[i-1];
+    main_args.features.thresh_model[i]    = main_args.features.thresh_model[i-1];
+    main_args.features.obj_func[i]        = main_args.features.obj_func[i-1];
+    main_args.features.weight[i]          = main_args.features.weight[i-1];
+  }
+
+  main_args.features.data[0]            = data; 
+  main_args.features.model[0]           = model;
+  main_args.features.data_name[0]       = main_args.filenames.data;
+  main_args.features.model_name[0]      = main_args.filenames.model;
+  main_args.features.data_mask[0]       = mask_data;
+  main_args.features.model_mask[0]      = mask_model;
+  main_args.features.mask_data_name[0]  = main_args.filenames.mask_data;
+  main_args.features.mask_model_name[0] = main_args.filenames.mask_model;
+  main_args.features.thresh_data[0]     = main_args.threshold[0];
+  main_args.features.thresh_model[0]    = main_args.threshold[1];
+  main_args.features.obj_func[0]        = NONLIN_XCORR;
+  main_args.features.weight[0]          = 1.0;
+
   /* ===========================  translate initial transformation matrix into 
                                   transformation parameters */
 
@@ -356,6 +449,14 @@ main ( argc, argv )
     init_lattice( data, model, mask_data, mask_model, &main_args );
     make_matlab_data_file( data, model, mask_data, mask_model, comments, &main_args );
     exit( OK );
+  }
+
+  if (strlen(main_args.filenames.measure_file) != 0) {
+
+#include "measure_code.c"
+
+    /* measure code finishes with 
+       exit(status); */
   }
 
   DEBUG_PRINT  ("AFTER init_params()\n");
@@ -396,11 +497,6 @@ main ( argc, argv )
 		main_args.trans_info.shears[2] );
   
 
-  if (strlen(main_args.filenames.measure_file) != 0) {
-
-#include "measure_code.c"
-
-  }
 
 				/* do not do any optimization if the transformation
 				   requested is the Principal Axes Transformation 
@@ -435,9 +531,7 @@ main ( argc, argv )
       build_default_deformation_field(&main_args);
       
 
-      if ( !optimize_non_linear_transformation(data, data_dx, data_dy, data_dz, data_dxyz, 
-					       model, model_dx, model_dy, model_dz, model_dxyz, 
-					       mask_data, mask_model, &main_args ) ) {
+      if ( !optimize_non_linear_transformation( &main_args ) ) {
 	print_error_and_line_num("Error in optimization of non-linear transformation\n",
 				 __FILE__, __LINE__);
 	exit(EXIT_FAILURE);
@@ -456,9 +550,8 @@ main ( argc, argv )
     }
 
     if (number_dimensions==3) {
-      print ("Initial correlation val = %0.5f\n",initial_corr); 
-      print ("Final correlation value = %0.5f\n",
-           xcorr_objective(data, model, mask_data, mask_model, &main_args ));
+      print ("Initial objective function val = %0.8f\n",initial_corr); 
+      print ("Final objective function value = %0.8f\n",final_corr);
     }
 
   }
@@ -663,61 +756,192 @@ public int get_mask_file(char *dst, char *key, char *nextArg)
 /* ARGSUSED */
 public int get_feature_volumes(char *dst, char *key, int argc, char **argv)
 { 
-  int i;
+  int 
+    i,
+    args_used,
+    weight_index,
+    obj_func_index;
+  char 
+    *end_ptr;
+  Real
+    tmp;
   Status status;
 
+  Volume 
+    data_vol,
+    model_vol,
+    data_mask,
+    model_mask;
+  char
+    *data_name,
+    *model_name,
+    *mask_data_name,
+    *mask_model_name,
+    obj_func;
+  Real 
+    weight,
+    thresh_data,
+    thresh_model;
+
+
   if ( argc >=2 && argv[0] != NULL && argv[1] != NULL ) {
-    i = main_args.features.number_of_features;
-    main_args.features.number_of_features++;    
 
-    if (i==0) {
-      ALLOC(main_args.features.data,1);
-      ALLOC(main_args.features.model,1);
-      ALLOC(main_args.features.data_name, 1);
-      ALLOC(main_args.features.model_name, 1);
-    }
-    else {
-      REALLOC(main_args.features.data,i+1);
-      REALLOC(main_args.features.model,i+1);
-      REALLOC(main_args.features.data_name, i+1);
-      REALLOC(main_args.features.model_name, i+1);
-    }
-    main_args.features.data_name[i] = argv[0];
-    status = input_volume(argv[0], 3, default_dim_names, 
+    data_name = argv[0];
+    status = input_volume(data_name, 3, default_dim_names, 
 			  NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-			  TRUE, &(main_args.features.data[i]), 
+			  TRUE, &data_vol, 
 			  (minc_input_options *)NULL );
     if (status != OK) {
-      (void)fprintf(stderr, "Cannot input feature %s.\n",argv[0]);
+      (void)fprintf(stderr, "Cannot input feature %s.\n",data_name);
       return(-1);
     } 
 
-    main_args.features.data_name[i] = argv[1];
-    status = input_volume(argv[1], 3, default_dim_names, 
+    model_name = argv[1];
+    status = input_volume(model_name, 3, default_dim_names, 
 			  NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-			  TRUE, &(main_args.features.model[i]), 
+			  TRUE, &model_vol, 
 			  (minc_input_options *)NULL );
     if (status != OK) {
-      (void)fprintf(stderr, "Cannot input feature %s.\n",argv[1]);
+      (void)fprintf(stderr, "Cannot input feature %s.\n",model_name);
       return(-1);
     } 
 
+    obj_func        = NONLIN_XCORR;
+    weight          = 1.0;
+    thresh_data     = -DBL_MAX;
+    thresh_model    = -DBL_MAX;
+    data_mask       = (Volume)NULL;
+    model_mask      = (Volume)NULL;
+    mask_data_name  = (char *)NULL;
+    mask_model_name = (char *)NULL;
+      		/* look for optional objective function 
+		   specification and optional weighting value */
+    args_used   =2;
+    if ( argc>2 ) {
+				/* objective functions */
+      obj_func_index = weight_index = 2;
+      if ( strncmp(argv[obj_func_index], "xcorr", 2)==0 ) {
+	obj_func =  NONLIN_XCORR;
+	weight_index++; args_used++;
+      }
+      if ( strncmp(argv[obj_func_index], "diff", 2)==0 ) {
+	obj_func =  NONLIN_DIFF;
+	weight_index++; args_used++;
+      }
+      if ( strncmp(argv[obj_func_index], "label", 2)==0 ) {
+	obj_func =  NONLIN_LABEL;
+	weight_index++; args_used++;
+      }
+
+				/* weighting value */
+      tmp = strtod(argv[weight_index],&end_ptr) ;
+      if (end_ptr != argv[weight_index]) {
+	weight = tmp;
+	args_used++;
+      }
+	
+    }
+
+    add_a_feature_for_matching(&(main_args.features),
+			       data_vol, model_vol, data_mask, model_mask,
+			       data_name, model_name, 
+			       mask_data_name, mask_model_name,
+			       obj_func, weight,
+			       thresh_data, thresh_model);
+
+
+    i = main_args.features.number_of_features-1;
+    print ("Features %d: %s %s %d %f\n", i,
+	   main_args.features.data_name[i],
+	   main_args.features.model_name[i],
+	   (int)main_args.features.obj_func[i],
+	   main_args.features.weight[i]);
+    
   }
   else {
-    fprintf (stderr,"the -feature option requires two arguments.\n");
+    fprintf (stderr,"the -feature option requires at least two arguments.\n");
     return (-1);
   }
 
-  for_less(i,0,argc-2) {
-    argv[i] = argv[i+2];
+  for_less(i,0,argc-args_used) {
+    argv[i] = argv[i+args_used];
   }
-  argc -= 2;
+  argc -= args_used;
 
   return (argc);			/* OK */
   
 }
 
+int allocate_a_new_feature(Feature_volumes *features)
+{
+
+  int i;
+
+  i = main_args.features.number_of_features;
+  main_args.features.number_of_features++;    
+
+  if (i==0) {
+    ALLOC(features->data,1);
+    ALLOC(features->model,1);
+    ALLOC(features->data_name, 1);
+    ALLOC(features->model_name, 1);
+    ALLOC(features->data_mask,1);
+    ALLOC(features->model_mask,1);
+    ALLOC(features->mask_data_name, 1);
+    ALLOC(features->mask_model_name, 1);
+    ALLOC(features->obj_func, 1);
+    ALLOC(features->weight, 1);
+    ALLOC(features->thresh_data, 1);
+    ALLOC(features->thresh_model, 1);
+  }
+  else {
+    REALLOC(features->data,i+1);
+    REALLOC(features->model,i+1);
+    REALLOC(features->data_name, i+1);
+    REALLOC(features->model_name, i+1);
+    REALLOC(features->data_mask,i+1);
+    REALLOC(features->model_mask,i+1);
+    REALLOC(features->mask_data_name, i+1);
+    REALLOC(features->mask_model_name, i+1);
+    REALLOC(features->obj_func, i+1);
+    REALLOC(features->weight, i+1);
+    REALLOC(features->thresh_data, i+1);
+    REALLOC(features->thresh_model, i+1);
+  }
+  return(i);
+}
 
 
+void add_a_feature_for_matching(Feature_volumes *features,
+				Volume data_vol,
+				Volume model_vol,
+				Volume data_mask,
+				Volume model_mask,
+				char *data_name,
+				char *model_name,
+				char *mask_data_name,
+				char *mask_model_name,
+				char obj_func,
+				Real weight,
+				Real thresh_data,
+				Real thresh_model)
+{
 
+  int i;
 
+  i = allocate_a_new_feature(features);
+
+  features->data[i]            = data_vol; 
+  features->model[i]           = model_vol;
+  features->data_name[i]       = data_name;
+  features->model_name[i]      = model_name;
+  features->data_mask[i]       = data_mask;
+  features->model_mask[i]      = model_mask;
+  features->mask_data_name[i]  = mask_data_name;
+  features->mask_model_name[i] = mask_model_name;
+  features->thresh_data[i]     = thresh_data;
+  features->thresh_model[i]    = thresh_model;
+  features->obj_func[i]        = obj_func;
+  features->weight[i]          = weight;
+
+}

@@ -8,6 +8,8 @@
 #include <math.h>
 #include <stdio.h>
 #include "kernel.h"
+#include <string.h>
+
 #define public
 #define private static
 #define PI 3.1415927
@@ -246,6 +248,7 @@ public void make_kernel(float *kern, float vsize, float fwhm, int size, int type
   (void)memset(kern,(int)0,(size_t)((2*size+1)*sizeof(float)));
   
   for ( k = -size/2; k<size/2; ++k) {
+
     kindex = ((k + size) % size)*2 +1;
 
 

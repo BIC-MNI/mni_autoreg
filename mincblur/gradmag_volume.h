@@ -1,12 +1,23 @@
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : gradmag_volume.h
-@DESCRIPTION: Header file for gradmag_volume.c
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
-@CREATED    : Wed Jun 30 13:25:33 EST 1993 Louis Collins,
+@DESCRIPTION: Header/prototype file for gradmag_volume.c
+@COPYRIGHT  :
+              Copyright 1995 Louis Collins, McConnell Brain Imaging Centre, 
+              Montreal Neurological Institute, McGill University.
+              Permission to use, copy, modify, and distribute this
+              software and its documentation for any purpose and without
+              fee is hereby granted, provided that the above copyright
+              notice appear in all copies.  The author and McGill University
+              make no representations about the suitability of this
+              software for any purpose.  It is provided "as is" without
+              express or implied warranty.
+
+@CREATED    : Wed Jun 30 13:25:33 EST 1993 Louis Collins
                 copied and modified from mincresample.h from Peter Neelin
-@MODIFIED   : 
+@MODIFIED   : $Log: gradmag_volume.h,v $
+@MODIFIED   : Revision 1.8  1996-08-12 14:16:22  louis
+@MODIFIED   : Pre-release
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 
 /* Constants used in program */
@@ -160,7 +171,7 @@ public void make_curvature_volumes(MincVolume *in_vol1,
 
 public void make_vol_icv(MincVolume *in_vol);
 
-public void calc_gradient_magnitude(char *infilename, char *history, 
+public void calc_gradient_magnitude(char *infilename, char *history, char *output_basename,
 				    double *min_value, double *max_value);
 
 public void calc_gaussian_curvature(char *infilename, char *history,

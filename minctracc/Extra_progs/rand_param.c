@@ -10,9 +10,12 @@
 @CALLS      : 
 @CREATED    : Tue Aug 23 15:32:30 EST 1994 - Louis
 @MODIFIED   : $Log: rand_param.c,v $
-@MODIFIED   : Revision 1.1  1995-02-22 08:56:06  louis
-@MODIFIED   : Initial revision
+@MODIFIED   : Revision 1.2  1996-08-12 14:15:10  louis
+@MODIFIED   : Pre-release
 @MODIFIED   :
+ * Revision 1.1  1995/02/22  08:56:06  collins
+ * Initial revision
+ *
 
 ---------------------------------------------------------------------------- */
 
@@ -24,7 +27,8 @@ static char rcsid[]="";
 #include <stdio.h>
 #include <string.h>
 #include <volume_io.h>
-#include <ParseArgv.h>
+#include <config.h>
+#include <Proglib.h>
 
 #include <sys/types.h>
 #include <time.h>
@@ -43,10 +47,15 @@ int main(int argc, char *argv[])
      mag_scales, mag_trans, mag_rots, mag_skews,
      scales[3], trans[3], rots[3], skews[3];
    int i;
-   long
-     seedval;
+
+   union
+     {
+       long   l;
+       char   c[4];
+     } seedval;
+   
    time_t t;
-   char tmp, *b1,*b2;
+   char tmp;
 
    static ArgvInfo argTable[] = {
      {"-translation", ARGV_FLOAT, (char *) 0, (char *) &mag_trans,
@@ -57,7 +66,9 @@ int main(int argc, char *argv[])
 	"Scaling factors."},
      {"-shears",      ARGV_FLOAT, (char *) 0, (char *) &mag_skews,
 	"Scaling factors."},
-     {NULL, ARGV_END, NULL, NULL, NULL}
+     {"-version", ARGV_FUNC, (char *) print_version_info, (char *)MNI_AUTOREG_LONG_VERSION,
+	  "Print out version info and exit."},
+    {NULL, ARGV_END, NULL, NULL, NULL}
    };
    
    
@@ -73,15 +84,12 @@ int main(int argc, char *argv[])
    }
 
    t = 2*time(NULL);
-   seedval = t; 
+   seedval.l = t; 
 
-   b1 = &seedval;
-   b2 = b1+3;
-   tmp = *b1;  *b1 = *b2; *b2 = tmp;
-   b1++; b2--;
-   tmp = *b1;  *b1 = *b2; *b2 = tmp;
-
-   srand48(seedval);
+   tmp = seedval.c[0]; seedval.c[0] = seedval.c[3]; seedval.c[3] = tmp; 
+   tmp = seedval.c[1]; seedval.c[1] = seedval.c[2]; seedval.c[2] = tmp;
+   
+   srand48(seedval.l);
    
    if (ParseArgv(&argc, argv, argTable, 0) || (argc!=1)) {
       (void) fprintf(stderr, "Usage: %s [options]\n",

@@ -1,14 +1,30 @@
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : mincblur.h
-@DESCRIPTION: header file for mincblur.c
+@DESCRIPTION: header/prototype file for mincblur.c
+
+@COPYRIGHT  :
+              Copyright 1995 Louis Collins, McConnell Brain Imaging Centre, 
+              Montreal Neurological Institute, McGill University.
+              Permission to use, copy, modify, and distribute this
+              software and its documentation for any purpose and without
+              fee is hereby granted, provided that the above copyright
+              notice appear in all copies.  The author and McGill University
+              make no representations about the suitability of this
+              software for any purpose.  It is provided "as is" without
+              express or implied warranty.
+
 @CREATED    : Wed Jun 23 09:04:34 EST 1993 Louis Collins
-@MODIFIED   : 
+@MODIFIED   : $Log: mincblur.h,v $
+@MODIFIED   : Revision 1.11  1996-08-12 14:16:24  louis
+@MODIFIED   : Pre-release
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 
 public Status blur3D_volume(Volume data,
 			    double  kernel1, double  kernel2, double  kernel3, 
 			    char *infile, 
 			    char *outfile, 
+			    FILE *reals_fp,
 			    int ndim, int kernel_type, char *history);
 
 public Status gradient3D_volume(FILE *ifd, 
@@ -19,12 +35,22 @@ public Status gradient3D_volume(FILE *ifd,
 				char *history,
 				int curvature_flg);
 
+public Status calc_Lvv_volume(FILE *ifd, 
+			      Volume data, 
+			      char *infile,
+			      char *outfile, 
+			      int ndim,
+			      char *history);
+
+
 public void apodize_data(Volume data, 
 			 double xramp1,double xramp2,
 			 double yramp1,double yramp2,
 			 double zramp1,double zramp2);
 
-public void calc_gradient_magnitude(char *infilename, char *history, 
+public void calc_gradient_magnitude(char *infilename, 
+				    char *output_basename,
+				    char *history, 
 				    Real *min_value, Real *max_value);
 
 public void calc_gaussian_curvature(char *infilename, char *history,
@@ -36,24 +62,21 @@ public void calc_gaussian_curvature(char *infilename, char *history,
 #define INTERNAL_Z  0
 
 char *prog_name;
-int 
-  verbose,
-  debug,
-  apodize_data_flg,
-  kernel_type,
-  dimensions,
-  gradonlyflg,
-  curvatureflg,
-  curveonlyflg,
-  gradonlyflg,
-  bluronlyflg;
+
 double
   fwhm_3D[3],
   fwhm,
   standard;
-int clobber_flag = FALSE;
-
-extern int ms_volume_reals_flag;
+int 
+  verbose, 
+  debug,
+  clobber_flag, 
+  apodize_data_flg,
+  kernel_type,
+  dimensions,
+  do_Lvv_flag,
+  do_gradient_flag,
+  do_partials_flag;
 
 
 static ArgvInfo argTable[] = {
@@ -71,18 +94,14 @@ static ArgvInfo argTable[] = {
      "Use a gaussian smoothing kernel (default)."},
   {"-rect", ARGV_CONSTANT, (char *) KERN_RECT, (char *) &kernel_type,
      "Use a rect (box) smoothing kernel."},
-  {"-blur_only", ARGV_CONSTANT, (char *) TRUE, (char *) &bluronlyflg,
-     "Create only the blurred volume."},
-  {"-grad_only", ARGV_CONSTANT, (char *) TRUE, (char *) &gradonlyflg, 
-     "Create only the gradient volumes."},
-  {"-gcur_only", ARGV_CONSTANT, (char *) TRUE, (char *) &curveonlyflg, 
-     "Create only the curvature volume."},
-  {"-curvature", ARGV_CONSTANT, (char *) TRUE, (char *) &curvatureflg, 
-     "Create data to calculate curvature volumes."},
+  {"-gradient", ARGV_CONSTANT, (char *) TRUE, (char *) &do_gradient_flag, 
+     "Create the gradient magnitude volume as well."},
+  {"-Lvv", ARGV_CONSTANT, (char *) TRUE, (char *) &do_Lvv_flag, 
+     "Create the Lvv volume as well."},
+  {"-partial", ARGV_CONSTANT, (char *) TRUE, (char *) &do_partials_flag, 
+     "Create the partial derivative and gradient magnitude volumes as well."},
   {"-no_apodize", ARGV_CONSTANT, (char *) FALSE, (char *) &apodize_data_flg, 
      "Do not apodize the data before blurring."},
-  {"-no_reals", ARGV_CONSTANT, (char *) FALSE, (char *) &ms_volume_reals_flag, 
-     "Do not write out the real (float) data."},
   {"-no_clobber", ARGV_CONSTANT, (char *) FALSE, (char *) &clobber_flag,
      "Do not overwrite output file (default)."},
   {"-clobber", ARGV_CONSTANT, (char *) TRUE, (char *) &clobber_flag,
@@ -95,6 +114,8 @@ static ArgvInfo argTable[] = {
      "Do not write log messages"},
   {"-debug", ARGV_CONSTANT, (char *) TRUE, (char *) &debug,
      "Print out debug info."},
+  {"-version", ARGV_FUNC, (char *) print_version_info, (char *)MNI_AUTOREG_LONG_VERSION,
+     "Print out version info and exit."},
   {NULL, ARGV_END, NULL, NULL, NULL}
 };
 

@@ -14,16 +14,19 @@
               express or implied warranty.
 
 @MODIFIED   : $Log: optimize.c,v $
-@MODIFIED   : Revision 1.16  1996-05-02 19:39:12  louis
-@MODIFIED   : fixed the matrix inversion bug.  When source and target volumes were
-@MODIFIED   : swapped, the call to fit_function, to get a value for final_corr,
-@MODIFIED   : rebuilt the inverse registration matrix.  And this, just before the
-@MODIFIED   : matrix was to be written out to disk.
+@MODIFIED   : Revision 1.17  1996-08-12 14:15:57  louis
+@MODIFIED   : Pre-release
 @MODIFIED   :
-@MODIFIED   : Now, the matrix is correctly computed, after the last call to
-@MODIFIED   : fit_function.
-@MODIFIED   :
- * Revision 1.15  1996/03/25  10:33:15  louis
+ * Revision 1.16  1996/05/02  19:39:12  collins
+ * fixed the matrix inversion bug.  When source and target volumes were
+ * swapped, the call to fit_function, to get a value for final_corr,
+ * rebuilt the inverse registration matrix.  And this, just before the
+ * matrix was to be written out to disk.
+ *
+ * Now, the matrix is correctly computed, after the last call to
+ * fit_function.
+ *
+ * Revision 1.15  1996/03/25  10:33:15  collins
  * modifications apply to the implementation of mutual information
  * and the constraints of using byte-only data and 256 groups.
  *
@@ -34,11 +37,11 @@
  * in main(), so that the user-selected obj-fn is used to measure
  * the before and after fit.
  *
- * Revision 1.14  1996/03/07  13:25:19  louis
+ * Revision 1.14  1996/03/07  13:25:19  collins
  * small reorganisation of procedures and working version of non-isotropic
  * smoothing.
  *
- * Revision 1.13  1995/10/06  09:25:02  louis
+ * Revision 1.13  1995/10/06  09:25:02  collins
  * removed all the volume parameters from do_non_linear_optimization() and
  * optimize_non_linear_transformation() since they are all represented in
  * globals->features struc.
@@ -46,18 +49,18 @@
  * made the necesary changes to access globals->features instead of previous
  * ly used volumes in input parameters.
  *
- * Revision 1.12  1995/09/07  13:02:13  louis
+ * Revision 1.12  1995/09/07  13:02:13  collins
  * removed numerical recipes call to amoeba, the simplex optimization
  * procedure.  It has been replaced with Davids version of the simplex
  * optimization code.
  *
- * Revision 1.11  1995/09/07  10:05:11  louis
+ * Revision 1.11  1995/09/07  10:05:11  collins
  * All references to numerical recipes routines are being removed.  At this
  * stage, any num rec routine should be local in the file.  All memory
  * allocation calls to vector(), matrix(), free_vector() etc... have been
  * replaced with ALLOC and FREE from the volume_io library of routines.
  *
- * Revision 1.10  1995/03/17  11:15:35  louis
+ * Revision 1.10  1995/03/17  11:15:35  collins
  * added prototype for amoeba2 in optimize.c - I think that Greg may
  * have changed the call from amoeba2 to amoeba so that he could take
  * advantage of the amoeba routine in librecipes.  I don't think he
@@ -65,7 +68,7 @@
  * and the version I use.  So I put it back to the way it was, or in
  * any case, to the way that works.
  *
- * Revision 1.9  1995/02/22  08:56:06  louis
+ * Revision 1.9  1995/02/22  08:56:06  collins
  * Montreal Neurological Institute version.
  * compiled and working on SGI.  this is before any changes for SPARC/
  * Solaris.
@@ -88,7 +91,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 1.16 1996-05-02 19:39:12 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 1.17 1996-08-12 14:15:57 louis Exp $";
 #endif
 
 #include <config.h>

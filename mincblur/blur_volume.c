@@ -29,23 +29,26 @@
               express or implied warranty.
 
 @MODIFIED   : $Log: blur_volume.c,v $
-@MODIFIED   : Revision 1.12  1995-09-18 09:02:42  louis
-@MODIFIED   : new functional version of mincblur with new and improved default behavior.
-@MODIFIED   : By default, only the blurred volume is created. If you want the gradient
-@MODIFIED   : magnitude volumes, you have to ask for it (-gradient).
+@MODIFIED   : Revision 1.13  1996-08-12 14:16:19  louis
+@MODIFIED   : Pre-release
 @MODIFIED   :
-@MODIFIED   : The temporary files (corresponding to the REAL data, and partial derivatives)
-@MODIFIED   : are removed by mincblur, so now it runs cleanly.  Unfortunately, these files
-@MODIFIED   : are _not_ deleted if mincblur fails, or is stopped.  I will have to use
-@MODIFIED   : unlink for this, but its a bit to much to do right now, since I would have
-@MODIFIED   : to change the way files are dealt with in gradient_volume.c, blur_volume.c
-@MODIFIED   : and gradmag_volume.c.
-@MODIFIED   :
-@MODIFIED   : Also, it is possible to keep the partial derivative volumes (-partial).
-@MODIFIED   :
-@MODIFIED   : this version is in mni_reg-0.1j
-@MODIFIED   :
- * Revision 1.11  1995/09/18  06:45:42  louis
+ * Revision 1.12  1995/09/18  09:02:42  collins
+ * new functional version of mincblur with new and improved default behavior.
+ * By default, only the blurred volume is created. If you want the gradient
+ * magnitude volumes, you have to ask for it (-gradient).
+ *
+ * The temporary files (corresponding to the REAL data, and partial derivatives)
+ * are removed by mincblur, so now it runs cleanly.  Unfortunately, these files
+ * are _not_ deleted if mincblur fails, or is stopped.  I will have to use
+ * unlink for this, but its a bit to much to do right now, since I would have
+ * to change the way files are dealt with in gradient_volume.c, blur_volume.c
+ * and gradmag_volume.c.
+ *
+ * Also, it is possible to keep the partial derivative volumes (-partial).
+ *
+ * this version is in mni_reg-0.1j
+ *
+ * Revision 1.11  1995/09/18  06:45:42  collins
  * this file is a working version of mincblur.  All references to numerical
  * recipes routines have been removed.  This version is included in the
  * package mni_reg-0.1i
@@ -53,17 +56,19 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/blur_volume.c,v 1.12 1995-09-18 09:02:42 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/blur_volume.c,v 1.13 1996-08-12 14:16:19 louis Exp $";
 #endif
 
 #include <volume_io.h>
+#include <config.h>
 #include "blur_support.h"
-#include <limits.h>
+#include <print_error.h>
 
 extern int debug;
 
 int ms_volume_reals_flag;
 
+public void fft1(float *signal, int numpoints, int direction);
 
 public Status blur3D_volume(Volume data,
 			    double fwhmx, double fwhmy, double fwhmz, 
@@ -107,8 +112,6 @@ public Status blur3D_volume(Volume data,
     slice_size,			/* size of each data step - in bytes              */
     row_size, col_size;
                 
-  FILE 
-    *ofp;			/* file used tp write out dx,dy or dz volume        */
   char
     full_outfilename[256];	/* name of output file */
 
@@ -212,8 +215,7 @@ if (debug) print("before blur min/max = %f %f\n", min_val, max_val);
   
   /*    2nd now convolve this kernel with the rows of the dataset            */
   
-  
-  
+  slice_limit = 0;
   switch (ndim) {
   case 1: slice_limit = 0; break;
   case 2: slice_limit = sizes[Z]; break;

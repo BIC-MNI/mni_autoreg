@@ -1,10 +1,15 @@
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 #include <volume_io.h>
-#include <recipes.h>
+#include <config.h>
+#include <Proglib.h>
+
+
 
 #include "constants.h"
 #include "matrix_basics.h"
-#include "cov_to_praxes.h"
 #include "make_rots.h"
 #include "point_vector.h"
 
@@ -23,7 +28,7 @@ static char *default_dim_names[N_DIMENSIONS] =
 char *prog_name;
 
 
-BOOLEAN vol_to_cov(Volume d1, Volume m1, float *centroid, float **covar, double *step)
+BOOLEAN vol_to_cov(Volume d1, Volume m1, float centroid[4], float covar[4][4], double *step)
 {
 
   VectorR
@@ -199,7 +204,7 @@ BOOLEAN vol_to_cov(Volume d1, Volume m1, float *centroid, float **covar, double 
 BOOLEAN get_cog(char *file, double *c1)
 {
   Volume vol;
-  float **cov, *cog;
+  float cov[4][4], cog[4];
   double step[3];
   Real x,y,z,r,s,c;
 
@@ -209,9 +214,6 @@ BOOLEAN get_cog(char *file, double *c1)
   step[0] = 4.0;
   step[1] = 4.0;
   step[2] = 4.0;
-
-  cov = matrix(1,3,1,3); 
-  cog = vector(1,3);
 
   if ( vol_to_cov(vol, NULL, cog, cov, step ) ) {
     c1[0] = cog[1];
@@ -230,7 +232,7 @@ main(int argc, char *argv[])
 {
   float
     c1[4];
-  double 
+  static double 
     cent[3],
     rots[3],
     tran[3],
@@ -243,25 +245,37 @@ main(int argc, char *argv[])
   char *xfmfile;
   int i;
   Volume data;
-  
-  if (argc<2) {
-    print ("usage:  xfm_to_param  file.xfm  [file.mnc]\n");
-    exit(EXIT_FAILURE);
-  }
 
+    
+  static ArgvInfo argTable[] = {
+    {"-center",      ARGV_FLOAT, (char *) 3, (char *)cent,
+	 "Force center of rotation and scale."},
+    {"-version", ARGV_FUNC, (char *) print_version_info, (char *)MNI_AUTOREG_LONG_VERSION,
+	 "Print out version info and exit."},
+    {NULL, ARGV_END, NULL, NULL, NULL}
+  };
+   
   prog_name = argv[0];
-  xfmfile   = argv[1];
 
   for_less(i,0,3) {
     cent[i] = rots[i] = tran[i] = scal[i] = 0.0;
   }
   for_less(i,0,6) sher[i] = 0.0;
 
+  if (ParseArgv(&argc, argv, argTable, 0) || (argc<2)) {
+    (void) fprintf(stderr, "Usage: %s file.xfm [file.mnc] [options] \n",
+		   argv[0]);
+    exit(EXIT_FAILURE);
+  }
+  
+  prog_name = argv[0];
+  xfmfile   = argv[1];
+
   if (argc>2) {
     print ("mnc = %s\n",argv[2]);
     if (! get_cog(argv[2], cent) ) {
       print("Cannot calculate the COG of volume %s\n.", argv[2] );
-      return(FALSE);
+      exit(EXIT_FAILURE);
     }
   }
 
@@ -282,5 +296,6 @@ main(int argc, char *argv[])
   print("-scale       %10.5f %10.5f %10.5f\n", scal[0], scal[1], scal[2]);
   print("-shear       %10.5f %10.5f %10.5f\n", sher[0], sher[1], sher[2]);
   
-  
+  exit(EXIT_SUCCESS);
 }
+

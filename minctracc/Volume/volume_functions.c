@@ -14,11 +14,14 @@
 
 @CREATED    : Tue Jun 15 08:57:23 EST 1993 LC
 @MODIFIED   :  $Log: volume_functions.c,v $
-@MODIFIED   :  Revision 1.10  1995-02-22 08:56:06  louis
-@MODIFIED   :  Montreal Neurological Institute version.
-@MODIFIED   :  compiled and working on SGI.  this is before any changes for SPARC/
-@MODIFIED   :  Solaris.
+@MODIFIED   :  Revision 1.11  1996-08-12 14:16:13  louis
+@MODIFIED   :  Pre-release
 @MODIFIED   :
+ * Revision 1.10  1995/02/22  08:56:06  collins
+ * Montreal Neurological Institute version.
+ * compiled and working on SGI.  this is before any changes for SPARC/
+ * Solaris.
+ *
  * Revision 1.9  94/04/26  12:54:44  louis
  * updated with new versions of make_rots, extract2_parameters_from_matrix 
  * that include proper interpretation of skew.
@@ -37,32 +40,29 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/volume_functions.c,v 1.10 1995-02-22 08:56:06 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/volume_functions.c,v 1.11 1996-08-12 14:16:13 louis Exp $";
 #endif
 
-#include <volume_io.h>
 #include <limits.h>
+#include <volume_io.h>
 #include "point_vector.h"
 #include "constants.h"
 #include <print_error.h>
 
-public void make_zscore_volume(Volume d1, Volume m1, 
-			       float threshold); 
-
-public void add_speckle_to_volume(Volume d1, 
-				  float speckle,
-				  double  *start, int *count, VectorR directions[]);
-
-public void save_volume(Volume d, char *filename);
+public int point_not_masked(Volume volume, 
+			    Real wx, Real wy, Real wz);
 
 
+#define MIN_ZRANGE -5.0
+#define MAX_ZRANGE  5.0
 
 public void make_zscore_volume(Volume d1, Volume m1, 
-			       float threshold)
+			       Real *threshold)
 {
   unsigned long
     count;
   int 
+    stat_count,
     sizes[MAX_DIMENSIONS],
     s,r,c;
   Real
@@ -79,12 +79,15 @@ public void make_zscore_volume(Volume d1, Volume m1,
   Volume 
     vol;
 
+  progress_struct
+    progress;
+
   /* get default information from data and mask */
 
   /* build temporary working volume */
  
   vol = copy_volume_definition(d1, NC_UNSPECIFIED, FALSE, 0.0, 0.0);
-  set_volume_real_range(vol, -5.0, 5.0);
+  set_volume_real_range(vol, MIN_ZRANGE, MAX_ZRANGE);
   get_volume_sizes(d1, sizes);
   get_volume_separations(d1, thick);
   get_volume_voxel_range(d1, &valid_min_dvoxel, &valid_max_dvoxel);
@@ -94,14 +97,20 @@ public void make_zscore_volume(Volume d1, Volume m1,
   count  = 0;
   sum  = 0.0;
   sum2 = 0.0;
-  min = FLT_MAX;
-  max = -FLT_MAX;
+  min = 1e38;
+  max = -1e38;
+  stat_count = 0;
+
+  initialize_progress_report(&progress, FALSE, sizes[0]*sizes[1]*sizes[2] + 1,
+			     "Tally stats" );
 
 				/* do first pass, to get mean and std */
   for_less( s, 0,  sizes[0]) {
     for_less( r, 0, sizes[1]) {
       for_less( c, 0, sizes[2]) {
 
+	stat_count++;
+	update_progress_report( &progress, stat_count);
 	convert_3D_voxel_to_world(d1, (Real)s, (Real)r, (Real)c, &wx, &wy, &wz);
 
 	if (m1 != NULL) {
@@ -119,7 +128,7 @@ public void make_zscore_volume(Volume d1, Volume m1,
 
 	    data_val = CONVERT_VOXEL_TO_VALUE(d1, data_vox);
 	    
-	    if (data_val > threshold) {
+	    if (data_val > *threshold) {
 	      sum  += data_val;
 	      sum2 += data_val*data_val;
 	      
@@ -136,28 +145,35 @@ public void make_zscore_volume(Volume d1, Volume m1,
       }
     }
   }
+  terminate_progress_report( &progress );
 
+  stat_count = 0;
+  initialize_progress_report(&progress, FALSE, sizes[0]*sizes[1]*sizes[2] + 1,
+			     "Zscore convert" );
 
 				/* calc mean and std */
   mean = sum / (float)count;
   var  = ((float)count*sum2 - sum*sum) / ((float)count*((float)count-1));
   std  = sqrt(var);
 
-  min = FLT_MAX;
-  max = -FLT_MAX;
+  min = 1e38;
+  max = -1e38;
 
 				/* replace the voxel values */
   for_less( s, 0,  sizes[0]) {
     for_less( r, 0, sizes[1]) {
       for_less( c, 0, sizes[2]) {
 	
+	stat_count++;
+	update_progress_report( &progress, stat_count);
+
 	GET_VOXEL_3D( data_vox,  d1, s, r, c );
 	
 	if (data_vox >= valid_min_dvoxel && data_vox <= valid_max_dvoxel) { 
 	  
 	  data_val = CONVERT_VOXEL_TO_VALUE(d1, data_vox);
 	  
-	  if (data_val > threshold) {
+	  if (data_val > *threshold) {
 
 				/* instead of   
 				   data_val = CONVERT_VALUE_TO_VOXEL(d1, data_vox);
@@ -168,8 +184,12 @@ public void make_zscore_volume(Volume d1, Volume m1,
 				   new z-score volume */
 
 	    data_val = (data_val - mean) / std;
+	    if (data_val< MIN_ZRANGE) data_val = MIN_ZRANGE;
+	    if (data_val> MAX_ZRANGE) data_val = MAX_ZRANGE;
+
 	    data_vox = CONVERT_VALUE_TO_VOXEL( vol, data_val);
 	    
+
 	    if (data_val < min) {
 	      min = data_val;
 	    }
@@ -187,6 +207,12 @@ public void make_zscore_volume(Volume d1, Volume m1,
       }
     }
   }
+
+  terminate_progress_report( &progress );
+
+  set_volume_real_range(d1, MIN_ZRANGE, MAX_ZRANGE);	/* reset the data volume's range */
+
+  *threshold = (*threshold - mean) / std;
 
   delete_volume(vol);
   
@@ -274,6 +300,6 @@ public void save_volume(Volume d, char *filename)
 			 (minc_output_options *)NULL);
 
   if (status != OK)
-    print_error("problems writing  volume `%s'.",__FILE__, __LINE__, filename);
+    print_error_and_line_num("problems writing  volume `%s'.",__FILE__, __LINE__, filename);
 
 }

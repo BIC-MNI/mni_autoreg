@@ -1,9 +1,7 @@
 #include <volume_io.h>
-#include <recipes.h>
 
 #include "constants.h"
 #include "matrix_basics.h"
-#include "cov_to_praxes.h"
 #include "make_rots.h"
 #include "point_vector.h"
 
@@ -200,47 +198,43 @@ main(int argc, char *argv[])
   double step[3];
   Real x,y,z,r,s,c;
 
+  if (argc!=2) {
+    print ("usage: %s filename.mnc\n",argv[0]);
+    exit(EXIT_FAILURE);
+  }
+
   prog_name = argv[0];
   input_volume(argv[1],3,default_dim_names /*(char **)NULL*/, NC_UNSPECIFIED, FALSE, 0.0,0.0,
 	       TRUE, &vol, (minc_input_options *)NULL);
-
-
-/*
-  x = y = z = 0.0;
-  convert_3D_world_to_voxel(vol, x,y,z, &c, &r, &s);
-  (void)print ("%10.4f %10.4f %10.4f -> %10.4f %10.4f %10.4f\n",x,y,z,c,r,s);
-
-  x = y = 0.0;
-  z = 10.0;
-  convert_3D_world_to_voxel(vol, x,y,z, &c, &r, &s);
-  (void)print ("%10.4f %10.4f %10.4f -> %10.4f %10.4f %10.4f\n",x,y,z,c,r,s);
-
-  z = y = 0.0;
-  x = 10.0;
-  convert_3D_world_to_voxel(vol, x,y,z, &c, &r, &s);
-  (void)print ("%10.4f %10.4f %10.4f -> %10.4f %10.4f %10.4f\n",x,y,z,c,r,s);
-
-*/
 
 
   step[0] = 4.0;
   step[1] = 4.0;
   step[2] = 4.0;
 
-  cov = matrix(1,3,1,3); 
-  cog = vector(1,3);
+  ALLOC2D(cov,4,4);
+  ALLOC(cog,4);
 
   vol_to_cov(vol, NULL, cog, cov, step );
 
   (void)print ("%f %f %f\n",cog[1],cog[2],cog[3]);
 
-/*
-  (void)print ("%f %f %f\n",cog[1]+75,cog[2],cog[3]);
-  (void)print ("%f %f %f\n",cog[1]-75,cog[2],cog[3]);
-  (void)print ("%f %f %f\n",cog[1],cog[2]+75,cog[3]);
-  (void)print ("%f %f %f\n",cog[1],cog[2]-75,cog[3]);
-  (void)print ("%f %f %f;\n",cog[1],cog[2],cog[3]+75);
-*/
-
+  FREE2D(cov);
+  FREE(cog);
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

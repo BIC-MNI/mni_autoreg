@@ -19,9 +19,12 @@
 
 @CREATED    : 
 @MODIFIED   : $Log: switch_obj_func.c,v $
-@MODIFIED   : Revision 1.1  1996-03-25 10:33:15  louis
-@MODIFIED   : Initial revision
+@MODIFIED   : Revision 1.2  1996-08-12 14:15:59  louis
+@MODIFIED   : Pre-release
 @MODIFIED   :
+ * Revision 1.1  1996/03/25  10:33:15  collins
+ * Initial revision
+ *
 ---------------------------------------------------------------------------- */
 
 	switch (obj_func) {

@@ -21,13 +21,16 @@
 
 @CREATED    : Tue Mar 12 09:37:44 MET 1996
 @MODIFIED   : $Log: obj_fn_mutual_info.c,v $
-@MODIFIED   : Revision 1.1  1996-03-25 10:33:15  louis
-@MODIFIED   : Initial revision
+@MODIFIED   : Revision 1.2  1996-08-12 14:15:56  louis
+@MODIFIED   : Pre-release
 @MODIFIED   :
+ * Revision 1.1  1996/03/25  10:33:15  collins
+ * Initial revision
+ *
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/obj_fn_mutual_info.c,v 1.1 1996-03-25 10:33:15 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/obj_fn_mutual_info.c,v 1.2 1996-08-12 14:15:56 louis Exp $";
 #endif
 
 #include <volume_io.h>
@@ -191,6 +194,8 @@ public float mutual_information_objective(Volume d1,
     r,c,s;
   
   Real
+    *temp_pdf,
+    **temp_hist,
     min_range1, max_range1, range1,
     min_range2, max_range2, range2,
     intensity_vals1[8],		/* voxel values to index into histogram */
@@ -307,8 +312,47 @@ public float mutual_information_objective(Volume d1,
     } /* for r */
   } /* for s */
 
+
+
   /* now that the data for the objective function has been accumulated
-     over the lattice nodes, finish the objective function calculation, 
+     over the lattice nodes, blur the probability distribution functions
+  */
+
+  ALLOC(temp_pdf, globals->groups);
+
+  for_less(i,0,globals->groups)	   /* copy the 1st pdf */
+    temp_pdf[i] = prob_fn1[i];
+  for_less(i,1,globals->groups-1)  /* now blur it, storing result in prob_fn1 */
+    prob_fn1[i] = (temp_pdf[i-1] + temp_pdf[i] + temp_pdf[i+1])/3.0 ;
+
+  for_less(i,0,globals->groups)	   /* copy the 2nd pdf */
+    temp_pdf[i] = prob_fn2[i];
+  for_less(i,1,globals->groups-1)  /* now blur it, storing result in prob_fn2 */
+    prob_fn2[i] = (temp_pdf[i-1] + temp_pdf[i] + temp_pdf[i+1])/3.0 ;
+
+  FREE(temp_pdf);
+
+  ALLOC2D(temp_hist, globals->groups, globals->groups);
+
+  for_less(i,0,globals->groups)	   /* copy the histogram */
+    for_less(j,0,globals->groups)	   
+      temp_hist[i][j] = prob_hash_table[i][j];
+
+  for_less(i,1,globals->groups-1)   /* now blur it, leaving result in prob_hash_table */
+    for_less(j,1,globals->groups-1)	   
+      prob_hash_table[i][j] = (temp_hist[i+1][j+1] + 
+			       temp_hist[i+1][j  ] + 
+			       temp_hist[i+1][j-1] + 
+			       temp_hist[i  ][j+1] + 
+			       temp_hist[i  ][j  ] + 
+			       temp_hist[i  ][j-1] + 
+			       temp_hist[i-1][j+1] + 
+			       temp_hist[i-1][j  ] + 
+			       temp_hist[i-1][j-1]) / 9.0;
+
+  FREE2D(temp_hist);
+
+  /* now finish the objective function calculation, 
      placing the final objective function value in  'mutual_info_result' */
 
       

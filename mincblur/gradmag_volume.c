@@ -19,23 +19,26 @@
 
 @CREATED    : some time in 1993
 @MODIFIED   : $Log: gradmag_volume.c,v $
-@MODIFIED   : Revision 1.11  1995-09-18 09:02:42  louis
-@MODIFIED   : new functional version of mincblur with new and improved default behavior.
-@MODIFIED   : By default, only the blurred volume is created. If you want the gradient
-@MODIFIED   : magnitude volumes, you have to ask for it (-gradient).
+@MODIFIED   : Revision 1.12  1996-08-12 14:16:22  louis
+@MODIFIED   : Pre-release
 @MODIFIED   :
-@MODIFIED   : The temporary files (corresponding to the REAL data, and partial derivatives)
-@MODIFIED   : are removed by mincblur, so now it runs cleanly.  Unfortunately, these files
-@MODIFIED   : are _not_ deleted if mincblur fails, or is stopped.  I will have to use
-@MODIFIED   : unlink for this, but its a bit to much to do right now, since I would have
-@MODIFIED   : to change the way files are dealt with in gradient_volume.c, blur_volume.c
-@MODIFIED   : and gradmag_volume.c.
-@MODIFIED   :
-@MODIFIED   : Also, it is possible to keep the partial derivative volumes (-partial).
-@MODIFIED   :
-@MODIFIED   : this version is in mni_reg-0.1j
-@MODIFIED   :
- * Revision 1.10  1995/09/18  06:45:42  louis
+ * Revision 1.11  1995/09/18  09:02:42  collins
+ * new functional version of mincblur with new and improved default behavior.
+ * By default, only the blurred volume is created. If you want the gradient
+ * magnitude volumes, you have to ask for it (-gradient).
+ *
+ * The temporary files (corresponding to the REAL data, and partial derivatives)
+ * are removed by mincblur, so now it runs cleanly.  Unfortunately, these files
+ * are _not_ deleted if mincblur fails, or is stopped.  I will have to use
+ * unlink for this, but its a bit to much to do right now, since I would have
+ * to change the way files are dealt with in gradient_volume.c, blur_volume.c
+ * and gradmag_volume.c.
+ *
+ * Also, it is possible to keep the partial derivative volumes (-partial).
+ *
+ * this version is in mni_reg-0.1j
+ *
+ * Revision 1.10  1995/09/18  06:45:42  collins
  * this file is a working version of mincblur.  All references to numerical
  * recipes routines have been removed.  This version is included in the
  * package mni_reg-0.1i
@@ -43,9 +46,10 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/gradmag_volume.c,v 1.11 1995-09-18 09:02:42 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/gradmag_volume.c,v 1.12 1996-08-12 14:16:22 louis Exp $";
 #endif
 
+#include <config.h>             /* for EXIT_FAILURE (on some systems) */
 #include <sys/types.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -665,6 +669,8 @@ public void create_output_file(char *filename,
    int dim_exists, is_volume_dimension;
    int in_index, out_index;
 
+
+   axis = 0;
    /* Save the file name */
    out_file->name = filename;
 
@@ -900,6 +906,8 @@ public double get_default_range(char *what, nc_type datatype, int is_signed)
 {
    double limit;
 
+   limit = 0;
+
    if (strcmp(what, MIvalid_max)==0) {
       switch (datatype) {
       case NC_LONG:  limit = (is_signed) ? LONG_MAX : ULONG_MAX; break;
@@ -994,6 +1002,7 @@ public void make_gradmag_volumes(MincVolume *in_vol1,
    double maximum, minimum, valid_range[2];
    File_Info *ifp,*ofp;
 
+   nslice = slice_index = 0;
 
    /* Set pointers to file information */
    ifp = in_vol1->file;
@@ -1137,6 +1146,8 @@ public void make_curvature_volumes(MincVolume *in_vol1,
    double maximum, minimum, valid_range[2];
    File_Info *ifp,*ofp;
 
+   nslice = slice_index = 0;
+
    /* Set pointers to file information */
    ifp = in_vol1->file;
    ofp = out_vol->file;
@@ -1262,7 +1273,7 @@ public void make_curvature_volumes(MincVolume *in_vol1,
 @METHOD     : 
 @GLOBALS    : 
 @CALLS      : 
-@CREATED    : Tue Jun 29 10:46:01 EST 1993 (louis louis)
+@CREATED    : Tue Jun 29 10:46:01 EST 1993 (louis collins)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 public void get_mag_slice(Slice_Data *result,
@@ -1414,8 +1425,6 @@ public void get_curvature_slice(Slice_Data *result,
      else
        *maximum = 2.0 * (*minimum);
    }
-
-print("%12.10f %12.10f\n",*minimum,*maximum);
 
 }
 

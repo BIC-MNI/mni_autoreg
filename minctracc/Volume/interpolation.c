@@ -16,11 +16,14 @@
 @CREATED    : Wed May 26 13:05:44 EST 1993 LC using routines from NEELIN's
               mincresample.
 @MODIFIED   :  $Log: interpolation.c,v $
-@MODIFIED   :  Revision 1.9  1995-02-22 08:56:06  louis
-@MODIFIED   :  Montreal Neurological Institute version.
-@MODIFIED   :  compiled and working on SGI.  this is before any changes for SPARC/
-@MODIFIED   :  Solaris.
+@MODIFIED   :  Revision 1.10  1996-08-12 14:16:13  louis
+@MODIFIED   :  Pre-release
 @MODIFIED   :
+ * Revision 1.9  1995/02/22  08:56:06  collins
+ * Montreal Neurological Institute version.
+ * compiled and working on SGI.  this is before any changes for SPARC/
+ * Solaris.
+ *
  * Revision 1.8  94/04/06  11:48:38  louis
  * working linted version of linear + non-linear registration based on Lvv
  * operator working in 3D
@@ -35,7 +38,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/interpolation.c,v 1.9 1995-02-22 08:56:06 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/interpolation.c,v 1.10 1996-08-12 14:16:13 louis Exp $";
 #endif
 
 #include <volume_io.h>

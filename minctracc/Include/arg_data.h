@@ -37,10 +37,29 @@ typedef struct {
 } Program_Filenames;
 
 typedef struct {
+  int number_of_features;
+  Volume *data;
+  Volume *model;
+  Volume *data_mask;
+  Volume *model_mask;
+  char **data_name;
+  char **model_name;
+  char **mask_data_name;
+  char **mask_model_name;
+  char *obj_func;
+  Real *weight;
+  Real *thresh_data;
+  Real *thresh_model;
+} Feature_volumes;
+
+typedef struct {
+  int use_identity;
   int use_default;
   int use_magnitude;
   int use_simplex;
   int use_super;
+  int use_local_smoothing;
+  int use_local_isotropic;
   char *file_name;
   char *file_contents;
   long buffer_length;
@@ -60,6 +79,8 @@ struct Arg_Data_struct {
   Program_Filenames      filenames;    /* names of all data filename to be used      */
   Program_Flags          flags;	       /* flags (debug, verbose etc...               */ 
   Program_Transformation trans_info;   /* world to world transformation information  */
+  Feature_volumes        features;     /* struct contain extra feature info */
+
   Interpolating_Function interpolant;  /* point to interpolation funciton to be used */
   Objective_Function     obj_function; /* pointer to objective function to be used   */
   int                    optimize_type;/* Type of optimization strategy              */

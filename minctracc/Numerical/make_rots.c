@@ -14,12 +14,15 @@
               express or implied warranty.
 @CREATED    : Tue Jun  8 08:44:59 EST 1993 LC
 @MODIFIED   : $Log: make_rots.c,v $
-@MODIFIED   : Revision 1.11  1995-09-11 12:37:16  louis
-@MODIFIED   : All refs to numerical recipes routines have been replaced.
-@MODIFIED   : this is an updated working version - corresponds to mni_reg-0.1g
-@MODIFIED   : \
+@MODIFIED   : Revision 1.12  1996-08-12 14:15:45  louis
+@MODIFIED   : Pre-release
 @MODIFIED   :
- * Revision 1.10  1995/02/22  08:56:06  louis
+ * Revision 1.11  1995/09/11  12:37:16  collins
+ * All refs to numerical recipes routines have been replaced.
+ * this is an updated working version - corresponds to mni_reg-0.1g
+ * \
+ *
+ * Revision 1.10  1995/02/22  08:56:06  collins
  * Montreal Neurological Institute version.
  * compiled and working on SGI.  this is before any changes for SPARC/
  * Solaris.
@@ -42,7 +45,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/make_rots.c,v 1.11 1995-09-11 12:37:16 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/make_rots.c,v 1.12 1996-08-12 14:15:45 louis Exp $";
 #endif
 
 #include <volume_io.h>

@@ -20,19 +20,19 @@
 
 @CREATED    : Tue Feb 22 08:37:49 EST 1994
 @MODIFIED   : $Log: deform_support.c,v $
-@MODIFIED   : Revision 1.15  1996-06-24 13:54:58  louis
-@MODIFIED   : working version, although there may be a bug in the smoohting code.
+@MODIFIED   : Revision 1.16  1996-08-12 14:15:53  louis
+@MODIFIED   : Pre-release
 @MODIFIED   :
- * Revision 1.14  1996/04/01  09:16:29  louis
+ * Revision 1.14  1996/04/01  09:16:29  collins
  * removed the code to super sample the deformation field,
  * and placed it in super_sample_def.c.
  *
- * Revision 1.13  1996/04/01  09:02:10  louis
+ * Revision 1.13  1996/04/01  09:02:10  collins
  * added optimized code to super-sample the deformation field for the special
  * case when super_sample = 2.  interpolate_super_sampled_data_by2() is
  * approximately 7 times faster than interpolate_super_sampled_data().
  *
- * Revision 1.12  1996/03/25  10:33:15  louis
+ * Revision 1.12  1996/03/25  10:33:15  collins
  * used inter_type to specify degress_continuity in the call to
  * evaluate_volume_in_world() in procedure go_get_samples_in_source().
  *
@@ -62,11 +62,11 @@
  * to itself; after removal- there are only small sporadic deviations
  * from a null deformation field.
  *
- * Revision 1.11  1996/03/07  13:25:19  louis
+ * Revision 1.11  1996/03/07  13:25:19  collins
  * small reorganisation of procedures and working version of non-isotropic
  * smoothing.
  *
- * Revision 1.10  1995/10/06  09:25:02  louis
+ * Revision 1.10  1995/10/06  09:25:02  collins
  * removed references to line_data.h since it hos not been used in a while.
  *
  * included "constants.h" to have access to NONLIN_* similarity func ids.
@@ -74,25 +74,25 @@
  * modified go_get_samples_with_offset to account for different similarity
  * functions.
  *
- * Revision 1.9  1995/09/07  10:05:11  louis
+ * Revision 1.9  1995/09/07  10:05:11  collins
  * All references to numerical recipes routines are being removed.  At this
  * stage, any num rec routine should be local in the file.  All memory
  * allocation calls to vector(), matrix(), free_vector() etc... have been
  * replaced with ALLOC and FREE from the volume_io library of routines.
  *
- * Revision 1.8  1995/06/12  14:29:46  louis
+ * Revision 1.8  1995/06/12  14:29:46  collins
  * working version - 2d,3d w/ simplex and -direct.
  *
- * Revision 1.7  1995/05/04  14:25:18  louis
+ * Revision 1.7  1995/05/04  14:25:18  collins
  * compilable version, seems to run a bit with GRID_TRANSFORM, still
  * needs work for the super sampled volumes... and lots of testing.
  *
- * Revision 1.6  1995/05/02  11:30:27  louis
+ * Revision 1.6  1995/05/02  11:30:27  collins
  * started clean up of code, separation of non used procedures into
  * old_methods.c.  This version was working, but I am now going to
  * rewrite everything to use GRID_TRANSFORM.
  *
- * Revision 1.5  1995/02/22  08:56:06  louis
+ * Revision 1.5  1995/02/22  08:56:06  collins
  * Montreal Neurological Institute version.
  * compiled and working on SGI.  this is before any changes for SPARC/
  * Solaris.
@@ -128,7 +128,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 1.15 1996-06-24 13:54:58 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 1.16 1996-08-12 14:15:53 louis Exp $";
 #endif
 
 #include <config.h>             /* for VOXEL_DATA macro */
@@ -260,7 +260,8 @@ public BOOLEAN get_average_warp_vector_from_neighbours(General_transform *trans,
   switch (avg_type) {
   case 1:  {			/* get the 6 neighbours, 2 along
 				   each of the spatial axes,
-				   if they exist */
+				   if they exist 
+				   ie the 4-connected immediate neighbours only */
 
     for_less(i, 0 , N_DIMENSIONS) {
       
@@ -297,7 +298,8 @@ public BOOLEAN get_average_warp_vector_from_neighbours(General_transform *trans,
     }
     break;
   }
-  case 2: {			/* 3x3x3 */
+  case 2: {			/* 3x3x3 ie the 26 8-connected
+				   immediate neighbours only */
     
     for_less(i, 0 , N_DIMENSIONS) {
       start[i] = voxel[ xyzv[i] ] - 1;
@@ -622,7 +624,7 @@ public void smooth_the_warp(General_transform *smoothed,
 	  
 				/* now put the averaged vector into
 				   the smoothed volume */
-
+ 
 	  for_less(index[ xyzv[Z+1] ], start[ Z+1 ], end[ Z+1 ])  
 	    set_volume_real_value(smoothed->displacement_volume,
 				  index[0],index[1],index[2],
