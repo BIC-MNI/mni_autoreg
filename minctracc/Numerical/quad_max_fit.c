@@ -15,14 +15,18 @@
 
 @CREATED    : Mon May 22 14:14:50 MET DST 1995
 @MODIFIED   : $Log: quad_max_fit.c,v $
-@MODIFIED   : Revision 1.2  1995-08-21 11:31:14  louis
-@MODIFIED   : This version of the quadratic fit seems to work reasonably well in 3D
-@MODIFIED   : and compares favorably to the simplex optimization for hoge/jacob fitting
-@MODIFIED   : at 16mm.
+@MODIFIED   : Revision 1.3  1995-09-11 12:37:16  louis
+@MODIFIED   : this is a working version. While this file is not used in mni_reg-0.1g,
+@MODIFIED   : it will be part of the non-linear release.
 @MODIFIED   :
-@MODIFIED   : The use of quadratic fitting is twice as fast as simplex (6.4 vs 15.2 min)
-@MODIFIED   : for the 16mm fit (again with {hoge,jacob}_16_dxyz.mnc and -step 8 8 8.
-@MODIFIED   :
+ * Revision 1.2  1995/08/21  11:31:14  louis
+ * This version of the quadratic fit seems to work reasonably well in 3D
+ * and compares favorably to the simplex optimization for hoge/jacob fitting
+ * at 16mm.
+ *
+ * The use of quadratic fitting is twice as fast as simplex (6.4 vs 15.2 min)
+ * for the 16mm fit (again with {hoge,jacob}_16_dxyz.mnc and -step 8 8 8.
+ *
  * Revision 1.1  1995/06/12  14:30:23  louis
  * Initial revision
  *
@@ -59,6 +63,9 @@ public   void    estimate_3D_derivatives(Real r[3][3][3],
 					deriv_3D_struct *c);	     
 private void    estimate_2D_derivatives(Real r[3][3], 
 					deriv_2D_struct *c);	     
+public BOOLEAN return_2D_disp_from_quad_fit(Real r[3][3], 
+					    Real *dispu, 
+					    Real *dispv);
 
 /* this procedure will return TRUE with the dx,dy,dz (offsets) that 
    correspond to the maximum value of the quadratic function fit through 
@@ -73,17 +80,14 @@ public BOOLEAN return_3D_disp_from_quad_fit(Real r[3][3][3],
 {
   deriv_3D_struct 
     d;			/* the 1st and second order derivatives */
-  deriv_2D_struct 
-    d2;
   Real
     du,dv,dw,
-    inv[3][3],A[3][3],
     a[3][3],
     detA;
   int 
     try_2d_def,
     count_u, count_v, count_w,
-    i,j,k,return_flag;
+    i,j,k;
   char
     res;
 
@@ -133,35 +137,6 @@ public BOOLEAN return_3D_disp_from_quad_fit(Real r[3][3][3],
       *dispv = -a[1][0]*d.u - a[1][1]*d.v - a[1][2]*d.w;
       *dispw = -a[2][0]*d.u - a[2][1]*d.v - a[2][2]*d.w;
 
-/*
-   debug test to see if a * A = identity
-
-   A[0][0] = d.uu ; A[0][1] = d.uv ; A[0][2] = d.uw ;
-   A[1][0] = d.uv ; A[1][1] = d.vv ; A[1][2] = d.vw ;
-   A[2][0] = d.uw ; A[2][1] = d.vw ; A[2][2] = d.ww ;
-   
-   for_less(i,0,3)
-      for_less(j,0,3) {
-         inv[i][j] = 0.0;
-	 for_less(k,0,3)
-	   inv[i][j] += a[i][k] * A[k][j];
-      }
-
-      
-   for_less(i,0,3)
-     for_less(j,0,3) {
-        if (((i==j) && ABS( 1.0 - inv[i][j] ) > 0.000001) ||
-            ((i!=j) && ABS( inv[i][j] ) > 0.000001)) {
-	    print ("error in inverse for return_3D_disp_from_quad_fit\n");
-	    print ("%8.5f %8.5f %8.5f\n",  inv[0][0],inv[0][1],inv[0][2]);
-	    print ("%8.5f %8.5f %8.5f\n",  inv[1][0],inv[1][1],inv[1][2]);
-	    print ("%8.5f %8.5f %8.5f\n\n",inv[2][0],inv[2][1],inv[2][2]);
-	    i=3; j=3;
-        }
-     }
-
-*/
-      
       if ( ABS( *dispu ) < 2.0 && ABS( *dispv ) < 2.0 && ABS( *dispw ) < 2.0 ) {	
 	print ("!"); return (TRUE);
       }
@@ -229,7 +204,14 @@ public BOOLEAN return_3D_disp_from_quad_fit(Real r[3][3][3],
 	     d.uw, d.vw, d.ww, a[2][0],a[2][1],a[2][2], d.w, *dispw);
   */
 
-      print ("%c",res);
+      print ("%c",res);	
+				/* In this case, no deformation can be
+				   estimated when using the 2D quad
+				   fit.  So, just search out the
+				   maximum value within the 3x3 array,
+				   and return half the displacement
+				   needed to get there.*/
+
       count_u=1;count_v=1;count_w=1;
       for_less(i,0,3)
 	for_less(j,0,3)
@@ -245,16 +227,17 @@ public BOOLEAN return_3D_disp_from_quad_fit(Real r[3][3][3],
       return(TRUE);
     }
     else {
-      if (count_u != 0) *dispu / count_u ;
-      if (count_v != 0) *dispv / count_v ;
-      if (count_w != 0) *dispw / count_w ;
+      if ( !(count_u == 0)) *dispu /= count_u ;
+      if ( !(count_v == 0)) *dispv /= count_v ;
+      if ( !(count_w == 0)) *dispw /= count_w ;
       
       print ("*");
       
       return(TRUE);
     }
   }
-  
+  else
+    return(FALSE);
 }
 
 public BOOLEAN return_2D_disp_from_quad_fit(Real r[3][3], /* the values used in the quad fit */
@@ -345,7 +328,7 @@ public void estimate_3D_derivatives(Real r[3][3][3],
 				   deriv_3D_struct *d) 
 
 {
-  int i;
+
   Real	*p11, *p12, *p13;
   Real	*p21, *p22, *p23;
   Real	*p31, *p32, *p33;
@@ -354,9 +337,9 @@ public void estimate_3D_derivatives(Real r[3][3][3],
   Real	slice_v1, slice_v2, slice_v3;
   Real	slice_w1, slice_w2, slice_w3;
   
-  Real	edge_u1_v1, edge_u1_v2, edge_u1_v3;
-  Real	edge_u2_v1, edge_u2_v2, edge_u2_v3;
-  Real	edge_u3_v1, edge_u3_v2, edge_u3_v3;
+  Real	edge_u1_v1, /* edge_u1_v2,*/ edge_u1_v3;
+/*  Real	edge_u2_v1, edge_u2_v2, edge_u2_v3; */
+  Real	edge_u3_v1,  /* edge_u3_v2,*/ edge_u3_v3;
   Real	edge_u1_w1, edge_u1_w2, edge_u1_w3;
   Real	edge_u2_w1, edge_u2_w2, edge_u2_w3;
   Real	edge_u3_w1, edge_u3_w2, edge_u3_w3;
@@ -378,13 +361,13 @@ public void estimate_3D_derivatives(Real r[3][3][3],
   
 				/* lines varying along w */
   edge_u1_v1 = ( *p11     + *(p11+1) + *(p11+2));
-  edge_u1_v2 = ( *p12     + *(p12+1) + *(p12+2));
+/*  edge_u1_v2 = ( *p12     + *(p12+1) + *(p12+2)); */
   edge_u1_v3 = ( *p13     + *(p13+1) + *(p13+2));
-  edge_u2_v1 = ( *p21     + *(p21+1) + *(p21+2));
-  edge_u2_v2 = ( *p22     + *(p22+1) + *(p22+2));
-  edge_u2_v3 = ( *p23     + *(p23+1) + *(p23+2));
+/*  edge_u2_v1 = ( *p21     + *(p21+1) + *(p21+2)); */
+/*  edge_u2_v2 = ( *p22     + *(p22+1) + *(p22+2)); */
+/*  edge_u2_v3 = ( *p23     + *(p23+1) + *(p23+2)); */
   edge_u3_v1 = ( *p31     + *(p31+1) + *(p31+2));
-  edge_u3_v2 = ( *p32     + *(p32+1) + *(p32+2));
+/*  edge_u3_v2 = ( *p32     + *(p32+1) + *(p32+2)); */
   edge_u3_v3 = ( *p33     + *(p33+1) + *(p33+2));
   
 				/* lines varying along v */
@@ -395,7 +378,7 @@ public void estimate_3D_derivatives(Real r[3][3][3],
   edge_u2_w2 = ( *(p21+1) + *(p22+1) + *(p23+1));
   edge_u2_w3 = ( *(p21+2) + *(p22+2) + *(p23+2));
   edge_u3_w1 = (  *p31    +  *p32    +  *p33   );
-  edge_u3_w2 = ( *(p31+1) + *(p32+1) + *(p33+1));
+  edge_u3_w2 = ( *(p31+1) + *(p32+1) + *(p33+1)); 
   edge_u3_w3 = ( *(p31+2) + *(p32+2) + *(p33+2));
   
 				/* lines varying along u */
