@@ -10,5 +10,5 @@ Makefile
 configure
 config.h.in
 make_model
-autom4te.cache
 stamp-h1
+autom4te.cache

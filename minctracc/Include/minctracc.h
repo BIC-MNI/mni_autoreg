@@ -17,16 +17,8 @@
 
 @CREATED    : Thu May 20 14:20:21 EST 1993 Louis Collins
 @MODIFIED   : $Log: minctracc.h,v $
-@MODIFIED   : Revision 96.8  2003-02-04 06:08:44  stever
-@MODIFIED   : Add support for correlation coefficient and sum-of-squared difference.
-@MODIFIED   :
-@MODIFIED   : Revision 96.7  2002/11/20 21:38:02  lenezet
-@MODIFIED   :
-@MODIFIED   : Fix the code to take in consideration the direction cosines especially in the grid transform.
-@MODIFIED   : Add an option to choose the maximum expected deformation magnitude.
-@MODIFIED   :
-@MODIFIED   : Revision 96.6  2002/08/14 19:54:49  lenezet
-@MODIFIED   :  quaternion option added for the rotation
+@MODIFIED   : Revision 96.5.2.1  2003-07-05 01:58:08  stever
+@MODIFIED   : Add correlation coefficient mods.
 @MODIFIED   :
 @MODIFIED   : Revision 96.5  2002/03/07 19:07:51  louis
 @MODIFIED   : Added -lattice_diameter as an optionto minctracc to account for a
@@ -148,13 +140,6 @@ public BOOLEAN init_params(Volume d1,
 			   Volume m2, 
 			   Arg_Data *globals);
 
-public BOOLEAN init_params_quater(Volume d1,
-				  Volume d2,
-				  Volume m1,
-				  Volume m2, 
-				  Arg_Data *globals);
-
-
 public void init_lattice(Volume d1,
 			 Volume d2,
 			 Volume m1,
@@ -166,12 +151,6 @@ public BOOLEAN optimize_linear_transformation(Volume d1,
 					      Volume m1,
 					      Volume m2, 
 					      Arg_Data *globals);
-
-public BOOLEAN optimize_linear_transformation_quater(Volume d1,
-						     Volume d2,
-						     Volume m1,
-						     Volume m2, 
-						     Arg_Data *globals);
 
 public BOOLEAN optimize_non_linear_transformation(Arg_Data *globals);
 
@@ -216,12 +195,6 @@ void add_a_feature_for_matching(Feature_volumes *features,
 				Real thresh_data,
 				Real thresh_model);
 
-
-/*---------------------- functions relatives to quaternions-------------------------------------------*/
-#include "quaternion.h" 
-
-
-
 /*  ------------------------ Macros used in program  ------------------------ */
 
 #include "local_macros.h"
@@ -235,7 +208,6 @@ Arg_Data main_args = {
     FALSE,			/*   use identity tranformation to start */
     TRUE,			/*   do default tranformation (PAT) to start */
     TRUE,			/*   use_mag=TRUE; do not use projections by default */
-    50.0,
     TRUE,			/*   use_simplex=TRUE ie use 3d simplex by default */
     2,				/*   use super sampling of deformation field  */
     FALSE,			/* use local smoothing       */
@@ -249,12 +221,10 @@ Arg_Data main_args = {
     {-DBL_MAX, -DBL_MAX, -DBL_MAX},		/*   center            */
     {1.0, 1.0, 1.0},		/*   scale             */
     {0.0, 0.0, 0.0},		/*   shears            */
+    {0.0, 0.0, 0.0},		/*   rotations         */
     {0.0, 0.0, 0.0},		/*   translations      */
-    {0.0, 0.0, 0.0, 1.0},      	/*   quaternions       */
-    {0.0, 0.0, 0.0},            /*   rotations         */
-    {1.0, 1.0, 1.0,  3.1415927/180.0, 3.1415927/180.0, 3.1415927/180.0, 0.02, 0.02, 0.02,  0.02, 0.02, 0.02}, /* optimization weights*/
-    FALSE,			/*   invert_mapping_flag                  */
-    TRANS_ROT},                  /* default use normal rotation */
+    {1.0, 1.0, 1.0,  3.1415927/180.0, 3.1415927/180.0, 3.1415927/180.0,   0.02, 0.02, 0.02,  0.02, 0.02, 0.02}, /* optimization weights*/
+    FALSE},			/*   invert_mapping_flag                  */
   {0,NULL, NULL, NULL, NULL, NULL, NULL},	/* FEATURE VOL */
   trilinear_interpolant,	/* use trilinear interpolation by default */
   xcorr_objective,              /* use cross-correlation by default       */

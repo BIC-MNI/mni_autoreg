@@ -17,17 +17,8 @@
 @CREATED    : Thu May 27 16:50:50 EST 1993
                   
 @MODIFIED   :  $Log: init_params.c,v $
-@MODIFIED   :  Revision 96.6  2003-02-05 21:27:26  lenezet
-@MODIFIED   :  array size correction.
-@MODIFIED   :
-@MODIFIED   :  Revision 96.5  2003/02/04 06:08:45  stever
-@MODIFIED   :  Add support for correlation coefficient and sum-of-squared difference.
-@MODIFIED   :
-@MODIFIED   :  Revision 96.4  2002/12/13 21:16:30  lenezet
-@MODIFIED   :  nonlinear in 2D has changed. The option -2D-non-lin is no more necessary. The grid transform has been adapted to feet on the target volume whatever is size. The Optimization is done on the dimensions for which "count" is greater than 1.
-@MODIFIED   :
-@MODIFIED   :  Revision 96.3  2002/08/14 19:54:26  lenezet
-@MODIFIED   :   quaternion option added for the rotation
+@MODIFIED   :  Revision 96.2.2.1  2003-07-05 01:58:08  stever
+@MODIFIED   :  Add correlation coefficient mods.
 @MODIFIED   :
 @MODIFIED   :  Revision 96.2  2002/03/26 14:15:40  stever
 @MODIFIED   :  Update includes to <volume_io/foo.h> style.
@@ -98,7 +89,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 96.6 2003-02-05 21:27:26 lenezet Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 96.2.2.1 2003-07-05 01:58:08 stever Exp $";
 #endif
 
 
@@ -111,7 +102,6 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #include "matrix_basics.h"
 #include "cov_to_praxes.h"
 #include "make_rots.h"
-#include "quaternion.h"
 
 extern Arg_Data main_args;
 
@@ -123,13 +113,14 @@ public BOOLEAN rotmat_to_ang(float **rot, float *ang);
 public int point_not_masked(Volume volume, 
 			    Real wx, Real wy, Real wz);
 
-public void set_up_lattice(Volume data,       /* in: volume  */
-			   double *user_step, /* in: user requested spacing for lattice */
-			   double *start,     /* out:world starting position of lattice  in volume dircos coords*/
-			   double *wstart,     /* out:world starting position of lattice */
-			   int    *count,     /* out:number of steps in each direction */
-			   double *step,      /* out:step size in each direction */
-			   VectorR directions[]);/* out: vector directions for each index*/
+public void set_up_lattice(Volume data, 
+			   double *user_step, /* user requested spacing for lattice */
+			   double *start,     /* world starting position of lattice */
+			   int    *count,     /* number of steps in each direction */
+			   double *step,      /* step size in each direction */
+			   VectorR directions[]); /* array of vector directions for each index*/
+
+
 
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -179,19 +170,19 @@ BOOLEAN vol_cog(Volume d1, Volume m1, float *centroid, double *step)
     true_value;
 
   int
-    count[ MAX_DIMENSIONS];
+    count[3];
   double 
-    start[MAX_DIMENSIONS],
-    wstart[ MAX_DIMENSIONS],
-    local_step[ MAX_DIMENSIONS];
+    start[3],
+    local_step[3];
   VectorR
-    directions[ MAX_DIMENSIONS];  
+    directions[3];  
 
 				/* build default sampling lattice info
 				   on the data set (d1)               */
-  set_up_lattice(d1, step,start, wstart, count, local_step, directions);
+  set_up_lattice(d1, step,
+		 start, count, local_step, directions);
 
-  fill_Point( starting_position, wstart[0], wstart[1], wstart[2]);
+  fill_Point( starting_position, start[0], start[1], start[2]);
   
 				/* calculate centroids */
 
@@ -200,24 +191,21 @@ BOOLEAN vol_cog(Volume d1, Volume m1, float *centroid, double *step)
   sz = 0.0;
   si = 0.0;
 
- 
-
-  for_less(s,0,(int)(count[SLICE_IND]*abs(step[SLICE_IND]))) {
+  for_less(s,0,count[SLICE_IND]) {
 
     SCALE_VECTOR( vector_step, directions[SLICE_IND], s);
     ADD_POINT_VECTOR( slice, starting_position, vector_step );
 
-    for_less(r,0,(int)(count[ROW_IND]*abs(step[ROW_IND]))) {
+    for_less(r,0,count[ROW_IND]) {
 
       SCALE_VECTOR( vector_step, directions[ROW_IND], r);
       ADD_POINT_VECTOR( row, slice, vector_step );
 
       SCALE_POINT( col, row, 1.0); /* init first col position */
-      for_less(c,0,(int)(count[COL_IND]*abs(step[COL_IND]))) {
+      for_less(c,0,count[COL_IND]) {
 
 	
 	convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
-
 
 	fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
 	
@@ -226,7 +214,6 @@ BOOLEAN vol_cog(Volume d1, Volume m1, float *centroid, double *step)
 	  
 	  if (INTERPOLATE_TRUE_VALUE( d1, &voxel, &true_value )) {
 	    
-
 	    sx +=  Point_x(col) * true_value;
 	    sy +=  Point_y(col) * true_value;
 	    sz +=  Point_z(col) * true_value;
@@ -242,7 +229,6 @@ BOOLEAN vol_cog(Volume d1, Volume m1, float *centroid, double *step)
       }
     }
   }
-
 
   if (si!=0.0) {
     centroid[1] = sx/ si;
@@ -310,20 +296,17 @@ BOOLEAN vol_cov(Volume d1, Volume m1, float *centroid, float **covar, double *st
     true_value;
 
   int
-    count[MAX_DIMENSIONS];
+    count[3];
   double 
-    start[MAX_DIMENSIONS],
-    wstart[MAX_DIMENSIONS],
-    local_step[MAX_DIMENSIONS];
+    start[3],
+    local_step[3];
   VectorR
-    directions[MAX_DIMENSIONS];  
+    directions[3];  
 
 				/* build default sampling lattice info
 				   on the data set (d1)               */
-
   set_up_lattice(d1, step,
-		 start, wstart, count, local_step, directions);
-
+		 start, count, local_step, directions);
 
   fill_Point( starting_position, start[0], start[1], start[2]);
   
@@ -333,18 +316,18 @@ BOOLEAN vol_cov(Volume d1, Volume m1, float *centroid, float **covar, double *st
     
 				/* now calculate variances and co-variances */
 
-  for_less(s,0,(int)(count[SLICE_IND]*ABS(step[SLICE_IND]))) {
+  for_less(s,0,count[SLICE_IND]) {
     
     SCALE_VECTOR( vector_step, directions[SLICE_IND], s);
     ADD_POINT_VECTOR( slice, starting_position, vector_step );
     
-    for_less(r,0,(int)(count[ROW_IND]*ABS(step[ROW_IND]))) {
+    for_less(r,0,count[ROW_IND]) {
       
       SCALE_VECTOR( vector_step, directions[ROW_IND], r);
       ADD_POINT_VECTOR( row, slice, vector_step );
       
       SCALE_POINT( col, row, 1.0); /* init first col position */
-      for_less(c,0,(int)(count[COL_IND]*ABS(step[COL_IND]))) {
+      for_less(c,0,count[COL_IND]) {
 	
 	
 	convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
@@ -414,18 +397,17 @@ BOOLEAN vol_cov(Volume d1, Volume m1, float *centroid, float **covar, double *st
 BOOLEAN vol_to_cov(Volume d1, Volume m1, float *centroid, float **covar, double *step)
 {
   int
-    i,count[MAX_DIMENSIONS];
+    i,count[3];
   double 
-    start[MAX_DIMENSIONS],
-    wstart[MAX_DIMENSIONS],
-    local_step[MAX_DIMENSIONS];
+    start[3],
+    local_step[3];
   VectorR
-    directions[MAX_DIMENSIONS];  
+    directions[3];  
 
   if (main_args.flags.debug) {
 
     set_up_lattice(d1, step,
-		   start, wstart, count, local_step, directions);
+		   start, count, local_step, directions);
 
     print ("in vol to cov\n");
     print ("start = %8.2f %8.2f %8.2f \n",start[0],start[1],start[2]);
@@ -449,6 +431,7 @@ BOOLEAN vol_to_cov(Volume d1, Volume m1, float *centroid, float **covar, double 
     return (FALSE);
 
 }
+
 
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -538,12 +521,10 @@ private  BOOLEAN init_transformation(
   stat = TRUE;
 
   /* =========  calculate COG and COV for volume 1   =======  */
-  print("init_transformation ligne 553\n");
+
 				/* if center already set, then don't recalculate */
   if ( !forced_center) {
-    print("avant vol_cog d1\n");
     stat = vol_cog(d1, m1, c1, step);
-    print("apres vol_cog d1\n");
     if (verbose>0 && stat) print ("COG of v1: %f %f %f\n",c1[1],c1[2],c1[3]);
   }
   else {
@@ -702,7 +683,6 @@ private  BOOLEAN init_transformation(
 
     }
 
- 
 
     scale[1] = 1.0;
     scale[2] = 1.0;
@@ -716,8 +696,7 @@ private  BOOLEAN init_transformation(
       for (j=1; j<=3; ++j) {
 	rots[i][j] = R[i][j];
       }
-   
-
+    
     ndim = 3;
     
     if (verbose > 1) {
@@ -785,306 +764,6 @@ private  BOOLEAN init_transformation(
 
 
 
-
-/*********************************************************************************************************
-
-
-
-                                   init_transformation_quater()
-
-same as init_transformation but with quaternions
-
-@OUTPUT     : instead of rots it is quats
-	      quats     - rotation matrix with quaternion
-                         must be defined by the calling routine.
-
-CREATED@ 1 May 2002
-
-*********************************************************************************************************/
-
-private  BOOLEAN init_transformation_quater(
-					    Volume d1, /* data for volume1 */
-					    Volume d2, /* data for volume2 */
-					    Volume m1, /* mask for volume1 */
-					    Volume m2, /* mask for volume2 */
-					    double *step, /* in x,y,z order  */
-					    int    verbose,
-					    float **trans,     /* translation matrix to go from d1 to d2 */
-					    float *ang,        /* rotation angles to go from d1 to d2    */
-					    float *quats,      /* quaternions to go from d1 to d2 */
-					    float *c1,         /* centroid of masked d1 */
-					    float *c2,         /* centroid of masked d1 */
-					    float *scale,      /* scaling from d1 to d2 */
-					    int forced_center,
-					    Transform_Flags *flags) /* flags for estimation */
-{
-  float
-    dir,
-    tx,ty,tz,
-    **cov1,**cov2,		/* covariance matrix */
-    **prin_axes1, **prin_axes2, /* principal axis */
-    **R1,**R2,			/* rotation matrix (normalized prin_axes) */
-    **Rinv,**R;
-  
-  double *qt,*vec,phi;
-  
-  float
-    norm;
-  
-  int
-    stat,
-    ndim,i,j;
-
-  
-  
-  ALLOC2D(cov1       ,4,4);
-  ALLOC2D(cov2       ,4,4);
-  ALLOC2D(prin_axes1 ,4,4);
-  ALLOC2D(prin_axes2 ,4,4);
-  ALLOC2D(R1         ,4,4);
-  ALLOC2D(R2         ,4,4);
-  ALLOC2D(R          ,4,4);
-  ALLOC2D(Rinv       ,4,4);
-  ALLOC(qt,4);
-  
-  nr_identf(trans,1,4,1,4);	/* start with identity                       */
-  for_less(i,0,3) qt[i]=0.0;
-  qt[3]=1.0;
-
-  stat = TRUE;
-
-  /* =========  calculate COG and COV for volume 1   =======  */
-
-				/* if center already set, then don't recalculate */
-  if ( !forced_center) {
-    stat = vol_cog(d1, m1, c1, step);
-    if (verbose>0 && stat) print ("COG of v1: %f %f %f\n",c1[1],c1[2],c1[3]);
-  }
-  else {
-    if (verbose>0) print ("COG of v1 forced: %f %f %f\n",c1[1],c1[2],c1[3]);
-  }
-
-  if (!stat || !vol_cov(d1, m1, c1, cov1, step ) ) {
-    print_error_and_line_num("%s", __FILE__, __LINE__,"Cannot calculate the COG or COV of volume 1\n." );
-    return(FALSE);
-  }
-
-  /* =========  calculate COG and COV for volume 2 only if needed:   =======  */
-
-  if (flags->estimate_trans || flags->estimate_quats || flags->estimate_scale) {
-    if (! vol_to_cov(d2, m2, c2, cov2, step ) ) {
-      print_error_and_line_num("%s", __FILE__, __LINE__,"Cannot calculate the COG or COV of volume 2\n." );
-      return(FALSE);
-    }
-    if (verbose>0) print ("COG of v2: %f %f %f\n",c2[1],c2[2],c2[3]);
-  }
-  else {
-    if (verbose>0) print ("Only center required, now returning from init_transformation\n");
-  }
-
-  if (flags->estimate_trans) {
-    tx = c2[1] - c1[1];    /* translations to map vol1 into vol2                  */
-    ty = c2[2] - c1[2];
-    tz = c2[3] - c1[3];
-
-    if (verbose>0) print ("   [trans] = %f %f %f\n",tx,ty,tz);
-
-  }
-  else {
-    tx = ty = tz = 0.0;
-  }
-
-
-  trans[1][4] += tx;	   /* set translations in translation matrix        */
-  trans[2][4] += ty;
-  trans[3][4] += tz;
-
-  if (flags->estimate_quats || flags->estimate_scale) {
-
-				/* get the principal axes, returned in
-				   cols of prin_axes{1,2} */
-
-    cov_to_praxes(3, cov1, prin_axes1);   
-    cov_to_praxes(3, cov2, prin_axes2);
-
-    if (verbose > 1) {
-      print ("cov1:                              cov2:\n");
-      for (i=1; i<=3; i++) {
-	for (j=1; j<=3; j++)
-	  print ("%8.3f ", cov1[i][j]);
-	print ("|");
-	for (j=1; j<=3; j++)
-	  print ("%8.3f ", cov2[i][j]);
-	print ("\n\n");
-      }
-    }
-    
-				/* make sure that both sets of
-				   principal axes represent
-				   right-handed coordinate system:
-				   [(p1 x p1).p3]>0, where 'x' is
-				   cross product and '.' is dot
-				   product*/
-
-    dir = prin_axes1[1][3] * (prin_axes1[2][1] * prin_axes1[3][2] - 
-			      prin_axes1[3][1] * prin_axes1[2][2])  +
-          prin_axes1[2][3] * (prin_axes1[1][1] * prin_axes1[3][2] - 
-			      prin_axes1[3][1] * prin_axes1[1][2])  +
-	  prin_axes1[3][3] * (prin_axes1[1][1] * prin_axes1[2][2] - 
-			      prin_axes1[2][1] * prin_axes1[1][2]);
-    if (dir < 0) {		/* if lefthanded, change dir of 3rd vector */
-      prin_axes1[2][3] *= -1.0;
-      prin_axes1[3][3] *= -1.0;
-    }
-
-    dir = prin_axes2[1][3] * (prin_axes2[2][1] * prin_axes2[3][2] - 
-			      prin_axes2[3][1] * prin_axes2[2][2])  +
-          prin_axes2[2][3] * (prin_axes2[1][1] * prin_axes2[3][2] - 
-			      prin_axes2[3][1] * prin_axes2[1][2])  +
-	  prin_axes2[3][3] * (prin_axes2[1][1] * prin_axes2[2][2] - 
-			      prin_axes2[2][1] * prin_axes2[1][2]);
-    if (dir < 0) {		/* if lefthanded, change dir of 3rd vector */
-      prin_axes2[2][3] *= -1.0;
-      prin_axes2[3][3] *= -1.0;
-    }
-
-				/* print out the prin axes */
-    if (verbose > 1) {
-      print ("prin_axes1:                      princ_axes2:\n");
-      for (i=1; i<=3; i++) {
-	for (j=1; j<=3; j++)
-	  print ("%8.3f ", prin_axes1[i][j]);
-	print ("|");
-	for (j=1; j<=3; j++)
-	  print ("%8.3f ", prin_axes2[i][j]);
-	print ("\n\n");
-      }
-    }
-
-				/* build rotation matrixes from principal axes */
-
-    nr_copyf(prin_axes1,1,3,1,3,R1);
-    nr_copyf(prin_axes2,1,3,1,3,R2);
-    
-    
-				/* normalize the principal axes lengths */
-    for (j=1; j<=3; ++j) {	
-      norm = sqrt( prin_axes1[1][j]*prin_axes1[1][j] + 
-		   prin_axes1[2][j]*prin_axes1[2][j] + 
-		   prin_axes1[3][j]*prin_axes1[3][j]);
-      for (i=1; i<=3; ++i)
-	R1[i][j] /= norm;
-      
-      norm = sqrt( prin_axes2[1][j]*prin_axes2[1][j] + 
-		   prin_axes2[2][j]*prin_axes2[2][j] + 
-		   prin_axes2[3][j]*prin_axes2[3][j]);
-      for (i=1; i<=3; ++i)
-	R2[i][j] /= norm;
-    }
-    
-    invertmatrix(3,R1,Rinv);
-    
-    nr_multf(Rinv,1,3,1,3, R2,1,3,1,3, R);
-    
-    
-    if (verbose > 1) {
-
-      print ("r1:                         r2:                        r:\n");
-      for (i=1; i<=3; i++) {
-	for (j=1; j<=3; j++)
-	  print ("%8.3f ", R1[i][j]);
-	print ("|");
-	for (j=1; j<=3; j++)
-	  print ("%8.3f ", R2[i][j]);
-	print ("|");
-	for (j=1; j<=3; j++)
-	  print ("%8.3f ", R[i][j]);
-	print ("\n");
-      }
-    }
-    
-    
-    transpose(3,3,R,R);		/* all of the princ axes stuff uses vec*mat */
-
-    /* extract quaternion from the matrix that we have find */
-    extract_quaternions(R, qt);
-
-
-    scale[1] = 1.0;
-    scale[2] = 1.0;
-    scale[3] = 1.0;
-    
-    ndim = 3;
-
-    if (verbose > 1) {
-      (void) print("\nFor volume 1 :");
-      (void) print("\nCentroid :");
-      for (i=1; i<=ndim; i++) (void) print("  %f",c1[i]);
-      (void) print("\n\n");
-      (void) print("Principal axes\n");
-      for (i=1; i<=ndim; i++) {
-	(void) print("Vector %d :",i);
-	for (j=1; j<=ndim; j++) {
-	  (void) print("  %f",prin_axes1[j][i]);
-	}
-	(void) print("\n");
-      }
-      
-      (void) print("\n");
-      
-      (void) print("\nFor volume 2 :");
-      (void) print("\nCentroid :");
-      for (i=1; i<=ndim; i++) (void) print("  %f",c2[i]);
-      (void) print("\n\n");
-      (void) print("Principal axes\n");
-      for (i=1; i<=ndim; i++) {
-	(void) print("Vector %d :",i);
-	for (j=1; j<=ndim; j++) {
-	  (void) print("  %f",prin_axes2[j][i]);
-	}
-	(void) print("\n");
-      }
-      ALLOC(vec,3);
-      quat_to_axis(vec,&phi,qt);
-      
-      (void) print ("\n\nrotation vector : %f %f %f the rotation angle is %f deg\n",
-		    vec[1],
-		    vec[2],
-		    vec[3], phi);
-      FREE(vec);
-      (void) print ("translation mm     : %f %f %f\n",tx,ty,tz);
-    }
-    
-  }
-  else {
-
-    if (verbose>0) print ("Only center & trans required, now returning from init_transformation\n");
-
-    scale[1] = 1.0;
-    scale[2] = 1.0;
-    scale[3] = 1.0;
-    
-    ang[1] = 0.0;
-    ang[2] = 0.0;
-    ang[3] = 0.0;
-  }
-  
-  for_less(i,0,3) quats[i]=qt[i];
-
-  FREE2D(cov1);
-  FREE2D(cov2);
-  FREE2D(prin_axes1);
-  FREE2D(prin_axes2);
-  FREE2D(R1);
-  FREE2D(R2);
-  FREE2D(R);
-  FREE2D(Rinv);
-  FREE(qt);
-  
-  return(TRUE);
-}
-
-
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : init_params
                 get the parameters necessary to map volume 1 to volume 2
@@ -1113,14 +792,12 @@ public BOOLEAN init_params(Volume d1,
 {  
   float 
     **trans,			/* principal componant variables */
-    **rots,  
-    *quats,
+    **rots,
     **cov1,
     *c1,
     *c2,
     *ang,
-    *sc,
-    quats3;
+    *sc;
     
   int
     center_forced,i;
@@ -1173,66 +850,169 @@ public BOOLEAN init_params(Volume d1,
 				       leave the -est_* as set on the command line,
 				       and store only the ones requested. */
 
-   
-      if ((globals->trans_info.transform_type==TRANS_PAT) || 
-	  !(strlen(globals->filenames.measure_file)!=0 ||
-	    globals->trans_flags.estimate_center ||
-	    globals->trans_flags.estimate_scale  ||
-	    globals->trans_flags.estimate_rots   ||
-	    globals->trans_flags.estimate_trans)) {
-	
-	globals->trans_flags.estimate_center = TRUE;
-	globals->trans_flags.estimate_scale = TRUE; 
-	if(globals->trans_info.rotation_type == TRANS_ROT)
-	  {
-	    globals->trans_flags.estimate_rots = TRUE;
-	    globals->trans_flags.estimate_quats = FALSE;
-	  }
-	else
-	  {
-	    globals->trans_flags.estimate_rots = FALSE;
-	    globals->trans_flags.estimate_quats = TRUE;
-	  }
-	globals->trans_flags.estimate_trans = TRUE;
+    if ((globals->trans_info.transform_type==TRANS_PAT) || 
+	!(strlen(globals->filenames.measure_file)!=0 ||
+	  globals->trans_flags.estimate_center ||
+	  globals->trans_flags.estimate_scale  ||
+	  globals->trans_flags.estimate_rots   ||
+	  globals->trans_flags.estimate_trans)) {
+      
+      globals->trans_flags.estimate_center = TRUE;
+      globals->trans_flags.estimate_scale = TRUE;
+      globals->trans_flags.estimate_rots = TRUE;
+      globals->trans_flags.estimate_trans = TRUE;
+    }
+
+    if (globals->flags.debug) {
+      print ("  will try to get:");
+      if (globals->trans_flags.estimate_center) print (" [center]");
+      if (globals->trans_flags.estimate_scale)  print (" [scale]");
+      if (globals->trans_flags.estimate_rots)   print (" [rots]");
+      if (globals->trans_flags.estimate_trans)  print (" [trans]");
+      print ("\n");
+    }
+
+				/* -est_* flags are now set, continue with the PAT */
+
+    ALLOC2D(trans,5,5);
+    ALLOC2D(rots,5,5);
+    ALLOC(ang ,4);
+    ALLOC(c1 ,4);
+    ALLOC(c2 ,4);
+    ALLOC(sc ,4);
+    
+				/* set c1 to the value possibly forced on the command line */
+    for_less(i,0,3) c1[i+1] = globals->trans_info.center[i];
+
+    if (!init_transformation(d1,d2,m1,m2, globals->step, globals->flags.verbose,
+			     trans,rots,ang,c1,c2,sc, center_forced,
+			     &(globals->trans_flags)))
+      return(FALSE);
+    
+    for_less( i, 0, 3 ) {
+      if (globals->trans_flags.estimate_rots)
+	globals->trans_info.rotations[i]    = ang[i+1];
+      else
+	globals->trans_info.rotations[i]    = 0.0;
+      
+      if (globals->trans_flags.estimate_trans)
+	globals->trans_info.translations[i] = trans[i+1][4];
+      else
+	globals->trans_info.translations[i] = 0.0;
+      
+      if (globals->trans_flags.estimate_center)
+	globals->trans_info.center[i]       = c1[i+1];
+      else {
+	if (!center_forced)
+	  globals->trans_info.center[i]       = 0.0;
+      }
+
+      if (globals->trans_flags.estimate_scale)
+	globals->trans_info.scales[i]       = sc[i+1]; 
+      else
+	globals->trans_info.scales[i]       = 1.0;
+    }
+    
+    FREE2D(trans);
+    FREE2D(rots);
+    FREE(ang);
+    FREE(c1);
+    FREE(c2);
+    FREE(sc);
+    
+  }
+  else { /*  we have an input matrix, we now have to extract the proper parameters from it */
+
+    if (globals->flags.debug) print ("  using input transformation to get initial parameters:\n");
+
+    if (get_transform_type(globals->trans_info.transformation) == CONCATENATED_TRANSFORM) {
+      lt = get_linear_transform_ptr(get_nth_general_transform(globals->trans_info.transformation,0));
+    }
+    else
+      lt = get_linear_transform_ptr(globals->trans_info.transformation);
+
+				/* get cog of data1 before extracting parameters
+				   from matrix, if estimate requested on command line */
+
+
+				/* if centroid not forced on command
+                                   line, then set it to 0,0,0 */
+
+    if  (globals->trans_info.center[0] == -DBL_MAX &&
+	 globals->trans_info.center[1] == -DBL_MAX &&
+	 globals->trans_info.center[2] == -DBL_MAX) {
+      for_less (i,0,3) globals->trans_info.center[i] = 0.0;
+
+      if (main_args.flags.debug) {
+	print ("   Center of rot/scale not forced, will be set to : %f %f %f\n",
+	       globals->trans_info.center[0],
+	       globals->trans_info.center[1],
+	       globals->trans_info.center[2]);
       }
       
+    }
+
+    if (globals->trans_flags.estimate_center) {  
+
+
+      ALLOC2D(cov1 ,4,4);
+      ALLOC(c1   ,4);
+      
+      if (! vol_cog(d1, m1,  c1, globals->step ) ) {
+	print_error_and_line_num("%s", __FILE__, __LINE__,"Cannot calculate the COG of volume 1\n." );
+	return(FALSE);
+      }
+
+      for_inclusive( i, 0, 2 )
+	globals->trans_info.center[i] = c1[i+1];
+
       if (globals->flags.debug) 
-	{
-	  print ("  will try to get:");
-	  if (globals->trans_flags.estimate_center) print (" [center]");
-	  if (globals->trans_flags.estimate_scale)  print (" [scale]");
-	  if (globals->trans_flags.estimate_rots)   print (" [rots]");
-	  if (globals->trans_flags.estimate_quats)   print (" [quats]");
-	  if (globals->trans_flags.estimate_trans)  print (" [trans]");
-	  print ("\n");
-	}
+	print ("   User-requested COG estimate: %f %f %f\n",c1[1],c1[2],c1[3]);
+
+      FREE2D(cov1);
+      FREE(c1);
+    }
+				/* get the parameters from the input matrix: */
+    if (!extract2_parameters_from_matrix(lt,
+					globals->trans_info.center,
+					globals->trans_info.translations,
+					globals->trans_info.scales,
+					globals->trans_info.shears,
+					globals->trans_info.rotations)) {
+      return(FALSE);  
+    }
+	
+				/* do we need to replace anything?
+				   (note that center was possibly replaced
+				    just abve, and we dont have to do all the 
+				    PAT stuff if nothing else is needed)    */
+    if ((globals->trans_flags.estimate_scale  ||
+	 globals->trans_flags.estimate_rots   ||
+	 globals->trans_flags.estimate_trans)) {
       
-      /* -est_* flags are now set, continue with the PAT */
-      
+      if (globals->flags.debug) {
+	print ("  using PAT to get overiding parameters:\n");
+	print ("  will try to get:");
+	if (globals->trans_flags.estimate_center) print (" [center already done]");
+	if (globals->trans_flags.estimate_scale)  print (" [scale]");
+	if (globals->trans_flags.estimate_rots)   print (" [rots]");
+	if (globals->trans_flags.estimate_trans)  print (" [trans]");
+	print ("\n");
+      }
+
       ALLOC2D(trans,5,5);
       ALLOC2D(rots,5,5);
       ALLOC(ang ,4);
-      ALLOC(quats ,4);
       ALLOC(c1 ,4);
       ALLOC(c2 ,4);
       ALLOC(sc ,4);
     
-				/* set c1 to the value possibly forced on the command line */
       for_less(i,0,3) c1[i+1] = globals->trans_info.center[i];
-      if(globals->trans_info.rotation_type == TRANS_ROT)
-	{
-	  if (!init_transformation(d1,d2,m1,m2, globals->step, globals->flags.verbose,
-				   trans,rots,ang,c1,c2,sc, center_forced,
-				   &(globals->trans_flags)))
-	    return(FALSE);
-	}
-      else
-	{
-	  if (!init_transformation_quater(d1,d2,m1,m2, globals->step, globals->flags.verbose,
-					  trans,ang,quats,c1,c2,sc, center_forced,
-					  &(globals->trans_flags)))
-	    return(FALSE);
-	}
+
+      if (!init_transformation(d1,d2,m1,m2, globals->step, globals->flags.verbose,
+ 			       trans,rots,ang,c1,c2,sc, 
+			       center_forced,&(globals->trans_flags)))
+	return(FALSE);      
       
       for_less( i, 0, 3 ) {
 	if (globals->trans_flags.estimate_rots)
@@ -1245,251 +1025,39 @@ public BOOLEAN init_params(Volume d1,
 	else
 	  globals->trans_info.translations[i] = 0.0;
 	
-	if (globals->trans_flags.estimate_center)
-	  globals->trans_info.center[i]       = c1[i+1];
-	else 
-	  {
-	    if (!center_forced)
-	      globals->trans_info.center[i]       = 0.0;
-	  }
 	if (globals->trans_flags.estimate_scale)
 	  globals->trans_info.scales[i]       = sc[i+1]; 
 	else
 	  globals->trans_info.scales[i]       = 1.0;
-	
-	if (globals->trans_flags.estimate_quats)
-	  globals->trans_info.quaternions[i]   = quats[i];
-	else
-	  globals->trans_info.quaternions[i]   = 0.0;
-	
       }
-
-      if (globals->trans_flags.estimate_quats)
-	quats3=sqrt(1-SQR(main_args.trans_info.quaternions[0])-SQR(main_args.trans_info.quaternions[1])-SQR(main_args.trans_info.quaternions[2]));
-    
+        
       FREE2D(trans);
       FREE2D(rots);
-      FREE(quats);
       FREE(ang);
       FREE(c1);
       FREE(c2);
       FREE(sc);
-  
-   
-  if (main_args.flags.debug) {
-    
-    print ( "Transform center   = %8.3f %8.3f %8.3f\n", 
-	    main_args.trans_info.center[0],
-	    main_args.trans_info.center[1],
-	    main_args.trans_info.center[2] );
-    if(globals->trans_info.rotation_type == TRANS_ROT)
-      print ( "Transform rots    = %8.3f %8.3f %8.3f\n", 
-	      main_args.trans_info.rotations[0],
-	      main_args.trans_info.rotations[1],
-	      main_args.trans_info.rotations[2] );
-    else
-      print ( "Transform quaternion   = %8.3f %8.3f %8.3f %8.3f \n\n", 
-	      main_args.trans_info.quaternions[0],
-	      main_args.trans_info.quaternions[1],
-	      main_args.trans_info.quaternions[2],
-	      quats3 );
-    
-    print ( "Transform trans    = %8.3f %8.3f %8.3f\n", 
-	    main_args.trans_info.translations[0],
-	    main_args.trans_info.translations[1],
-	    main_args.trans_info.translations[2] );
-    print ( "Transform scale    = %8.3f %8.3f %8.3f\n\n", 
-	    main_args.trans_info.scales[0],
-	    main_args.trans_info.scales[1],
-	    main_args.trans_info.scales[2] );
-  }
-
-
-
-
-  }
-  
-
-  else 
-    { /*  we have an input matrix, we now have to extract the proper parameters from it */
-      if (globals->flags.debug) print ("  using input transformation to get initial parameters:\n");
-      
-      if (get_transform_type(globals->trans_info.transformation) == CONCATENATED_TRANSFORM) {
-	lt = get_linear_transform_ptr(get_nth_general_transform(globals->trans_info.transformation,0));
-      }
-      else
-	lt = get_linear_transform_ptr(globals->trans_info.transformation);
-      
-      /* get cog of data1 before extracting parameters
-	 from matrix, if estimate requested on command line */
-      
-      
-      /* if centroid not forced on command
-	 line, then set it to 0,0,0 */
-      
-      if  (globals->trans_info.center[0] == -DBL_MAX &&
-	   globals->trans_info.center[1] == -DBL_MAX &&
-	   globals->trans_info.center[2] == -DBL_MAX) 
-	{
-	  for_less (i,0,3) globals->trans_info.center[i] = 0.0;
-	  
-	  if (main_args.flags.debug) 
-	    {
-	      print ("   Center of rot/scale not forced, will be set to : %f %f %f\n",
-		     globals->trans_info.center[0],
-		     globals->trans_info.center[1],
-		     globals->trans_info.center[2]);
-	    }
-	  
-	}
-
-      if (globals->trans_flags.estimate_center) 
-	{  
-
-
-	  ALLOC2D(cov1 ,4,4);
-	  ALLOC(c1   ,4);
-	  
-	  if (! vol_cog(d1, m1,  c1, globals->step ) ) 
-	    {
-	      print_error_and_line_num("%s", __FILE__, __LINE__,"Cannot calculate the COG of volume 1\n." );
-	      return(FALSE);
-	    }
-
-	  for_inclusive( i, 0, 2 )
-	    globals->trans_info.center[i] = c1[i+1];
-	  
-	  if (globals->flags.debug) 
-	    print ("   User-requested COG estimate: %f %f %f\n",c1[1],c1[2],c1[3]);
-	  
-	  FREE2D(cov1);
-	  FREE(c1);
-	}
-                                               /* get the parameters from the input matrix: */
-      if(globals->trans_info.rotation_type == TRANS_ROT)
-	if (!extract2_parameters_from_matrix(lt,
-					     globals->trans_info.center,
-					     globals->trans_info.translations,
-					     globals->trans_info.scales,
-					     globals->trans_info.shears,
-					     globals->trans_info.rotations)) {
-	  return(FALSE);  
-	}
-      if(globals->trans_info.rotation_type == TRANS_QUAT)
-	if (!extract2_parameters_from_matrix_quater(lt,
-						    globals->trans_info.center,
-						    globals->trans_info.translations,
-						    globals->trans_info.scales,
-						    globals->trans_info.shears,
-						    globals->trans_info.quaternions)) {
-	  return(FALSE);  
-	}
-      
-                                        /* do we need to replace anything?
-					   (note that center was possibly replaced
-					   just abve, and we dont have to do all the 
-					   PAT stuff if nothing else is needed)    */
-      if ((globals->trans_flags.estimate_scale  ||
-	   globals->trans_flags.estimate_rots   ||
-	   globals->trans_flags.estimate_quats  ||
-	   globals->trans_flags.estimate_trans)) {
-	
-	if (globals->flags.debug) {
-	  print ("  using PAT to get overiding parameters:\n");
-	  print ("  will try to get:");
-	  if (globals->trans_flags.estimate_center) print (" [center already done]");
-	  if (globals->trans_flags.estimate_scale)  print (" [scale]");
-	  if (globals->trans_flags.estimate_rots)   print (" [rots]");
-	  if (globals->trans_flags.estimate_quats)   print (" [quats]");
-	  if (globals->trans_flags.estimate_trans)  print (" [trans]");
-	  print ("\n");
-	}
-	
-	ALLOC2D(trans,5,5);
-	ALLOC2D(rots,5,5);
-	ALLOC(quats ,4);
-	ALLOC(ang ,4);
-	ALLOC(c1 ,4);
-	ALLOC(c2 ,4);
-	ALLOC(sc ,4);
-	
-	for_less(i,0,3) c1[i+1] = globals->trans_info.center[i];
-	
-	if(globals->trans_info.rotation_type == TRANS_ROT)
-	  if (!init_transformation(d1,d2,m1,m2, globals->step, globals->flags.verbose,
-				   trans,rots,ang,c1,c2,sc, 
-				   center_forced,&(globals->trans_flags)))
-	    return(FALSE);      
-	if(globals->trans_info.rotation_type == TRANS_QUAT)
-	  if (!init_transformation_quater(d1,d2,m1,m2, globals->step, globals->flags.verbose,
-					  trans,ang,quats,c1,c2,sc, 
-					  center_forced,&(globals->trans_flags)))
-	    return(FALSE);      
-      
-	for_less( i, 0, 3 ) 
-	  {
-	    if (globals->trans_flags.estimate_rots)
-	      globals->trans_info.rotations[i]    = ang[i+1];
-	    else
-	      globals->trans_info.rotations[i]    = 0.0;
-	    
-	    if (globals->trans_flags.estimate_trans)
-	      globals->trans_info.translations[i] = trans[i+1][4];
-	    else
-	      globals->trans_info.translations[i] = 0.0;
-	    
-	    if (globals->trans_flags.estimate_scale)
-	      globals->trans_info.scales[i]       = sc[i+1]; 
-	    else
-	      globals->trans_info.scales[i]       = 1.0;
-	    if (globals->trans_flags.estimate_quats)
-	      globals->trans_info.quaternions[i]   = quats[i]; 
-	    else
-	      globals->trans_info.quaternions[i]     = 0.0;
-	  }
-   
-      
-	FREE2D(trans);
-	FREE2D(rots);
-	FREE(quats);
-	FREE(ang);
-	FREE(c1);
-	FREE(c2);
-	FREE(sc);
-      }
-      
     }
-  
+
+  }
 
   if (get_transform_type(globals->trans_info.transformation) == CONCATENATED_TRANSFORM) {
     lt = get_linear_transform_ptr(get_nth_general_transform(globals->trans_info.transformation,0));
   }
   else
     lt = get_linear_transform_ptr(globals->trans_info.transformation);
- 
-  if( globals->trans_info.rotation_type == TRANS_ROT)
-    build_transformation_matrix(lt,
-				globals->trans_info.center,
-				globals->trans_info.translations,
-				globals->trans_info.scales,
-				globals->trans_info.shears,
-				globals->trans_info.rotations);
-
-  if( globals->trans_info.rotation_type == TRANS_QUAT)
-    {
-      globals->trans_info.quaternions[3]=sqrt(1-SQR(globals->trans_info.quaternions[0])-SQR(globals->trans_info.quaternions[1])-SQR(globals->trans_info.quaternions[2]));
-      build_transformation_matrix_quater(lt,
-					 globals->trans_info.center,
-					 globals->trans_info.translations,
-					 globals->trans_info.scales,
-					 globals->trans_info.shears,
-					 globals->trans_info.quaternions);
-    }
+  
+    
+  build_transformation_matrix(lt,
+			      globals->trans_info.center,
+			      globals->trans_info.translations,
+			      globals->trans_info.scales,
+			      globals->trans_info.shears,
+			      globals->trans_info.rotations);
+  
 
   return(TRUE);
 }
-
-
 
 
 

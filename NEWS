@@ -5,6 +5,13 @@ Release 0.98j_smr
 
 **** INTERNAL REVISION --- DO NOT RELEASE!!!  ****
 
+* New similarity measures: correlation coefficient, sum of squared difference.
+
+* Option change for minctracc: -nonlinear
+  Option "-nonlinear" now accepts an argument to specify the desired similarity
+  measure.  The choices are: xcorr, diff, label, chamfer, corrcoeff, and sqdiff.
+  For backwards compatibility, "-nonlinear" alone selects "xcorr".
+
 * New option for minctracc: -lattice_diameter
   Previous releases used to set the sub-lattice diameter to be step*3*2, which
   is pretty big when step = 8mm.  A lattice size 3 times the step size is

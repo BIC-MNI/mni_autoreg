@@ -19,7 +19,10 @@
 
 @CREATED    : 
 @MODIFIED   : $Log: switch_obj_func.c,v $
-@MODIFIED   : Revision 96.3  2003-02-04 06:08:46  stever
+@MODIFIED   : Revision 96.2.4.1  2003-07-05 01:58:09  stever
+@MODIFIED   : Add correlation coefficient mods.
+@MODIFIED   :
+@MODIFIED   : Revision 96.3  2003/02/04 06:08:46  stever
 @MODIFIED   : Add support for correlation coefficient and sum-of-squared difference.
 @MODIFIED   :
 @MODIFIED   : Revision 96.2  1997/11/12 21:07:43  louis

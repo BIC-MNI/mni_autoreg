@@ -1,4 +1,3 @@
-
 /*  ------------------------ global variables  ------------------------ */
 
 char  *prog_name                 = NULL;
@@ -29,7 +28,6 @@ int     Diameter_of_local_lattice= 5;
 int     invert_mapping_flag      = FALSE;
 int     clobber_flag             = FALSE;
 
-
   
 /*------------------------    Command line arguments --------------------*/
 
@@ -52,8 +50,8 @@ static ArgvInfo argTable[] = {
      "use center estimated from Principal axis trans."},
   {"-est_scales", ARGV_CONSTANT, (char *) TRUE, (char *) &main_args.trans_flags.estimate_scale,
      "use scales estimated from Principal axis trans."},
-/*  {"-est_rotations", ARGV_CONSTANT, (char *) TRUE, (char *) &main_args.trans_flags.estimate_rots,
-     "use rotations estimated from Principal axis trans."},*/
+  {"-est_rotations", ARGV_CONSTANT, (char *) TRUE, (char *) &main_args.trans_flags.estimate_rots,
+     "use rotations estimated from Principal axis trans."},
   {"-est_translations", ARGV_CONSTANT, (char *) TRUE, (char *) &main_args.trans_flags.estimate_trans,
      "use translations estimated from Principal axis trans."},
   {"-center", ARGV_FLOAT, (char *) 3, 
@@ -85,11 +83,6 @@ static ArgvInfo argTable[] = {
   {"-invert", ARGV_CONSTANT, (char *) TRUE,
      (char *) &main_args.trans_info.invert_mapping_flag,
      "Recover inverted transformation (model -> source).\n"},
-  {"-quaternions", ARGV_CONSTANT, (char *) TRANS_QUAT, (char *) &main_args.trans_info.rotation_type,
-     "rotation with quaternion, in output give a vector and an angle.\n"},
-  {"-rotations", ARGV_CONSTANT, (char *) TRANS_ROT, (char *) &main_args.trans_info.rotation_type,
-     "rotation without quaternion. default type.\n"},
-
   
   {NULL, ARGV_HELP, NULL, NULL,
      "\nOptions for feature volumes."},
@@ -193,7 +186,7 @@ static ArgvInfo argTable[] = {
      "Step size along each dimension (X, Y, Z)"},
   {"-xstep", ARGV_FLOAT, (char *) 0, 
      (char *) &main_args.step[0],
-     "Step size along the column dimension (mm)"},
+     "Step size along the column dimension"},
   {"-ystep", ARGV_FLOAT, (char *) 0, 
      (char *) &main_args.step[1],
      "Step size along the row dimension"},
@@ -214,13 +207,8 @@ static ArgvInfo argTable[] = {
   {"-lattice_diameter", ARGV_FLOAT, (char *) 3, 
      (char *) main_args.lattice_width,
      "widths of sub-lattice along each dimension (X, Y, Z)"},
-  {"-max_def_magnitude", ARGV_FLOAT, (char *) 0, 
-     (char *) &main_args.trans_info.max_def_magnitude,
-     "maximum expected deformation magnitude (mm)"},
-
   {"-use_magnitude", ARGV_CONSTANT, (char *) TRUE, (char *) &main_args.trans_info.use_magnitude,
      "use magnitude data local deformation (default)."},
-
   {"-optical_flow", ARGV_CONSTANT, (char *) FALSE, (char *) &main_args.trans_info.use_magnitude,
      "use optical flow to compute deformation."},
   {"-use_simplex", ARGV_CONSTANT, (char *) TRUE, (char *) &main_args.trans_info.use_simplex,

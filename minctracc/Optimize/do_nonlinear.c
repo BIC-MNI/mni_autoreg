@@ -16,25 +16,8 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 96.19  2003-02-26 01:20:34  lenezet
-@MODIFIED   : *** empty log message ***
-@MODIFIED   :
-@MODIFIED   : Revision 96.18  2003/02/26 00:56:37  lenezet
-@MODIFIED   : for 2D : now computes all 3 coordinates for the "start" (to take into account the slice position).
-@MODIFIED   : simplification of build_lattices.
-@MODIFIED   : bug correction in amoeba_NL_obj_function.
-@MODIFIED   :
-@MODIFIED   : Revision 96.17  2003/02/04 06:08:45  stever
-@MODIFIED   : Add support for correlation coefficient and sum-of-squared difference.
-@MODIFIED   :
-@MODIFIED   : Revision 96.16  2002/12/13 21:18:20  lenezet
-@MODIFIED   :
-@MODIFIED   : A memory leak has been repaired
-@MODIFIED   :
-@MODIFIED   : Revision 96.15  2002/11/20 21:39:15  lenezet
-@MODIFIED   :
-@MODIFIED   : Fix the code to take in consideration the direction cosines especially in the grid transform.
-@MODIFIED   : Add an option to choose the maximum expected deformation magnitude.
+@MODIFIED   : Revision 96.14.2.1  2003-07-05 01:58:08  stever
+@MODIFIED   : Add correlation coefficient mods.
 @MODIFIED   :
 @MODIFIED   : Revision 96.14  2002/03/26 14:15:43  stever
 @MODIFIED   : Update includes to <volume_io/foo.h> style.
@@ -313,7 +296,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.19 2003-02-26 01:20:34 lenezet Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.14.2.1 2003-07-05 01:58:08 stever Exp $";
 #endif
 
 #include <config.h>		/* MAXtype and MIN defs                      */
@@ -338,12 +321,12 @@ time_t time(time_t *tloc);
 #include <extras.h>             /* prototypes for extra convienience routines*/
 #include <quad_max_fit.h>       /* prototypes for quadratic fitting routines */
 
-int stat_quad_total=0;            /* these are used as globals to tally stats  */
-int stat_quad_zero=0;             /* in Numerical/quad_max_stats.c             */
-int stat_quad_two=0;              /* (mostly for debugging)                    */
-int stat_quad_plus=0;
-int stat_quad_minus=0;
-int stat_quad_semi=0;
+int stat_quad_total;            /* these are used as globals to tally stats  */
+int stat_quad_zero;             /* in Numerical/quad_max_stats.c             */
+int stat_quad_two;              /* (mostly for debugging)                    */
+int stat_quad_plus;
+int stat_quad_minus;
+int stat_quad_semi;
 
                                 /* these globals are used to tally stats over
                                    do_non_linear_optimization() and 
@@ -361,47 +344,34 @@ static stats_struct
                                 /* these Globals are used to communicate to
                                    the correlation functions over top the
                                    SIMPLEX optimization routine */
-
-float  *Gsqrt_features=NULL;		/* normalization const for correlation       */
-float  **Ga1_features=NULL;		/* samples in source sub-lattice             */
-float  *TX=NULL; 
-float  *TY=NULL; 
-float  *TZ=NULL;		/* sample sub-lattice positions in target    */
-
-static float *SX=NULL; 
-static float *SY=NULL; 
-static float *SZ=NULL;		/* sample sub-lattice positions in source    */
+float	
+  *Gsqrt_features,		/* normalization const for correlation       */
+  **Ga1_features,		/* samples in source sub-lattice             */
+  *TX, *TY, *TZ;		/* sample sub-lattice positions in target    */
+static float
+  *SX, *SY, *SZ;		/* sample sub-lattice positions in source    */
 
 int 
-  Glen = 0;				/* # of samples in sub-lattice               */
+  Glen;				/* # of samples in sub-lattice               */
 
 
          /* these Globals are used to communicate the projection */
          /* values over top the SIMPLEX optimization  routine    */ 
-
-Real  Gtarget_vox_x = 0.0;
-Real  Gtarget_vox_y = 0.0;
-Real  Gtarget_vox_z = 0.0;
-Real  Gproj_d1      = 0.0;
-Real  Gproj_d1x     = 0.0;
-Real  Gproj_d1y     = 0.0;
-Real  Gproj_d1z     = 0.0;
-Real  Gproj_d2      = 0.0;
-Real  Gproj_d2x     = 0.0;
-Real  Gproj_d2y     = 0.0;
-Real  Gproj_d2z     = 0.0;
+Real
+  Gtarget_vox_x, Gtarget_vox_y, Gtarget_vox_z,
+  Gproj_d1,  Gproj_d1x,  Gproj_d1y,  Gproj_d1z, 
+  Gproj_d2,  Gproj_d2x,  Gproj_d2y,  Gproj_d2z;
 
 	/* Globals used for local simplex Optimization  */
-static Real     Gsimplex_size=0.0;	/* the radius of the local simplex           */
-Real     Gcost_radius=0.0;	/* constant used in the cost function        */
+static Real     Gsimplex_size;	/* the radius of the local simplex           */
+Real     Gcost_radius;	/* constant used in the cost function        */
 
         /* Globals used to split the input transformation into a
 	   linear part and a super-sampled non-linear part */
-
-General_transform *Gsuper_sampled_warp = NULL;
-General_transform *Glinear_transform = NULL;
+General_transform 
+                *Gsuper_sampled_warp,
+                *Glinear_transform;
 Volume  Gsuper_sampled_vol;
-
 
 	/* Volume order definition for super sampled data */
 static char *my_XYZ_dim_names[] = { MIxspace, MIyspace, MIzspace };
@@ -458,8 +428,7 @@ extern int        Diameter_of_local_lattice;
 #define DEFAULT_STD_E2   0.002711
 
 static Real
-previous_mean_eig_val[3] = {DEFAULT_MEAN_E0,DEFAULT_MEAN_E1,DEFAULT_MEAN_E2};
-static Real
+   previous_mean_eig_val[3] = {DEFAULT_MEAN_E0,DEFAULT_MEAN_E1,DEFAULT_MEAN_E2},
    previous_std_eig_val[3]  = {DEFAULT_STD_E0,DEFAULT_STD_E1,DEFAULT_STD_E2};
 
         /* prototypes function definitions */
@@ -553,16 +522,6 @@ private BOOLEAN build_lattices(Real spacing,
 			       Real def_vector[],
 			       int ndim);
 
-public void    build_target_lattice(float px[], float py[], float pz[],
-				    float tx[], float ty[], float tz[],
-				     int len, int dim);
-
-public void    build_target_lattice_using_super_sampled_def(
-                                     float px[], float py[], float pz[],
-				     float tx[], float ty[], float tz[],
-				     int len, int dim);
-
-
 private Real get_optical_flow_vector(Real threshold1, 
 				     Real source_coord[],
 				     Real mean_target[],
@@ -581,28 +540,6 @@ private Real get_chamfer_vector(Real threshold1,
 				Volume chamfer,
 				int ndim);
 
-public void from_param_to_grid_weights(Real p[],
-				       Real grid[]);
-
-public void from_grid_weights_to_param(Real grid[],
-				       Real p[]);
-
-public void map_def_to_grid_space(Real dx,
-				  Real dy,
-				  Real dz,
-				  Real *g0,
-				  Real *g1,
-				  Real *g2);
-
-public void map_def_from_grid_space(Real g0,
-				    Real g1,
-				    Real g2,
-				    Real *dx,
-				    Real *dy,
-				    Real *dz);
-
-
-
 /**************************************************************************/
 public Status do_non_linear_optimization(Arg_Data *globals)
 {
@@ -610,8 +547,7 @@ public Status do_non_linear_optimization(Arg_Data *globals)
       *all_until_last,		/* will contain the first (linear) part of the xform  */
       *additional_warp,		/* storage of estimates of the needed additional warp */
       *another_warp,		/* storage of estimates of the needed additional warp */
-
-      *current_warp;		/* pointer to  the current (best) warp so far          */
+      *current_warp;		/* storage of the current (best) warp so far          */
    
    Volume
       estimated_flag_vol,	/* flags indicating node estimated or not             */
@@ -619,7 +555,6 @@ public Status do_non_linear_optimization(Arg_Data *globals)
       another_vol,		/* volume pointer to additional_warp transform        */
       current_vol,		/* volume pointer to current_warp transform           */
       additional_mag;		/* volume storing mag of additional_warp vectors      */
-
   
    long
       iteration_start_time,	/* variables to time each iteration                   */
@@ -628,7 +563,6 @@ public Status do_non_linear_optimization(Arg_Data *globals)
       nfunk_total;
 
    int 
-     num_of_dims_to_optimize,
       additional_count[MAX_DIMENSIONS], /* size (in voxels) of  additional_vol  */
       mag_count[MAX_DIMENSIONS],/* size (in voxels) of  additional_mag          */
       xyzv[MAX_DIMENSIONS],	/* order of voxel indices                       */
@@ -644,12 +578,6 @@ public Status do_non_linear_optimization(Arg_Data *globals)
       sub_lattice_needed;
 
    Real 
-
-     step_magnitude[N_DIMENSIONS],
-     st[MAX_DIMENSIONS],
-     wst[MAX_DIMENSIONS],
-     dirs[MAX_DIMENSIONS],
-     
       debug_steps[MAX_DIMENSIONS], 
       voxel[MAX_DIMENSIONS],	/* voxel position used for interpolation         */
       mag_steps[MAX_DIMENSIONS],
@@ -665,7 +593,7 @@ public Status do_non_linear_optimization(Arg_Data *globals)
       def_vector[3],		/* the additional deformation estimated for node,
 				   for these three vectors in real world coords
 				   index [0] stores the x disp, and [2] the z disp */
-      voxel_displacement[N_DIMENSIONS],    /* the additional displacement, in voxel coords 
+      voxel_displacement[3],    /* the additional displacement, in voxel coords 
 				   with [0] storing the displacement of the
 				   fastest varying index, and [2] the slowest in
 				   the data voluming = xdim and zdim respectively*/
@@ -682,27 +610,11 @@ public Status do_non_linear_optimization(Arg_Data *globals)
    progress_struct		/* to print out program progress report */
       progress;
 
-   STRING filenamestring;
- 
   /*******************************************************************************/
 
 	   /* set up globals for communication with other routines */
 
-
-
    Gglobals= globals;
-
-   /* pour eviter d'avoir une option -2Dnonlin ou 3d le fcalcul se fait directement */
-   num_of_dims_to_optimize = 0;
-   for_less(i,0,N_DIMENSIONS) {
-     if (Gglobals->count[i] > 1) 
-       num_of_dims_to_optimize++ ;
-   }
-   number_dimensions = num_of_dims_to_optimize; /* to communicate to
-						   amoeba_NL_obj_function
-						   through the
-						   external variable */
-
 
    /* allocate space required for some globals */
 
@@ -746,13 +658,11 @@ public Status do_non_linear_optimization(Arg_Data *globals)
    ALLOC(TY,MAX_G_LEN+1);
    ALLOC(TZ,MAX_G_LEN+1);
 
-
    /* split the total transformation into the first linear part and the
-      last non-linear def.  */  
+      last non-linear def.  */
    split_up_the_transformation(globals->trans_info.transformation,
                                &all_until_last,
                                &current_warp);
-   
 
 				/* exit if no deformation */
    if (current_warp == (General_transform *)NULL) { 
@@ -772,10 +682,9 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 
    /* make a copy of the current warp that will be used to store the
       additional deformation needed to optimize the current warp.  */
-   ALLOC(additional_warp,1);  
+   ALLOC(additional_warp,1);
    copy_general_transform(current_warp, additional_warp);
    current_vol = current_warp->displacement_volume;
-
    additional_vol = additional_warp->displacement_volume;
    get_volume_sizes(additional_vol, additional_count);
    get_volume_XYZV_indices(additional_vol, xyzv);
@@ -820,7 +729,7 @@ public Status do_non_linear_optimization(Arg_Data *globals)
    set_volume_translation(estimated_flag_vol, voxel, target_node);
    alloc_volume_data(estimated_flag_vol);
    set_volume_real_range(estimated_flag_vol, 0.0, 1.0);
-
+ 
    /* test simplex size against size of data voxels */
 
    get_volume_separations(additional_vol, steps);
@@ -829,10 +738,7 @@ public Status do_non_linear_optimization(Arg_Data *globals)
    if (steps_data[0]!=0.0) {
                                 /* Gsimplex_size is in voxel units
                                    in the data volume.             */
-
-     for_less(i,0,N_DIMENSIONS) {step_magnitude[i] = ABS(steps_data[i]); }
-
-      Gsimplex_size= ABS(steps[xyzv[X]]) / MAX3(step_magnitude[0],step_magnitude[1],step_magnitude[2]);  
+      Gsimplex_size= ABS(steps[xyzv[X]]) / MAX3(steps_data[0],steps_data[1],steps_data[2]);  
 
       if (ABS(Gsimplex_size) < ABS(steps_data[0])) {
          print ("*** WARNING ***\n");
@@ -855,23 +761,22 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 
 				/* build a super-sampled version of the
 				   current transformation, if needed     */
-
   if (globals->trans_info.use_super>0) {
+    ALLOC(Gsuper_sampled_warp,1);
 
-    globals->trans_info.use_super = 2; /* force super sampling to 2
-					  until volume_io bug
-					  evalue_value is worked
-					  out */
-    
+    if (globals->trans_info.use_super==2) {
+      create_super_sampled_data_volumes_by2(current_warp, 
+					    Gsuper_sampled_warp);
+    }
+    else
+      create_super_sampled_data_volumes(current_warp, 
+					Gsuper_sampled_warp,
+					globals->trans_info.use_super);
+
+    Gsuper_sampled_vol = Gsuper_sampled_warp->displacement_volume;
 
     if (globals->flags.debug) {
-      for_less(i,0,MAX_DIMENSIONS) {
-	voxel[i]=0.0;
-	debug_sizes[i]=0.0;
-	debug_steps[i]=0.0;
-	st[i]=0.0;
-	wst[i]=0.0;
-      }
+      for_less(i,0,MAX_DIMENSIONS) voxel[i]=0.0;
       convert_voxel_to_world(current_warp->displacement_volume, 
 			     voxel,
 			     &wx, &wy, &wz);
@@ -879,41 +784,12 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 		       debug_sizes);
       get_volume_separations(current_warp->displacement_volume, 
 			     debug_steps);
-
-      get_volume_starts(current_warp->displacement_volume, st);
-      get_volume_translation(current_warp->displacement_volume, voxel, wst);
       print ("Before super sampling, orig def field:\n");
       print ("curnt sizes: %7d  %7d  %7d  %7d  %7d\n",
 	     debug_sizes[0],debug_sizes[1],debug_sizes[2],debug_sizes[3],debug_sizes[4]);
       print ("curnt steps: %7.2f  %7.2f  %7.2f  %7.2f  %7.2f\n",
 	     debug_steps[0],debug_steps[1],debug_steps[2],debug_steps[3],debug_steps[4]);
-      print ("curnt start: %7.2f  %7.2f  %7.2f  %7.2f  %7.2f\n",
- 	     st[0],st[1],st[2],st[3],st[4]);
-      print ("vol trans  : %7.2f  %7.2f  %7.2f  %7.2f  %7.2f\n",
- 	     wst[0],wst[1],wst[2],wst[3],wst[4]);
-      print ("v[0,0,0] ->: %7.2f  %7.2f  %7.2f  \n", wx, wy, wz);
-    }
-
-
-
-    ALLOC(Gsuper_sampled_warp,1);
-    create_super_sampled_data_volumes(current_warp, 
-				      Gsuper_sampled_warp,
-				      globals->trans_info.use_super);
-    Gsuper_sampled_vol = Gsuper_sampled_warp->displacement_volume;
-
-
-
-    if (globals->flags.debug) {
-
-
-      for_less(i,0,MAX_DIMENSIONS) {
-	voxel[i]=0.0;
-	debug_sizes[i]=0.0;
-	debug_steps[i]=0.0;
-	st[i]=0.0;
-	wst[i]=0.0;
-      }
+      print ("curnt start: %7.2f  %7.2f  %7.2f  \n", wx, wy, wz);
 
       convert_voxel_to_world(Gsuper_sampled_warp->displacement_volume, 
 			     voxel,
@@ -922,19 +798,12 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 		       debug_sizes);
       get_volume_separations(Gsuper_sampled_warp->displacement_volume, 
 			     debug_steps);
-      get_volume_starts(Gsuper_sampled_warp->displacement_volume, st);
-      get_volume_translation(Gsuper_sampled_warp->displacement_volume, voxel, wst);
       print ("After super sampling:\n");
       print ("super sizes: %7d  %7d  %7d  %7d  %7d\n",
 	     debug_sizes[0],debug_sizes[1],debug_sizes[2],debug_sizes[3],debug_sizes[4]);
       print ("super steps: %7.2f  %7.2f  %7.2f  %7.2f  %7.2f\n",
 	     debug_steps[0],debug_steps[1],debug_steps[2],debug_steps[3],debug_steps[4]);
-      print ("super start: %7.2f  %7.2f  %7.2f  %7.2f  %7.2f\n",
- 	     st[0],st[1],st[2],st[3],st[4]);
-      print ("vol trans  : %7.2f  %7.2f  %7.2f  %7.2f  %7.2f\n",
- 	     wst[0],wst[1],wst[2],wst[3],wst[4]);
-      print ("v[0,0,0] ->: %7.2f  %7.2f  %7.2f  \n", wx, wy, wz);
-
+      print ("super start: %7.2f  %7.2f  %7.2f  \n", wx, wy, wz);
     }
   }
 
@@ -946,25 +815,24 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 
 print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],globals->threshold[1]);
 
- /*   set_feature_value_threshold(Gglobals->features.data[0],  */
-/* 			      Gglobals->features.model[0], */
-/* 			      &(globals->threshold[0]),  */
-/* 			      &(globals->threshold[1]), */
-/* 			      &threshold1, */
-/* 			      &threshold2); */			      
+  set_feature_value_threshold(Gglobals->features.data[0], 
+			      Gglobals->features.model[0],
+			      &(globals->threshold[0]), 
+			      &(globals->threshold[1]),
+			      &threshold1,
+			      &threshold2);			      
 
- threshold1 = globals->threshold[0];
- threshold2 = globals->threshold[1];
- 
+  if (threshold1<0.0 || threshold2<0.0) {
+    print_error_and_line_num("Gradient magnitude threshold error: %f %f\n",
+			     __FILE__, __LINE__, 
+			     threshold1, threshold2);
+  }
 
   initial_corr = xcorr_objective_with_def(Gglobals->features.data[0], 
                                           Gglobals->features.model[0],
                                           Gglobals->features.data_mask[0], 
                                           Gglobals->features.model_mask[0],
                                           globals );
-
-
-
 
   if (globals->flags.debug) {	
     print("\n\nDebug info from do_nonlinear_optimization---------------\n");
@@ -976,7 +844,6 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
     print("xyzv                 = %3d %3d %3d %3d \n",
 	  xyzv[X], xyzv[Y], xyzv[Z], xyzv[Z+1]);
     print("number_dimensions    = %d\n",number_dimensions);
-    print("num_of_dims_to_opt   = %d\n",num_of_dims_to_optimize);
     print("smoothing_weight     = %f\n",smoothing_weight);
     print("loop                 = (%d %d) (%d %d) (%d %d)\n",
 	  start[0],end[0],start[1],end[1],start[2],end[2]);
@@ -986,18 +853,16 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
     
     if ( Gglobals->trans_info.use_magnitude) {
 
-     for_less(i,0,N_DIMENSIONS) {step_magnitude[i] = ABS(steps_data[i]); }
-
       if ( Gglobals->trans_info.use_simplex) {
 	print ("  This fit will use local simplex optimization and\n");
 	print ("  Simplex radius = %7.2f (voxels) or %7.2f(mm)\n",
 	       Gsimplex_size, 
-	       Gsimplex_size * MAX3(step_magnitude[0],step_magnitude[1],step_magnitude[2]));      }
+	       Gsimplex_size * MAX3(steps_data[0],steps_data[1],steps_data[2]));      }
       else {
 	print ("  This fit will use local quadratic fitting and\n");
 	print ("  Search/quad fit radius= %7.2f (data voxels) or %7.2f(mm)\n",
 	       Gsimplex_size /2.0, 
-	       Gsimplex_size * MAX3(step_magnitude[0],step_magnitude[1],step_magnitude[2])/2.0);
+	       Gsimplex_size * MAX3(steps_data[0],steps_data[1],steps_data[2])/2.0);
       }
     }
     else {
@@ -1083,361 +948,354 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
 
    mean_disp_mag = 0.0;
 
-   for_less(iters,0,iteration_limit) 
-     {
-       
-       iteration_start_time = time(NULL);
-       
-       if (globals->trans_info.use_super>0) 
-	 {
-	   
-	   temp_start_time = time(NULL);
-	   
-	   interpolate_super_sampled_data_by2(current_warp,
-					  Gsuper_sampled_warp);
-	   if (globals->flags.debug)
-	     report_time(temp_start_time, "TIME:Interpolating super-sampled data");
+  for_less(iters,0,iteration_limit) {
 
-	 }  
+    iteration_start_time = time(NULL);
 
-       init_the_volume_to_zero(estimated_flag_vol);
+    if (globals->trans_info.use_super>0) {
 
+      temp_start_time = time(NULL);
 
-       print("Iteration %2d of %2d\n",iters+1, iteration_limit);
+      if (globals->trans_info.use_super==2) {
+	interpolate_super_sampled_data_by2(current_warp,
+					       Gsuper_sampled_warp,
+					       number_dimensions);
+      }
+      else
+	interpolate_super_sampled_data(current_warp,
+				     Gsuper_sampled_warp,
+				     number_dimensions);
+      if (globals->flags.debug)
+         report_time(temp_start_time, "TIME:Interpolating super-sampled data");
+
+    }  
+
+    init_the_volume_to_zero(estimated_flag_vol);
+    
+    print("Iteration %2d of %2d\n",iters+1, iteration_limit);
 
 
 				/* for various stats on this iteration*/
-       stat_quad_total = 0;
-       stat_quad_zero  = 0;
-       stat_quad_two   = 0;
-       stat_quad_plus  = 0;
-       stat_quad_minus = 0;
-       stat_quad_semi  = 0;
+    stat_quad_total = 0;
+    stat_quad_zero  = 0;
+    stat_quad_two   = 0;
+    stat_quad_plus  = 0;
+    stat_quad_minus = 0;
+    stat_quad_semi  = 0;
 
-       nodes_done      = 0; 
-       nodes_tried     = 0; 
-       nodes_seen      = 0; 
-       over            = 0;        
-       nfunk_total     = 0;
-       std             = 0.0;
+    nodes_done      = 0; 
+    nodes_tried     = 0; 
+    nodes_seen      = 0; 
+    over            = 0;        
+    nfunk_total     = 0;
+    std             = 0.0;
 
-       init_stats(&stat_def_mag,  "def_mag");
-       init_stats(&stat_num_funks,"num_funks");
-       init_stats(&stat_eigval0,  "eigval[0]");
-       init_stats(&stat_eigval1,  "eigval[1]");
-       init_stats(&stat_eigval2,  "eigval[2]");
-       init_stats(&stat_conf0,    "conf[0]");
-       init_stats(&stat_conf1,    "conf[1]");
-       init_stats(&stat_conf2,    "conf[2]");
-
-
-
-       initialize_progress_report( &progress, FALSE, 
-				   (end[X]-start[X])*(end[Y]-start[Y]) + 1,
-				   "Estimating deformations" );
-          
-       temp_start_time = time(NULL);
-       
-       for_less(i,0,MAX_DIMENSIONS) index[i]=0;
-       
-       /* step index[] through all the nodes in the deformation field. */
-       
-
-       for_less( index[ xyzv[X] ] , start[ X ], end[ X ]) 
-	 {
-	   
-	   timer1 = time(NULL);	       /* for stats on this slice */
-	   nfunk1 = 0; nodes1 = 0;
-	   
-	   for_less( index[ xyzv[Y] ] , start[ Y ], end[ Y ]) 
-	     {
-	     
-	       for_less( index[ xyzv[Z] ] , start[ Z ], end[ Z ]) 
-		 {
-	       
-		   nodes_seen++;	  
-		                        /* get the lattice coordinate 
-					   of the current index node  */
-		   for_less(i,0,MAX_DIMENSIONS) voxel[i]=index[i];
-
-		   convert_voxel_to_world(current_vol, 
-					  voxel,
-					  &(target_node[X]), &(target_node[Y]), &(target_node[Z]));
-
-		   for_less( index[ xyzv[Z+1] ], start[ Z+1 ], end[ Z+1 ]) 
-		     current_def_vector[ index[ xyzv[Z+1] ] ] = 
-		     get_volume_real_value(current_vol,
-					   index[0],index[1],index[2],index[3],index[4]);
-
-		                        /* add the warp to get the target 
-					   lattice position in world coords */
-
-		   wx = target_node[X] + current_def_vector[X]; 
-		   wy = target_node[Y] + current_def_vector[Y]; 
-		   wz = target_node[Z] + current_def_vector[Z];
-		   
-		   if (point_not_masked(Gglobals->features.model_mask[0], wx, wy, wz) &&
-		       get_value_of_point_in_volume(wx,wy,wz, Gglobals->features.model[0])>threshold2) {
+    init_stats(&stat_def_mag,  "def_mag");
+    init_stats(&stat_num_funks,"num_funks");
+    init_stats(&stat_eigval0,  "eigval[0]");
+    init_stats(&stat_eigval1,  "eigval[1]");
+    init_stats(&stat_eigval2,  "eigval[2]");
+    init_stats(&stat_conf0,    "conf[0]");
+    init_stats(&stat_conf1,    "conf[1]");
+    init_stats(&stat_conf2,    "conf[2]");
 
 
-				         /* now get the mean warped position of 
-					    the target's neighbours */
-		     
-		     index[ xyzv[Z+1] ] = 0;
-		     if (get_average_warp_of_neighbours(current_warp,
-							index, mean_target)) {
-		       
-			        	/* what is the offset to the mean_target? */
 
-		       for_inclusive(i,X,Z)
-			 mean_vector[i] = mean_target[i] - target_node[i];
-		       
-			        	/* get the targets homolog in the
-					   world coord system of the source
-					   data volume                      */
+    initialize_progress_report( &progress, FALSE, 
+			       (end[X]-start[X])*(end[Y]-start[Y]) + 1,
+			       "Estimating deformations" );
 
-		       general_inverse_transform_point(Glinear_transform,
-						       target_node[X], target_node[Y], target_node[Z],
-						       &(source_node[X]),&(source_node[Y]),&(source_node[Z])); 
+    temp_start_time = time(NULL);
 
-               				/* find the best deformation for
-					   this node                        */
-		       
+    for_less(i,0,MAX_DIMENSIONS) index[i]=0;
 
-		       result = get_deformation_vector_for_node(steps[xyzv[X]], 
-								threshold1,
-								source_node,
-								mean_target,
-								def_vector,
-								voxel_displacement,
-								iters, iteration_limit, 
-								&nfunks,
-								num_of_dims_to_optimize,
-								sub_lattice_needed);
-		     
-		     
-		       if (result < 0.0) 
-			 {
-			   nodes_tried++;
-			   result = 0.0;
-			 } 
-		       else 
-			 {
-				          /* store the deformation vector */
+    /* step index[] through all the nodes in the deformation field. */
 
-			   eig1 = 0.0;
-			   if (Gglobals->trans_info.use_local_smoothing) 
-			     {
-			     
-			       eig1 = return_locally_smoothed_def(
-								  Gglobals->trans_info.use_local_isotropic,
-								  number_dimensions,
-								  smoothing_weight,
-								  iteration_weight,
-								  result_def_vector,
-								  current_def_vector,
-								  mean_vector,
-								  def_vector,
-								  another_vector,
-								  voxel_displacement);
+    for_less( index[ xyzv[X] ] , start[ X ], end[ X ]) {
 
-                          		  /* Remember that I can't modify current_vol just
-					     yet, so I have to set additional_vol to a value,
-					     that when added to current_vol (below) I will
-					     have the correct result!  */
+      timer1 = time(NULL);	/* for stats on this slice */
+      nfunk1 = 0; nodes1 = 0;
 
-			       for_inclusive(i,X,Z)
-				 result_def_vector[ i ] -= current_def_vector[ i ];
-			       
+      for_less( index[ xyzv[Y] ] , start[ Y ], end[ Y ]) {
 
-			       for_less( index[ xyzv[Z+1] ], start[ Z+1 ], end[ Z+1 ])  
-				 {
-				   set_volume_real_value(additional_vol,
-							 index[0],index[1],index[2],
-							 index[3],index[4],
-							 result_def_vector[index[ xyzv[Z+1]]]);
-				   set_volume_real_value(another_vol,
-							 index[0],index[1],index[2],
-							 index[3],index[4],
-							 another_vector[ index[ xyzv[Z+1] ] ]);
-				 }
+	for_less( index[ xyzv[Z] ] , start[ Z ], end[ Z ]) {
 
-			     }
-			   else 
-			     {		/* then prepare for global smoothing, (this will
-					   actually be done after all nodes 
-					   have been estimated  */
-			       
-			       for_less( index[ xyzv[Z+1] ], start[ Z+1 ], end[ Z+1 ]) 
-				 set_volume_real_value(additional_vol,
-						       index[0],index[1],index[2],
-						       index[3],index[4],
-						       def_vector[ index[ xyzv[Z+1] ] ]);
+	  nodes_seen++;	  
+				/* get the lattice coordinate 
+				   of the current index node  */
+	  for_less(i,0,MAX_DIMENSIONS) voxel[i]=index[i];
 
-			     }
-				         /* store the def magnitude */
+	  convert_voxel_to_world(current_vol, 
+				 voxel,
+				 &(target_node[X]), &(target_node[Y]), &(target_node[Z]));
 
-			   set_volume_real_value(additional_mag,
-						 index[xyzv[X]],index[xyzv[Y]],index[xyzv[Z]],0,0,
-						 result);
-			                 /* set the 'node estimated' flag */
-			   set_volume_real_value(estimated_flag_vol,
-						 index[xyzv[X]],index[xyzv[Y]],index[xyzv[Z]],0,0,
-						 1.0);
-			   
-				         /* tally up some statistics for this iteration */
-			   if (ABS(result) > 0.95*steps[xyzv[X]]) over++;
-			   
-			   nfunk_total += nfunks;
-			   nfunk1      += nfunks; 
-			   nodes1++;	
-			   nodes_done++;
-			   
-			   tally_stats(&stat_def_mag,   result);
-			   tally_stats(&stat_num_funks, nfunks);
-			   
-			 } /* of else (result<0) */
+				/* get the warp that needs to be added 
+				   to get the target world coordinate
+				   position */
 
-		     } /* if get_average_warp_of_neighbours */
+	  for_less( index[ xyzv[Z+1] ], start[ Z+1 ], end[ Z+1 ]) 
+	    current_def_vector[ index[ xyzv[Z+1] ] ] = 
+	      get_volume_real_value(current_vol,
+				    index[0],index[1],index[2],index[3],index[4]);
+
+				/* add the warp to get the target 
+				   lattice position in world coords */
+
+	  wx = target_node[X] + current_def_vector[X]; 
+	  wy = target_node[Y] + current_def_vector[Y]; 
+	  wz = target_node[Z] + current_def_vector[Z];
+
+	  if (point_not_masked(Gglobals->features.model_mask[0], wx, wy, wz) &&
+	      get_value_of_point_in_volume(wx,wy,wz, Gglobals->features.model[0])>threshold2) {
+
+
+				/* now get the mean warped position of 
+				   the target's neighbours */
+
+	    index[ xyzv[Z+1] ] = 0;
+	    if (get_average_warp_of_neighbours(current_warp,
+					   index, mean_target)) {
 	    
-		   } /* point not masked and val in volume2 > threshold 2 */
+				/* what is the offset to the mean_target? */
+
+	      for_inclusive(i,X,Z)
+		mean_vector[i] = mean_target[i] - target_node[i];
+
+				/* get the targets homolog in the
+				   world coord system of the source
+				   data volume                      */
+
+	      general_inverse_transform_point(Glinear_transform,
+			target_node[X], target_node[Y], target_node[Z],
+			&(source_node[X]),&(source_node[Y]),&(source_node[Z]));
+
+				/* find the best deformation for
+				   this node                        */
+
+
+	      result = get_deformation_vector_for_node(steps[xyzv[X]], 
+						       threshold1,
+						       source_node,
+						       mean_target,
+						       def_vector,
+						       voxel_displacement,
+						       iters, iteration_limit, 
+						       &nfunks,
+						       number_dimensions,
+						       sub_lattice_needed);
+	    
+	      if (result < 0.0) {
+		nodes_tried++;
+		result = 0.0;
+	      } else {
+				/* store the deformation vector */
+
+		eig1 = 0.0;
+		if (Gglobals->trans_info.use_local_smoothing) {
+
+		  eig1 = return_locally_smoothed_def(
+				Gglobals->trans_info.use_local_isotropic,
+				number_dimensions,
+				smoothing_weight,
+				iteration_weight,
+				result_def_vector,
+				current_def_vector,
+				mean_vector,
+				def_vector,
+				another_vector,
+				voxel_displacement);
+
+		  /* Remember that I can't modify current_vol just
+		     yet, so I have to set additional_vol to a value,
+		     that when added to current_vol (below) I will
+		     have the correct result!  */
+
+		  for_inclusive(i,X,Z)
+		    result_def_vector[ i ] -= current_def_vector[ i ];
+
+		  for_less( index[ xyzv[Z+1] ], start[ Z+1 ], end[ Z+1 ])  {
+		    set_volume_real_value(additional_vol,
+					  index[0],index[1],index[2],
+					  index[3],index[4],
+					  result_def_vector[ index[ xyzv[Z+1] ] ]);
+		    set_volume_real_value(another_vol,
+					  index[0],index[1],index[2],
+					  index[3],index[4],
+					  another_vector[ index[ xyzv[Z+1] ] ]);
+		  }
+
+		}
+		else {		/* then prepare for global smoothing, (this will
+				   actually be done after all nodes 
+				   have been estimated  */
+
+		  for_less( index[ xyzv[Z+1] ], start[ Z+1 ], end[ Z+1 ]) 
+		    set_volume_real_value(additional_vol,
+					  index[0],index[1],index[2],
+					  index[3],index[4],
+					  def_vector[ index[ xyzv[Z+1] ] ]);
+
+		}
+				/* store the def magnitude */
+
+		set_volume_real_value(additional_mag,
+		       index[xyzv[X]],index[xyzv[Y]],index[xyzv[Z]],0,0,
+		       result);
+				/* set the 'node estimated' flag */
+		set_volume_real_value(estimated_flag_vol,
+		       index[xyzv[X]],index[xyzv[Y]],index[xyzv[Z]],0,0,
+		       1.0);
+
+				/* tally up some statistics for this iteration */
+		if (ABS(result) > 0.95*steps[xyzv[X]]) over++;
+		
+		nfunk_total += nfunks;
+		nfunk1      += nfunks; 
+		nodes1++;	
+		nodes_done++;
+
+		tally_stats(&stat_def_mag,   result);
+		tally_stats(&stat_num_funks, nfunks);
+
+	      } /* of else (result<0) */
+
+	    } /* if get_average_warp_of_neighbours */
+	    
+	  } /* point not masked and val in volume2 > threshold 2 */
 	  
 	    
-		 }  /* forless on Z index */
+	}  /* forless on X index */
 	  
-	       update_progress_report( &progress, 
-				       (end[Y]-start[Y])*(index[ xyzv[X]]-start[X])+
-				       (index[ xyzv[Y]]-start[Y])+1 );
-	     } /* forless on Y index */
-	   timer2 = time(NULL);
+	update_progress_report( &progress, 
+			       (end[Y]-start[Y])*(index[ xyzv[X]]-start[X])+
+			       (index[ xyzv[Y]]-start[Y])+1 );
+      } /* forless on Y index */
+      timer2 = time(NULL);
 
-	   if (globals->flags.debug && globals->flags.verbose>1) 
-	     print ("xslice: (%3d:%3d) = %d sec -- nodes=%d av funks %f\n",
-		    index[ xyzv[X] ] +1-start[X], 
-		    end[X]-start[X], 
-		    timer2-timer1, 
-		    nodes1,
-		    nodes1==0? 0.0:(float)nfunk1/(float)nodes1);
+      if (globals->flags.debug && globals->flags.verbose>1) 
+	print ("xslice: (%3d:%3d) = %d sec -- nodes=%d av funks %f\n",
+	       index[ xyzv[X] ] +1-start[X], 
+	       end[X]-start[X], 
+	       timer2-timer1, 
+	       nodes1,
+	       nodes1==0? 0.0:(float)nfunk1/(float)nodes1);
       
-	 } /* forless on X index */
+    } /* forless on X index */
 
-       if (globals->flags.debug) 
-	 {
-	   
-	   
-	   /*
-	     ALLOC(filenamestring,512);
-	     sprintf (filenamestring,"pr_axes2_%d.xfm",iters);
-	     (void)output_transform_file(filenamestring,NULL,another_warp);
-	     FREE(filenamestring);
-	   */
-	   
-	   stat_title();
-	   report_stats(&stat_num_funks);
-	   report_stats(&stat_def_mag);
-	   if (Gglobals->trans_info.use_local_smoothing && 
-	       !Gglobals->trans_info.use_local_isotropic) 
-	     {
-	       report_stats(&stat_eigval0);
-	       report_stats(&stat_eigval1);
-	       report_stats(&stat_eigval2);
-	       report_stats(&stat_conf0);
-	       report_stats(&stat_conf1);
-	       report_stats(&stat_conf2);
-          
-	     }
-	   if (!Gglobals->trans_info.use_simplex) 
-	     {
-	       print ("quad fit stats: tot + ~ 0 2 -: %5d %5d %5d %5d %5d %5d\n",
-		      stat_quad_total,
-		      stat_quad_plus,
-		      stat_quad_semi,
-		      stat_quad_zero,
-		      stat_quad_two,
-		      stat_quad_minus);
-	     }
-       
-	   print ("Nodes seen = %d: [no def = %d], [w/def = %d (over = %d)]\n",
-		  nodes_seen, nodes_tried, nodes_done, over);
-	   
-	   mean_disp_mag = stat_get_mean(&stat_def_mag);
-	   std           = stat_get_standard_deviation(&stat_def_mag);
-	   
-	   nodes_tried = 0; nodes_seen = 0;
-	   for_less(i,0,mag_count[0])
-	     for_less(j,0,mag_count[1])
-	     for_less(k,0,mag_count[2])
-	     {
-	       mag = get_volume_real_value(additional_mag,i,j,k,0,0);
-	       if (mag >= 0.000001)
-		 nodes_seen++;
-	       if (mag >= (mean_disp_mag+std))
-		 nodes_tried++;
-	     }
-
-	   print ("there are %d of %d over (mean+1std) out of %d estimated.\n", 
-		  nodes_tried, nodes_done, nodes_seen);
-      
-	   report_time(temp_start_time, "TIME:Estimation defs");
-      
-	 }
+    terminate_progress_report( &progress );
 
 
+    if (globals->flags.debug) {
+
+
+       /*
+          ALLOC(filenamestring,512);
+          sprintf (filenamestring,"pr_axes2_%d.xfm",iters);
+          (void)output_transform_file(filenamestring,NULL,another_warp);
+          FREE(filenamestring);
+          */
+
+       stat_title();
+       report_stats(&stat_num_funks);
+       report_stats(&stat_def_mag);
        if (Gglobals->trans_info.use_local_smoothing && 
-	   !Gglobals->trans_info.use_local_isotropic) 
-	 {
-	   previous_mean_eig_val[0] = stat_get_mean(&stat_eigval0);
-	   previous_mean_eig_val[1] = stat_get_mean(&stat_eigval1);
-	   previous_mean_eig_val[2] = stat_get_mean(&stat_eigval2);
-	   previous_std_eig_val[0]  = stat_get_standard_deviation(&stat_eigval0);
-	   previous_std_eig_val[1]  = stat_get_standard_deviation(&stat_eigval1);
-	   previous_std_eig_val[2]  = stat_get_standard_deviation(&stat_eigval2);
-	 }
-		         		/* update the current warp, so that the
-					   next iteration will use all the data
-					   calculated thus far.   	*/
+           !Gglobals->trans_info.use_local_isotropic) {
+          report_stats(&stat_eigval0);
+          report_stats(&stat_eigval1);
+          report_stats(&stat_eigval2);
+          report_stats(&stat_conf0);
+          report_stats(&stat_conf1);
+          report_stats(&stat_conf2);
+          
+       }
+       if (!Gglobals->trans_info.use_simplex) {
+          print ("quad fit stats: tot + ~ 0 2 -: %5d %5d %5d %5d %5d %5d\n",
+                 stat_quad_total,
+                 stat_quad_plus,
+                 stat_quad_semi,
+                 stat_quad_zero,
+                 stat_quad_two,
+                 stat_quad_minus);
+       }
        
-       if (Gglobals->trans_info.use_local_smoothing) 
-	 {
-	   /* extrapolate (and smooth) the newly estimated deformation vectors
-	      (stored in additional vol) to un-estimated nodes, leaving the
-	      extrapolated result in additional_vol (note that it still has to
-	      be added to current */
+      print ("Nodes seen = %d: [no def = %d], [w/def = %d (over = %d)]\n",
+	     nodes_seen, nodes_tried, nodes_done, over);
+
+      mean_disp_mag = stat_get_mean(&stat_def_mag);
+      std           = stat_get_standard_deviation(&stat_def_mag);
+      
+      nodes_tried = 0; nodes_seen = 0;
+      for_less(i,0,mag_count[0])
+	for_less(j,0,mag_count[1])
+	  for_less(k,0,mag_count[2]){
+	    mag = get_volume_real_value(additional_mag,i,j,k,0,0);
+	    if (mag >= 0.000001)
+	      nodes_seen++;
+	    if (mag >= (mean_disp_mag+std))
+	      nodes_tried++;
+	  }
+
+      print ("there are %d of %d over (mean+1std) out of %d estimated.\n", 
+	     nodes_tried, nodes_done, nodes_seen);
+      
+       report_time(temp_start_time, "TIME:Estimation defs");
+      
+    }
 
 
-	   temp_start_time = time(NULL);
-	   
-	   extrapolate_to_unestimated_nodes(current_warp,
-					    additional_warp,
-					    estimated_flag_vol);
-	   if (globals->flags.debug) 
-	     report_time(temp_start_time, "TIME:Extrapolating the current warp");
-	   
-	   
-	   /* current = current + additional */
-	   
-	   temp_start_time = time(NULL);
-	   
-	   add_additional_warp_to_current(current_warp,
-					  additional_warp,
-					  1.0);
-	   if (globals->flags.debug) 
-	     report_time(temp_start_time, "TIME:Adding additional to current");
+    if (Gglobals->trans_info.use_local_smoothing && 
+	!Gglobals->trans_info.use_local_isotropic) {
+      previous_mean_eig_val[0] = stat_get_mean(&stat_eigval0);
+      previous_mean_eig_val[1] = stat_get_mean(&stat_eigval1);
+      previous_mean_eig_val[2] = stat_get_mean(&stat_eigval2);
+      previous_std_eig_val[0]  = stat_get_standard_deviation(&stat_eigval0);
+      previous_std_eig_val[1]  = stat_get_standard_deviation(&stat_eigval1);
+      previous_std_eig_val[2]  = stat_get_standard_deviation(&stat_eigval2);
+    }
+				/* update the current warp, so that the
+				   next iteration will use all the data
+				   calculated thus far.   	*/
+
+    if (Gglobals->trans_info.use_local_smoothing) {
+
+       /* extrapolate (and smooth) the newly estimated deformation vectors
+          (stored in additional vol) to un-estimated nodes, leaving the
+          extrapolated result in additional_vol (note that it still has to
+          be added to current */
 
 
-	 }
-       else 
-	 {
+       temp_start_time = time(NULL);
 
-	   /* additional = additional + current, 
-	      and then apply global  smoothing */
-	   
-	   temp_start_time = time(NULL);
-	   add_additional_warp_to_current(additional_warp,
-					  current_warp,
-			 		  iteration_weight);
-	   if (globals->flags.debug) 
-	     report_time(temp_start_time, "TIME:Adding additional to current");
+       extrapolate_to_unestimated_nodes(current_warp,
+                                        additional_warp,
+                                        estimated_flag_vol);
+       if (globals->flags.debug) 
+         report_time(temp_start_time, "TIME:Extrapolating the current warp");
+
+
+       /* current = current + additional */
+
+       temp_start_time = time(NULL);
+
+       add_additional_warp_to_current(current_warp,
+                                      additional_warp,
+                                      1.0);
+       if (globals->flags.debug) 
+         report_time(temp_start_time, "TIME:Adding additional to current");
+
+
+    }
+    else {
+
+       /* additional = additional + current, 
+          and then apply global  smoothing */
+       
+       temp_start_time = time(NULL);
+       add_additional_warp_to_current(additional_warp,
+                                      current_warp,
+                                      iteration_weight);
+       if (globals->flags.debug) 
+         report_time(temp_start_time, "TIME:Adding additional to current");
        
 
 				/* smooth the warp in additional,
@@ -1445,130 +1303,98 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
 
 				   current = smooth(additional) */
 
-	   temp_start_time = time(NULL);
-	   
-	   smooth_the_warp(current_warp,
-			   additional_warp,
-		 	   additional_mag, -1.0);
-	   
-	   if (globals->flags.debug) 
- 	     report_time(temp_start_time, "TIME:Smoothing the current warp");
-
-	 }
-    
-
+       temp_start_time = time(NULL);
        
-                               /* reset the next iteration's warp. */
+       smooth_the_warp(current_warp,
+                       additional_warp,
+                       additional_mag, -1.0);
+      
+       if (globals->flags.debug) 
+         report_time(temp_start_time, "TIME:Smoothing the current warp");
 
-       init_the_volume_to_zero(additional_vol);
-       init_the_volume_to_zero(additional_mag);
- 
- 
-       if (globals->flags.debug && 
-	   globals->flags.verbose == 3) {
+    }
+    
+    
+				/* reset the next iteration's warp. */
 
-	 save_data(globals->filenames.output_trans, 
-		   iters+1, iteration_limit,  
-		   globals->trans_info.transformation);
-	 
-       }
+    init_the_volume_to_zero(additional_vol);
+    init_the_volume_to_zero(additional_mag);
+
+				/* save this iterations warp, if requested. */
+    if (globals->flags.debug && 
+	globals->flags.verbose == 3) 
+      save_data(globals->filenames.output_trans, 
+		iters+1, iteration_limit, 
+		globals->trans_info.transformation);
 
 				/* re-apply intensity normalization if doing
 				   optical flow fitting. */
 
-       if (iters+1 < iteration_limit) 
-	 {
-	   for_less(i,0, globals->features.number_of_features) 
-	     {
+    if (iters+1 < iteration_limit) {
+      for_less(i,0, globals->features.number_of_features) {
 	
-	       if (globals->features.obj_func[i] == NONLIN_OPTICALFLOW ) 
-		 {
-		   normalize_data_to_match_target(globals->features.data[i],
-						  globals->features.data_mask[i],
-						  globals->features.thresh_data[i],
-						  globals->features.model[i],
-						  globals->features.model_mask[i],
-						  globals->features.thresh_model[i],
-						  globals);
-		 }
-	     }
-	 }
+	if (globals->features.obj_func[i] == NONLIN_OPTICALFLOW ) {
+	  normalize_data_to_match_target(globals->features.data[i],
+					 globals->features.data_mask[i],
+					 globals->features.thresh_data[i],
+					 globals->features.model[i],
+					 globals->features.model_mask[i],
+					 globals->features.thresh_model[i],
+					 globals);
+	}
+      }
+    }
 
-       if (globals->flags.debug) 
-	 {
-	   
-	   
-	   final_corr = xcorr_objective_with_def(Gglobals->features.data[0], Gglobals->features.model[0],
-						 Gglobals->features.data_mask[0], Gglobals->features.model_mask[0],
-						 globals );
-	   print("initial corr %f ->  this step %f\n",
-		 initial_corr,final_corr);
-	   
-	   report_time(iteration_start_time, "TIME:This iteration");
-	   
-	 }
+    if (globals->flags.debug) {
 
 
-       terminate_progress_report( &progress );
+       final_corr = xcorr_objective_with_def(Gglobals->features.data[0], Gglobals->features.model[0],
+                                    Gglobals->features.data_mask[0], Gglobals->features.model_mask[0],
+                                    globals );
+       print("initial corr %f ->  this step %f\n",
+             initial_corr,final_corr);
 
+       report_time(iteration_start_time, "TIME:This iteration");
 
-     }
+    }
+  }
   
-
 
                                 /* now we are done with the iterations,
                                    compute the final correlation if we
                                    haven't already done so just above in
                                    the debug statement */
-   if (!globals->flags.debug)
-     final_corr = xcorr_objective_with_def(Gglobals->features.data[0], 
-					   Gglobals->features.model[0],
-					   Gglobals->features.data_mask[0], 
-					   Gglobals->features.model_mask[0],
-					   globals );
-   
+  if (!globals->flags.debug)
+    final_corr = xcorr_objective_with_def(Gglobals->features.data[0], 
+                                 Gglobals->features.model[0],
+				 Gglobals->features.data_mask[0], 
+                                 Gglobals->features.model_mask[0],
+				 globals );
 
 
 
   /* free up allocated temporary deformation volumes */
 
- 
+  if (globals->trans_info.use_super>0) {
+    delete_general_transform(Gsuper_sampled_warp);
+  }
 
-   if (globals->trans_info.use_super>0) 
-     {
-       delete_general_transform(Gsuper_sampled_warp);
-       FREE(Gsuper_sampled_warp);
-     }
+  (void)delete_general_transform(additional_warp);
+  (void)delete_volume(additional_mag);
 
-   (void)delete_general_transform(additional_warp);
-   FREE(additional_warp); 
-
-   (void)delete_general_transform(another_warp);
-   FREE(another_warp); 
-
-  
-   if (Gglobals->features.number_of_features>0) 
-     {
-       FREE2D(Ga1_features);
-       FREE(Gsqrt_features);
-     }
- 
-   delete_general_transform(all_until_last);
-   FREE(all_until_last);
-   
-   delete_volume(additional_mag);
-   delete_volume(estimated_flag_vol);
-
-   FREE(TX );
-   FREE(TY );
-   FREE(TZ );
-   FREE(SX );
-   FREE(SY );
-   FREE(SZ );
+  if (Gglobals->features.number_of_features>0) {
+    FREE2D(Ga1_features);
+    FREE(Gsqrt_features);
+  }
+  FREE(TX );
+  FREE(TY );
+  FREE(TZ );
+  FREE(SX );
+  FREE(SY );
+  FREE(SZ );
     
 
-
-   return (OK);
+  return (OK);
 
 }
 
@@ -1881,7 +1707,6 @@ private double return_locally_smoothed_def(int isotropic_smoothing,
 	        def = deformation needed to bring current_target to 
 		      the best starting target.
 */
-
 private BOOLEAN get_best_start_from_neighbours(
 			   Real threshold1, 
 			   Real source[],
@@ -1904,23 +1729,27 @@ private BOOLEAN get_best_start_from_neighbours(
 				/* map point from source, forward into
                                    target_ space */
 
-/* possible problem: does the following work for a 2D grid transformation? 
- */
     general_transform_point(Gglobals->trans_info.transformation, 
 			    source[X],source[Y],source[Z], 
 			    &(target[X]),&(target[Y]),&(target[Z]));
 
+				/* average out target_ point with the
+				   mean position of its neightbours */
+    nx = (target[X] + mean_target[X])/2.0; 
+    ny = (target[Y] + mean_target[Y])/2.0; 
+    nz = (target[Z] + mean_target[Z])/2.0; 
 
-    /* set mean_target to be equal to target, just in case this is used later. */
-    mean_target[X] = target[X];
-    mean_target[Y] = target[Y];
-    mean_target[Z] = target[Z];    
+				/* what is the deformation needed to
+				   achieve this displacement */
+    def[X] = nx - target[X];
+    def[Y] = ny - target[Y];
+    def[Z] = nz - target[Z];
 
-    /* what is the deformation needed to achieve this displacement */
-    def[X] = 0.0;
-    def[Y] = 0.0;
-    def[Z] = 0.0;
-    
+				/* reset the target location to be
+				   halfway to the mean position of its
+				   neighbours */
+    target[X] = nx; target[Y] = ny; target[Z] = nz;
+
     return(TRUE);
   }  
 }
@@ -2215,6 +2044,15 @@ print ("%5.3f: %7.2f %7.2f %7.2f -> %7.2f %7.2f %7.2f [%7.2f %7.2f %7.2f ]",
   return(result);
 }
 
+/* procedure build_lattices will construct the sub-lattice on the
+   source and target volumes for xcorr, diff and label objective
+   functions that need to be optimized with the similarity_function 
+
+   inputs:
+   outputs:
+
+*/
+
 private BOOLEAN build_lattices(Real spacing, 
 			       Real threshold, 
 			       Real source_coord[],
@@ -2252,18 +2090,38 @@ private BOOLEAN build_lattices(Real spacing,
 				      def_vector)) {
     
     for_less (i,0,3)
-       target_coord[i] = mean_target[i];
+      target_coord[i] = mean_target[i];
 
     result = FALSE;
     
   }
   else {   
 
-    xp = source_coord[0];
-    yp = source_coord[1];
-    zp = source_coord[2];
-    
+    /* we now have the info needed to continue...
+       
+       source_coord[] - point in source volume
+       target_coord[] - best point in target volume, so far.
+       def_vector[]   - currently contains the additional def needed to 
+                        take source_coord mid-way to the neighbour's
+                        mean-point (which is now stored in target_coord[]).  
 
+       now,
+       get the world coord position of the node in the source volume,
+       corresponding to the target node in question, taking into
+       consideration the current warp  
+       
+       xp,yp,zp will be the position in the source volume, corresponding to
+       the 'best target' position */
+    
+    if (ndim==3)
+      general_inverse_transform_point(Gglobals->trans_info.transformation, 
+				      target_coord[X],  target_coord[Y],  target_coord[Z],
+				      &xp, &yp, &zp);
+    else
+      general_inverse_transform_point_in_trans_plane(Gglobals->trans_info.transformation, 
+						     target_coord[X],  target_coord[Y],  target_coord[Z],
+						     &xp, &yp, &zp);
+    
     /* -------------------------------------------------------------- */
     /* BUILD THE SOURCE VOLUME LOCAL NEIGHBOURHOOD INFO:
           build the list of world coordinates representing nodes in the
@@ -2320,12 +2178,6 @@ private BOOLEAN build_lattices(Real spacing,
       convert_3D_world_to_voxel(Gglobals->features.model[0], 
 				(Real)TX[i],(Real)TY[i],(Real)TZ[i], 
 				&pos[0], &pos[1], &pos[2]);
-
-      /*      print ("%3d %8.3f %8.3f %8.3f -> %8.3f %8.3f %8.3f -> %8.3f %8.3f %8.3f \n",
-	     i,SX[i],SY[i],SZ[i],
-	     TX[i],TY[i],TZ[i],
-	     pos[0], pos[1], pos[2]); */
-
       TX[i] = pos[0];
       TY[i] = pos[1];
       TZ[i] = pos[2];
@@ -2375,9 +2227,8 @@ private BOOLEAN build_lattices(Real spacing,
       switch (Gglobals->features.obj_func[i]) {
       case NONLIN_XCORR:
 	Gsqrt_features[i] = 0.0;
-	for_inclusive(j,1,Glen) 
+	for_inclusive(j,1,Glen)
 	  Gsqrt_features[i] += Ga1_features[i][j]*Ga1_features[i][j];
-
 	Gsqrt_features[i] = sqrt((double)Gsqrt_features[i]);
 	break;
       case NONLIN_DIFF:
@@ -2408,8 +2259,6 @@ private BOOLEAN build_lattices(Real spacing,
   }
   return(result );
 }
-
-
 
 /**********************************************************
 
@@ -2498,7 +2347,6 @@ private Real get_deformation_vector_for_node(Real spacing,
 			  source_coord, mean_target, target_coord, def_vector,
 			  ndim) ){
       result = -DBL_MAX;
-      
       return(result);		/* return if we don't make the threshold */
     }
 
@@ -2577,8 +2425,6 @@ private Real get_deformation_vector_for_node(Real spacing,
 	
       }
       
-
-      
       if ( flag ) {
 	voxel_displacement[0] = dw * Gsimplex_size/2.0;	/* fastest (X) data index */
 	voxel_displacement[1] = dv * Gsimplex_size/2.0;	/* Y */
@@ -2592,25 +2438,20 @@ private Real get_deformation_vector_for_node(Real spacing,
       }
     }
     else {
+      
       /* ----------------------------------------------------------- */
       /*  USE SIMPLEX OPTIMIZATION to find best deformation vector   */
       
 				/* set up SIMPLEX OPTIMIZATION */
       nfunk = 0;
       
-
-
       ALLOC(parameters, ndim);	
       for_less(i,0,ndim)	/* init parameters for _NO_ deformation  */
 	parameters[i] = 0.0;
 				/* set the simplex diameter so as to 
 				   reduce the size of the simplex, and
 				   hence reduce the search space with
-				   each iteration.                      
-
-				   note that the simplex is in voxel
-				   coordinates of the data volume...
-				*/
+				   each iteration.                      */
       simplex_size = Gsimplex_size * 
 	(0.5 + 
 	 0.5*((Real)(total_iters-iteration)/(Real)total_iters));
@@ -2624,37 +2465,30 @@ private Real get_deformation_vector_for_node(Real spacing,
       
       /*   do the actual SIMPLEX optimization,
 	   note that nfunk is incremented inside perform_amoeba  */
- 
-      while (nfunk < AMOEBA_ITERATION_LIMIT  && 
+
+      while (nfunk < AMOEBA_ITERATION_LIMIT && 
 	     perform_amoeba(&the_amoeba, &nfunk) );
-
-
-      
       
       *num_functions += nfunk;
 
       if (nfunk < AMOEBA_ITERATION_LIMIT) {
 	
-
 	get_amoeba_parameters(&the_amoeba,parameters);
-
-	/* the voxel displacement here is in X Y Z order, where X Y Z
-	   correspond tothe xdir, ydir and zdir defined on the model
-	   volume and used to define the lattice grid  
-
-	   the voxel displacement is in voxel units of the model
-	   volume (not the source volume or the lattice grid!)
-	*/
-
-
-
-	from_param_to_grid_weights( parameters, voxel_displacement);
-       
-
-      
+	
+	
+	if (ndim>2) {
+	  voxel_displacement[0] = parameters[2]; /* fastest data index */
+	  voxel_displacement[1] = parameters[1];
+	  voxel_displacement[2] = parameters[0];
+	}
+	else {
+	  voxel_displacement[0] = 0.0; /* corresponds to z-dim in data */
+	  voxel_displacement[1] = parameters[1];
+	  voxel_displacement[2] = parameters[0];
+	}
+	
       }
       else {
-
 	/* simplex optimization found nothing, so set the additional
 	   displacement to 0 */
 	
@@ -2669,18 +2503,13 @@ private Real get_deformation_vector_for_node(Real spacing,
       FREE(parameters);
       
     } /* else use_simplex */
- 
-   
-
-
+    
+  
     /* -------------------------------------------------------------- */
     /* RETURN DEFORMATION FOUND 
-
-       deformation calculated above is in voxel coordinates (ie voxel
-       size of the target volume, but in x,y,z order like the
-       deformation grid volume), therefore, it has to be transformed
-       into real world coordinates so that it can be saved in the
-       GRID_TRANSFORM  */
+       deformation calculated above is in voxel coordinates, it
+       has to be transformed into real world coordinates so that it
+       can be saved in the GRID_TRANSFORM                          */
     
     if ((voxel_displacement[0] == 0.0 &&
 	 voxel_displacement[1] == 0.0 &&
@@ -2696,24 +2525,12 @@ private Real get_deformation_vector_for_node(Real spacing,
 				target_coord[X],target_coord[Y],target_coord[Z], 
 				&voxel[0], &voxel[1], &voxel[2]);
       
-
-      /* careful here, since the voxel is coming from the model data
-	 in z,y,x order and the voxel displacement is in x,y,z
-	 order. */
-
       convert_3D_voxel_to_world(Gglobals->features.model[0], 
-				(Real)(voxel[0]+voxel_displacement[2]),   /* voxel[z]+voxel_displacement[z] */
-				(Real)(voxel[1]+voxel_displacement[1]),   /* voxel[y]+voxel_displacement[y] */
-				(Real)(voxel[2]+voxel_displacement[0]),   /* voxel[x]+voxel_displacement[x] */
+				(Real)(voxel[0]+voxel_displacement[0]), 
+				(Real)(voxel[1]+voxel_displacement[1]), 
+				(Real)(voxel[2]+voxel_displacement[2]),
 				&pos[X], &pos[Y], &pos[Z]);
-
-      /* pos[] is the world coordinate of the new target position that best matched the source position */
-
-      /* we now will compute the deformation vector, in world
-	 coordinates, by subtracting the new target 'pos[]' from the
-	 'target_coord[]'
-      */
-
+      
       def_vector[X] += pos[X]-target_coord[X];
       def_vector[Y] += pos[Y]-target_coord[Y];
       def_vector[Z] += pos[Z]-target_coord[Z];
@@ -2726,7 +2543,7 @@ private Real get_deformation_vector_for_node(Real spacing,
     }
 
   }
- 
+  
   /* at this point, we have the deformations coming from optimization
      of correlation, label or difference objective functions (if any)
      stored in def_vector and voxel_displacement, now time to find
@@ -2793,115 +2610,3 @@ private Real get_deformation_vector_for_node(Real spacing,
 }
 
 
-/*
-Procedure from_param_to_grid_weights() will map the optimized parameter vector to the correct grid weights, depending on count[0..2].
-*/
-
-public void from_param_to_grid_weights(
-   Real p[],
-   Real grid[])
-
-{
-  int i,j;
-  
-  
-  j=0;
-  for_less(i,0,N_DIMENSIONS)
-    {
-      if(Gglobals->count[i]>1) 
-	{
-	  grid[i]=p[j];
-	  j++;
-	}
-      else 
-	{
-	  grid[i]=0.0;
-	}
-    }
-}
-
-/*
-Procedure from_grid_weights_to_param() will inverse the procedure from_param_to_grid_weights
-*/
-
-public void from_grid_weights_to_param(
-    Real grid[],
-    Real p[])
-{
-  int i,j;
-  
-  j=0;
-  for_less(i,0,N_DIMENSIONS)
-    if(grid[i]>0)
-      {
-	p[j]=grid[i];
-	j++;
-      }
-  
-}
-
-/*
-Procedure map_def_to_grid_space() will map a world-space deformation vector (dx,dy,dz) to the coordinate system of the grid (g0,g1,g2) 
-*/
-
-public void map_def_to_grid_space( Real dx,
-				   Real dy,
-				   Real dz,
-				   Real *g0,
-				   Real *g1,
-				   Real *g2)
-{
-  int i;
-  Real
-    voxel_mag[N_DIMENSIONS],
-    g[3];
- 
-  for_less(i,0,N_DIMENSIONS)
-    {
-      voxel_mag[i] = ABS(Gglobals->step[i]);
-    }
-
-  for_less(i,0,N_DIMENSIONS)
-    g[i] = (Point_x(Gglobals->directions[i])/voxel_mag[i])*dx +  
-           (Point_y(Gglobals->directions[i])/voxel_mag[i])*dy +  
-           (Point_z(Gglobals->directions[i])/voxel_mag[i])*dz;
-    
-  *g0=g[0]; *g1=g[1]; *g2=g[2];
-
-}
-
-/*
-Procedure map_def_from_grid_space() will map the deformation in the grid coordinate system on to the world coordinate system.
-*/
-
-public void map_def_from_grid_space(Real g0,
-				    Real g1,
-				    Real g2,
-				    Real *dx,
-				    Real *dy,
-				    Real *dz)
-{
-  int i;
-  Real
-    voxel_mag[N_DIMENSIONS],
-    g[N_DIMENSIONS];
-  
-  *dx=*dy=*dz=0.0;
-
-  g[0]=g0;
-  g[1]=g1;
-  g[2]=g2;
-  
-  for_less(i,0,N_DIMENSIONS)
-    {
-      voxel_mag[i] = ABS(Gglobals->step[i]);
-    }
-  
-  for_less(i,0,N_DIMENSIONS)
-    {
-      *dx += (Point_x(Gglobals->directions[i])/voxel_mag[i])*g[i];
-      *dy += (Point_y(Gglobals->directions[i])/voxel_mag[i])*g[i];
-      *dz += (Point_z(Gglobals->directions[i])/voxel_mag[i])*g[i];
-    }
-  
-}
