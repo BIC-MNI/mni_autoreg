@@ -43,6 +43,7 @@ $(bin_SCRIPTS) $(config_DATA): $(script_in) $(configdata_in) version Makefile
 	    MODELDIR=$(modeldir) CONFIGDIR=$(configdir) \
 	    $(bin_SCRIPTS) $(config_DATA)
 
+install-exec-local:
 
 else
 

@@ -1,3 +1,7 @@
+2001-02-16  Steve ROBBINS  <stever@bic.mni.mcgill.ca>
+
+	* configure.in: Set VERSION to 0.98k.
+
 2001-01-28  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* INSTALL.quick: Updated to account for changes to configure.
