@@ -20,11 +20,15 @@
 
 @CREATED    : Tue Feb 22 08:37:49 EST 1994
 @MODIFIED   : $Log: deform_support.c,v $
-@MODIFIED   : Revision 1.6  1995-05-02 11:30:27  louis
-@MODIFIED   : started clean up of code, separation of non used procedures into
-@MODIFIED   : old_methods.c.  This version was working, but I am now going to
-@MODIFIED   : rewrite everything to use GRID_TRANSFORM.
+@MODIFIED   : Revision 1.7  1995-05-04 14:25:18  louis
+@MODIFIED   : compilable version, seems to run a bit with GRID_TRANSFORM, still
+@MODIFIED   : needs work for the super sampled volumes... and lots of testing.
 @MODIFIED   :
+ * Revision 1.6  1995/05/02  11:30:27  louis
+ * started clean up of code, separation of non used procedures into
+ * old_methods.c.  This version was working, but I am now going to
+ * rewrite everything to use GRID_TRANSFORM.
+ *
  * Revision 1.5  1995/02/22  08:56:06  louis
  * Montreal Neurological Institute version.
  * compiled and working on SGI.  this is before any changes for SPARC/
@@ -61,7 +65,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 1.6 1995-05-02 11:30:27 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 1.7 1995-05-04 14:25:18 louis Exp $";
 #endif
 
 #include <volume_io.h>
@@ -88,122 +92,188 @@ public void set_up_lattice(Volume data,
 			   VectorR directions[]);/* array of vector directions for each index*/
 
 
-public void get_average_warp_of_neighbours(Volume dx, Volume dy, Volume dz, 
-					   int i,int j,int k,
-					   Real *mx, Real *my, Real *mz)
+
+				/* define the limits for three nested
+				   for loops, so that we loop through
+				   each spatial dimension.
+				   'start' and 'end' are returned in
+				   XYZ order.  */
+
+public void  get_voxel_spatial_loop_limits(Volume volume,
+					   int start[],	
+					   int end[])
 {
   int 
-    count, sizes[3];
-  Real 
-    ri,rj,rk,
-    voxel,
-    val_x, val_y, val_z,
-    tx, ty, tz;
-  
-  get_volume_sizes(dx, sizes);
+    i,
+    sizes[MAX_DIMENSIONS],
+    xyzv[MAX_DIMENSIONS];
 
-  *mx = 0.0; *my = 0.0; *mz = 0.0;
-  ri = (Real)i; rj = (Real)j; rk = (Real)k;
-  count = 0;
+  get_volume_sizes(volume, sizes);
+  get_volume_XYZV_indices(volume, xyzv);
 
-  if (sizes[0]>2) {
-    convert_3D_voxel_to_world(dx, ri+1, rj, rk, &tx, &ty, &tz);
-    GET_VOXEL_3D(voxel, dx, i+1,j,k); val_x = CONVERT_VOXEL_TO_VALUE(dx , voxel ); 
-    GET_VOXEL_3D(voxel, dy, i+1,j,k); val_y = CONVERT_VOXEL_TO_VALUE(dy , voxel ); 
-    GET_VOXEL_3D(voxel, dz, i+1,j,k); val_z = CONVERT_VOXEL_TO_VALUE(dz , voxel ); 
-    *mx += tx+val_x; *my += ty+val_y; *mz+= tz+val_z;
-    
-    convert_3D_voxel_to_world(dx, ri-1, rj, rk, &tx, &ty, &tz);
-    GET_VOXEL_3D(voxel, dx, i-1,j,k); val_x = CONVERT_VOXEL_TO_VALUE(dx , voxel ); 
-    GET_VOXEL_3D(voxel, dy, i-1,j,k); val_y = CONVERT_VOXEL_TO_VALUE(dy , voxel ); 
-    GET_VOXEL_3D(voxel, dz, i-1,j,k); val_z = CONVERT_VOXEL_TO_VALUE(dz , voxel ); 
-    *mx += tx+val_x; *my += ty+val_y; *mz+= tz+val_z;
-    count += 2;
+  for_less(i,0,N_DIMENSIONS) {
+    if (sizes[ xyzv[i] ]>3) {
+      start[ i ] = 1;
+      end[ i ] = sizes[ xyzv[i] ]-1;
+    }
+    else {
+      start[ i ] = 0;
+      end[ i ] = sizes[ xyzv[i] ];
+    }
   }
 
-  if (sizes[1]>2) {
-    convert_3D_voxel_to_world(dy, ri, rj+1, rk, &tx, &ty, &tz);
-    GET_VOXEL_3D(voxel, dx, i,j+1,k); val_x = CONVERT_VOXEL_TO_VALUE(dx , voxel ); 
-    GET_VOXEL_3D(voxel, dy, i,j+1,k); val_y = CONVERT_VOXEL_TO_VALUE(dy , voxel ); 
-    GET_VOXEL_3D(voxel, dz, i,j+1,k); val_z = CONVERT_VOXEL_TO_VALUE(dz , voxel ); 
-    *mx += tx+val_x; *my += ty+val_y; *mz+= tz+val_z;
-    
-    convert_3D_voxel_to_world(dy, ri, rj-1, rk, &tx, &ty, &tz);
-    GET_VOXEL_3D(voxel, dx, i,j-1,k); val_x = CONVERT_VOXEL_TO_VALUE(dx , voxel ); 
-    GET_VOXEL_3D(voxel, dy, i,j-1,k); val_y = CONVERT_VOXEL_TO_VALUE(dy , voxel ); 
-    GET_VOXEL_3D(voxel, dz, i,j-1,k); val_z = CONVERT_VOXEL_TO_VALUE(dz , voxel ); 
-    *mx += tx+val_x; *my += ty+val_y; *mz+= tz+val_z;
-    count += 2;
+  if (get_volume_n_dimensions(volume)>3) {
+    start[Z+1] = 0;
+    end[Z+1] = sizes[ xyzv[Z+1] ] -1;
   }
-
-  if (sizes[2]>2) {
-    convert_3D_voxel_to_world(dz, ri, rj, rk+1, &tx, &ty, &tz);
-    GET_VOXEL_3D(voxel, dx, i,j,k+1); val_x = CONVERT_VOXEL_TO_VALUE(dx , voxel ); 
-    GET_VOXEL_3D(voxel, dy, i,j,k+1); val_y = CONVERT_VOXEL_TO_VALUE(dy , voxel ); 
-    GET_VOXEL_3D(voxel, dz, i,j,k+1); val_z = CONVERT_VOXEL_TO_VALUE(dz , voxel ); 
-    *mx += tx+val_x; *my += ty+val_y; *mz+= tz+val_z;
-    
-    convert_3D_voxel_to_world(dz, ri, rj, rk-1, &tx, &ty, &tz);
-    GET_VOXEL_3D(voxel, dx, i,j,k-1); val_x = CONVERT_VOXEL_TO_VALUE(dx , voxel ); 
-    GET_VOXEL_3D(voxel, dy, i,j,k-1); val_y = CONVERT_VOXEL_TO_VALUE(dy , voxel ); 
-    GET_VOXEL_3D(voxel, dz, i,j,k-1); val_z = CONVERT_VOXEL_TO_VALUE(dz , voxel ); 
-    *mx += tx+val_x; *my += ty+val_y; *mz+= tz+val_z;
-    count += 2;
+  else {
+    start[Z+1] = 0;
+    end[Z+1] = 0;
   }
-  
-  *mx /= count; *my /= count; *mz /= count; /* average warp of neighbours, in target space  */
+    
 }
 
-				/* add additional to current, return answer in additional */
+public BOOLEAN get_average_warp_of_neighbours(General_transform *trans,
+					      int voxel[],
+					      Real *mx, Real *my, Real *mz)
+{
+  int 
+    count, i, 
+    sizes[MAX_DIMENSIONS];
+  Real 
+    ri,rj,rk,
+    xyz[N_DIMENSIONS] ,
+    voxel2[MAX_DIMENSIONS],
+    val_x, val_y, val_z,
+    tx, ty, tz;
+  Volume volume;
+  
+  if (trans->type != GRID_TRANSFORM) {
+    print_error_and_line_num("get_average_warp_of_neighbours not called with GRID_TRANSFORM",
+			     __FILE__, __LINE__);
+    return (FALSE);
+  }
 
-public void add_additional_warp_to_current(Volume adx, Volume ady, Volume adz,
-					   Volume dx, Volume dy, Volume dz,
+  volume = trans->displacement_volume;
+  
+  get_volume_sizes(volume, sizes);
+  
+  *mx = 0.0; *my = 0.0; *mz = 0.0;
+
+				/* make sure voxel is in volume */
+  for_less(i,0,get_volume_n_dimensions(volume) ) {
+    if (voxel[i]<0.5 || voxel[i]>(sizes[i]+0.5) )
+      return (FALSE);
+  }
+  
+  for_less(i,0,get_volume_n_dimensions(volume) )
+    voxel2[i] = (Real)voxel[i];
+
+  count = 0;
+				/* for each of the spatial axes,
+				   get the neighbouring deformations
+				   if they exist */
+  for_less(i, 0 , N_DIMENSIONS) {
+    
+    if ((voxel[i]+1) <= sizes[i]+0.5) {
+      
+      voxel2[i] = voxel[i] + 1;
+      convert_voxel_to_world(volume, voxel2, &tx, &ty, &tz);
+      grid_transform_point(trans, tx,ty,tz, &val_x, &val_y, &val_z);
+      *mx += val_x; *my += val_y; *mz+= val_z;
+      ++count;
+    }
+    if ((voxel[i]-1) >= -0.5) {
+      voxel2[i] = voxel[i] - 1;
+      convert_voxel_to_world(volume, voxel2, &tx, &ty, &tz);
+      grid_transform_point(trans, tx,ty,tz, &val_x, &val_y, &val_z);
+      *mx += val_x; *my += val_y; *mz+= val_z;
+      ++count;
+    }      
+    
+    voxel2[i] = voxel[i];
+    
+  }
+  
+  if (count>0) {		/* average warped position in target space,
+				   as determined by neighbours */
+    *mx /= count; 
+    *my /= count; 
+    *mz /= count; 
+    return(TRUE);
+  }
+  else
+    return(FALSE);
+}
+
+/* add additional to current, return
+   answer in additional 
+
+   I assume for this procedure that the displacement_volume
+   for both the additional and current transform have the 
+   same volumetric definition ie, both have the same dimension
+   order and same length along each dimension.
+*/
+
+public void add_additional_warp_to_current(General_transform *additional,
+					   General_transform *current,
 					   Real weight)
 {
   int
-    loop_start[3], loop_end[3],
-    i,j,k,sizes[3];
+    count[MAX_DIMENSIONS],
+    count_current[MAX_DIMENSIONS],
+    xyzv_additional[MAX_DIMENSIONS],
+    xyzv_current[MAX_DIMENSIONS],
+    index[MAX_DIMENSIONS],
+    i;
   Real 
-    value, value2, voxel;
+    value, value2;
 
-  get_volume_sizes(adx, sizes);
 
-  for_less(i,0,3) {
-    if (sizes[i]>3) {
-      loop_start[i] = 1;
-      loop_end[i] = sizes[i]-1;
-    }
-    else {
-      loop_start[i]=0;
-      loop_end[i] = sizes[i];
+  if (get_volume_n_dimensions(additional->displacement_volume) != 
+      get_volume_n_dimensions(current->displacement_volume)) {
+    print_error_and_line_num("add_additional_warp_to_current: warp dim error",
+			     __FILE__, __LINE__);
+  }
+
+  get_volume_sizes(additional->displacement_volume, count);
+  get_volume_sizes(current->displacement_volume, count_current);
+  for_less(i,0,get_volume_n_dimensions(current->displacement_volume)) {
+    if (count_current[i] != count[i]) {
+      print_error_and_line_num("add_additional_warp_to_current: dim count error",
+			       __FILE__, __LINE__);
     }
   }
 
-
-  for_less(i,loop_start[0],loop_end[0]) {
-    for_less(j,loop_start[1],loop_end[1]) {
-      for_less(k,loop_start[2],loop_end[2]){
-	
-	
-	GET_VOXEL_3D(voxel, adx, i,j,k); value = CONVERT_VOXEL_TO_VALUE( adx, voxel ); 
-	GET_VOXEL_3D(voxel, dx,  i,j,k); value2 = CONVERT_VOXEL_TO_VALUE( dx, voxel ); value2 += value*weight;
-	voxel = CONVERT_VALUE_TO_VOXEL(adx, value2);
-	SET_VOXEL_3D(adx, i,j,k, voxel); 
-
-	GET_VOXEL_3D(voxel, ady, i,j,k); value = CONVERT_VOXEL_TO_VALUE( ady, voxel ); 
-	GET_VOXEL_3D(voxel, dy,  i,j,k); value2 = CONVERT_VOXEL_TO_VALUE( dy, voxel ); value2 += value*weight;
-	voxel = CONVERT_VALUE_TO_VOXEL(ady, value2);
-	SET_VOXEL_3D(ady, i,j,k, voxel); 
-		
-	GET_VOXEL_3D(voxel, adz, i,j,k); value = CONVERT_VOXEL_TO_VALUE( adz, voxel ); 
-	GET_VOXEL_3D(voxel, dz,  i,j,k); value2 = CONVERT_VOXEL_TO_VALUE( dz, voxel ); value2 += value*weight;
-	voxel = CONVERT_VALUE_TO_VOXEL(adz, value2);
-	SET_VOXEL_3D(adz, i,j,k, voxel); 
-		
-      }
+  get_volume_XYZV_indices(additional->displacement_volume, xyzv_additional);
+  get_volume_XYZV_indices(current->displacement_volume, xyzv_current);
+  for_less(i,0,get_volume_n_dimensions(current->displacement_volume)) {
+    if (xyzv_current[i] != xyzv_additional[i]) {
+      print_error_and_line_num("add_additional_warp_to_current: dim match error",
+			       __FILE__, __LINE__);
     }
   }
-  
+
+  for_less(i,0,MAX_DIMENSIONS) index[i]=0;
+
+  for_less(index[ xyzv_additional[X] ], 0, count[ xyzv_additional[X] ])
+    for_less(index[ xyzv_additional[Y] ], 0, count[ xyzv_additional[Y] ])
+      for_less(index[ xyzv_additional[Z] ], 0, count[ xyzv_additional[Z] ])
+	for_less(index[ xyzv_additional[Z+1] ], 0, count[ xyzv_additional[Z+1] ]) {
+
+	  value = get_volume_real_value(additional->displacement_volume,
+					index[0],index[1],index[2],index[3],index[4]);
+	  value2 = get_volume_real_value(current->displacement_volume,
+					index[0],index[1],index[2],index[3],index[4]);
+	  value2 += value*weight;
+
+	  set_volume_real_value(additional->displacement_volume,
+				index[0],index[1],index[2],index[3],index[4],
+				value2);
+
+	  
+	}
+
 }
 					    
 
@@ -211,91 +281,152 @@ public void add_additional_warp_to_current(Volume adx, Volume ady, Volume adz,
 /*******************************************************************************/
 /*  procedure: smooth_the_warp
 
-    desc: this procedure will smooth the current warp stored in warp_d? and 
-          return the smoothed warp in smooth_d?
+    desc: this procedure will smooth the current warp stored in current and 
+          return the smoothed warp in smoothed
 
-    meth: smoothing is accomplished by averaging the 6 neighbour of each node
+    meth: smoothing is accomplished by averaging the 6 neighbours of each node
           with the value at that node.
 
 	  new_val = FRAC1*old_val + (1-FRAC1)*sum_6_neighbours(val);
     
 */
-public void smooth_the_warp(Volume smooth_dx, Volume smooth_dy, Volume smooth_dz, 
-			    Volume warp_dx, Volume warp_dy, Volume warp_dz,
+public void smooth_the_warp(General_transform *smoothed,
+			    General_transform *current,
 			    Volume warp_mag, Real thres) 
 {
-  
-  int 
-    i,j,k,loop_start[3], loop_end[3],sizes[3];
+  int
+    count_smoothed[MAX_DIMENSIONS],
+    count_current[MAX_DIMENSIONS],
+    count_mag[MAX_DIMENSIONS],
+    xyzv[MAX_DIMENSIONS],
+    xyzv_current[MAX_DIMENSIONS],
+    xyzv_mag[MAX_DIMENSIONS],
+    mag_index[MAX_DIMENSIONS],
+    index[MAX_DIMENSIONS],
+    start[MAX_DIMENSIONS], 
+    end[MAX_DIMENSIONS],
+    i;
   Real 
+    voxel[MAX_DIMENSIONS],
+    value[3], value2[3],
     mag,
-    wx, wy, wz, mx, my, mz, tx,ty,tz,
-    voxel;
+    wx, wy, wz, 
+    mx, my, mz, 
+    tx,ty,tz;
   progress_struct
     progress;
-
-  get_volume_sizes(warp_dx, sizes);
   
-  for_less(i,0,3) {
-    if (sizes[i]>3) {
-      loop_start[i] = 1;
-      loop_end[i] = sizes[i]-1;
-    }
-    else {
-      loop_start[i]=0;
-      loop_end[i] = sizes[i];
+  
+  if (get_volume_n_dimensions(smoothed->displacement_volume) != 
+      get_volume_n_dimensions(current->displacement_volume)) {
+    print_error_and_line_num("smooth_the_warp: warp dim error",
+			     __FILE__, __LINE__);
+  }
+  
+  get_volume_sizes(smoothed->displacement_volume, count_smoothed);
+  get_volume_sizes(current->displacement_volume, count_current);
+  for_less(i,0,get_volume_n_dimensions(current->displacement_volume)) {
+    if (count_current[i] != count_smoothed[i]) {
+      print_error_and_line_num("smooth_the_warp: dim count error",
+			       __FILE__, __LINE__);
     }
   }
 
+  get_volume_XYZV_indices(warp_mag, xyzv_mag);
+  get_volume_sizes(warp_mag, count_mag);
 
+  for_less(i,0,get_volume_n_dimensions(warp_mag)) {
+    if (count_current[xyzv_current[i]] != count_mag[i]) {
+      print_error_and_line_num("smooth_the_warp: dim count error w/mag (%d: %d != %d)\n",
+			       __FILE__, __LINE__, i, count_current[xyzv_current[i]], count_mag[i] );
+    }
+  }
+  
+  get_volume_XYZV_indices(smoothed->displacement_volume, xyzv);
+  get_volume_XYZV_indices(current->displacement_volume, xyzv_current);
+  for_less(i,0,get_volume_n_dimensions(current->displacement_volume)) {
+    if (xyzv_current[i] != xyzv[i]) {
+      print_error_and_line_num("smooth_the_warp: dim match error",
+			       __FILE__, __LINE__);
+    }
+  }
+  
+  for_less(i,0,MAX_DIMENSIONS) {
+    index[i]=0;
+    start[i] = 0;
+    end[i] = 0;
+  }
+  
+  get_voxel_spatial_loop_limits(smoothed->displacement_volume, start, end);
+
+
+  start[xyzv[Z+1]] = 0;
+  end[xyzv[Z+1]] = 3;
+  
+  
   initialize_progress_report( &progress, FALSE, 
-			     (loop_end[0]-loop_start[0])*(loop_end[1]-loop_start[1]) + 1,
+			     (end[xyzv[X]]-start[xyzv[X]])*
+			     (end[xyzv[Y]]-start[xyzv[Y]]) + 1,
 			     "Smoothing deformations" );
+  for_less(index[ xyzv[X] ], start[ xyzv[X] ], end[ xyzv[X] ]) {
+    for_less(index[ xyzv[Y] ], start[ xyzv[Y] ], end[ xyzv[Y] ]) {
+      for_less(index[ xyzv[Z] ], start[ xyzv[Z] ], end[ xyzv[Z] ]) {
 
-  for_less(i,loop_start[0],loop_end[0]) {
-    for_less(j,loop_start[1],loop_end[1]) {
-      for_less(k,loop_start[2],loop_end[2]){
+	for_less(i,0,get_volume_n_dimensions(warp_mag))
+	  mag_index[ xyzv_mag[i] ] = index[ xyzv[i] ];
 
-	GET_VOXEL_3D(voxel, warp_mag, i,j,k); 
-	mag = CONVERT_VOXEL_TO_VALUE(warp_mag , voxel ); 
-	if (mag >= thres) {
+	if ( get_volume_real_value(warp_mag, 
+				   mag_index[ 0 ],
+				   mag_index[ 1 ],
+				   mag_index[ 2 ],
+				   0, 0) > thres) {
+
+	  for_less(index[ xyzv[Z+1] ], start[ xyzv[Z+1] ], end[ xyzv[Z+1] ]) 
+	    
+	    value[index[ xyzv[Z+1] ]] = get_volume_real_value(current->displacement_volume,
+							    index[0],index[1],index[2],index[3],index[4]);
 	  
-	  convert_3D_voxel_to_world(warp_dx, i, j, k, &tx, &ty, &tz);
+	  for_less(i,0,MAX_DIMENSIONS) voxel[i] = (Real)index[i];
+	  convert_voxel_to_world(current->displacement_volume, voxel, &tx, &ty, &tz);
 	  
-	  GET_VOXEL_3D(voxel, warp_dx, i,j,k); 
-	  wx = CONVERT_VOXEL_TO_VALUE( warp_dx, voxel ); 
-	  GET_VOXEL_3D(voxel, warp_dy, i,j,k); 
-	  wy = CONVERT_VOXEL_TO_VALUE( warp_dy, voxel ); 
-	  GET_VOXEL_3D(voxel, warp_dz, i,j,k); 
-	  wz = CONVERT_VOXEL_TO_VALUE( warp_dz, voxel ); 
+	  tx += value[X]; ty += value[Y]; tz += value[Z];
 	  
-	  tx += wx; ty += wy; tz += wz;
-	  
-	  get_average_warp_of_neighbours(warp_dx, warp_dy, warp_dz, 
-					 i,j,k,
+
+	  get_average_warp_of_neighbours(current,
+					 index,
 					 &mx, &my, &mz);
 	  
 	  wx += smoothing_weight*(mx - tx);
 	  wy += smoothing_weight*(my - ty);
 	  wz += smoothing_weight*(mz - tz);
 	  
-	  voxel = CONVERT_VALUE_TO_VOXEL(smooth_dx, wx);
-	  SET_VOXEL_3D(smooth_dx, i,j,k, voxel); 
-	  voxel = CONVERT_VALUE_TO_VOXEL(smooth_dy, wy);
-	  SET_VOXEL_3D(smooth_dy, i,j,k, voxel); 
-	  voxel = CONVERT_VALUE_TO_VOXEL(smooth_dz, wz);
-	  SET_VOXEL_3D(smooth_dz, i,j,k, voxel); 
+	  value[X] = wx; 
+	  value[Y] = wy; 
+	  value[Z] = wz; 
+
+	  for_less(index[ xyzv[Z+1] ], start[ xyzv[Z+1] ], end[ xyzv[Z+1] ])  
+	    set_volume_real_value(smoothed->displacement_volume,
+				  index[0],index[1],index[2],index[3],index[4],
+				  value[index[ xyzv[Z+1] ]] );  
 	}
 	else {
-	  GET_VOXEL_3D(voxel, warp_dx, i,j,k); SET_VOXEL_3D(smooth_dx, i,j,k, voxel); 
-	  GET_VOXEL_3D(voxel, warp_dy, i,j,k); SET_VOXEL_3D(smooth_dy, i,j,k, voxel); 
-	  GET_VOXEL_3D(voxel, warp_dz, i,j,k); SET_VOXEL_3D(smooth_dz, i,j,k, voxel); 
-	}
+	  for_less(index[ xyzv[Z+1] ], start[ xyzv[Z+1] ], end[ xyzv[Z+1] ])  {
+	    
+	    value[index[ xyzv[Z+1] ]] = 
+	      get_volume_real_value(current->displacement_volume,
+				    index[0],index[1],index[2],index[3],index[4]);
+	    set_volume_real_value(smoothed->displacement_volume,
+				  index[0],index[1],index[2],index[3],index[4],
+				  value[index[ xyzv[Z+1] ]] );
+	  }
+
+	} /* mag > thresh */
 	  
       }
       update_progress_report( &progress,
-			     (loop_end[1]-loop_start[1])*(i-loop_start[0])+(j-loop_start[1])+1  );
-
+			     ((end[ xyzv[Y] ]-start[ xyzv[Y] ])*
+			      (index[ xyzv[X]  ]-start[ xyzv[X] ])) +
+			     (index[ xyzv[Y] ]-start[ xyzv[X] ])  +    1  );
     }
     terminate_progress_report( &progress );
   }
@@ -432,119 +563,7 @@ public void clamp_warp_deriv(Volume dx, Volume dy, Volume dz)
 }
 
 
-/*******************************************************************************/
-/*  procedure: smooth_the_warp
 
-    desc: this procedure will smooth the current warp stored in warp_d? and 
-          return the smoothed warp in smooth_d?
-
-    meth: smoothing is accomplished by averaging the 6 neighbour of each node
-          with the value at that node.
-
-	  new_val = FRAC1*old_val + (1-FRAC1)*sum_6_neighbours(val);
-    
-*/
-public void smooth2_the_warp(Volume smooth_dx, Volume smooth_dy, Volume smooth_dz, 
-			     Volume warp_dx, Volume warp_dy, Volume warp_dz) {
-
-  int i,j,k,sizes[3];
-  Real voxel, value, value2;
-  progress_struct
-    progress;
-
-  get_volume_sizes(warp_dx, sizes);
-  
-  initialize_progress_report( &progress, FALSE, sizes[0]*sizes[1] + 1,
-			     "Smoothing deformations" );
-
-  for_less(i,1,sizes[0]-1)
-    for_less(j,1,sizes[1]-1) {
-      for_less(k,1,sizes[2]-1){
-	
-	GET_VOXEL_3D(voxel, warp_dx, i,j,k); 
-	value = CONVERT_VOXEL_TO_VALUE( warp_dx, voxel ); value *= FRAC1;
-	GET_VOXEL_3D(voxel, warp_dx, i+1,j,k); 
-	value2 = CONVERT_VOXEL_TO_VALUE( warp_dx, voxel ); value += value2*FRAC2; 
-	GET_VOXEL_3D(voxel, warp_dx, i-1,j,k); 
-	value2 = CONVERT_VOXEL_TO_VALUE( warp_dx, voxel ); value += value2*FRAC2; 
-	GET_VOXEL_3D(voxel, warp_dx, i,j+1,k); 
-	value2 = CONVERT_VOXEL_TO_VALUE( warp_dx, voxel ); value += value2*FRAC2; 
-	GET_VOXEL_3D(voxel, warp_dx, i,j-1,k); 
-	value2 = CONVERT_VOXEL_TO_VALUE( warp_dx, voxel ); value += value2*FRAC2; 
-	GET_VOXEL_3D(voxel, warp_dx, i,j,k+1); 
-	value2 = CONVERT_VOXEL_TO_VALUE( warp_dx, voxel ); value += value2*FRAC2; 
-	GET_VOXEL_3D(voxel, warp_dx, i,j,k-1); 
-	value2 = CONVERT_VOXEL_TO_VALUE( warp_dx, voxel ); value += value2*FRAC2; 
-	voxel = CONVERT_VALUE_TO_VOXEL(smooth_dx, value);
-	SET_VOXEL_3D(smooth_dx, i,j,k, voxel); 
-	
-	GET_VOXEL_3D(voxel, warp_dy, i,j,k); 
-	value = CONVERT_VOXEL_TO_VALUE( warp_dy, voxel ); value *= FRAC1;
-	GET_VOXEL_3D(voxel, warp_dy, i+1,j,k); 
-	value2 = CONVERT_VOXEL_TO_VALUE( warp_dy, voxel ); value += value2*FRAC2; 
-	GET_VOXEL_3D(voxel, warp_dy, i-1,j,k); 
-	value2 = CONVERT_VOXEL_TO_VALUE( warp_dy, voxel ); value += value2*FRAC2; 
-	GET_VOXEL_3D(voxel, warp_dy, i,j+1,k); 
-	value2 = CONVERT_VOXEL_TO_VALUE( warp_dy, voxel ); value += value2*FRAC2; 
-	GET_VOXEL_3D(voxel, warp_dy, i,j-1,k); 
-	value2 = CONVERT_VOXEL_TO_VALUE( warp_dy, voxel ); value += value2*FRAC2; 
-	GET_VOXEL_3D(voxel, warp_dy, i,j,k+1); 
-	value2 = CONVERT_VOXEL_TO_VALUE( warp_dy, voxel ); value += value2*FRAC2; 
-	GET_VOXEL_3D(voxel, warp_dy, i,j,k-1); 
-	value2 = CONVERT_VOXEL_TO_VALUE( warp_dy, voxel ); value += value2*FRAC2; 
-	voxel = CONVERT_VALUE_TO_VOXEL(smooth_dy, value);
-	SET_VOXEL_3D(smooth_dy, i,j,k, voxel); 
-	
-	GET_VOXEL_3D(voxel, warp_dz, i,j,k); 
-	value = CONVERT_VOXEL_TO_VALUE( warp_dz, voxel ); value *= FRAC1;
-	GET_VOXEL_3D(voxel, warp_dz, i+1,j,k); 
-	value2 = CONVERT_VOXEL_TO_VALUE( warp_dz, voxel ); value += value2*FRAC2; 
-	GET_VOXEL_3D(voxel, warp_dz, i-1,j,k); 
-	value2 = CONVERT_VOXEL_TO_VALUE( warp_dz, voxel ); value += value2*FRAC2; 
-	GET_VOXEL_3D(voxel, warp_dz, i,j+1,k); 
-	value2 = CONVERT_VOXEL_TO_VALUE( warp_dz, voxel ); value += value2*FRAC2; 
-	GET_VOXEL_3D(voxel, warp_dz, i,j-1,k); 
-	value2 = CONVERT_VOXEL_TO_VALUE( warp_dz, voxel ); value += value2*FRAC2; 
-	GET_VOXEL_3D(voxel, warp_dz, i,j,k+1); 
-	value2 = CONVERT_VOXEL_TO_VALUE( warp_dz, voxel ); value += value2*FRAC2; 
-	GET_VOXEL_3D(voxel, warp_dz, i,j,k-1); 
-	value2 = CONVERT_VOXEL_TO_VALUE( warp_dz, voxel ); value += value2*FRAC2; 
-	voxel = CONVERT_VALUE_TO_VOXEL(smooth_dz, value);
-	SET_VOXEL_3D(smooth_dz, i,j,k, voxel); 
-	
-      }
-      update_progress_report( &progress, sizes[1]*i+j+1 );
-
-    }
-    terminate_progress_report( &progress );
-
-
-  
-}
-
-/*   get the value of the maximum gradient magnitude */
-
-public Real get_maximum_magnitude(Volume dxyz)
-{
-  int i,j,k,sizes[3];
-  Real voxel, val, max;
-
-  max = -DBL_MAX;
-  get_volume_sizes(dxyz, sizes);
-  
-  for_less(i,0,sizes[0])
-    for_less(j,0,sizes[1])
-      for_less(k,0,sizes[2]){
-	
-	GET_VOXEL_3D(voxel, dxyz, i,j,k); val = CONVERT_VOXEL_TO_VALUE(dxyz, voxel);
-
-	if (val > max) max = val;
-
-      }
-
-  return(max);
-
-}
 
 /* copied from tricubic_interpolant in interpolation.c */
 
@@ -1041,4 +1060,82 @@ public float go_get_samples_with_offset(Volume data,
   return(r);
 }
 
+public void split_up_the_transformation(General_transform *total,
+					General_transform **all_until_last,
+					General_transform **last_warp) 
+{
+  General_transform
+    *tmp_trans;
+  int i;
 
+  ALLOC(*all_until_last,1);
+				/* copy the first transform from the global data struct  */
+  copy_general_transform(get_nth_general_transform(total, 0),
+			 *all_until_last);
+
+				/* copy and concat the rest of tem, stopping before the end */
+  for_less(i,1,get_n_concated_transforms(total)-1){
+    ALLOC(tmp_trans,1);
+    copy_general_transform(get_nth_general_transform(total, i), tmp_trans);
+    concat_general_transforms(*all_until_last, tmp_trans, *all_until_last);
+  }
+
+  *last_warp = (General_transform *)NULL;
+  for_less(i,0,get_n_concated_transforms(total)) {
+    if (get_transform_type( get_nth_general_transform(total,i) ) 
+	       == GRID_TRANSFORM)
+      *last_warp = get_nth_general_transform(total,i);
+  }
+
+}
+
+
+
+/*   get the value of the maximum gradient magnitude */
+
+private Real get_maximum_magnitude(Volume dxyz)
+{
+  int 
+    i,j,k,sizes[3];
+  Real voxel, val, max;
+
+  max = -DBL_MAX;
+  get_volume_sizes(dxyz, sizes);
+  
+  for_less(i,0,sizes[0])
+    for_less(j,0,sizes[1])
+      for_less(k,0,sizes[2]){
+	
+	GET_VOXEL_3D(voxel, dxyz, i,j,k); 
+	val = CONVERT_VOXEL_TO_VALUE(dxyz, voxel);
+
+	if (val > max) max = val;
+
+      }
+  
+  return(max);
+  
+}
+
+/*******************************************************************************/
+/*    set the threshold to be 10% of the maximum gradient magnitude            */
+/*    for each source and target volumes                                       */
+
+public void  set_feature_value_threshold(Volume d1, 
+					 Volume d2,
+					 Real *global_thres1, 
+					 Real *global_thres2, 
+					 Real *threshold1, 
+					 Real *threshold2) 
+
+{
+  if (*global_thres1==0.0)
+    *threshold1 = 0.10 * get_maximum_magnitude(d1);
+  else
+    *threshold1 = *global_thres1 * get_maximum_magnitude(d1);
+
+  if (*global_thres2==0.0)
+    *threshold2 = 0.10 * get_maximum_magnitude(d2);
+  else
+    *threshold2 = *global_thres2 * get_maximum_magnitude(d2);
+}
