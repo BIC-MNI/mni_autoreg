@@ -35,9 +35,13 @@
       created by removing build_default_deformation_field from 
       transformations.c
 @MODIFIED   : $Log: default_def.c,v $
-@MODIFIED   : Revision 1.2  1995-09-11 12:37:16  louis
-@MODIFIED   : updated working version - corresponds to mni_reg-0.1g
+@MODIFIED   : Revision 1.3  1995-09-11 12:49:12  louis
+@MODIFIED   : removed reference to get_linear_part_of_transformation(), which was no
+@MODIFIED   : longer needed or used.
 @MODIFIED   :
+ * Revision 1.2  1995/09/11  12:37:16  louis
+ * updated working version - corresponds to mni_reg-0.1g
+ *
  * Revision 1.1  1995/05/02  11:31:53  louis
  * Initial revision
  *
@@ -75,9 +79,6 @@ private void append_new_default_deformation_field(Arg_Data *globals);
 private void resample_the_deformation_field(Arg_Data *globals);
 
 public void get_volume_XYZV_indices(Volume data, int xyzv[]);
-
-public General_transform *get_linear_part_of_transformation(
-                                       General_transform *trans);
 
 public void build_default_deformation_field(Arg_Data *globals)
 {
