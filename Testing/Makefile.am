@@ -10,7 +10,7 @@ built_PATH = $(minctraccdir):$(extradir)
 # path to the shell interpreter.
 TESTS_ENVIRONMENT = PATH=$(built_PATH):$(PATH) $(SHELL)
 
-TESTS = linear-1 linear-2 linear-3 nonlinear-2 nonlinear-3 nonlinear-4
+TESTS = linear-1 linear-2 linear-3 nonlinear-2 nonlinear-3 nonlinear-4 nonlinear-5 nonlinear-6 nonlinear-7 nonlinear-8
 
 EXTRA_DIST = $(TESTS) tps.xfm tps.tag
 
@@ -21,12 +21,17 @@ aux_testfiles = \
 	ellipse1.mnc \
 	ellipse2.mnc \
 	ellipse3.mnc \
+	ellipse4.mnc \
 	warped_ellipse4.mnc \
 	ellipse0_dxyz.mnc \
 	ellipse1_dxyz.mnc \
 	ellipse2_dxyz.mnc \
 	ellipse3_dxyz.mnc \
+	ellipse4_dxyz.mnc \
 	warped_ellipse4_dxyz.mnc \
+	ellipse0_slice_x.mnc\
+	ellipse0_slice_y.mnc\
+	ellipse0_slice_z.mnc\
 	test1.xfm \
 	test2.xfm \
 	test3.xfm 
@@ -88,7 +93,27 @@ ellipse3_dxyz.mnc: ellipse3.mnc
 warped_ellipse4_dxyz.mnc: warped_ellipse4.mnc
 	../mincblur/mincblur -clobber -gradient -fwhm 6 warped_ellipse4.mnc warped_ellipse4
 
+ellipse4.mnc: Makefile.am ellipse0.mnc
+	mincresample -clobber -dircos 0.891006529493696 0 0.453990489327253 0 1 0 -0.453990489327253 0 0.891006529493696\
+	ellipse0.mnc $@
 
+ellipse4_dxyz.mnc: ellipse4.mnc
+	../mincblur/mincblur -clobber -gradient -fwhm 6 ellipse4.mnc ellipse4
+
+test4.xfm: Makefile.am
+	$(extradir)/param2xfm -clobber -translation 3 2 0 $@
+
+ellipse0_slice_x.mnc: Makefile.am ellipse0.mnc test4.xfm
+	mincresample -clobber -transformation test4.xfm -like ellipse0.mnc ellipse0.mnc ellipse_tmp$$.mnc; \
+	mincreshape -clobber -dimrange xspace=32,1 ellipse_tmp$$.mnc $@
+
+ellipse0_slice_y.mnc: Makefile.am ellipse1.mnc test4.xfm
+	mincresample -clobber -transformation test4.xfm -like ellipse0.mnc ellipse0.mnc ellipse_tmp$$.mnc; \
+	mincreshape -clobber -dimrange yspace=35,1 ellipse_tmp$$.mnc $@
+
+ellipse0_slice_z.mnc: Makefile.am ellipse1.mnc test4.xfm
+	mincresample -clobber -transformation test4.xfm -like ellipse0.mnc ellipse0.mnc ellipse_tmp$$.mnc; \
+	mincreshape -clobber -dimrange zspace=35,1 ellipse_tmp$$.mnc $@
 
 
 # --------------------------------------------------------------------

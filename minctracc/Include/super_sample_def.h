@@ -29,8 +29,7 @@ create_super_sampled_data_volumes(General_transform *orig_deformation,
    special case when the super sampling rate is euqal to 2.
 */
 public void interpolate_super_sampled_data(General_transform *orig_deformation,
-					   General_transform *super_sampled,
-					   int dim);
+					   General_transform *super_sampled);
 
 
 /* build the volume structure and allocate the data space to store
@@ -93,7 +92,6 @@ public void create_super_sampled_data_volumes_by2(General_transform *orig_deform
    
 */
 public void interpolate_super_sampled_data_by2( General_transform *orig_deformation,
-						General_transform *super_sampled,
-						int dim);
+						General_transform *super_sampled);
 
 #endif

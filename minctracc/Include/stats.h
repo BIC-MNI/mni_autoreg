@@ -15,7 +15,10 @@
 
 @CREATED    : February 23, 1996
 @MODIFIED   : $Log: stats.h,v $
-@MODIFIED   : Revision 1.3  2002-03-26 14:15:37  stever
+@MODIFIED   : Revision 1.4  2002-12-13 21:09:45  lenezet
+@MODIFIED   : *** empty log message ***
+@MODIFIED   :
+@MODIFIED   : Revision 1.3  2002/03/26 14:15:37  stever
 @MODIFIED   : Update includes to <volume_io/foo.h> style.
 @MODIFIED   :
 @MODIFIED   : Revision 1.2  2000/03/15 08:42:40  stever
@@ -33,7 +36,7 @@
 
 typedef  struct
 {
-  STRING name;
+  char   name[512];
   Real   mean;
   Real   standard_deviation;
   Real   variance;
