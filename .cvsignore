@@ -10,5 +10,6 @@ Makefile
 configure
 config.h.in
 make_model
+epm-header
 autom4te.cache
 stamp-h1
