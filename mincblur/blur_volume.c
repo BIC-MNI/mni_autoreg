@@ -29,19 +29,21 @@ int ms_volume_reals_flag;
 public Status blur3D_volume(Volume data,
 			    float fwhm, 
 			    char *outfile, 
-			    int ndim, int kernel_type)
+			    int ndim, int kernel_type, char *history)
 { 
   float 
     *fdata,			/* floating point storage for blurred volume */
     *f_ptr,			/* pointer to fdata */
     tmp,
-    max_val, 
-    min_val,
-    
     *dat_vector,		/* temp storage of original row, col or slice vect. */
     *dat_vecto2,		/* storage of result of dat_vector*kern             */
     *kern;			/* convolution kernel                               */
 				/*  place it back into data->voxels                 */
+
+  Real
+    max_val, 
+    min_val;
+    
   int				
     total_voxels,		
     vector_size_data,		/* original size of row, col or slice vector        */
@@ -77,16 +79,6 @@ public Status blur3D_volume(Volume data,
     sizes[3];			/* number of rows, cols and slices */
   Real
     steps[3];			/* size of voxel step from center to center in x,y,z */
-
-  Minc_file
-    minc_fp;
-
-  String dim_names[3];
-
-
-  strcpy(dim_names[0],"xspace");
-  strcpy(dim_names[1],"yspace");
-  strcpy(dim_names[2],"zspace");
 
 
   /*---------------------------------------------------------------------------------*/
@@ -408,11 +400,11 @@ public Status blur3D_volume(Volume data,
     sprintf(full_outfilename,"%s_reals",outfile);
     status = open_file(full_outfilename, WRITE_FILE, BINARY_FORMAT, &ofp);
     if (status != OK) 
-      print_error("problems opening blurred reals data...",__FILE__, __LINE__, 0, 0,0,0,0);
+      print_error("problems opening blurred reals data...",__FILE__, __LINE__);
     else {
       status = io_binary_data(ofp,WRITE_FILE, fdata, sizeof(float), total_voxels);
       if (status != OK) 
-	print_error("problems writing blurred reals data...",__FILE__, __LINE__, 0, 0,0,0,0);
+	print_error("problems writing blurred reals data...",__FILE__, __LINE__);
     }
     close_file(ofp);
   }
@@ -421,37 +413,8 @@ public Status blur3D_volume(Volume data,
 
   f_ptr = fdata;
   
-  data->value_translation = min_val;
+  set_volume_real_range(data, min_val, max_val);
 
-  switch( data->data_type )  {  
-  case UNSIGNED_BYTE: 
-    data->value_scale       = (max_val - min_val) / ((1<<8)-1.0); 
-    break;  
-  case SIGNED_BYTE:  
-    data->value_scale       = (max_val - min_val) / (1<<7) ;
-    break;  
-  case UNSIGNED_SHORT:  
-    data->value_scale       = (max_val - min_val) / ((1<<16)-1.0); 
-    break;  
-  case SIGNED_SHORT:  
-    data->value_scale       = (max_val - min_val) / (1<<15) ;
-    break;  
-  case UNSIGNED_LONG:  
-    data->value_scale       = (max_val - min_val) / ((1<<32)-1.0) ;
-    break;  
-  case SIGNED_LONG:  
-    data->value_scale       = (max_val - min_val) / ((1<<31)-1.0) ;
-    break;  
-  case FLOAT:  
-    data->value_translation = 0.0;
-    data->value_scale       = 1.0;
-   break;  
-  case DOUBLE:  
-    data->value_translation = 0.0;
-    data->value_scale       = 1.0;
-    break;  
-  }
-  
   printf("Making byte volume..." );
   for_less( slice, 0, sizes[Z])
     for_less( row, 0, sizes[Y])
@@ -465,16 +428,11 @@ public Status blur3D_volume(Volume data,
 
   sprintf(full_outfilename,"%s_blur.mnc",outfile);
 
-  minc_fp = initialize_minc_output(full_outfilename, 3, data->dimension_names, sizes, 
-				   data->nc_data_type, FALSE, (Real)min_val, (Real)max_val,
-				   &(data->voxel_to_world_transform));
+  status = output_volume(full_outfilename, FALSE, data, history);
 
-  status = output_minc_volume(minc_fp, data);
 
-  if (status == OK)
-    close_minc_output(minc_fp);
-  else
-    print_error("problems writing blurred data...",__FILE__, __LINE__, 0, 0,0,0,0);
+  if (status != OK)
+    print_error("problems writing blurred data...",__FILE__, __LINE__);
 
   return(status);
 

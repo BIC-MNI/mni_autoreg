@@ -52,6 +52,7 @@
 #include <minc.h>
 #include <mincblur.h>
 #include <def_kernel.h>
+#include <time_stamp.h>
 
 char *prog_name;
 int  debug;
@@ -98,7 +99,7 @@ static ArgvInfo argTable[] = {
   {NULL, ARGV_END, NULL, NULL, NULL}
 };
 
-static String   default_dim_names[N_DIMENSIONS] = { MIzspace, MIyspace, MIxspace };
+static char *default_dim_names[N_DIMENSIONS] = { MIzspace, MIyspace, MIxspace };
  
 
 
@@ -119,10 +120,11 @@ main (int argc, char *argv[] )
   Volume
     data;
   Real
+    min_value, max_value,
     step[3];
   int
     sizes[3];
-  
+  char *history;
   
   /* set default values */
   ms_volume_reals_flag = TRUE;
@@ -136,6 +138,8 @@ main (int argc, char *argv[] )
   debug   = FALSE;
   kernel_type = KERN_GAUSSIAN;
 
+  history = time_stamp(argc, argv);
+
   /* Call ParseArgv to interpret all command line args */
 
   if (ParseArgv(&argc, argv, argTable, 0) || (argc!=3)) {
@@ -148,7 +152,7 @@ main (int argc, char *argv[] )
 
   if (standard==0.0 && fwhm==0.0) {
     print_error ("Must specify either -fwhm or -standard on command line.", 
-		 __FILE__, __LINE__, 0, 0,0,0,0);
+		 __FILE__, __LINE__);
   }
 
   infilename  = argv[1];	/* set up necessary file names */
@@ -157,14 +161,14 @@ main (int argc, char *argv[] )
 				/* check to see if the output file can be written */
   status = open_file( outfilename , WRITE_FILE, BINARY_FORMAT,  &ofd );
   if ( status != OK ) 
-    print_error ("filename `%s' cannot be opened.", __FILE__, __LINE__, outfilename, 0,0,0,0);
+    print_error ("filename `%s' cannot be opened.", __FILE__, __LINE__, outfilename);
   status = close_file(ofd);
   remove(outfilename);   
 
 
   if (gradonlyflg  && !ms_volume_reals_flag) {
     print_error ("Must allow reals to be written to be able to calculate gradients.", 
-		 __FILE__, __LINE__, 0, 0,0,0,0);
+		 __FILE__, __LINE__);
   }
   
 
@@ -175,7 +179,7 @@ main (int argc, char *argv[] )
   
   status = input_volume(infilename, default_dim_names, FALSE, &data);
   if ( status != OK )
-    print_error("problems reading `%s'.\n",__FILE__, __LINE__,infilename, 0,0,0,0);
+    print_error("problems reading `%s'.\n",__FILE__, __LINE__,infilename);
     
   get_volume_sizes(data, sizes);
   get_volume_separations(data, step);
@@ -188,27 +192,28 @@ main (int argc, char *argv[] )
 		  sizes[INTERNAL_X], sizes[INTERNAL_Y], sizes[INTERNAL_Z]);
     printf ( "Input voxels are  = %8.3f %8.3f %8.3f\n", 
 		  step[INTERNAL_X], step[INTERNAL_Y], step[INTERNAL_Z]);
-    printf ( "min/max value     = %8.3f %8.3f\n", data->min_value, data->max_value);
+    get_volume_real_range(data,&min_value, &max_value);
+    printf ( "min/max value     = %8.3f %8.3f\n", min_value, max_value);
   }
 
   if (data->n_dimensions!=3) {
     print_error ("File %s has %d dimensions.  Only 3 dims supported.", 
-		 __FILE__, __LINE__, infilename, data->n_dimensions,0,0,0);
+		 __FILE__, __LINE__, infilename, data->n_dimensions);
   }
 
   if (bluronlyflg || !gradonlyflg) {
     status = blur3D_volume(data,
 			   fwhm,
 			   outfilename,
-			   dimensions,kernel_type);
+			   dimensions,kernel_type,history);
     
     if (status==OK) {
       status = close_file(ifd);
       if (status!=OK)
-	print_error("Error closing <%s>.",__FILE__, __LINE__, infilename,0,0,0,0);
+	print_error("Error closing <%s>.",__FILE__, __LINE__, infilename);
     }
     else
-      print_error("Problems blurring <%s>.",__FILE__, __LINE__, infilename,0,0,0,0);
+      print_error("Problems blurring <%s>.",__FILE__, __LINE__, infilename);
   }
 
   /******************************************************************************/
@@ -221,19 +226,19 @@ main (int argc, char *argv[] )
       
       status = open_file( blur_datafile ,READ_FILE, BINARY_FORMAT,  &ifd );
       if (status!=OK)
-	 print_error("Error opening <%s>.",__FILE__, __LINE__, blur_datafile,0,0,0,0);
+	 print_error("Error opening <%s>.",__FILE__, __LINE__, blur_datafile);
       
-      gradient3D_volume(ifd,data,outfilename,dimensions);
+      gradient3D_volume(ifd,data,outfilename,dimensions,history);
       
       status = close_file(ifd);
       if (status!=OK)
-	 print_error("Error closing <%s>.",__FILE__, __LINE__, blur_datafile,0,0,0,0);
+	 print_error("Error closing <%s>.",__FILE__, __LINE__, blur_datafile);
       
       /*************************************************************************/
       /*           calculate magnitude of gradient                             */
       /*************************************************************************/
       
-      calc_gradient_magnitude(outfilename);
+      calc_gradient_magnitude(outfilename, history);
    }
 
    status = close_file(ofd);
@@ -243,11 +248,3 @@ main (int argc, char *argv[] )
 }
 
 
-public void print_error(char *s, char * d1, 
-			int d2, int d3, int d4, int d5, int d6, int d7)
-{
-  (void) fprintf(stderr, "Error in %s in file %s, line %d\n",prog_name,d1,d2);
-  (void) fprintf(stderr,  s, d3,d4,d5,d6,d7);
-  (void) fprintf(stderr,  "\n");
-  exit(EXIT_FAILURE);
-}

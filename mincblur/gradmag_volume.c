@@ -31,7 +31,7 @@
 int verbose;
 int debug;
 
-public void calc_gradient_magnitude(char *infilename)
+public void calc_gradient_magnitude(char *infilename, char *history)
 {   
   MincVolume 
     in_vol_struct1, 
@@ -55,7 +55,7 @@ public void calc_gradient_magnitude(char *infilename)
   sprintf (infilename3,"%s_dz.mnc",infilename);
   sprintf (fulloutfilename,"%s_dxyz.mnc",infilename);
 
-  build_vol_info(infilename1, fulloutfilename,  in_vol1, out_vol);
+  build_vol_info(infilename1, fulloutfilename,  in_vol1, out_vol, history);
 
   load_vol_info(infilename2,in_vol2);
   load_vol_info(infilename3,in_vol3);
@@ -126,7 +126,7 @@ public void make_vol_icv(MincVolume *in_vol)
 public void build_vol_info(char   *infile,
 			   char   *outfile,
 			   MincVolume *in_vol, 
-			   MincVolume *out_vol)
+			   MincVolume *out_vol, char *history)
 {
    /* Argument parsing information */
    static Default_Data defaults={
@@ -155,20 +155,7 @@ public void build_vol_info(char   *infile,
    int in_findex, out_findex;  /* File indices (0 to ndims-1) */
    long size, total_size, total_slice_size;
    File_Info *fp;
-   char *tm_stamp, *pname;
    
-   int str_count = 3;
-   char *str_vals[3];
-
-   char *name = "mincblur(grad mag)";
-
-   /* Get the time stamp */
-
-   str_vals[0] = name;
-   str_vals[1] = infile;
-   str_vals[2] = outfile;
-
-   tm_stamp = time_stamp(str_count, str_vals);
 
    /* Check input file for default argument information */
    in_vol->file = MALLOC(sizeof(File_Info));
@@ -277,7 +264,7 @@ public void build_vol_info(char   *infile,
    /* Create the output file */
    create_output_file(outfile,  &defaults.volume_def, 
                       in_vol->file, out_vol->file,
-                      tm_stamp);
+                      history);
    
 }
 

@@ -102,7 +102,7 @@ typedef struct {
 /* Function prototypes */
 
 public void build_vol_info(char *infilename, char *outfilename,
-                        MincVolume *in_vol, MincVolume *out_vol);
+                        MincVolume *in_vol, MincVolume *out_vol, char *history);
 
 public void load_vol_info(char *infilename, MincVolume *in_vol);
 

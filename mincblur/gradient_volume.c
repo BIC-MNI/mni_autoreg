@@ -26,7 +26,8 @@
 public Status gradient3D_volume(FILE *ifd, 
 				Volume data, 
 				char *outfile, 
-				int ndim)
+				int ndim,
+				char *history)
 { 
   float 
     *fdata,			/* floating point storage for blurred volume */
@@ -70,9 +71,6 @@ public Status gradient3D_volume(FILE *ifd,
     sizes[3];			/* number of rows, cols and slices */
   Real
     steps[3];			/* size of voxel step from center to center in x,y,z */
-
-  Minc_file
-    minc_fp;
 
   /*---------------------------------------------------------------------------------*/
   /*             start by setting up the raw data.                                   */
@@ -187,37 +185,9 @@ public Status gradient3D_volume(FILE *ifd,
     
 
   f_ptr = fdata;
-  
-  data->value_translation = min_val;
 
-  switch( data->data_type )  {  
-  case UNSIGNED_BYTE: 
-    data->value_scale       = (max_val - min_val) / ((1<<8)-1.0); 
-    break;  
-  case SIGNED_BYTE:  
-    data->value_scale       = (max_val - min_val) / (1<<7) ;
-    break;  
-  case UNSIGNED_SHORT:  
-    data->value_scale       = (max_val - min_val) / ((1<<16)-1.0); 
-    break;  
-  case SIGNED_SHORT:  
-    data->value_scale       = (max_val - min_val) / (1<<15) ;
-    break;  
-  case UNSIGNED_LONG:  
-    data->value_scale       = (max_val - min_val) / ((1<<32)-1.0) ;
-    break;  
-  case SIGNED_LONG:  
-    data->value_scale       = (max_val - min_val) / ((1<<31)-1.0) ;
-    break;  
-  case FLOAT:  
-    data->value_translation = 0.0;
-    data->value_scale       = 1.0;
-   break;  
-  case DOUBLE:  
-    data->value_translation = 0.0;
-    data->value_scale       = 1.0;
-    break;  
-  }
+  set_volume_real_range(data, min_val, max_val);
+  
   
   printf("Making byte volume dx..." );
   for_less( slice, 0, sizes[Z])
@@ -231,16 +201,11 @@ public Status gradient3D_volume(FILE *ifd,
 
   sprintf(full_outfilename,"%s_dx.mnc",outfile);
 
-  minc_fp = initialize_minc_output(full_outfilename, 3, data->dimension_names, sizes, 
-				   data->nc_data_type, FALSE, (Real)min_val, (Real)max_val,
-				   &(data->voxel_to_world_transform));
 
-  status = output_minc_volume(minc_fp, data);
+  status = output_volume(full_outfilename, FALSE, data, history);
 
-  if (status == OK)
-    close_minc_output(minc_fp);
-  else
-    print_error("problems writing dx gradient data...",__FILE__, __LINE__, 0, 0,0,0,0);
+  if (status != OK)
+    print_error("problems writing dx gradient data...\n",__FILE__, __LINE__);
 
 
   
@@ -334,37 +299,9 @@ public Status gradient3D_volume(FILE *ifd,
   
   f_ptr = fdata;
   
-  data->value_translation = min_val;
+  set_volume_real_range(data, min_val, max_val);
 
-  switch( data->data_type )  {  
-  case UNSIGNED_BYTE: 
-    data->value_scale       = (max_val - min_val) / ((1<<8)-1.0); 
-    break;  
-  case SIGNED_BYTE:  
-    data->value_scale       = (max_val - min_val) / (1<<7) ;
-    break;  
-  case UNSIGNED_SHORT:  
-    data->value_scale       = (max_val - min_val) / ((1<<16)-1.0); 
-    break;  
-  case SIGNED_SHORT:  
-    data->value_scale       = (max_val - min_val) / (1<<15) ;
-    break;  
-  case UNSIGNED_LONG:  
-    data->value_scale       = (max_val - min_val) / ((1<<32)-1.0) ;
-    break;  
-  case SIGNED_LONG:  
-    data->value_scale       = (max_val - min_val) / ((1<<31)-1.0) ;
-    break;  
-  case FLOAT:  
-    data->value_translation = 0.0;
-    data->value_scale       = 1.0;
-   break;  
-  case DOUBLE:  
-    data->value_translation = 0.0;
-    data->value_scale       = 1.0;
-    break;  
-  }
-  
+
   printf("Making byte volume dy..." );
   for_less( slice, 0, sizes[Z])
     for_less( row, 0, sizes[Y])
@@ -377,16 +314,10 @@ public Status gradient3D_volume(FILE *ifd,
 
   sprintf(full_outfilename,"%s_dy.mnc",outfile);
 
-  minc_fp = initialize_minc_output(full_outfilename, 3, data->dimension_names, sizes, 
-				   data->nc_data_type, FALSE, (Real)min_val, (Real)max_val,
-				   &(data->voxel_to_world_transform));
+  status = output_volume(full_outfilename, FALSE, data, history);
 
-  status = output_minc_volume(minc_fp, data);
-
-  if (status == OK)
-    close_minc_output(minc_fp);
-  else
-    print_error("problems writing dy gradient data...",__FILE__, __LINE__, 0, 0,0,0,0);
+  if (status != OK)
+    print_error("problems writing dy gradient data...",__FILE__, __LINE__);
   
   
   /*--------------------------------------------------------------------------------------*/
@@ -488,37 +419,9 @@ public Status gradient3D_volume(FILE *ifd,
 
   f_ptr = fdata;
   
-  data->value_translation = min_val;
+  set_volume_real_range(data, min_val, max_val);
 
-  switch( data->data_type )  {  
-  case UNSIGNED_BYTE: 
-    data->value_scale       = (max_val - min_val) / ((1<<8)-1.0); 
-    break;  
-  case SIGNED_BYTE:  
-    data->value_scale       = (max_val - min_val) / (1<<7) ;
-    break;  
-  case UNSIGNED_SHORT:  
-    data->value_scale       = (max_val - min_val) / ((1<<16)-1.0); 
-    break;  
-  case SIGNED_SHORT:  
-    data->value_scale       = (max_val - min_val) / (1<<15) ;
-    break;  
-  case UNSIGNED_LONG:  
-    data->value_scale       = (max_val - min_val) / ((1<<32)-1.0) ;
-    break;  
-  case SIGNED_LONG:  
-    data->value_scale       = (max_val - min_val) / ((1<<31)-1.0) ;
-    break;  
-  case FLOAT:  
-    data->value_translation = 0.0;
-    data->value_scale       = 1.0;
-   break;  
-  case DOUBLE:  
-    data->value_translation = 0.0;
-    data->value_scale       = 1.0;
-    break;  
-  }
-  
+
   printf("Making byte volume dz..." );
   for_less( slice, 0, sizes[Z])
     for_less( row, 0, sizes[Y])
@@ -531,16 +434,10 @@ public Status gradient3D_volume(FILE *ifd,
 
   sprintf(full_outfilename,"%s_dz.mnc",outfile);
 
-  minc_fp = initialize_minc_output(full_outfilename, 3, data->dimension_names, sizes, 
-				   data->nc_data_type, FALSE, (Real)min_val, (Real)max_val,
-				   &(data->voxel_to_world_transform));
+  status = output_volume(full_outfilename, FALSE, data, history);
 
-  status = output_minc_volume(minc_fp, data);
-
-  if (status == OK)
-    close_minc_output(minc_fp);
-  else
-    print_error("problems writing dz gradient data...",__FILE__, __LINE__, 0, 0,0,0,0);
+  if (status != OK)
+    print_error("problems writing dz gradient data...",__FILE__, __LINE__);
 
   terminate_progress_report( &progress );
 
