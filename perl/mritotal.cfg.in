@@ -21,7 +21,7 @@
 # is installed on your system, these should be fine.
 # ---------------------------------------------------------------
 
--modeldir @MODELDIR@
+# -modeldir @MODELDIR@    # problem! however mritotal defaults handle this
 -model average_305
 -protocol default
 

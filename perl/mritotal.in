@@ -46,11 +46,12 @@
 # the same copyright as above.
 # --------------------------------------------------------------------
 
-# $Id: mritotal.in,v 1.11 2001-10-22 15:49:02 louis Exp $
+# $Id: mritotal.in,v 1.12 2004-02-12 05:55:18 rotor Exp $
 
 require 5.001;
 
-use lib "@LIBDIR@";
+use FindBin;
+use lib "$FindBin::Bin/../lib/mni_autoreg";
 
 use Startup;
 use Getopt::Tabular qw/GetOptions SpoofGetOptions/;
@@ -580,7 +581,7 @@ sub Initialize
    # Set defaults for the global variables.  These can be overridden by 
    # the configuration file or the command line.
 
-   $ModelDir     = "@MODELDIR@";
+   $ModelDir     = "$FindBin::Bin/../share/mni_autoreg";
    $Model        = "average_305";
    $Protocol     = "default";
 
@@ -620,7 +621,7 @@ sub Initialize
 
    &CreateInfoText;
 
-   @ConfigPath = ($ENV{"HOME"}, "@CONFIGDIR@");
+   @ConfigPath = ($ENV{"HOME"}, "$FindBin::Bin/../etc/mni_autoreg");
    ($pref_tbl, $site_tbl, $protocol_tbl, $other_tbl) = 
       &SetupArgTables ($ok_levels);
    @all_args = (@$pref_tbl, @$site_tbl, @$protocol_tbl, @$other_tbl);
