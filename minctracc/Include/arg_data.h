@@ -49,7 +49,8 @@ typedef struct {
   double shears[3];
   double rotations[3];
   double translations[3];
-  int invert_mapping_flag;		/* true if input transform maps model to source */
+  double weights[12];		/* optimization weighting function */
+  int invert_mapping_flag;	/* true if input transform maps model to source */
 } Program_Transformation;
 
 struct Arg_Data_struct {

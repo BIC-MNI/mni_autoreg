@@ -17,10 +17,14 @@
 
 @CREATED    : Thu May 20 14:20:21 EST 1993 Louis Collins
 @MODIFIED   : $Log: minctracc.h,v $
-@MODIFIED   : Revision 1.9  1994-04-06 11:49:49  louis
-@MODIFIED   : working linted version of linear + non-linear registration based on Lvv
-@MODIFIED   : operator working in 3D
+@MODIFIED   : Revision 1.10  1994-04-26 12:55:22  louis
+@MODIFIED   : updated with new versions of make_rots, extract2_parameters_from_matrix 
+@MODIFIED   : that include proper interpretation of skew.
 @MODIFIED   :
+ * Revision 1.9  94/04/06  11:49:49  louis
+ * working linted version of linear + non-linear registration based on Lvv
+ * operator working in 3D
+ * 
  * Revision 1.8  94/02/21  16:38:49  louis
  * version before feb 22 changes
  * 
@@ -192,6 +196,7 @@ Arg_Data main_args = {
     {0.0, 0.0, 0.0},		/*   shears            */
     {0.0, 0.0, 0.0},		/*   rotations         */
     {0.0, 0.0, 0.0},		/*   translations      */
+    {1.0, 1.0, 1.0,  3.1415927/180.0, 3.1415927/180.0, 3.1415927/180.0,   0.02, 0.02, 0.02,  0.02, 0.02, 0.02}, /* optimization weights*/
     FALSE},			/*   invert_mapping_flag                  */
   trilinear_interpolant,	/* use trilinear interpolation by default */
   xcorr_objective,              /* use cross-correlation by default       */

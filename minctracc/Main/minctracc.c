@@ -34,10 +34,14 @@
 
    @CREATED    : February 3, 1992 - louis collins
    @MODIFIED   : $Log: minctracc.c,v $
-   @MODIFIED   : Revision 1.10  1994-04-06 11:48:43  louis
-   @MODIFIED   : working linted version of linear + non-linear registration based on Lvv
-   @MODIFIED   : operator working in 3D
+   @MODIFIED   : Revision 1.11  1994-04-26 12:54:30  louis
+   @MODIFIED   : updated with new versions of make_rots, extract2_parameters_from_matrix 
+   @MODIFIED   : that include proper interpretation of skew.
    @MODIFIED   :
+ * Revision 1.10  94/04/06  11:48:43  louis
+ * working linted version of linear + non-linear registration based on Lvv
+ * operator working in 3D
+ * 
  * Revision 1.9  94/02/21  16:35:51  louis
  * version before feb 22 changes
  * 
@@ -68,7 +72,7 @@ Wed May 26 13:05:44 EST 1993 lc
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 1.10 1994-04-06 11:48:43 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 1.11 1994-04-26 12:54:30 louis Exp $";
 #endif
 
 
@@ -367,14 +371,18 @@ main ( argc, argv )
 		main_args.trans_info.translations[1],
 		main_args.trans_info.translations[2] );
   DEBUG_PRINT3 ( "Transform rotation = %8.3f %8.3f %8.3f\n", 
-		main_args.trans_info.rotations[0],
-		main_args.trans_info.rotations[1],
-		main_args.trans_info.rotations[2] );
-   DEBUG_PRINT3 ( "Transform scale    = %8.3f %8.3f %8.3f\n\n", 
+		main_args.trans_info.rotations[0]*180/3.1415927,
+		main_args.trans_info.rotations[1]*180/3.1415927,
+		main_args.trans_info.rotations[2]*180/3.1415927 );
+  DEBUG_PRINT3 ( "Transform scale    = %8.3f %8.3f %8.3f\n", 
 		main_args.trans_info.scales[0],
 		main_args.trans_info.scales[1],
 		main_args.trans_info.scales[2] );
-
+  DEBUG_PRINT3 ( "Transform shear    = %8.3f %8.3f %8.3f\n\n", 
+		main_args.trans_info.shears[0],
+		main_args.trans_info.shears[1],
+		main_args.trans_info.shears[2] );
+  
 
   if (main_args.filenames.measure_file != NULL) {
 

@@ -9,10 +9,14 @@
 @CALLS      : 
 @CREATED    : Mon Nov 29 11:01:47 EST 1993 Louis
 @MODIFIED   : $Log: check_scale.c,v $
-@MODIFIED   : Revision 1.2  1994-04-06 11:46:45  louis
-@MODIFIED   : working linted version of linear + non-linear registration based on Lvv
-@MODIFIED   : operator working in 3D
+@MODIFIED   : Revision 1.3  1994-04-26 12:52:49  louis
+@MODIFIED   : updated with new versions of make_rots, extract2_parameters_from_matrix 
+@MODIFIED   : that include proper interpretation of skew.
 @MODIFIED   :
+ * Revision 1.2  94/04/06  11:46:45  louis
+ * working linted version of linear + non-linear registration based on Lvv
+ * operator working in 3D
+ * 
  * Revision 1.1  94/02/21  16:31:52  louis
  * Initial revision
  * 
@@ -86,7 +90,7 @@ int main(int argc, char *argv[])
    lt = get_linear_transform_ptr(&transform);
    for_less(i,0,3)
      center[i] = 0.0;
-   if (!extract_parameters_from_matrix(lt,
+   if (!extract2_parameters_from_matrix(lt,
 				       center,
 				       trans,
 				       scales,

@@ -17,10 +17,14 @@
 @CREATED    : Thu May 27 16:50:50 EST 1993
                   
 @MODIFIED   :  $Log: init_params.c,v $
-@MODIFIED   :  Revision 1.8  1994-04-06 11:48:37  louis
-@MODIFIED   :  working linted version of linear + non-linear registration based on Lvv
-@MODIFIED   :  operator working in 3D
+@MODIFIED   :  Revision 1.9  1994-04-26 12:54:19  louis
+@MODIFIED   :  updated with new versions of make_rots, extract2_parameters_from_matrix 
+@MODIFIED   :  that include proper interpretation of skew.
 @MODIFIED   :
+ * Revision 1.8  94/04/06  11:48:37  louis
+ * working linted version of linear + non-linear registration based on Lvv
+ * operator working in 3D
+ * 
  * Revision 1.7  94/02/21  16:35:36  louis
  * version before feb 22 changes
  * 
@@ -31,7 +35,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 1.8 1994-04-06 11:48:37 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 1.9 1994-04-26 12:54:19 louis Exp $";
 #endif
 
 
@@ -649,7 +653,7 @@ public BOOLEAN init_params(Volume d1,
       free_vector(c1,1,3);
     }
 				/* get the parameters from the input matrix: */
-    if (!extract_parameters_from_matrix(lt,
+    if (!extract2_parameters_from_matrix(lt,
 					globals->trans_info.center,
 					globals->trans_info.translations,
 					globals->trans_info.scales,
@@ -674,7 +678,7 @@ public BOOLEAN init_params(Volume d1,
       sc = vector(1,3);
     
       if (!init_transformation(d1,d2,m1,m2, globals->step, globals->flags.verbose,
-			       trans,rots,ang,c1,c2,sc, &(globals->trans_flags)))
+ 			       trans,rots,ang,c1,c2,sc, &(globals->trans_flags)))
 	return(FALSE);      
       
       for_less( i, 0, 3 ) {
