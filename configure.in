@@ -12,6 +12,9 @@ AM_CONFIG_HEADER(config.h)
 if test "$prefix" != "NONE"; then
     if test "$CPPFLAGS" = "" -a -d "${prefix}/include"; then
         CPPFLAGS="-I${prefix}/include"
+	# volume_io is weird; we'll hack it for now
+        test -d "${prefix}/include/volume_io" && \
+		CPPFLAGS="$CPPFLAGS -I${prefix}/include/volume_io"
     fi
     if test "$LDFLAGS" = "" -a -d "${prefix}/lib"; then
         LDFLAGS="-L${prefix}/lib"
@@ -47,7 +50,6 @@ AC_DEFINE_UNQUOTED(MNI_AUTOREG_COMPILE_SYSTEM,"$host",[Configure System])
 #------------------------------------------------------------------------
 AC_PROG_CC
 AC_PROG_INSTALL
-dnl AC_PROG_LN_S
 AC_PROG_MAKE_SET
 AC_PROG_RANLIB
 

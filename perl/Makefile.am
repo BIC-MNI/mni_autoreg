@@ -10,12 +10,13 @@ noinst_PROGRAMS = version
 #           mritopet mritoself mritotal mritotal\
 #           do_mritopet do_pettopet do_mritotal
 
-man_MANS = mritotal.1 autocrop.1 mritoself.1
+EXTRA_DIST = $(script_in) $(configdata_in) $(man_MANS) $(perllib_DATA) \
+	build_perl_stuff 
 
-EXTRA_DIST = $(man_MANS) $(perllib_DATA) \
-	build_perl_stuff \
-	autocrop.in mritoself.in mritotal.in \
-	mritotal.cfg.in mritotal.default.cfg.in mritotal.icbm.cfg.in 
+script_in = autocrop.in mritoself.in mritotal.in
+configdata_in = mritotal.cfg.in mritotal.default.cfg.in mritotal.icbm.cfg.in
+
+man_MANS = mritotal.1 autocrop.1 mritoself.1
 
 perllib_DATA = Startup.pm JobControl.pm \
 	misc_utilities.pl \
@@ -34,13 +35,13 @@ bin_SCRIPTS = autocrop mritotal mritoself
 config_DATA  = mritotal.cfg mritotal.default.cfg mritotal.icbm.cfg
 
 # Wacky perl script to do substitution
-# which fails (sigh) if builddir != srcdir
 #
-$(bin_SCRIPTS) $(config_DATA): version Makefile
+$(bin_SCRIPTS) $(config_DATA): $(script_in) $(configdata_in) version Makefile
 	$(PERL) $(srcdir)/build_perl_stuff --srcdir $(srcdir) \
 	    PERL=$(PERL) LIBDIR=$(perllibdir) \
 	    MODELDIR=$(modeldir) CONFIGDIR=$(configdir) \
 	    $(bin_SCRIPTS) $(config_DATA)
+
 
 else
 

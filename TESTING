@@ -2,7 +2,7 @@ Testing the MNI AutoReg Package
 -------------------------------
 
 There are two phases to testing the package: the first is after you have
-compiled everything, and run "make test".  This does a series of
+compiled everything, and run "make check".  This does a series of
 low-level tests to make sure that the basic programs for blurring and
 fitting image volumes (mincblur and minctracc), along with a host of
 related utilities, work properly.  Browsing through the output of "make
@@ -40,10 +40,8 @@ file included there to build the full model.
 
 Note: it is important that you install the fitting model to the same
 directory as mritotal expects to find it in.  This is controlled by the
-MODELDIR variable in the makefiles for each package (Makefile.include
-for MNI_AutoReg, Makefile for the model package); as long as they are
-the same and you have installed the model (with "make install"),
-mritotal should run just fine.
+prefix option to configure: the models are searched for in directory
+${prefix}/model.
 
 Next, you should download one of the example MRI files.  They're
 available at
@@ -52,49 +50,44 @@ available at
 
 as mni_autoreg_small_example_mri.mnc.gz and
 mni_autoreg_big_example_mri.mnc.gz.  (If you want to work with the big
-example but are unable to download it in one session -- a common problem
-when FTPing large files -- it is also available split up into
+example but are unable to download it in one session -- a common
+problem when FTPing large files -- it is also available split up into
 half-megabyte chunks in /pub/mni_autoreg/examples_split.  You can put
 the chunks back together again with the Unix `cat' program.)
 
 Another note: you might wish to install everything to temporary
-directories for testing before doing a final installation.  This is easy
-to do, but you'll have to set a few environment variables so various
-programs can find all their files.  As an example, let's say you want
-MNI_AutoReg to be installed under /tmp, with binaries and scripts going
-to /tmp/bin, Perl library files to /tmp/lib/perl5, configuration files
-to /tmp/config, and the fitting model in /tmp/model.  You would
-configure MNI_AutoReg like this:
+directories for testing before doing a final installation.  This is
+easy to do using the --prefix argument of the configure script.  As an
+example, let's say you want MNI_AutoReg to be installed under /tmp,
+with binaries and scripts going to /tmp/bin, Perl library files to
+/tmp/lib/mni_autoreg, configuration files to /tmp/etc/mni_autoreg, and
+the fitting model in /tmp/lib/model.  You would configure MNI_AutoReg
+like this:
 
     ./configure --prefix=/tmp
-    <edit Makefile.include to customize directories>
 
-and then run "make build" and "make install".  (Even if you have already
-compiled all the C programs, it's important to rerun "make build" after
-customizing the directories in Makefile.include.  This is because custom
-versions of mritotal and its configuration files are created with the
-new directories hard-coded in them as defaults.  It won't take long to
-run "make build", though, since none of the C programs will need to be
-recompiled.)
+and then run "make" and "make install".  (Even if you have already
+compiled all the C programs, it's important to rerun "configure" and
+"make".  This is because custom versions of mritotal and its
+configuration files are created with the new directories hard-coded in
+them as defaults.)
 
-Then, before running mritotal, you need to tell Perl where to find all
-the library files required for mritotal (I'm assuming csh or descendants
-here; sh/ksh/bash/zsh users will have to translate on the fly):
+Then, before running mritotal, you'll need to tell the shell where to
+find all the programs, via
 
-   setenv PERLLIB /tmp/lib/perl5
+    PATH=/tmp/bin:$PATH,
 
-and you'll need to tell the shell where to find all the programs:
+for sh, bash, ksh, or zsh users, or
 
-   set path=(/tmp/bin $path)
+    set path=(/tmp/bin $path)
 
-If, at the end of the day, you're happy enough with MNI_AutoReg to do a
-real installation, you'll need to regenerate those custom versions of
-mritotal and its config files.  All you have to is edit Makefile.include
-(yes, again!) to reflect your desired final installation directories,
-run "make build" (again, none of the C programs will be recompiled), and
-then "make install".  To install the fit model, you don't really need to
-run "make install" for it -- you can just copy the files from /tmp/model
-(or whatever) to their final destination.
+for csh or tcsh users.
+
+If, at the end of the day, you're happy enough with MNI_AutoReg to do
+a real installation, you'll need to regenerate those custom versions
+of mritotal and its config files.  Rerun "configure" and "make" (yes,
+again!) to reflect your desired final installation directories, and
+then "make install".
 
 Anyways, whether you're working with a temporary or permanent
 installation, I'll assume that you can successfully run "mritotal
@@ -134,22 +127,22 @@ the heuristics in mritotal for guessing reasonable crop/subsample
 parameters change.  See the mritotal man page for more information on
 protocol files.)
 
-Once the test registration finishes (you might want to go for coffee --
-it takes 15 minutes on our fastest machine, and two hours on our
+Once the test registration finishes (you might want to go for coffee
+-- it takes 15 minutes on our fastest machine, and two hours on our
 slowest), you can compare the results to what we got when running
 mritotal here at the MNI.  These results are available from
 
     ftp://ftp.bic.mni.mcgill.ca/pub/mni_autoreg/
 
-in the file mni_autoreg_example_results-0.98.tar.gz.  (Note that in the
-future we intend to have example results for each release of
+in the file mni_autoreg_example_results-0.98.tar.gz.  (Note that in
+the future we intend to have example results for each release of
 MNI_AutoReg.  In principle, any change to the code could cause
 differences in the transformations computed by mritotal; hopefully,
 these differences will be minute.)
 
 In this file you'll find results for three processor types: MIPS, i86,
-and SPARC.  The following table summarizes the machines used, and gives
-some of the results obtained:
+and SPARC.  The following table summarizes the machines used, and
+gives some of the results obtained:
 
             CPU details      OS           time (min)      xcorr
   MIPS      150 MHz R4400    IRIX 5.3         40       0.06237819

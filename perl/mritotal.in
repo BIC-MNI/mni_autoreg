@@ -1,6 +1,5 @@
 #! @PERL@ -w
 
-#
 # mritotal (new and improved)
 # 
 # All-new version of Louis Collins' mritotal script.  Embodies pretty
@@ -47,15 +46,15 @@
 # the same copyright as above.
 # --------------------------------------------------------------------
 
-# $Id: mritotal.in,v 1.3 2000-01-30 18:15:36 stever Exp $
+# $Id: mritotal.in,v 1.4 2000-02-09 05:21:31 stever Exp $
 
 require 5.001;
 
 use lib "@LIBDIR@";
 
 use Startup;
-use Getopt::Tabular qw(GetOptions SpoofGetOptions);
-use JobControl qw(AddProgramOptions Spawn);
+use Getopt::Tabular qw/GetOptions SpoofGetOptions/;
+use JobControl qw/AddProgramOptions Spawn/;
 
 require "file_utilities.pl";
 require "path_utilities.pl";
@@ -69,7 +68,7 @@ require "volume_heuristics.pl";
 # them, un-comment this "use vars", change the "no strict" to a "use
 # strict", and try to compile the script.  The reason that we keep the "use
 # vars" commented out most of the time is because it's dangerous -- a "use
-# vars" appplies to the entire file, and it can't be countermanded.  Thus,
+# vars" applies to the entire file, and it can't be countermanded.  Thus,
 # we would be able to refer accidentally to any of these global variables
 # in the latter part of the script, which always lives under "use strict",
 # with no globals at all allowed.  This lets us keep a lid on the
@@ -79,55 +78,111 @@ require "volume_heuristics.pl";
 # periodically have to go through the change-this-bit-and-recompile
 # silliness.  Sigh.
 
-# use vars qw($ModelDir $Model $Protocol
-#             $GuessSubsample @Subsample $GuessCrop @Crop $Objective $FirstObj
-#             $InputXfm @Blurs $Blur $OldPad
-#             $Help $Usage $Version $LongVersion
-#             @ConfigPath $ProtocolTbl $SourceVol $FinalXfm
-#             $Clamp $ClampFactor
-#             $VolumeCOG $SourceBase @Fit);
+use vars qw($ModelDir $Model $Protocol
+            @NonspecialLevels @SpecialLevels @Levels
+            $NonlinearFit $StartLevel $StopLevel $StartIndex $StopIndex 
+            $GuessSubsample @Subsample $GuessCrop
+            @Crop $Objective $FirstObj
+            $InputXfm @Blurs @BlurModes $Blur $OldPad
+            $Help $Usage $Version $LongVersion
+            @ConfigPath $ProtocolTbl $SourceVol $FinalXfm
+            $Clamp $ClampFactor
+            $VolumeCOG $SourceBase);
 
-no strict;                              # for badly-behaved main program
+use strict;                              # for badly-behaved main program
                                         # and initialization code
+# no strict;
 
 # ----------------------------------------------------------------------
 # BEGIN main program
 
-&Startup;			# from Startup module - general startup stuff
-&Initialize;			# sets globals, parses command line args
-
-# Quit now if the output transform exists and $Clobber is false
-
-if (-e $FinalXfm && ! $Clobber)
 {
-   &Fatal ("$FinalXfm exists -- use -clobber to compute it anyways");
+   my (@linear_fits, @nonlinear_fits, @fits);
+   my ($do_linear, $linear_xfm, $nl_input_xfm);
+
+   &Startup;			# from Startup module - general startup stuff
+   &Initialize;			# sets globals, parses command line args
+
+   # Quit now if the output transform exists and $Clobber is false
+
+   if (-e $FinalXfm && ! $Clobber)
+   {
+      &Fatal ("$FinalXfm exists -- use -clobber to overwrite it");
+   }
+
+
+   # If we're to do non-linear fitting, setup the list of fit profiles
+   # describing the desired levels of non-linear fits.  Also figure out
+   # if we're going to be doing the linear fit, and what the initial transform
+   # for the non-linear fits will be.
+
+   if ($NonlinearFit)                   # user wants us to do nonlinear fit?
+   {
+      $linear_xfm = "$TmpDir/${SourceBase}_final_lin.xfm";
+
+      if (defined $InputXfm)            # user-supplied xfm means skip linear
+      {
+         $do_linear = 0;
+         $nl_input_xfm = $InputXfm;
+      }
+      else                              # no input xfm -- will start with 
+      {                                 # first linear fit
+         $do_linear = 1;
+         $nl_input_xfm = $linear_xfm;
+      }
+
+      @nonlinear_fits = &SetupNLFits ($StartIndex, $StopIndex,
+                                      $nl_input_xfm, $FinalXfm, $Objective);
+   }
+   else                                 # just do linear fits
+   {
+      $do_linear = 1;
+      $linear_xfm = $FinalXfm;
+   }
+
+
+   # Reduce (subsample/crop), pad, blur, and unpad the input volume.
+   # (Oh yeah, also maybe compute the COG of the pre-blurred data.)  We
+   # skip this entirely if we're doing only nonlinear fits that rely on
+   # "special preprocessing", which starts over with the original
+   # untouched native data
+
+   if ($do_linear ||
+       ($NonlinearFit && 
+        grep ($StartLevel eq $_, @NonspecialLevels)))
+   {
+      $VolumeCOG = &Preprocess 
+         ($SourceVol, $SourceBase, $do_linear,
+          $GuessSubsample, \@Subsample, $GuessCrop, \@Crop,
+          $Blur, \@Blurs, \@BlurModes, $OldPad, $InputXfm);
+   }
+
+
+   # Now that we know if we're going to do the linear fits, setup
+   # the list of fit profiles for them.
+
+   if ($do_linear)
+   {
+      @linear_fits = &SetupFits (\@Blurs, $Blur, $VolumeCOG,
+                                 $linear_xfm, $InputXfm,
+                                 $Objective, $FirstObj);
+   }
+
+
+   die "whoops! no fits to do!" unless @nonlinear_fits || @linear_fits;
+
+
+   # And do the actual fitting - we only pass in the base of the source
+   # filename, because &PerformFits depends on &GradientBlur having
+   # put the blur files in $TmpDir according to specific naming conventions
+   # (see &GradientBlur).
+
+   &PerformFits ([@linear_fits, @nonlinear_fits],
+                 $SourceVol, $SourceBase, $Model);
+
+   &Cleanup (1);
+
 }
-
-# Subsample/crop, pad, blur, and unpad the input volume.
-
-$VolumeCOG = &Preprocess 
-   ($SourceVol, $SourceBase,
-    $GuessSubsample, \@Subsample, $GuessCrop, \@Crop,
-    $Blur, \@Blurs, $OldPad, $InputXfm);
-
-
-# Initialize the big array (@Fit) of fit profiles - this requires that
-# lots of global variables (@Blurs, $VolumeCOG, $InputXfm, $FinalXfm)
-# already be set.
-
-@Fit = &SetupFits (\@Blurs, $Blur, $VolumeCOG,
-                   $FinalXfm, $InputXfm,
-                   $Objective, $FirstObj);
-
-
-# And do the actual fitting - we only pass in the base of the source
-# filename, because &PerformFits depends on &GradientBlur having
-# put the blur files in $TmpDir according to specific naming conventions
-# (see &GradientBlur).
-
-&PerformFits (\@Fit, $SourceBase, $Model);
-
-&Cleanup (1);
 
 # END main program
 # ----------------------------------------------------------------------
@@ -204,6 +259,7 @@ HELP
 #-----------------------------------------------------------------------------
 sub SetupArgTables
 {
+   my ($ok_levels) = @_;
    my (@default_args, @pref_args, @site_args, @protocol_args, @other_args);
 
    sub print_version
@@ -260,7 +316,21 @@ sub SetupArgTables
    }
 
    @protocol_args = 
-      (["Preprocessing steps and fitting options", "section"],
+      (["Fit type and fitting control", "section"],
+
+       ["-nonlinear|-linear", "boolean", 0, \$NonlinearFit,
+        "perform a nonlinear fit [default: -linear]"],
+       ["-startlevel", "string", 1, \$StartLevel,
+        "where to start the nonlinear fitting ($ok_levels)"],
+       ["-stoplevel", "string", 1, \$StopLevel,
+        "where to stop the nonlinear fitting ($ok_levels)"],
+
+       ["-objective", "string", 1, \$Objective,
+	"objective function to use for fitting"],
+       ["-firstobj", "string", 1, \$FirstObj,
+        "objective function to use for first fit only"],
+
+       ["Preprocessing, part 1: subsample", "section"],
        ["-guess_subsample", "call",
         ["guess", \@Subsample, \$GuessSubsample], \&set_pp_option,
 	"make an educated guess about step sizes for subsampling [default]"],
@@ -273,8 +343,8 @@ sub SetupArgTables
         ["none", \@Subsample, \$GuessSubsample], \&set_pp_option,
 	"disable volume subsampling"],
 
+       ["Preprocessing, part 2: crop", "section"],
        ["-guess_crop", "call", ["guess", \@Crop, \$GuessCrop], \&set_pp_option,
-	"\@main::Crop = (0); \$main::GuessCrop = 1;",
 	"make an educated guess about how to crop the volume [default]"],
        ["-crop", "string", 3, \@Crop,
 	"specify crop amounts for the three spatial dimensions"],
@@ -284,21 +354,19 @@ sub SetupArgTables
        ["-nocrop", "call", ["none", \@Crop, \$GuessCrop], \&set_pp_option,
 	"disable cropping"],
 
+       ["Preprocessing, part 3: clamp (OBSOLETE)", "section"],
        ["-clamp", "boolean", 0, \$Clamp,
         "clamp data to remove excessively bright voxels [default: -noclamp]"],
        ["-clampfactor", "float", 1, \$ClampFactor,
         "how far above (number of sd's) volume median to clamp data"],
 
+       ["Preprocessing, part 4: pad/blur", "section"],
        ["-blur", "boolean", 0, \$Blur,
         "blur the data before fitting [default; opposite is -noblur]"],
        ["-oldpad|-newpad", "boolean", 0, \$OldPad,
         "unpad data in the old (incorrect) way, i.e. don't encroach " .
-        "original volume [default: false]"],
+        "original volume [default: false]"]);
 
-       ["-objective", "string", 1, \$Objective,
-	"objective function to use for fitting"],
-       ["-firstobj", "string", 1, \$FirstObj,
-        "objective function to use for first fit only"]);
 
    # Other options -- these may *only* be given on the command line
 
@@ -344,7 +412,8 @@ sub CheckClampOptions
 
    if (defined $Clamp || defined $ClampFactor)
    {
-      warn "warning from $where: -clamp, -noclamp, and -clampfactor options are obsolete and ignored\n";
+      warn "$ProgramName: warning from $where: -clamp, -noclamp, and " .
+           "-clampfactor options are obsolete and ignored\n";
       undef $Clamp;
       undef $ClampFactor;
    }
@@ -427,7 +496,8 @@ sub ReadProtocol
 
    unless ($Protocol)
    {
-      warn "$option option must be followed by a protocol name\n";
+      warn "$ProgramName: error: " .
+           "$option option must be followed by a protocol name\n";
       return 0;
    }
 
@@ -442,7 +512,7 @@ sub ReadProtocol
 
    unless (&GetOptions ($ProtocolTbl, \@protocol_args))
    {
-      warn "Error in protocol file $protocol_file\n";
+      warn "$ProgramName: error in protocol file $protocol_file\n";
       return 0;
    }
 
@@ -450,7 +520,8 @@ sub ReadProtocol
 
    if (@protocol_args)
    {
-      warn "Found leftover arguments in protocol file $protocol_file\n";
+      warn "$ProgramName: error: found leftover arguments in protocol file " .
+           "$protocol_file\n";
       return 0;
    }
    1;
@@ -521,16 +592,27 @@ sub Initialize
    $Objective    = "xcorr";	# use cross-correlation objective function
    $FirstObj     = "";          # use default objective for first fit
 
-   $InputXfm     = "";
+   $NonlinearFit = ($ProgramName eq 'nlfit');
+   $StartLevel   = undef;       # so we can detect when they're supplied
+   $StopLevel    = undef;
+   $InputXfm     = undef;
 
    @Blurs = (8, 16);
+   @BlurModes = qw(gi i);       # 8mm gradient+intensity, 16mm intensity only
    $Blur = 1;
    $OldPad = 0;
+
+   @NonspecialLevels = qw(16 8);
+   @SpecialLevels = qw(4a 4b 2);        # levels that require "special 
+                                        # preprocessing"
+   @Levels = (@NonspecialLevels, @SpecialLevels);
+   my $ok_levels = join (', ', @Levels[0 .. ($#Levels-1)]) . ', or ' . $Levels[-1];
 
    &CreateInfoText;
 
    @ConfigPath = ($ENV{"HOME"}, "@CONFIGDIR@");
-   ($pref_tbl, $site_tbl, $protocol_tbl, $other_tbl) = &SetupArgTables;
+   ($pref_tbl, $site_tbl, $protocol_tbl, $other_tbl) = 
+      &SetupArgTables ($ok_levels);
    @all_args = (@$pref_tbl, @$site_tbl, @$protocol_tbl, @$other_tbl);
    $ProtocolTbl = $protocol_tbl; # global so &ReadProtocol can see it
 
@@ -599,6 +681,8 @@ sub Initialize
                      minctracc
                      check_scale
                      autocrop/;
+   push (@programs, 'xfmtool')
+      if $NonlinearFit;
 
    &JobControl::SetOptions (ErrorAction => 'fatal',
                             Verbose     => $Verbose,
@@ -610,7 +694,7 @@ sub Initialize
    # Add -debug, -quiet, -clobber to subprogram command lines 
    # as appropriate
    
-   AddProgramOptions ([qw(mincblur minctracc mincresample autocrop)],
+   AddProgramOptions ([qw(mincblur minctracc mincresample autocrop)], 
                       ["-quiet"])
       unless $Verbose;
    AddProgramOptions ([qw(mincblur minctracc mincresample autocrop)],
@@ -618,7 +702,6 @@ sub Initialize
       if $Clobber;
    AddProgramOptions ([qw(mincblur minctracc)], ["-debug"])
       if $Debug;
-
 
    # Turn off GuessSubsample/GuessCrop if any subsample/crop
    # array other than (0) is specified -- this is what lets
@@ -638,11 +721,41 @@ sub Initialize
    $ModelDir .= "/" if ($ModelDir ne "" && $ModelDir !~ m|/$|);
    $Model = $ModelDir . $Model unless $Model =~ m|^/|;
 
-   my (@model_files) = ('16_blur', '8_blur', '8_dxyz', 'mask');
+   my (@model_files) = ('16_blur', '8_blur', '8_dxyz', 'mask', 'headmask');
    @model_files = map { "${Model}_${_}.mnc" } @model_files;
       
    &check_files ($SourceVol, @model_files) || &Fatal;
    $SourceBase = (&split_path ($SourceVol))[1];
+
+
+   # Check the nonlinear fitting stuff
+
+   if ($NonlinearFit)
+   {
+      $StartLevel = '16' unless defined $StartLevel;
+      $StopLevel = '8' unless defined $StopLevel;
+
+      my $i;
+      for ($i = 0; $i < @Levels; $i++)
+      {
+         $StartIndex = $i if $Levels[$i] eq $StartLevel;
+         $StopIndex = $i if $Levels[$i] eq $StopLevel;
+      }
+
+      die "-start_level must be $ok_levels\n"
+         unless defined $StartIndex;
+      die "-stop_level must be $ok_levels\n"
+         unless defined $StopIndex;
+
+      die "-startlevel may not be less than -stoplevel\n"
+         unless $StartIndex <= $StopIndex;
+   }
+   else
+   {
+      warn "$ProgramName: warning: " .
+           "-startlevel and -stoplevel ignored unless -nonlinear given\n"
+         if defined $StartLevel || defined $StopLevel;
+   }
 
 
    # Now dump out a summary of the options
@@ -658,6 +771,10 @@ sub Initialize
 		     "mi"     => "mutual information");
 
    &verbose(" protocol = $Protocol:");
+   my $fit_desc = 
+      ($NonlinearFit
+       ? "nonlinear fit from level $StartLevel to $StopLevel"
+       : "linear fit only");
    my ($subsample_desc) = 
       ($Subsample[0]
        ? "subsample to " . join(",", @Subsample) . "mm"
@@ -675,7 +792,8 @@ sub Initialize
        ? "pad/unpad the old way (don't encroach on original volume)"
        : "pad/unpad correctly (encroach on original volume)");
    my (@protocol_desc) = 
-      ($subsample_desc,
+      ($fit_desc,
+       $subsample_desc,
        $crop_desc,
        $blur_desc,
        $pad_desc,
@@ -710,20 +828,17 @@ use strict;
 #@RETURNS    : 
 #@DESCRIPTION: Subsamples, finds the volume centroid, and blurs.
 #@METHOD     : 
-#@GLOBALS    : $Subsample (read)
-#              @Crop
-#              $VolumeCOG (set)
-#              @Blurs (read)
+#@GLOBALS    : 
 #@CALLS      : 
 #@CREATED    : 95/08/04, Greg Ward (from code in main program)
 #@MODIFIED   : 
 #-----------------------------------------------------------------------------
 sub Preprocess
 {
-   die "&Preprocess: incorrect number of arguments" unless @_ == 10;
-   my ($volume, $base,
+   die "&Preprocess: incorrect number of arguments" unless @_ == 12;
+   my ($volume, $base, $compute_cog,
        $guess_subsample, $subsample, $guess_crop, $crop,
-       $blur, $blur_fwhm, $old_pad, $input_xfm) = @_;
+       $blur, $blur_fwhm, $blur_modes, $old_pad, $input_xfm) = @_;
 
    my ($reduced, $padded, @starts, @steps, @lengths);
    my ($volume_cog);                    # return value!
@@ -737,7 +852,7 @@ sub Preprocess
    {
       @$subsample = &GuessSubsample (\@steps)
 	 if ($guess_subsample);
-      @$crop = &GuessCrop (\@steps,\@lengths)
+      @$crop = &GuessCrop (\@steps, \@lengths)
 	 if ($guess_crop);
    }
 
@@ -758,8 +873,11 @@ sub Preprocess
    # blurring because blurring definitely does affect the COG.  (Hopefully
    # subsampling doesn't affect it too much!)
 
-   $volume_cog = &volume_cog ($reduced);
-   &verbose ("Centroid of input volume: $volume_cog");
+   if ($compute_cog)
+   {
+      $volume_cog = &volume_cog ($reduced);
+      &verbose ("Centroid of input volume: $volume_cog");
+   }
 
    # If blurring is to be done, then zero-pad and do it.  Otherwise, make
    # the reduced volume a symlink to just "base.mnc" -- and note that, in
@@ -768,49 +886,22 @@ sub Preprocess
 
    if ($blur)
    {
-      my ($pad, @roundto, @pad, $padded);
-
-      # Now zero-pad the volume (by 3 * sigma, where sigma is the SD of the
-      # largest gaussian blurring kernel that mincblur will use) to avoid
-      # edge effects in the FFT.  We round $pad up to the next factor of
-      # the resampling step size (in all three dimensions -- hence $pad
-      # becomes @pad) to avoid interpolation errors when we resample.
-
-      $pad = max (@$blur_fwhm) * 3 / (sqrt (8 * log(2)));
-      @roundto = (@$subsample && $subsample->[0]) ? (@$subsample) : (@steps);
-      @pad = map { round ($pad, $_, +1) } @roundto;
-      $padded = &PadVolume ($reduced, $base, "pad", \@pad);
-
-
-      # Figure out how much to "unpad" (crop off) after blurring -- this
-      # will be the pad amount plus 3*sigma for each size of blurring
-      # kernel.  The extra 3*sigma encroaches on the original volume, so we
-      # don't want to blindly cut off the same amount for each blurring
-      # size (like we can get away with when padding).
-
-      my (@unpad, $i);
-      for $i (0,1)
+      if ($input_xfm)
       {
-         if ($old_pad)
-         {
-            $unpad[0] = $unpad[1] = [map (-$_, @pad)]; # compatability
-         }
-         else
-         {
-            my $encroachment = $blur_fwhm->[$i] * 3 / (sqrt (8 * log(2)));
-            $unpad[$i] = 
-               [map (- $pad[$_] - round ($encroachment, $roundto[$_], +1), 
-                     0..2 )];
-         }
+         pop @$blur_fwhm;               # skip 16mm blur
+         pop @$blur_modes;
+
+         # Commenting this line out introduces a tiny bit of wastage for
+         # manually seeded linear fits: we will crop and keep around the
+         # intensity blur, even though it's not needed.  It is needed
+         # when we graduate to nonlinear fitting, though, so selecting
+         # between 'gi' and 'g' here would be a bit tricky.  Some other
+         # time, perhaps.
+#        $blur_modes->[0] = 'g';        # and 8mm blur becomes gradient only
       }
 
-      # my (@unpad) = ("-$pad[0]", "-$pad[1]", "-$pad[2]");    # old code
-
-      # Create the blurred volumes (16mm and 8mm FWHM) from the reduced volume
-
-      &IntensityBlur ($padded, $base, $blur_fwhm->[1], $unpad[1])
-         unless $input_xfm;
-      &GradientBlur ($padded, $base, $blur_fwhm->[0], $unpad[0]);
+      my $steps = (@$subsample == 3) ? $subsample : \@steps;
+      PadBlur ($reduced, $base, $steps, $old_pad, $blur_fwhm, $blur_modes);
    }
    else
    {
@@ -826,12 +917,154 @@ sub Preprocess
    }
 
    return $volume_cog;
+}  # &Preprocess
+
+
+# ------------------------------ MNI Header ----------------------------------
+#@NAME       : &pad_amounts
+#@INPUT      : 
+#@OUTPUT     : 
+#@RETURNS    : 
+#@DESCRIPTION: Computes the amounts to pad and unpad by for a given
+#              set of blurring kernels and a particular list of step sizes.
+#@METHOD     : 
+#@CALLERS    : &PadBlur, &special_pp
+#@CALLS      : 
+#@CREATED    : 1997/09/12, GPW (extracted from &PadBlur)
+#@MODIFIED   : 
+#-----------------------------------------------------------------------------
+sub pad_amounts
+{
+   my ($blur_fwhm, $steps, $old_pad) = @_;
+   my ($pad, @pad, @unpad);
+
+   # Figure out how much we need to pad by.  There's one set of three
+   # numbers (x,y,z padding) for *all* blurring kernels; we pad enough
+   # for the largest kernel.  That's overkill for the smaller ones, but
+   # harmless.  (And I'm guessing that it's faster to blur an overpadded
+   # volume than to make multiple copies padded by different amounts.)
+   # Thus, @pad will just be a list of three numbers.
+
+   $pad = max (@$blur_fwhm) * 3 / (sqrt (8 * log(2)));
+   @pad = map { round ($pad, $_, +1) } @$steps;
+
+
+   # Figure out how much to "unpad" (crop off) after blurring -- this
+   # will be the pad amount plus 3*sigma for each size of blurring
+   # kernel.  The extra 3*sigma encroaches on the original volume, so we
+   # don't want to blindly cut off the same amount for each blurring
+   # size (like we can get away with when padding).  @unpad will be 
+   # a list of lists -- one list of three numbers (x,y,z unpadding) for
+   # each kernel size.
+   
+   my $i;
+   for $i (0 .. $#$blur_fwhm)
+   {
+      if ($old_pad)
+      {
+         $unpad[0] = $unpad[1] = [map (-$_, @pad)]; # compatability
+      }
+      else
+      {
+         my $encroachment = $blur_fwhm->[$i] * 3 / (sqrt (8 * log(2)));
+         $unpad[$i] = 
+            [map (- $pad[$_] - round ($encroachment, $steps->[$_], +1), 
+                  0..2 )];
+      }
+   }  # for $i
+
+   (\@pad, \@unpad);
+}  # &pad_amounts
+
+
+# ------------------------------ MNI Header ----------------------------------
+#@NAME       : &SelectiveBlur
+#@INPUT      : $input
+#              $output_base
+#              $fwhm
+#              $unpad
+#              $mode
+#@OUTPUT     : (calls one of the blurring functions, so mincblur writes
+#              output file based on $output_base and $fwhm)
+#@RETURNS    : 
+#@DESCRIPTION: Blurs a single MINC file, either gradient, intensity, or
+#              both (depending on $mode).
+#@METHOD     : 
+#@CALLERS    : 
+#@CALLS      : 
+#@CREATED    : 1997/12/09, GPW & DLC (from code in &PadBlur)
+#@MODIFIED   : 
+#-----------------------------------------------------------------------------
+sub SelectiveBlur
+{
+   my ($input, $output_base, $fwhm, $unpad, $mode) = @_;
+
+   &IntensityBlur ($input, $output_base, $fwhm, $unpad), return
+      if $mode eq 'i';
+   &GradientBlur ($input, $output_base, $fwhm, $unpad, 1), return
+      if $mode eq 'gi';
+   &GradientBlur ($input, $output_base, $fwhm, $unpad, 0), return
+      if $mode eq 'g';
+   die "unknown blur mode \"$mode\"";
 }
+
+
+# ------------------------------ MNI Header ----------------------------------
+#@NAME       : PadBlur
+#@INPUT      : $input      - input file (passed to mincblur)
+#              $base       - output basename (also passed to mincblur)
+#              $steps      - steps (list ref: x,y,z) of input volume (
+#                            used for rounding padding)
+#              $old_pad    - flag: if true, will do the old-style, "no
+#                            encroachment" unpadding
+#              $blur_fwhm  - ref to list of blurring kernel FWHMs
+#              $blur_modes - ref to list of strings describing what to
+#                            do for each kernel size: 'i' for intensity
+#                            blur only, 'g' for gradient only, 'gi' for both
+#@OUTPUT     : one or two files (intensity, gradient, or both) per fwhm;
+#              filenames will be $base + fwhm + ("blur" | "dxyz") + ".mnc"
+#@RETURNS    : 
+#@DESCRIPTION: Zero-pads a volume by the maximum amount necessary for a 
+#              series of blurs, and carries out the blurs (which individually
+#              take care of unpadding the blurred data).
+#@METHOD     : 
+#@GLOBALS    : 
+#@CALLERS    : 
+#@CALLS      : pad_amounts, PadVolume, IntensityBlur, GradientBlur
+#@CREATED    : 1997/09/04, GPW (from code in &Preprocess)
+#@MODIFIED   : 
+#-----------------------------------------------------------------------------
+sub PadBlur
+{
+   my ($input, $base, $steps, $old_pad, $blur_fwhm, $blur_modes) = @_;
+   my ($pad, $unpad, $padded);
+
+   # First zero-pad the volume (by 3 * sigma, where sigma is the SD of the
+   # largest gaussian blurring kernel that mincblur will use) to avoid edge
+   # effects in the FFT.
+
+   ($pad, $unpad) = &pad_amounts ($blur_fwhm, $steps, $old_pad);
+   $padded = &PadVolume ($input, $base, "pad", $pad);
+
+
+   # Create the blurred volumes from the reduced volume
+
+   my $i;
+   for $i (reverse 0 .. $#$blur_fwhm)	# reverse to emulate old behaviour
+   {
+      &SelectiveBlur ($padded, $base, $blur_fwhm->[$i], $unpad->[$i],
+                      $blur_modes->[$i]);
+   }
+
+   unlink $padded unless $KeepTmp;
+}  # PadBlur
 
 
 # ----------------------------------------------------------------------------
 #    Routines called by &Preprocess:
 #       &ReduceVolume
+#       &PadBlur
+#       &PadVolume
 #       &IntensityBlur
 #       &GradientBlur
 # ----------------------------------------------------------------------------
@@ -976,7 +1209,7 @@ sub PadVolume
    $pad = "${TmpDir}/${base}_${label}.mnc";
    if (-e $pad)
    {
-      &verbose ("$pad exists already");
+      &verbose ("$pad already exists");
    }
    else
    {
@@ -1007,12 +1240,13 @@ sub PadVolume
 #-----------------------------------------------------------------------------
 sub IntensityBlur
 {
-   die "IntensityBlur: wrong number of arguments" unless @_ == 4;
-   my($input, $base, $blur, $crop) = @_;
+   die "IntensityBlur: wrong number of arguments" 
+      unless (@_ >= 4 && @_ <= 5);
+   my($input, $base, $blur, $crop, $no_announce) = @_;
    
    my($blurbase) = "${TmpDir}/${base}_${blur}";
    
-   &verbose("\nIntensity blurring data:");
+   &verbose("\nIntensity blurring data:") unless $no_announce;
    if(-e "${blurbase}_blur.mnc") 
    {
       &verbose("${blurbase}_blur.mnc exists");
@@ -1043,14 +1277,15 @@ sub IntensityBlur
 #              $base  - basename of input volume
 #              $blur  - FWHM of blurring kernel - will also be used to
 #                       generate the output filename
+#              $keep_intensity 
+#                     - if true, we will unpad and keep the intensity blur file
 #@OUTPUT     : 
-#@RETURNS    : Full names of the output files (intensity then gradient blur)
+#@RETURNS    : Full names of the output files (intensity then gradient blur).
+#              Both are returned even if we toss the intensity file.
 #@DESCRIPTION: Blurs a volume to the specified FWHM to get a gradient
 #              volume.  The output file will be named according to
 #              the specified base filename, with "_xx_blur.mnc" and 
 #              "_xx_dxyz.mnc" appended, where xx is the FWHM ($blur).
-#              
-#              
 #@METHOD     : 
 #@GLOBALS    : 
 #@CALLS      : 
@@ -1059,57 +1294,82 @@ sub IntensityBlur
 #-----------------------------------------------------------------------------
 sub GradientBlur
 {
-   die "&GradientBlur: wrong number of arguments" unless (@_ == 4);
-   my($input, $base, $blur, $crop) = @_;
+   die "&GradientBlur: wrong number of arguments" 
+      unless (@_ >= 4 && @_ <= 6);
+   my ($input, $base, $blur, $crop, $keep_intensity, $no_announce) = @_;
    
-   my($blurbase) = "${TmpDir}/${base}_${blur}";
+   my ($blurbase) = "${TmpDir}/${base}_${blur}";
+   my $blur_file = "${blurbase}_blur.mnc"; # intensity blur final product
+   my $grad_file = "${blurbase}_dxyz.mnc"; # gradient blur final product
 
-   &verbose("\nGradient blurring data:");
-   if (-e "${blurbase}_blur.mnc" && -e "${blurbase}_dxyz.mnc")
+   my ($already_done, $done_msg);
+   if ($keep_intensity)                 # expect two final output files
    {
-      &verbose("${blurbase}_dxyz.mnc and ${blurbase}_blur.mnc exist");
+      $already_done = -e $blur_file && -e $grad_file;
+      $done_msg = "$grad_file and $blur_file already exist";
+   }
+   else                                 # just expect a gradient file
+   {
+      $already_done = -e $grad_file;
+      $done_msg = "$grad_file already exists";
+   }
+
+   &verbose("\nGradient blurring data:") unless $no_announce;
+   if ($already_done)
+   {
+      &verbose($done_msg);
    }
    else
    {
-      my ($tmp_blur) = "${TmpDir}/tmp_${blur}";
+      my $tmp_blur_base = "${TmpDir}/tmp_${blur}";
+      my $tmp_blur = $tmp_blur_base . "_blur.mnc";
+      my $tmp_grad = $tmp_blur_base . "_dxyz.mnc";
       
-      unlink ("${blurbase}_blur.mnc", "${blurbase}_dxyz.mnc");
+      unlink ($grad_file, $blur_file);  # in case one existed but not the other
 
-      if (-e "${tmp_blur}_blur.mnc" && -e "${tmp_blur}_dxyz.mnc")
+      if (-e $tmp_blur && -e $tmp_grad)
       {
-	 &verbose("${tmp_blur}_blur.mnc and ${tmp_blur}_dxyz.mnc exist");
+	 &verbose("$tmp_blur and $tmp_grad already exist");
       }
       else
       {
-	 unlink ("${tmp_blur}_blur.mnc", "${tmp_blur}_dxyz.mnc");
-	 &Spawn (["mincblur", $input, $tmp_blur, "-fwhm", $blur, "-gradient"]);
+	 unlink ($tmp_blur, $tmp_grad);
+	 &Spawn (["mincblur", $input, $tmp_blur_base,
+                  "-fwhm", $blur, "-gradient"]);
       }
 
-      &Spawn (["autocrop", "${tmp_blur}_blur.mnc", "${blurbase}_blur.mnc",
-              "-expand", @$crop]);
-      &Spawn (["autocrop", "${tmp_blur}_dxyz.mnc", "${blurbase}_dxyz.mnc",
-               "-expand", @$crop]);
+      if ($keep_intensity)
+      {
+         &Spawn (["autocrop", $tmp_blur, $blur_file, "-expand", @$crop]);
+      }
+      &Spawn (["autocrop", $tmp_grad, $grad_file, "-expand", @$crop]);
 
-      unlink ("${tmp_blur}_blur.mnc", 
-	      "${tmp_blur}_dxyz.mnc");
+      unlink ($tmp_blur, $tmp_grad);
    }
-   ("${blurbase}_blur.mnc", "${blurbase}_dxyz.mnc");
-}
+
+   $keep_intensity
+      ? ($blur_file, $grad_file)
+      : ($grad_file);
+
+}  # &GradientBlur
 
 
 # ------------------------------ MNI Header ----------------------------------
 #@NAME       : &SetupFits
-#@INPUT      : 
+#@INPUT      : $blurs
+#              $blur
+#              $volume_cog
+#              $final_xfm
+#              $input_xfm
+#              $default_obj
+#              $first_obj
 #@OUTPUT     : 
-#@RETURNS    : 
-#@DESCRIPTION: Sets the global array of hashes that controls the fits.  
+#@RETURNS    : list of fit profiles
+#@DESCRIPTION: Sets up an array of hashes that controls the fits.  
 #              This way, the fitting procedure itself is quite
-#              mechanistic -- everything is set here.  (Note that this
-#              must be called after lots of other things have been
-#              set, including @Blurs, $VolumeCOG, $FinalXfm, and
-#              $InputXfm.)
+#              mechanistic -- everything is set here.
 #@METHOD     : 
-#@GLOBALS    : @Fit
+#@GLOBALS    : 
 #@CALLS      : 
 #@CREATED    : 95/07/28, Greg Ward - a distillation of Louis'
 #                        original &GradientFit
@@ -1121,7 +1381,7 @@ sub SetupFits
    die "SetupFits: wrong number of arguments" unless @_ == 7;
    my ($blurs, $blur, $volume_cog, $final_xfm, $input_xfm, 
        $default_obj, $first_obj) = @_;
-   my (@fit);
+   my (@initial_fits, @final_fits, @fits);
 
    # And here's where we control the fitting... currently, the fitting
    # steps are as follows:
@@ -1143,19 +1403,30 @@ sub SetupFits
    #                stuff), this could also be used as a keyword to 
    #                signify more complicated inter-processing that must
    #                be done between two fits, eg. "prepdata" to prepare
-   #                for the 4mm level nonlinear fit.  If empty,
-   #                minctracc is assumed.
+   #                for the 4mm level nonlinear fit.
    #   volume     - this is really the tail end of the names of *both*
-   #                volumes (source and target); it will be combined
-   #                with the appropriate directories and filename bases
-   #                to make two whole filenames.  (This means that you
-   #                *must* match similarly-suffixed files, eg. 
-   #                "foo_8_dxyz" to "bar_8_dxyz" -- but you cannot do
-   #                (eg) "foo_8_blur" to "bar_8_dxyz".)
+   #                volumes (source and target); it will be combined with
+   #                the appropriate directories and filename bases to make
+   #                two whole filenames.  (This ensures that you will match
+   #                similarly-suffixed files, eg.  "foo_8_dxyz" to
+   #                "bar_8_dxyz" -- but you cannot do (eg) "foo_8_blur" to
+   #                "bar_8_dxyz".)  In this string, 'BASE' will be replaced 
+   #                with either the source or target base name, depending
+   #                on which filename we're generating.
+   #   target
+   #   source     - used to generate independent target and source
+   #                filenames.  Not used for linear fitting, but comes in
+   #                handy in non-linear fitting when we might fit
+   #                "specially pre-processed" data (which has a different
+   #                base filename, due to the extra processing) to regular
+   #                ol' model files.  Use either 'volume' or ('target' and 
+   #                'source') -- don't try to mix and match.
+   #   init_args  - the arguments used to compute the initial transformation
    #   inputxfm   - the filename tail of the transform file passed to
    #                minctracc as the starting point.  Note that this
    #                is basically a copy of the transforms listed under
-   #                `outputxfm', shifted down by one element.  
+   #                `outputxfm', shifted down by one element.  (`init_args'
+   #                and `inputxfm' are mutually exclusive.)
    #   outputxfm  - the filename tail for the output transform for
    #                each fit
    #   type       - what kind of fit minctracc is to do (eg. "lsq7")
@@ -1179,107 +1450,129 @@ sub SetupFits
    # (presumably near the beginning!); it will be replaced with the
    # actual filename base.  For the 'volume' field, this may be
    # replaced by both the source and target base.
+   #
+   # See &SetupNLFits for a description of the fields used to describe
+   # nonlinear fitting.
    
-   @fit = ({'description' => "$blurs->[1]mm lsq7 intensity fit, no masks",
-            'program'     => "",                         # fit 0
-	    'volume'      => "BASE_$blurs->[1]_blur.mnc",
-	    'inputxfm'    => "-est_translations",
-	    'outputxfm'   => "BASE_$blurs->[1].xfm",
-	    'type'        => "lsq7",
-            'objective'   => $default_obj,
-	    'sourcemask'  => "",
-	    'targetmask'  => "",
-	    'center'      => "-center $volume_cog",
-	    'steps'       => [qw/4 4 4/],
-	    'tolerance'   => 0.01,
-	    'simplex'     => 20},
+   if (! defined $input_xfm)
+   {
+      # we only defined fits if $input_xfm is undefined, because if we have
+      # an $input_xfm then the $blurs array only has one element -- and
+      # trying to access $blurs->[1] triggers an 'undefined' value warning
+      # here
 
-	   {'description' => "$blurs->[0]mm lsq7 intensity fit, no masks",
-            'program'     => "",                         # fit 1
-	    'volume'      => "BASE_$blurs->[0]_blur.mnc",
-	    'inputxfm'    => "-transformation BASE_$blurs->[1].xfm",
-	    'outputxfm'   => "BASE_$blurs->[0]tmp1a.xfm",
-	    'type'        => "lsq7",
-            'objective'   => $default_obj,
-	    'sourcemask'  => "",
-	    'targetmask'  => "",
-	    'center'      => "-center $volume_cog",
-	    'steps'       => [qw/4 4 4/],
-	    'tolerance'   => 0.004,
-	    'simplex'     => 5},
+      @initial_fits =
+         ({ description => "$blurs->[1]mm intensity lsq7 fit, no masks",
+            program     => 'minctracc',                   # fit 0
+            volume      => "BASE_$blurs->[1]_blur.mnc",
+            init_args   => "-est_translations",
+            outputxfm   => "BASE_$blurs->[1].xfm",
+            type        => "lsq7",
+            objective   => $default_obj,
+            sourcemask  => "",
+            targetmask  => "",
+            center      => "-center $volume_cog",
+            steps       => [qw/4 4 4/],
+            tolerance   => 0.01,
+            simplex     => 20 },
+
+          { description => "$blurs->[0]mm intensity lsq7 fit, no masks",
+            program     => 'minctracc',                   # fit 1
+	    volume      => "BASE_$blurs->[0]_blur.mnc",
+	    inputxfm    => "BASE_$blurs->[1].xfm",
+	    outputxfm   => "BASE_$blurs->[0]tmp1a.xfm",
+	    type        => "lsq7",
+            objective   => $default_obj,
+	    sourcemask  => "",
+	    targetmask  => "",
+	    center      => "-center $volume_cog",
+	    steps       => [qw/4 4 4/],
+	    tolerance   => 0.004,
+	    simplex     => 5 },
 	   
-	   {'description' => "$blurs->[0]mm lsq7 gradient fit, target masked",
-            'program'     => "",                         # fit 2
-	    'volume'      => "BASE_$blurs->[0]_dxyz.mnc",
-	    'inputxfm'    => "-transformation BASE_$blurs->[0]tmp1a.xfm",
-	    'outputxfm'   => "BASE_$blurs->[0]tmp1b.xfm",
-            'type'        => "lsq7",
-            'objective'   => $default_obj,
-	    'sourcemask'  => "",
-	    'targetmask'  => "BASE_mask.mnc",
-	    'center'      => "-center $volume_cog",
-	    'steps'       => [qw/4 4 4/],
-	    'tolerance'   => 0.004,
-	    'simplex'     => 2},
+          { description => "$blurs->[0]mm gradient lsq7 fit, target masked",
+            program     => 'minctracc',                   # fit 2
+	    volume      => "BASE_$blurs->[0]_dxyz.mnc",
+	    inputxfm    => "BASE_$blurs->[0]tmp1a.xfm",
+	    outputxfm   => "BASE_$blurs->[0]tmp1b.xfm",
+            type        => "lsq7",
+            objective   => $default_obj,
+	    sourcemask  => "",
+	    targetmask  => "BASE_mask.mnc",
+	    center      => "-center $volume_cog",
+	    steps       => [qw/4 4 4/],
+	    tolerance   => 0.004,
+	    simplex     => 2 }
+         );
+   }  # if $input_xfm defined
 
-	   {'description' => "$blurs->[0]mm lsq9 gradient fit, target masked",
-            'program'     => "",                         # fit 3
-	    'volume'      => "BASE_$blurs->[0]_dxyz.mnc",
-	    'inputxfm'    => "-transformation BASE_$blurs->[0]tmp1b.xfm",
-	    'outputxfm'   => "BASE_$blurs->[0]tmp2a.xfm",
-	    'type'        => "lsq9",
-            'objective'   => $default_obj,
-	    'sourcemask'  => "",
-	    'targetmask'  => "BASE_mask.mnc",
-	    'center'      => "-center $volume_cog",
-	    'steps'       => [qw/4 4 4/],
-	    'tolerance'   => 0.004,
-	    'simplex'     => 2},
+   # we always define @final_fits, because these fits must always be
+   # run for a linear fit
 
-	   {'description' => "checking z-scale",
-            'program'     => "check_scale",              # "fit" 4
-	    'inputxfm'    => "BASE_$blurs->[0]tmp2a.xfm",
-	    'outputxfm'   => "BASE_$blurs->[0]tmp2b.xfm"},
+   @final_fits = 
+      ({ description => "$blurs->[0]mm gradient lsq9 fit, target masked",
+         program     => 'minctracc',                   # fit 3
+         volume      => "BASE_$blurs->[0]_dxyz.mnc",
+         inputxfm    => "BASE_$blurs->[0]tmp1b.xfm",
+         outputxfm   => "BASE_$blurs->[0]tmp2a.xfm",
+         type        => "lsq9",
+         objective   => $default_obj,
+         sourcemask  => "",
+         targetmask  => "BASE_mask.mnc",
+         center      => "-center $volume_cog",
+         steps       => [qw/4 4 4/],
+         tolerance   => 0.004,
+         simplex     => 2 },
 
-	   {'description' => "$blurs->[0]mm lsq9 gradient fit, target masked",
-            'program'     => "",                         # fit 5
-	    'volume'      => "BASE_$blurs->[0]_dxyz.mnc",
-	    'inputxfm'    => "-transformation BASE_$blurs->[0]tmp2b.xfm",
-	    'outputxfm'   => "BASE_$blurs->[0]tmp2c.xfm",
-	    'type'        => "lsq9",
-            'objective'   => $default_obj,
-	    'sourcemask'  => "",
-	    'targetmask'  => "BASE_mask.mnc",
-	    'center'      => "-center $volume_cog",
-	    'steps'       => [qw/4 4 4/],
-	    'tolerance'   => 0.004,
-	    'simplex'     => 2},
+       { description => "checking z-scale",
+         program     => "check_scale",                 # "fit" 4
+         inputxfm    => "BASE_$blurs->[0]tmp2a.xfm",
+         outputxfm   => "BASE_$blurs->[0]tmp2b.xfm" },
 
-	   {'description' => "Final fit: $blurs->[0]mm lsq9 gradient fit, target masked",
-            'program'     => "",                         # fit 6
-	    'volume'      => "BASE_$blurs->[0]_dxyz.mnc",
-	    'inputxfm'    => "-transformation BASE_$blurs->[0]tmp2c.xfm",
-	    'outputxfm'   => "$final_xfm",
-	    'type'        => "lsq9",
-            'objective'   => $default_obj,
-	    'sourcemask'  => "",
-	    'targetmask'  => "BASE_mask.mnc",
-	    'center'      => "-center $volume_cog",
-	    'steps'       => [qw/4 4 4/],
-	    'tolerance'   => 0.004,
-	    'simplex'     => 2});
+       { description => "$blurs->[0]mm gradient lsq9 fit, target masked",
+         program     => 'minctracc',                   # fit 5
+         volume      => "BASE_$blurs->[0]_dxyz.mnc",
+         inputxfm    => "BASE_$blurs->[0]tmp2b.xfm",
+         outputxfm   => "BASE_$blurs->[0]tmp2c.xfm",
+         type        => "lsq9",
+         objective   => $default_obj,
+         sourcemask  => "",
+         targetmask  => "BASE_mask.mnc",
+         center      => "-center $volume_cog",
+         steps       => [qw/4 4 4/],
+         tolerance   => 0.004,
+         simplex     => 2 },
+
+       { description => "final linear fit: " .
+                        "$blurs->[0]mm gradient lsq9 fit, target masked",
+         program     => 'minctracc',                   # fit 6
+         volume      => "BASE_$blurs->[0]_dxyz.mnc",
+         inputxfm    => "BASE_$blurs->[0]tmp2c.xfm",
+         outputxfm   => "$final_xfm",
+         type        => "lsq9",
+         objective   => $default_obj,
+         sourcemask  => "",
+         targetmask  => "BASE_mask.mnc",
+         center      => "-center $volume_cog",
+         steps       => [qw/4 4 4/],
+         tolerance   => 0.004,
+         simplex     => 2 }
+      );
 
 
    # If the user supplied an initial transformation on the command line,
-   # then cut out the lsq7 fits and replace the `inputxfm' parameter for
-   # the new first fit to use the user's input xfm.  Note: in the main
-   # program, we also look to see if $input_xfm is defined, and if so skip
-   # the "coarser" blurring step ($blurs->[1]).
+   # then tweak the filename in $final_fits[0] (because that will become
+   # the entry point for the whole fitting pipeline), and construct the 
+   # whole fit array appropriately.
 
    if ($input_xfm)
    {
-      splice (@fit, 0, 3);	# remove the first three fit profiles
-      $fit[0]->{'inputxfm'} = "-transformation $input_xfm";
+      $final_fits[0]->{'inputxfm'} = $input_xfm;
+      @fits = @final_fits;
+   }
+   else
+   {
+      @fits = (@initial_fits, @final_fits);
    }
 
    # If the user specified a different objective function for the
@@ -1288,7 +1581,7 @@ sub SetupFits
 
    if ($first_obj)
    {
-      $fit[0]->{'objective'} = $first_obj;
+      $fits[0]->{'objective'} = $first_obj;
    }
 
    # If no blurring is to be done, then remove any mention of blurred
@@ -1299,15 +1592,241 @@ sub SetupFits
    unless ($blur)
    {
       my $fit;
-      for $fit (@fit)
+      for $fit (@fits)
       {
          $fit->{'description'} =~ s/^\d+mm\s+//;
+         $fit->{'description'} =~ s/gradient|intensity/unblurred/;
          $fit->{'volume'} = "BASE.mnc";
       }
    }
 
-   return @fit;
+   return @fits;
 }
+
+
+# ------------------------------ MNI Header ----------------------------------
+#@NAME       : SetupNLFits
+#@INPUT      : 
+#@OUTPUT     : 
+#@RETURNS    : 
+#@DESCRIPTION: Sets up the list of 'fit' structures needed for non-linear
+#              fitting.  This is similar to SetupFits, but a bit fancier
+#              because of the ability to enter/exit the non-linear chain
+#              at any point (determined by $start_level and $stop_level).
+#@METHOD     : 
+#@GLOBALS    : 
+#@CALLERS    : 
+#@CALLS      : 
+#@CREATED    : 1997/09/03, Greg Ward and Louis Collins
+#@MODIFIED   : 
+#-----------------------------------------------------------------------------
+sub SetupNLFits
+{
+   my ($start_index, $stop_index, $input_xfm, $final_xfm, $default_obj) = @_;
+   my (%blurs, @nl_fits, %special_pp);
+
+   %blurs =  ('16' => 8, '8' => 8, '4a' => 4, '4b' => 4, '2' => 2);
+   die "internal error: \%blurs and \@Levels don't match" 
+      unless join ('|', sort keys %blurs) eq join ('|', sort @Levels);
+
+
+   # TODO
+   #   * maybe change 'volume' to 'volumes' (because it tells how
+   #     to generate both source and target filenames)
+
+
+   # Here are the fields used to extend the fit structure to handle 
+   # nonlinear fitting (see &SetupFits for a description of the other
+   # fields).
+   #
+   #   level      - the "level" of fit -- corresponds to "-startlevel" 
+   #                and "-stoplevel" command-line options
+   #   sub_lattice- diameter (in number of nodes) of local sub-lattice 
+   #                (default 5)
+   #   optimizer  - string specifiying which optimizer to use -- either 
+   #                'quadratic' (a straight quadratic fit, not really
+   #                an optimization) or 'simplex' (the default)
+   #   similarity - weighting factor for  r=similarity*w + cost(1-w) (0.5)
+   #   iterations - number of iterations for non-linear optimization (4)
+   #   weight     - weighting factor for each iteration in nl optimization
+   #                (0.6)
+   #   stiffness  - weighting factor for smoothing between nl iterations (0.5)
+   #   use_local  - boolean flag to turn on local smoothing 
+   #                (if false, the default is global smoothing).
+   #   use_noniso - boolean flag to turn on directionally sensitive smoothing
+   #                (if false, the default isotropic smoothing.  Note that
+   #                local is only worthwhile when noniso is on)
+   #   super      - amount (+int) of deformation field super sampling during
+   #                optimization (a value of 0 will give -no_super).
+
+   # XXX currently the 'threshold' value is unused because there's only
+   # one of them -- animal needs two values!  (seems pretty pointless
+   # to threshold at a hard-coded absolute value of 0.075, anyways...)
+
+   @nl_fits = 
+      ( { level       => '16',
+         description => "level 16 nonlinear: $blurs{'16'}mm intensity fit, no masks",
+         program     => 'animal',
+         volume      => "BASE_$blurs{'16'}_blur.mnc",
+         inputxfm    => undef,    # filled in later!
+         outputxfm   => "BASE_16_nl.xfm",
+         type        => 'nonlinear',
+         objective   => $default_obj,
+         sourcemask  => '',
+         targetmask  => '',
+         threshold   => 0.075,  # WHAT IS THIS!??!  Louis will check
+         steps       => [8, 8, 8],
+         sub_lattice => 6,
+         optimizer   => 'simplex',
+         similarity  => 0.5,
+         iterations  => 12,
+         weight      => 0.5,
+         stiffness   => 0.5,
+         supersample => 2 },
+       { level       => '8',
+         description => "level 8 nonlinear: $blurs{'8'}mm intensity fit, no masks",
+         program     => 'animal',
+         volume      => "BASE_$blurs{'8'}_blur.mnc",
+         inputxfm    => "BASE_16_nl.xfm",
+         outputxfm   => "BASE_8_nl.xfm",
+         type        => 'nonlinear',
+         objective   => $default_obj,
+         sourcemask  => '',
+         targetmask  => '',
+         threshold   => 0.075,
+         steps       => [4, 4, 4],
+         sub_lattice => 6,
+         optimizer   => 'simplex',
+         similarity  => 0.5,
+         iterations  => 8,
+         weight      => 0.6,
+         stiffness   => 0.5,
+         supersample => 2 },
+       { level       => '4a',
+         description => "level 4 nonlinear: $blurs{'4a'}mm intensity fit, target masked",
+         program     => 'animal',
+         source      => "BASE_headcrop_$blurs{'4a'}_blur.mnc",
+         target      => "BASE_$blurs{'4a'}_blur.mnc",
+         inputxfm    => "BASE_8_nlcrop.xfm",
+         outputxfm   => "BASE_4_nl.xfm",
+         type        => 'nonlinear',
+         objective   => $default_obj,
+         sourcemask  => '',
+         targetmask  => "BASE_mask.mnc",
+         threshold   => 0.075,
+         steps       => [2, 2, 2],
+         sub_lattice => 5,
+         optimizer   => 'quadratic',
+         similarity  => 0.5,
+         iterations  => 5,
+         weight      => 1.0,
+         stiffness   => 0.5,
+         supersample => 0 },
+       { level       => '4b',
+         description => "level 4b nonlinear: $blurs{'4b'}mm gradient fit, target masked",
+         program     => 'animal',
+         source      => "BASE_headcrop_$blurs{'4b'}_dxyz.mnc",
+         target      => "BASE_$blurs{'4b'}_dxyz.mnc",
+         inputxfm    => "BASE_4_nl.xfm",
+         outputxfm   => "BASE_4b_nl.xfm",
+         type        => 'nonlinear',
+         objective   => $default_obj,
+         sourcemask  => '',
+         targetmask  => "BASE_mask.mnc",
+         threshold   => 0.075,
+         steps       => [2, 2, 2],
+         sub_lattice => 5,
+         optimizer   => 'quadratic',
+         similarity  => 0.5,
+         iterations  => 5,
+         weight      => 1.0,
+         stiffness   => 0.5,
+         supersample => 0 },
+       { level       => '2',
+         description => "level 2 nonlinear: $blurs{'2'}mm gradient fit, target masked",
+         program     => 'animal',
+         source      => "BASE_headcrop_$blurs{'2'}_dxyz.mnc",
+         target      => "BASE_$blurs{'2'}_dxyz.mnc",
+         inputxfm    => "BASE_4b_nl.xfm",
+         outputxfm   => "BASE_2_nl.xfm",
+         type        => 'nonlinear',
+         objective   => $default_obj,
+         sourcemask  => '',
+         targetmask  => "BASE_mask.mnc",
+         threshold   => 0.075,
+         steps       => [1, 1, 1],
+         sub_lattice => 5,
+         optimizer   => 'quadratic',
+         similarity  => 0.5,
+         iterations  => 3,
+         weight      => 1.0,
+         stiffness   => 0.5,
+         supersample => 0 }
+      );
+
+
+   # there should be a "???" after every entry in this hash... but I didn't
+   # bother to put them in, to reduce clutter ;-)
+   %special_pp = 
+      (description => "special pre-processing for high-resolution " .
+                      "nonlinear fits",
+       program     => 'special_pp',     # actually, it's a subroutine
+       inputxfm    => "BASE_$blurs{'8'}_nl.xfm",
+       outputxfm   => "BASE_$blurs{'8'}_nlcrop.xfm",
+       cropped     => "BASE_headcrop.mnc",
+       blur_fwhm   => undef,            # filled in below
+       blur_mode   => undef             # ditto
+      );
+
+
+   my ($i, %index);
+   for ($i = 0; $i < @Levels; $i++) { $index{$Levels[$i]} = $i; }
+   @nl_fits = grep { $index{$_->{level}} >= $start_index &&
+                     $index{$_->{level}} <= $stop_index } @nl_fits;
+
+   if ($start_index >= $index{'4a'})    # will really start with special_pp
+   {
+      $special_pp{'inputxfm'} = $input_xfm;
+      $nl_fits[0]->{'inputxfm'} = $special_pp{'outputxfm'};
+   }
+   else                                 # will start with a fit
+   {
+      $nl_fits[0]->{'inputxfm'} = $input_xfm;
+   }
+   $nl_fits[-1]->{'outputxfm'} = $final_xfm;
+
+   # Clever little hack here.  Figure it out if you dare.  ;-)
+
+   my ($start_level, $stop_level, %special_pp_actions);
+   %special_pp_actions = 
+      ('4a:4a' => [[4], ['i']],
+       '4a:4b' => [[4], ['gi']],
+       '4b:4b' => [[4], ['g']],
+       '4a:2'  => [[4, 2], ['gi', 'g']],
+       '4b:2'  => [[4, 2], ['g', 'g']],
+       '2:2'   => [[2], ['g']]);
+       
+   $start_level = $start_index < $index{'4a'} ? '4a' : $Levels[$start_index];
+   $stop_level = $Levels[$stop_index];
+   my $action = $special_pp_actions{"$start_level:$stop_level"};
+   if (defined $action)
+   {
+      $special_pp{'blur_fwhm'} = $action->[0];
+      $special_pp{'blur_mode'} = $action->[1];
+   }
+          
+   # Hey kids!  See if you can count the potential off-by-one errors here!
+   # (Don't try this at home, only to be attempted with adult supervision.)
+   my $j = $#nl_fits;
+   $j-- until $index{$nl_fits[$j]->{level}} < $index{'4a'} || $j == -1;
+   if ($j < $#nl_fits)			# must add "special preprocessing" step
+   {
+      splice (@nl_fits, $j+1, 0, \%special_pp);
+   }
+
+   return @nl_fits;
+
+}  # SetupNLFits
 
 
 # ----------------------------------------------------------------------
@@ -1341,6 +1860,7 @@ sub get_full_filename
    my ($fit, $key, $base) = @_;
    my ($filename);
 
+   return unless defined $fit->{$key};
    ($filename = $fit->{$key}) =~ s/BASE/$base/;
    $filename;
 }
@@ -1380,12 +1900,16 @@ sub check_scale
 #              $in_xfm  - full name of input transformation file
 #@OUTPUT     : $out_xfm - full name of output transformation file
 #@RETURNS    : 
-#@DESCRIPTION: Runs minctracc for one volume->volume fit, with several
-#              required and optional parameters taken from the fit
+#@DESCRIPTION: 
+
+#              Runs minctracc for one volume->volume fit, with
+#              several required and optional parameters taken from the fit
 #              profile referenced by $fit.  The required parameters are
-#              `volume', `inputxfm', `outputxfm', and `type'.  The 
-#              optional parameters are `center', `steps', `tolerance', 
-#              and `simplex'.
+#              `volume', `inputxfm', `outputxfm', and `type'.  The optional
+#              parameters (for minctracc in linear mode) are `center', `steps',
+#              `tolerance', and `simplex'; for nonlinear mode, there are 
+#              a ton of optional parameters; see &SetupNLFits.
+
 #@METHOD     : 
 #@GLOBALS    : 
 #@CALLS      : &get_full_filename
@@ -1395,19 +1919,29 @@ sub check_scale
 sub minctracc
 {
    my ($source, $model, $fit, $in_xfm, $out_xfm) = @_;
-   my ($svol, $tvol, $type);
+   my ($program, $svol, $tvol, $type);
    my ($sourcemask, $targetmask);
 
    &Fatal ("fit profile is missing some required field")
-      unless ($fit->{'volume'} && 
-	      $fit->{'inputxfm'} && 
+      unless ($fit->{'program'} &&
+              ($fit->{'volume'} || ($fit->{'target'} && $fit->{'source'})) &&
+	      ($fit->{'inputxfm'} || $fit->{'init_args'}) && 
 	      $fit->{'outputxfm'} &&
 	      $fit->{'type'});
 
    # Pull out the required variables and do any pre-processing needed
 
-   $svol = &get_full_filename ($fit, 'volume', $source);
-   $tvol = &get_full_filename ($fit, 'volume', $model);
+   $program = $fit->{'program'};
+   if (exists $fit->{'volume'})
+   {
+      $svol = &get_full_filename ($fit, 'volume', $source);
+      $tvol = &get_full_filename ($fit, 'volume', $model);
+   }
+   else
+   {
+      $svol = &get_full_filename ($fit, 'source', $source);
+      $tvol = &get_full_filename ($fit, 'target', $model);
+   }
    $type = $fit->{'type'};
    $sourcemask = &get_full_filename ($fit, 'sourcemask', $source);
    $targetmask = &get_full_filename ($fit, 'targetmask', $model);
@@ -1415,42 +1949,296 @@ sub minctracc
    # Pull out the optional variables from the hash (just because I'm
    # a lazy typist)
 
-   my ($objective, $center, $steps, $tolerance, $simplex) =
-      @{$fit}{'objective', 'center', 'steps', 'tolerance', 'simplex'};
+   my ($objective, $center, $steps, $tolerance, $simplex,
+       $optimizer, $supersample) = 
+          @{$fit}{qw(objective center steps tolerance simplex 
+                     optimizer supersample)};
 
    # As long as the output xfm file doesn't already exist (or if it
    # does exist, but we're allowed to clobber it), do the fit
 
    if (-e $out_xfm && !$Clobber)
    {
-      &verbose ("$out_xfm exists already");
+      &verbose ("$out_xfm already exists");
    }
    else
    {
-      my (@options, @steps, @in_xfm, @center);
+      my (@options, @steps, @init_options, @center);
 
-      @in_xfm = split (/\s+/, $in_xfm);
-      @center = split (/\s+/, $center) if $center;
+      @init_options = 
+         $in_xfm ? ('-transformation', $in_xfm)
+                 : split (' ', $fit->{'init_args'});
+      @center = split (' ', $center) if $center;
 
       push (@options, "-$objective");
       push (@options, "-source_mask", $sourcemask) if $sourcemask;
       push (@options, "-model_mask", $targetmask) if $targetmask;
       push (@options, @center) if @center;
       push (@options, "-step", @$steps) if $steps;
-      push (@options, "-tol", $tolerance) if $tolerance;
-      push (@options, "-simplex", $simplex) if $simplex;
+      push (@options, "-tol", $tolerance) if defined $tolerance;
+      push (@options, "-simplex", $simplex) if defined $simplex;
 
-      &Spawn (["minctracc", $svol, $tvol, $out_xfm, @in_xfm, "-$type",
+      if ($program eq 'animal')
+      {
+	 push (@options, '-nonlinear');
+         push (@options, '-quadratic') if $optimizer eq 'quadratic';
+
+         my $param;
+         for $param (qw(sub_lattice similarity 
+                        iterations weight stiffness))
+         {
+            push (@options, "-$param", $fit->{$param})
+               if defined $fit->{$param};
+         }
+         push (@options, 
+               ($supersample == 0) ? ('-no_super') : ('-super', $supersample));
+      }
+
+      &Spawn (['minctracc', $svol, $tvol, $out_xfm, @init_options, "-$type",
                @options]);
    }
-}   
+}  # &minctracc
+
+
+# ------------------------------ MNI Header ----------------------------------
+#@NAME       : &hack_nonlinear_xfm
+#@INPUT      : $in_xfm
+#              $out_xfm
+#              $new_deform
+#@OUTPUT     : 
+#@RETURNS    : ($old_deform, $new_deform)
+#                 - $old_deform is the name of the deformation field volume
+#                   extracted from $in_xfm; $new_deform is the passed-in
+#                   value, but with the directory component of $out_xfm
+#                   prepended
+#              OR empty list, if no deformation grid filename was found in
+#                $in_xfm (eg. it's a linear or TPS transformation)
+#@DESCRIPTION: Reads a nonlinear transform file, extracts the name of the
+#              deformation field filename stored in it, and writes a new xfm
+#              file with a new deformation file.
+#@METHOD     : 
+#@CALLERS    : special_preprocess
+#@CALLS      : 
+#@CREATED    : 1997/09/12, GPW (extracted from &special_pp)
+#@MODIFIED   : 
+#@COMMENTS   : This is very, very naughty code -- poking about the innards
+#              of a an xfm file like this is EVIL!!!  (...got a better idea?)
+#-----------------------------------------------------------------------------
+sub hack_nonlinear_xfm
+{
+   my ($in_xfm, $out_xfm, $new_deform) = @_;
+   my $old_deform;
+
+   open (INXFM, $in_xfm) || die "couldn't open $in_xfm: $!\n";
+   open (OUTXFM, ">$out_xfm") || die "couldn't create $out_xfm: $!\n";
+
+   my $comment = <<COMMENT;
+% $ProgramName: special pre-processing for later non-linear fits
+% created $out_xfm 
+% from $in_xfm
+COMMENT
+   my ($prev_was_comment, $wrote_comment);
+
+   while (<INXFM>)
+   {
+      # put our own comment just before the first blank line after a
+      # comment, or before the first "real content" line (in case that
+      # blank line isn't there)
+
+      if (((/^\s*$/ && $prev_was_comment) || # blank line after a comment
+           (/^Transform_Type/)) &&           # first "real content"
+          !$wrote_comment)                   # haven't already written it!
+      {
+         print OUTXFM $comment;
+         $wrote_comment = 1;
+      }
+
+      # change the deformation field filename when we find it
+
+      if (/^Displacement_Volume \s* = \s* ([^;]+);/x)
+      { 
+         print OUTXFM "Displacement_Volume = $new_deform;\n";
+         $old_deform = $1;
+      }
+      else
+      {
+         print OUTXFM;
+      }
+
+      $prev_was_comment = /^%/;
+   }
+   close INXFM;
+   close OUTXFM;
+
+   return () unless defined $old_deform;
+
+   $old_deform = (&split_path ($in_xfm))[0] . $old_deform
+      unless ($old_deform =~ m|^/|);
+   $new_deform = (&split_path ($out_xfm))[0] . $new_deform
+      unless ($new_deform =~ m|^/|);
+
+   ($old_deform, $new_deform);
+}  # &hack_nonlinear_xfm
+
+
+# ------------------------------ MNI Header ----------------------------------
+#@NAME       : &special_preprocess
+#@INPUT      : 
+#@OUTPUT     : 
+#@RETURNS    : 
+#@DESCRIPTION: Performs the "special pre-processing" used to save time
+#              and space as a prelude to the level-4 and level-2 nonlinear
+#              fits.
+#@METHOD     : 
+#@GLOBALS    : $TmpDir (?), $KeepTmp
+#@CALLERS    : 
+#@CALLS      : 
+#@CREATED    : 1997/09/09, Greg Ward
+#@MODIFIED   : 
+#-----------------------------------------------------------------------------
+sub special_preprocess
+{
+   my ($source_vol, $source, $model, $fit, $in_xfm, $out_xfm) = @_;
+   my ($model_mask, $source_mask, $linear_xfm);
+
+#   $tmp_dir = "$TmpDir/special_pp";
+#   check_output_dirs ($tmp_dir) || exit 1;
+
+   $model_mask = $model . "_headmask.mnc";
+   $source_mask = $source . "_headmask.mnc";
+   $linear_xfm = $source . "_lin.xfm";
+
+   # First, extract the linear component from the current nonlinear xfm
+   # ($in_xfm), and use it to resample the model headmask back to native
+   # space
+
+   if (-e $source_mask && !$Clobber)
+   {
+      &verbose ("$source_mask already exists");
+   }
+   else
+   {
+      # four cases governing how to create $linear_xfm:
+      #   exists && clobber    : unlink, run xfmtool
+      #   exists && !clobber   : skip completely
+      #   !exists && clobber   : [unlink,] run xfmtool
+      #   !exists && !clobber  : run xfmtool
+
+      unlink $linear_xfm                # because xfmtool can't clobber
+         if -e $linear_xfm && $Clobber;
+      Spawn (['xfmtool', "extract(1):$in_xfm", $linear_xfm])
+         unless -e $linear_xfm;
+
+      Spawn (['mincresample', $model_mask, $source_mask,
+              '-byte', '-nearest_neighbour',
+              '-transformation', $linear_xfm, '-invert',
+              '-like', $source_vol]);
+   }
+
+
+   # Now compute the bounding box of the transformed headmask, and use it
+   # to crop the original native MRI 
+
+   # XXX should we force cubic voxels in the MRI here??? (could do it by
+   # getting steps from $source_vol, finding the minimum of them, and
+   # passing that to autocrop with '-isostep').  If we do we can just
+   # skip the call to volume_params, because we'll have to figure out
+   # what the steps are to be before running autocrop anyways.
+
+   my $cropped_mri = &get_full_filename ($fit, 'cropped', $source);
+   my @steps;
+   volume_params ($source_vol, undef, \@steps);
+   my ($pad, $unpad) = &pad_amounts ($fit->{'blur_fwhm'}, \@steps, 0);
+
+   if (-e $cropped_mri && !$Clobber)
+   {
+      &verbose ("$cropped_mri already exists");
+   }
+   else
+   {
+      Spawn (['autocrop', $source_vol, $cropped_mri, 
+              '-bbox', $source_mask, '-expand', @$pad]);
+   }
+   unlink $source_mask unless $KeepTmp;
+
+
+   # Now blur the cropped MRI as many times as are required by the
+   # 'blur_fwhm' field in $fit
+
+   my $crop_base = (&split_path ($cropped_mri))[1];
+   my $i;
+   for $i (0 .. $#{$fit->{'blur_fwhm'}})
+   {
+      &SelectiveBlur ($cropped_mri, $crop_base, 
+                      $fit->{'blur_fwhm'}[$i], $unpad->[$i], $fit->{'blur_mode'}[$i]);
+   }
+
+
+   # Finally, we create the new (cropped) nonlinear transform.  This has
+   # two steps: create the new .xfm file, and create the new deformation
+   # field.  We create the new .xfm file first, because we basically
+   # copy the old one to the new one; along the way, we pull out the name
+   # of the old deformation field, and drop in the name of the new one.
+   # That old field will be cropped to create the new field, thus
+   # making the new .xfm file valid.
+
+   my ($input_def, $cropped_def);
+
+   if ($Execute)                        
+   {                                    
+      # find the real name of the input deformation field (and create a new
+      # xfm file using the cropped field)
+
+      $cropped_def = (&split_path ($out_xfm))[1] . '_grid_0.mnc';
+      ($input_def, $cropped_def) = 
+         hack_nonlinear_xfm ($in_xfm, $out_xfm, $cropped_def);
+
+      if (! $input_def)                 # didn't find a grid filename 
+      {                                 # in $in_xfm
+         warn <<WARN;
+$ProgramName: warning: no deformation grid filename found in $in_xfm
+(initializing a level-4 or level-2 nonlinear fit with a linear transformation
+is not recommended!)
+WARN
+         undef $cropped_def;
+      }
+   }
+   else
+   {
+      # just take a guess that'll look good
+
+      ($input_def = $in_xfm) =~ s/\.xfm$/_grid_0.mnc/;
+      ($cropped_def = $out_xfm) =~ s/\.xfm$/_grid_0.mnc/;
+   }
+
+   # Speaking of evil and naughty, it is *critical* that we force autocrop
+   # to use mincresample here -- this is due to autocrop's ignorance of
+   # anything other than 3-dimensional volumes.  Basically, it works as
+   # long as we only ask it to read the steps of the volume -- which is all
+   # that's really needed to use mincresample.  To use mincreshape, though,
+   # it has to do a lot more, and there it falls down.  (Actually, it runs
+   # just fine, but produces garbage.  Sigh.)
+
+   if ($cropped_def && -e $cropped_def && !$Clobber)
+   {
+      &verbose ("$cropped_def already exists");
+   }
+   elsif ($cropped_def)                 # don't crop if we don't have a 
+   {                                    # deformation grid!
+      Spawn (['autocrop', $input_def, $cropped_def, 
+              '-bbox', $model_mask, '-resample', '-isoexpand', '1v']);
+   }
+
+}  # &special_preprocess
 
 
 
 # ------------------------------ MNI Header ----------------------------------
 #@NAME       : &perform_fit
-#@INPUT      : $source - base filename (with directory!) of source volume
-#                        (used to find blurred volumes)
+#@INPUT      : $source_vol - complete name of original input volume
+#              $source     - temporary basename for input files (i.e.,
+#                            temp dir + basename (source_vol))
+#                            (used to find blurred volumes and temp xfm files)
 #              $model  - base filename (with directory!) of target volume
 #              $fit    - reference to the fit profile (hash) for this step
 #@OUTPUT     : 
@@ -1468,11 +2256,11 @@ sub minctracc
 #-----------------------------------------------------------------------------
 sub perform_fit
 {
-   my ($source, $model, $fit) = @_;
+   my ($source_vol, $source, $model, $fit) = @_;
    my ($program, $in_xfm, $out_xfm, $desc);
 
    # Get the program name, default to minctracc if none supplied
-   $program = ($fit->{'program'} || "minctracc");
+   $program = $fit->{'program'};
    $in_xfm = &get_full_filename ($fit, 'inputxfm', $source);
    $out_xfm = &get_full_filename ($fit, 'outputxfm', $source);
    $desc = $fit->{'description'};
@@ -1481,17 +2269,22 @@ sub perform_fit
 
    &verbose ("\n" . $desc);
 
-   if ($program eq "check_scale")
+   if ($program eq 'check_scale')
    {
       &check_scale ($in_xfm, $out_xfm);
    }
-   elsif ($program eq "minctracc")
+   elsif ($program eq 'minctracc')
    {
       &minctracc ($source, $model, $fit, $in_xfm, $out_xfm);
    }
+   elsif ($program eq 'special_pp')
+   {
+      &special_preprocess ($source_vol, $source, $model,
+                           $fit, $in_xfm, $out_xfm);
+   }
    else
    {
-      die "perform_fit: unknown program $program";
+      die "perform_fit: unknown program \"$program\"";
    }
 }
 
@@ -1499,22 +2292,25 @@ sub perform_fit
 
 # ------------------------------ MNI Header ----------------------------------
 #@NAME       : &PerformFits
-#@INPUT      : $source_base - base name (no directory) of source volume
+#@INPUT      : $fits  - the list of fit profiles as constructed by 
+#                       SetupFits (and possibly SetupNLFits)
+#              $source_vol  - name of original input volume
+#              $source_base - base name (no directory) of source volume
 #              $model - base name (with directory!) of target volumes
 #@OUTPUT     : 
 #@RETURNS    : 
 #@DESCRIPTION: Runs the whole fitting procedure, by calling &perform_fit
 #              once for each element in the Grand High List Of Fit
-#              Profiles (the global @Fit).
+#              Profiles (passed in as $fits).
 #@METHOD     : 
-#@GLOBALS    : @Fit
+#@GLOBALS    : 
 #@CALLS      : 
 #@CREATED    : 95/08/01, Greg Ward
 #@MODIFIED   : 
 #-----------------------------------------------------------------------------
 sub PerformFits 
 {
-   my ($fits, $source_base, $model) = @_;
+   my ($fits, $source_vol, $source_base, $model) = @_;
    my ($source, $fit);
 
    # Base name/directory for blurred files and temporary xfm's
@@ -1523,7 +2319,7 @@ sub PerformFits
 
    for $fit (@$fits)
    {
-      &perform_fit ($source, $model, $fit);
+      &perform_fit ($source_vol, $source, $model, $fit);
    }
 }
 

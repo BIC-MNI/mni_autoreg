@@ -1,43 +1,101 @@
-This is the short form of the installation instructions for MNI AutoReg--
-more details (especially if anything goes wrong, and for testing the
-package) can be found in the README and TESTING files.
- 
-   0) You need an ANSI-compliant C compiler, such as gcc.
-   1) You may have to build and install the netCDF library
-         (available from unidata.ucar.edu, see README)
-   2) You may have to build and install the MINC library
-	 (available from ftp.mni.mcgill.ca, see README)
-   3) You may have to build and install Perl 5 (version 5.002 or 
-      later is recommended) (see README) and the Getopt::Tabular
-      module
-   4) type 
-	./configure 
+This is the short form of the installation instructions for MNI
+AutoReg.  See the files INSTALL, README, and TESTING for more details
+--- especially if anything goes wrong.
 
-      to determine various system-dependent values and generate
-      Makefile.include.  If you have problems running `configure', see
-      the detailed explanation in README.
 
-      Look in Makefile.include to make sure the installation
-      directories are suitable; you might want to change some or all
-      of BINDIR, SCRIPTDIR, PERLLIBDIR, CONFIGDIR, and MAN1DIR.  See
-      README for full details.
+** Prerequisites for a successful installation:
 
-   5) Type:
+    * ANSI-compliant C compiler
+    * the NetCDF library
+    * the MINC library
+    * Perl 5 version 5.002 or later
+    * the Getopt::Tabular perl module
 
-        make build
-      
-        make test
+See the README for ftp locations and other instructions regarding
+these.
 
-        make install
 
-        make installman
+** Installation procedure:
 
-   6) You will have to build and install the stereotaxic model before
-      you can do actual fitting of MRI data to Talairach space.  This
-      is available as a separate package from ftp.bic.mni.mcgill.ca; see
-      the README file for more information.
+    1. ./configure, or ./configure --prefix=/your/favourite/place
+    2. make
+    3. make check
+    4. make install
 
-   7) Finally, you should test the package on real data -- one example
-      is available from ftp.mni.mcgill.ca, in
-      /pub/mni_autoreg/mni_autoreg_small_example_mri.mnc.  See the
-      TESTING file for details.
+If `configure' complains about not being able to find certain things,
+though, you may have to give it some hints.  In particular, this may be
+necessary if you have installed NetCDF, MINC, Volume_IO, or Perl 5 in
+weird places.  
+
+If configure cannot find Perl 5, set the environment variable `PERL' prior
+to running configure.  In a Bourne-compatible shell, this is accomplished
+for example using
+
+	PERL=/usr/strange/bin/perl ./configure ...
+
+If configure does not find the required libraries, give optional flags
+on the configure command line.  The simplest case is when all the
+optional stuff is in the same hierarchy; the --prefix option suffices.
+At the MNI, for instance, we keep home-grown software under
+/usr/local/mni, so here we run `configure' like this:
+
+         ./configure --prefix=/usr/local/mni
+
+and the MINC and Volume_IO files will be found in various directories
+under /usr/local/mni.  (NetCDF is *not* home-grown, so we keep it
+under /usr/local.  Luckily, GCC looks in /usr/local by default.)
+
+If the prefix is not enough, you can specify the location of the libraries
+and their headers using configure's --with-* options, such as
+
+	--with-netcdf-library=/usr/strange/lib
+  	--with-netcdf-includes=/usr/strange/include
+
+There are similarly-named options for MINC and Volume_IO; see
+`./configure --help' for the complete list.
+
+As described in the file INSTALL, you can affect the installation
+directories using options --prefix, --bindir, and the like.  Besides
+executables, scripts, and their man pages, MNI_Autoreg installs
+
+	configuration files	in $sysconfdir/mni_autoreg,
+	perl libraries		in $libdir/mni_autoreg,
+
+and will look for 
+
+	model files		in $libdir/model
+
+These directories can all be set at configure time; by default, they
+are /usr/local/etc/mni_autoreg, /usr/local/lib/mni_autoreg, and
+/usr/local/lib/model, respectively.
+
+Note that if you feel like setting ALL of these (e.g., to install
+MNI_AutoReg to /tmp or your home directory), you're probably better
+off to use `--prefix'.  If you want to impose a more centralized
+structure (eg. with all MNI_AutoReg-related files under
+/usr/local/lib/mni_autoreg), you'll have to override most of the
+defaults with configure arguments.
+
+*** Important: MNI_AutoReg doesn't actually install anything to
+MODELDIR; that is done by another package, the MNI Average Brain
+Stereotaxic Registration Model (which you should have downloaded as
+mni_autoreg_model-1.0.tar.gz).  However, MNI_AutoReg produces a custom
+version of the mritotal program (the main driver for stereotaxic
+registration) with MODELDIR hard-coded into it.  Be sure to use the
+same MODELDIR when configuring and installing the two packages, or you
+will always need to use mritotal's `-modeldir' option to override the
+(incorrect) built-in default.
+
+
+** Using MNI AutoReg:
+
+You will have to build and install the stereotaxic model before you
+can do actual fitting of MRI data to Talairach space.  This is
+available as a separate package from ftp.bic.mni.mcgill.ca; see the
+README file for more information.
+
+Finally, you should test the package on real data -- one example is
+the file mni_autoreg_small_example_mri.mnc, available from
+ftp.mni.mcgill.ca:/pub/mni_autoreg.
+
+See the TESTING file for details.
