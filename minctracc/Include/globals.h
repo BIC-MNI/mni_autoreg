@@ -1,31 +1,30 @@
 /*  ------------------------ global variables  ------------------------ */
 
-char  *prog_name     = NULL;
+char  *prog_name                 = NULL;
 
-Volume  mask_data  = NULL;
-Volume  mask_model = NULL;
-Volume  model      = NULL;
-Volume  model_dx   = NULL;
-Volume  model_dy   = NULL;
-Volume  model_dz   = NULL;
-Volume  model_dxyz = NULL;
-Volume  data       = NULL;
-Volume  data_dx    = NULL;
-Volume  data_dy    = NULL;
-Volume  data_dz    = NULL;
-Volume  data_dxyz  = NULL;
+Volume  mask_data                = NULL;
+Volume  mask_model               = NULL;
+Volume  model                    = NULL;
+Volume  model_dx                 = NULL;
+Volume  model_dy                 = NULL;
+Volume  model_dz                 = NULL;
+Volume  model_dxyz               = NULL;
+Volume  data                     = NULL;
+Volume  data_dx                  = NULL;
+Volume  data_dy                  = NULL;
+Volume  data_dz                  = NULL;
+Volume  data_dxyz                = NULL;
 
-
-double  ftol                     =  0.005;
+double  ftol                     = 0.005;
+double  simplex_size             = 20.0;
 int     iteration_limit          = 4;
 double  iteration_weight         = 0.6;
 double  smoothing_weight         = 0.5;
 double  similarity_cost_ratio    = 0.5;
-double  simplex_size             = 20.0;
 int     number_dimensions        = 3;
 
-int  invert_mapping_flag = FALSE;
-int clobber_flag = FALSE;
+int     invert_mapping_flag      = FALSE;
+int     clobber_flag             = FALSE;
 
   
 /*------------------------    Command line arguments --------------------*/
@@ -41,7 +40,10 @@ static ArgvInfo argTable[] = {
      "Overwrite output file."},
   {"-transformation", ARGV_FUNC, (char *) get_transformation, 
      (char *) &main_args.trans_info,
-     "Initial world transformation. (Default = identity)."},
+     "Initial world transformation. (Default = PAT)."},
+  {"-identity", ARGV_CONSTANT, (char *) TRUE,
+     (char *) &main_args.trans_info.use_identity,
+     "Use identity transformation for starting point.\n"},
   {"-est_center", ARGV_CONSTANT, (char *) TRUE, (char *) &main_args.trans_flags.estimate_center,
      "use center estimated from Principal axis trans."},
   {"-est_scales", ARGV_CONSTANT, (char *) TRUE, (char *) &main_args.trans_flags.estimate_scale,
@@ -54,7 +56,7 @@ static ArgvInfo argTable[] = {
      (char *) main_args.trans_info.center,
      "Force center of rotation and scale."},
   {NULL, ARGV_HELP, NULL, NULL,
-     "Output transformation type. Default = -procrustes."},
+     "\nOutput transformation type. Default = -procrustes."},
   {"-pat", ARGV_CONSTANT, (char *) TRANS_PAT, (char *) &main_args.trans_info.transform_type,
      "principal axis transformation matrix (input matrix ignored)."},
   {"-lsq3", ARGV_CONSTANT, (char *) TRANS_LSQ3, (char *) &main_args.trans_info.transform_type,
@@ -73,24 +75,6 @@ static ArgvInfo argTable[] = {
      "full 12 parameter transformation (same as -lsq12)."},
   {"-procrustes", ARGV_CONSTANT, (char *) TRANS_LSQ7, (char *) &main_args.trans_info.transform_type,
      "procrustes transformation (3 trans, 3 rots, 1 scale), same as -lsq7."},
-
-  {"-nonlinear", ARGV_CONSTANT, (char *) TRANS_NONLIN, (char *) &main_args.trans_info.transform_type,
-     "recover nonlinear deformation field."}, 
-
-  {"-2D-non-lin", ARGV_CONSTANT, (char *) 2, (char *) &number_dimensions,
-     "Estimate the non-lin fit on a 2D slice only."},
-  {"-3D-non-lin", ARGV_CONSTANT, (char *) 3, (char *) &number_dimensions,
-     "Estimate the non-lin fit on a 3D volume (default)."},
-  {"-use_magnitude", ARGV_CONSTANT, (char *) TRUE, (char *) &main_args.trans_info.use_magnitude,
-     "use magnitude data local deformation (default)."},
-  {"-use_simplex", ARGV_CONSTANT, (char *) TRUE, (char *) &main_args.trans_info.use_simplex,
-     "use 3D simplex optimization for local deformation (default)."},
-  {"-super", ARGV_CONSTANT, (char *) TRUE, (char *) &main_args.trans_info.use_super,
-     "super sample deformation field during optimization (default)."},
-  {"-no_super", ARGV_CONSTANT, (char *) FALSE, (char *) &main_args.trans_info.use_super,
-     "do not super sample deformation field during optimization."},
-  {"-use_1D", ARGV_CONSTANT, (char *) FALSE, (char *) &main_args.trans_info.use_simplex,
-     "use Lvv correlation for local deformation."},
   {"-forward", ARGV_CONSTANT, (char *) FALSE,
      (char *) &main_args.trans_info.invert_mapping_flag,
      "Recover forward transformation (source -> model, default).\n"},
@@ -99,7 +83,7 @@ static ArgvInfo argTable[] = {
      "Recover inverted transformation (model -> source).\n"},
   
   {NULL, ARGV_HELP, NULL, NULL,
-     "Options for mask volumes."},
+     "\nOptions for mask volumes."},
   {"-model_mask", ARGV_FUNC, (char *) get_mask_file, 
      (char *) &main_args.filenames.mask_model,
      "Specifies a binary mask file for the target."},
@@ -108,7 +92,7 @@ static ArgvInfo argTable[] = {
      "Specifies a binary mask file for the source."},
   
   {NULL, ARGV_HELP, NULL, NULL,
-     "Interpolation options."},
+     "\nInterpolation options."},
   {"-trilinear", ARGV_CONSTANT, (char *) trilinear_interpolant, 
      (char *) &main_args.interpolant,
      "Do trilinear interpolation"},
@@ -120,7 +104,7 @@ static ArgvInfo argTable[] = {
      "Do nearest neighbour interpolation"},
   
   {NULL, ARGV_HELP, NULL, NULL,
-     "Optimization objective functions. (default = -xcorr)"},
+     "\nOptimization objective functions. (default = -xcorr)"},
   {"-xcorr", ARGV_CONSTANT, (char *) xcorr_objective, 
      (char *) &main_args.obj_function,
      "Use cross correlation."},
@@ -129,13 +113,16 @@ static ArgvInfo argTable[] = {
      "Use normalized difference."},
   {"-ssc", ARGV_CONSTANT, (char *) ssc_objective, 
      (char *) &main_args.obj_function,
-     "Use stochastic sign change."},
+     "Use stochastic sign change (Minoshima)."},
   {"-vr", ARGV_CONSTANT,      (char *) vr_objective, 
      (char *) &main_args.obj_function,
-     "Use variance of ratio vol1/vol2"},
+     "Use variance of ratio vol1/vol2 (Woods)."},
+  {"-mi", ARGV_CONSTANT,      (char *) mutual_information_objective, 
+     (char *) &main_args.obj_function,
+     "Use mutual information similarity measure (Collignon)"},
   {"-groups", ARGV_INT, (char *) 0, 
      (char *) &main_args.groups,
-     "Number of groups for ratio calculations."},
+     "Number of groups for -vr and -mi."},
   {"-threshold", ARGV_FLOAT, (char *) 2, 
      (char *) main_args.threshold,
      "Lower limit for voxel threshold"},
@@ -144,22 +131,10 @@ static ArgvInfo argTable[] = {
      "percent speckle noise to add to source"},
   
   {NULL, ARGV_HELP, NULL, NULL,
-     "Options for optimization."},
+     "\nOptions for linear optimization."},
   {"-tol", ARGV_FLOAT, (char *) 0, 
      (char *) &ftol,
      "Stopping criteria tolerance"},
-  {"-iterations", ARGV_INT, (char *) 0, 
-     (char *) &iteration_limit,
-     "Number of iterations for non-linear optimization"},
-  {"-weight", ARGV_FLOAT, (char *) 0, 
-     (char *) &iteration_weight,
-     "Weighting factor for each iteration in nl optimization"},
-  {"-stiffness", ARGV_FLOAT, (char *) 0, 
-     (char *) &smoothing_weight,
-     "Weighting factor for smoothing between nl iterations"},
-  {"-similarity_cost_ratio", ARGV_FLOAT, (char *) 0, 
-     (char *) &similarity_cost_ratio,
-     "Weighting factor for  r=similarity*w + cost(1*w)"},
   {"-simplex", ARGV_FLOAT, (char *) 0, 
      (char *) &simplex_size,
      "Radius of simplex volume."},
@@ -177,7 +152,7 @@ static ArgvInfo argTable[] = {
      "Optimization weight of shears a,b and c."},
 
   {NULL, ARGV_HELP, NULL, NULL,
-     "Options for measurement comparison."},
+     "\nOptions for measurement comparison."},
   {"-matlab", ARGV_STRING, (char *) 0, 
      (char *) &main_args.filenames.matlab_file,
      "Output selected objective function value curves."},
@@ -186,7 +161,7 @@ static ArgvInfo argTable[] = {
      "Output value of each obj. func. for given x-form."},
 
   {NULL, ARGV_HELP, NULL, NULL,
-     "Options for 3D lattice (default = target)."},
+     "\nOptions for 3D lattice (default = target)."},
   {"-step", ARGV_FLOAT, (char *) 3, 
      (char *) main_args.step,
      "Step size along each dimension (X, Y, Z)"},
@@ -199,9 +174,46 @@ static ArgvInfo argTable[] = {
   {"-zstep", ARGV_FLOAT, (char *) 0, 
      (char *) &main_args.step[2],
      "Step size along the slice dimension"},
+
+#ifdef NONLINEAR_RELEASE
   
   {NULL, ARGV_HELP, NULL, NULL,
-     "Options for logging progress. Default = -verbose 1."},
+     "\nNon-linear transformation information:"},
+  {"-nonlinear", ARGV_CONSTANT, (char *) TRANS_NONLIN, (char *) &main_args.trans_info.transform_type,
+     "recover nonlinear deformation field."}, 
+  {"-2D-non-lin", ARGV_CONSTANT, (char *) 2, (char *) &number_dimensions,
+     "Estimate the non-lin fit on a 2D slice only."},
+  {"-3D-non-lin", ARGV_CONSTANT, (char *) 3, (char *) &number_dimensions,
+     "Estimate the non-lin fit on a 3D volume (default)."},
+  {"-use_magnitude", ARGV_CONSTANT, (char *) TRUE, (char *) &main_args.trans_info.use_magnitude,
+     "use magnitude data local deformation (default)."},
+  {"-use_projections", ARGV_CONSTANT, (char *) FALSE, (char *) &main_args.trans_info.use_magnitude,
+     "use projection data in local deformation."},
+  {"-use_simplex", ARGV_CONSTANT, (char *) TRUE, (char *) &main_args.trans_info.use_simplex,
+     "use 3D simplex optimization for local deformation (default)."},
+  {"-quadratic", ARGV_CONSTANT, (char *) FALSE, (char *) &main_args.trans_info.use_simplex,
+     "use quadratic fit for local deformation."},
+  {"-super", ARGV_INT, (char *) 0, (char *) &main_args.trans_info.use_super,
+     "super sample deformation field during optimization (default)."},
+  {"-no_super", ARGV_CONSTANT, (char *) 0, (char *) &main_args.trans_info.use_super,
+     "do not super sample deformation field during optimization."},
+  {"-iterations", ARGV_INT, (char *) 0, 
+     (char *) &iteration_limit,
+     "Number of iterations for non-linear optimization"},
+  {"-weight", ARGV_FLOAT, (char *) 0, 
+     (char *) &iteration_weight,
+     "Weighting factor for each iteration in nl optimization"},
+  {"-stiffness", ARGV_FLOAT, (char *) 0, 
+     (char *) &smoothing_weight,
+     "Weighting factor for smoothing between nl iterations"},
+  {"-similarity_cost_ratio", ARGV_FLOAT, (char *) 0, 
+     (char *) &similarity_cost_ratio,
+     "Weighting factor for  r=similarity*w + cost(1*w)"},
+
+#endif
+
+  {NULL, ARGV_HELP, NULL, NULL,
+     "\nOptions for logging progress. Default = -verbose 1."},
   {"-verbose", ARGV_INT, (char *) 0, (char *) &main_args.flags.verbose,
      "Write messages indicating progress"},
   {"-quiet", ARGV_CONSTANT, (char *) 0 , (char *) &main_args.flags.verbose,
