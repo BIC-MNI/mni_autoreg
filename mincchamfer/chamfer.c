@@ -12,41 +12,36 @@
 extern int verbose;
 extern int debug;
 
+private void build_mask(Volume vol, Real mask_f[3][3][3], Real mask_b[3][3][3]);
+
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       :  compute_chamfer
-@INPUT      : orig         original mask volume - will be destroyed by call
-                   I assume that the volume is binary valued - 1 for the
-                   mask, and 0 for the background.
-
-@OUTPUT     : chamfer      resulting chamfer distance volume.  This volume
-                   will contains 1's where the mask was and values > 1 for
-                   all other voxels, where the value is proportional to the
-                   distance of that voxel to the nearest mask region.
+@INPUT/OUTPUT: chamfer
+                   The original input volume will be destroyed and replaced
+                   with the resulting chamfer distance volume.  The chamfer
+                   will contains 0's where the mask was and values > 0.0
+                   for all other voxels, where the value is an estimate of
+                   the distance to the the nearest voxel of the mask.
 @RETURNS    : ERROR if error, OK otherwise
-@DESCRIPTION: This routine dilates each mask region, adding the dilated
-              shell to the mask volume, thus estimating the distance for
-              each voxel in the volume to the edge of the masked regions.
-              
-              Each dilation can be thought of as an onion skin wrapped
-              around each region in the mask.  Since each dilation (skin)
-              is numbered, and this number is ctored in the volume, we have
-              a direct look-up of the distance from any voxel to the edge
-              of the object represented in the masked region.
+@DESCRIPTION: Uses an idea from georges, who got it from claire, 
+              who got it from Borgefors
 @GLOBALS    : 
 @CALLS      : 
 @CREATED    : Nov 2, 1998 Louis
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public Status compute_chamfer(Volume orig, Volume  chamfer) 
+public Status compute_chamfer(Volume chamfer) 
 {
 
    Real
-      zero, val, val2;
+      mask_f[3][3][3],
+      mask_b[3][3][3],
+      steps[MAX_DIMENSIONS],
+      zero, min, max_val, edge,
+      vox_min, vox_max,
+      val, val2;
    int
-      pass,                       /* this is the number of dilation passes */
-      sizes[3],
-      done,
-      found,
+      sizes[MAX_DIMENSIONS],
       i,j,k,
       ind0,ind1,ind2;
    
@@ -56,129 +51,199 @@ public Status compute_chamfer(Volume orig, Volume  chamfer)
    Status 
       stat;
 
-   Volume
-      workvol;
-
    stat = OK;
    
-   get_volume_sizes(orig, sizes);
-   zero =CONVERT_VALUE_TO_VOXEL(orig,0.0);
+   get_volume_sizes(chamfer, sizes);
+
+   get_volume_voxel_range(chamfer, &vox_min, &vox_max);
+
+   zero = CONVERT_VALUE_TO_VOXEL(chamfer,0.0);
    
+   /* init chamfer to be  binary valued with 0.0 on the object,
+      and infinity (or vox_max) elsewhere */
    
-   /* make working volume */
-   workvol = copy_volume(orig);
-   
-   /* init orig vol to be binary valued and
-      init chamfer to 0.0 distance every where */
-   
-   if (debug) print ("initing data and chamfer vols (%d %d %d)\n",sizes[0],sizes[1],sizes[2]);
+   if (debug) print ("initing chamfer vol (%d %d %d)\n",sizes[0],sizes[1],sizes[2]);
    for_less (ind0, 0, sizes[0]) {
       for_less (ind1, 0, sizes[1]) {
          for_less (ind2, 0, sizes[2]) {
             
-                                /* ensure binary {0,1} vol for orig and working vol */
-            GET_VOXEL_3D(val, orig, ind0, ind1, ind2);
+            GET_VOXEL_3D(val, chamfer, ind0, ind1, ind2);
             if (val == zero) {
-               SET_VOXEL_3D(orig,    ind0, ind1, ind2, 0.0 ); 
-               SET_VOXEL_3D(workvol, ind0, ind1, ind2, 0.0 ); 
+               SET_VOXEL_3D(chamfer, ind0, ind1, ind2, vox_max ); 
             }            
             else {
-               SET_VOXEL_3D(orig,    ind0, ind1, ind2, 1.0 ); 
-               SET_VOXEL_3D(workvol, ind0, ind1, ind2, 1.0 ); 
+               SET_VOXEL_3D(chamfer, ind0, ind1, ind2, vox_min); 
             }
-            
-                                /* init chamfer to dist=0.0 */
-            SET_VOXEL_3D(chamfer, ind0, ind1, ind2, 0.0 ); 
             
          }
       }
    }
 
-   set_volume_real_range(orig,0.0,255.0);  /* note that these values won't work for large vols */
-   set_volume_voxel_range(orig,0.0,255.0);
+   if (debug) print ("building mask\n");
+
+   build_mask(chamfer, mask_f, mask_b);
+
+                                /* figure out the maximum possible distance */
+   get_volume_separations(chamfer, steps);
+   edge = sqrt(sizes[0]*steps[0]*sizes[0]*steps[0] + 
+               sizes[1]*steps[1]*sizes[1]*steps[1]);
+
+   max_val = sqrt(sizes[2]*steps[2]*sizes[2]*steps[2] + edge*edge);
+
+   max_val = 254.0;
+   set_volume_real_range(chamfer, 0.0, max_val);
    
-   set_volume_real_range(workvol,0.0,255.0);
-   set_volume_voxel_range(workvol,0.0,255.0);
+   zero =CONVERT_VALUE_TO_VOXEL(chamfer,0.0);
+
+   if (verbose) initialize_progress_report( &progress, TRUE, sizes[0], 
+                                           "forward pass");
    
-   set_volume_real_range(chamfer,0.0,255.0);
-   set_volume_voxel_range(chamfer,0.0,255.0);
-   
-   zero =CONVERT_VALUE_TO_VOXEL(orig,0.0);
+   for_less (ind0, 1, sizes[0]-1) {
+      for_less (ind1, 1, sizes[1]-1) {
+         for_less (ind2, 1, sizes[2]-1) {
 
-   /* now loop until all voxels in the mask are set */
+            GET_VALUE_3D(val, chamfer, ind0, ind1, ind2);
+            
+            if (val != zero) { /* then apply forward mask */
 
-   pass = 1; done = FALSE;
-   
-   if (verbose) print ("computing distances:\n");
-   while (!done && (pass < 255 )) {
-      print ("Pass %d\n",pass);
-      
-      done = TRUE;              /* act as if there will be no voxels to label */
+/*
+if (ind0==40 && ind1==32 && ind2==32) {
+   print ("Hi!\n");
+}
+*/                            
+               min = val;
 
-      if (verbose) initialize_progress_report( &progress, TRUE, sizes[0], "computing");
-      
-      for_less (ind0, 1, sizes[0]-1) {
-         for_less (ind1, 1, sizes[1]-1) {
-            for_less (ind2, 1, sizes[2]-1) {
-               
-               GET_VOXEL_3D(val, orig, ind0, ind1, ind2);
-         
-               if (val == zero) {
-
-                  done = FALSE; /* we found one, and will need at least one more pass */
-
-                                /* increment the distance for this voxel */
-                  SET_VOXEL_3D(chamfer, ind0, ind1, ind2, pass ); 
-                  
-                                /* look and see if we are near the object
-                                   in the mask, and if so then dilate */
-                  found = FALSE;
-                  for_inclusive(i, ind0-1, ind0+1) {
-                     for_inclusive(j, ind1-1, ind1+1) {
-                        for_inclusive(k, ind2-1, ind2+1) {
-                           
-                           GET_VOXEL_3D(val2, orig, i, j, k);
-                           if (val2 != zero && !(i==ind0 && 
-                                                 j==ind1 && 
-                                                 k==ind2)
-                               ) {
-                              found=TRUE;	
-                              /* break;*/  
-                           }
-                        }
+               for_inclusive(i, -1, +1) {
+                  for_inclusive(j, -1, +1) {
+                     for_inclusive(k, -1, +1) {
+                        
+                        GET_VALUE_3D(val, chamfer, i+ind0, j+ind1, k+ind2);
+                        
+                        val2 = val + mask_f[i+1][j+1][k+1];
+                        min = MIN (min, val2);
+                        
                      }
                   }
-                  
-                  if (found==TRUE)
-                     SET_VOXEL_3D(workvol, ind0, ind1, ind2, 1.0 );  	    
+               }
+                           
+               min = convert_value_to_voxel(chamfer, min);
 
-               } /* if val == 0.0 */
-
-            } /* ind2 */
-         } /* ind1 */
-         if (verbose) update_progress_report( &progress, ind0+1 );
-      } /* ind0 */
-
-      if (verbose) terminate_progress_report( &progress );
-   
-      for_less (ind0, 0, sizes[0]) {
-         for_less (ind1, 0, sizes[1]) {
-            for_less (ind2, 0, sizes[2]) {
+               SET_VOXEL_3D(chamfer, ind0, ind1, ind2, min );  	    
                
-               GET_VOXEL_3D(val, workvol, ind0, ind1, ind2);
-               SET_VOXEL_3D(orig, ind0, ind1, ind2, val ); 
-               
-            }
-         }
-      }
-      
-      if (debug && done) print ("We're done after pass %d\n",pass);
-      pass++;
-      
-   } /* while !done */
+            } /* if val != 0.0 */
+            
+         } /* ind2 */
+      } /* ind1 */
+      if (verbose) update_progress_report( &progress, ind0+1 );
+   } /* ind0 */
    
-   delete_volume(workvol);
+   if (verbose) terminate_progress_report( &progress );
 
+   return (OK);
+
+   
+
+   if (verbose) initialize_progress_report( &progress, TRUE, sizes[0], 
+                                           "reverse pass");
+       
+   for_down (ind0,  sizes[0]-2, 1) {
+      for_down (ind1,  sizes[1]-2, 1) {
+         for_down (ind2,  sizes[2]-2, 1) {
+            
+            GET_VALUE_3D(val, chamfer, ind0, ind1, ind2);
+            
+            if (val != zero) { /* then apply backwardmask */
+                                
+               min = val;
+
+               for_inclusive(i, -1, 1) {
+                  for_inclusive(j, -1, +1) {
+                     for_inclusive(k, -1, +1) {
+                        
+                        GET_VALUE_3D(val, chamfer, i+ind0, j+ind1, k+ind2);
+                        
+                        val2 = val + mask_b[i+1][j+1][k+1];
+                        min = MIN (min, val2);
+                        
+                     }
+                  }
+               }
+                           
+               min = convert_value_to_voxel(chamfer, min);
+
+               SET_VOXEL_3D(chamfer, ind0, ind1, ind2, min );  	    
+               
+            } /* if val != 0.0 */
+            
+         } /* ind2 */
+      } /* ind1 */
+      if (verbose) update_progress_report( &progress, ind0+1 );
+   } /* ind0 */
+   
+   if (verbose) terminate_progress_report( &progress );
+   
    return (OK);
    
 }
+
+
+private void build_mask(Volume vol, 
+                        Real mask_f[3][3][3], 
+                        Real mask_b[3][3][3])
+{
+   int i,j,k;
+   Real 
+      steps[MAX_DIMENSIONS],
+      d1, d2;
+
+   get_volume_separations(vol, steps);
+
+   for_inclusive(i,-1,1)
+      for_inclusive(j,-1,1)
+         for_inclusive(k,-1,1) {
+            d1 = sqrt(i*i*steps[0]*steps[0] + j*j*steps[1]*steps[1]);
+            mask_f[i+1][j+1][k+1] = sqrt( d1*d1 + k*k*steps[2]*steps[2] );
+            mask_b[i+1][j+1][k+1] = mask_f[i+1][j+1][k+1];
+         }
+   
+   mask_f[1][1][1] = mask_b[1][1][1] = 0.0;
+
+   for_inclusive(j,-1,1)
+      for_inclusive(k,-1,1) {
+         mask_f[2][j+1][k+1] = 1000.0;
+         mask_b[0][j+1][k+1] = 1000.0;
+      }
+   
+   mask_f[1][1][2] = 1000.0;
+   mask_f[1][2][0] = 1000.0;
+   mask_f[1][2][1] = 1000.0;
+   mask_f[1][2][2] = 1000.0;
+
+   mask_b[1][1][0] = 1000.0;
+   mask_b[1][0][0] = 1000.0;
+   mask_b[1][0][1] = 1000.0;
+   mask_b[1][0][2] = 1000.0;
+
+
+   if (debug) {
+      print ("%20s %35s\n","forward","reverse");
+
+      for_down(i,2,0) {
+         print ("slice %d\n",i);
+         for_inclusive(j,0,2) {
+            for_inclusive(k,0,2) 
+               print ("%10.4f ",mask_f[i][j][k]);
+            print ("       ");
+            for_inclusive(k,0,2) 
+               print ("%10.4f ",mask_b[i][j][k]);
+            print ("\n");
+         }
+         print ("\n");
+      }
+   }
+}
+
+
+
+
+
