@@ -38,10 +38,10 @@ object2.mnc: mincresample.test
 
 object1_dxyz.mnc: object1.mnc
 	mincblur -clobber -gradient -fwhm 6 object1.mnc object1
-	
+
 object2_dxyz.mnc: object2.mnc
 	mincblur -clobber -gradient -fwhm 6 object2.mnc object2
-	
+
 # program tests -----------------------------------------------
 
 mess.mincblur:
@@ -192,4 +192,3 @@ xcorr_vol.act: object1.mnc object2.mnc
 	touch $@
 	@echo "xcorr_vol successful"
 	@echo ""
-

@@ -16,9 +16,12 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 96.6  1999-10-25 19:59:07  louis
+@MODIFIED   : Revision 96.7  2000-01-18 18:53:37  louis
 @MODIFIED   : final checkin before switch to CVS
 @MODIFIED   :
+ * Revision 96.6  1999/10/25  19:59:07  louis
+ * final checkin before switch to CVS
+ *
  * Revision 96.5  1999/06/10  12:51:23  louis
  * update with optical flow working in addition to xcorr, label, and diff
  * sub-lattice computed only if needed
@@ -261,7 +264,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.6 1999-10-25 19:59:07 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.7 2000-01-18 18:53:37 louis Exp $";
 #endif
 
 #include <config.h>		/* MAXtype and MIN defs                      */
@@ -2001,6 +2004,10 @@ private Real get_chamfer_vector(Real capture_limit,
 
   if (dist > MAX_CAPTURE*capture_limit) { /* we are not near a surface */
     result = 0.0;
+    for_less(i,0,3) {
+        voxel_displacement[i] = 0.0;
+	def_vector[i] = 0.0;
+    }
   }
   else {     
 
@@ -2008,7 +2015,7 @@ private Real get_chamfer_vector(Real capture_limit,
       dist_weight = 1.0;
     }
     else {
-      dist_weight = 1.0 - ((dist - capture_limit) / MAX_CAPTURE*capture_limit);
+      dist_weight = 1.0 - ((dist - capture_limit) / (capture_limit* (MAX_CAPTURE-1.0)));
     }
 
     sx = source_coord[0];
@@ -2022,7 +2029,7 @@ private Real get_chamfer_vector(Real capture_limit,
 
     if (val[0]!=zero) {		/* we are not already on  the surface */
 
-
+				/* get derivative of the data volume */
       evaluate_volume_in_world(data,
 			       sx, sy, sz,
 			       0, TRUE, 0.0, val,
@@ -2031,6 +2038,9 @@ private Real get_chamfer_vector(Real capture_limit,
 			       NULL,NULL,NULL);
       
       mag = sqrt (dx[0]*dx[0] + dy[0]*dy[0] + dz[0]*dz[0]);
+				/* if mag > 0, then we can compute
+				   a normalized vector in the gradient
+				   direction */
       if (mag > 0.0) {
 	
 	gx = dx[0] / mag;
@@ -2039,9 +2049,16 @@ private Real get_chamfer_vector(Real capture_limit,
 
 	/* use derivative info to find nearest surface point.   */
 
-	sx += -1.0 * t  * gx;
-	sy += -1.0 * t  * gy;
-	sz += -1.0 * t  * gz;
+
+	/*
+print ("%5.3f: %7.2f %7.2f %7.2f -> %7.2f %7.2f %7.2f [%7.2f %7.2f %7.2f ]",
+       dist,
+       sx,sy,sz, tx,ty,tz, gx,gy,gz);
+	*/
+
+	sx += -1.0 * dist * gx;
+	sy += -1.0 * dist * gy;
+	sz += -1.0 * dist * gz;
       
 	/* sx,sy,sz is now on the closest surface in the data volume,
 	   we now need the equivalent target coord */
@@ -2049,11 +2066,21 @@ private Real get_chamfer_vector(Real capture_limit,
 	general_transform_point(Gglobals->trans_info.transformation, 
 			      sx,sy,sz,  &tx,&ty,&tz);
 
-	/*
-	print ("%6.4f   %6.4f %6.4f %6.4f ->",t, -t*gx, -t*gy, -t*gz);
-	print ("%6.4f %6.4f %6.4f - %6.4f %6.4f %6.4f\n",
-	  mean_target[0],mean_target[1],mean_target[2],tx,ty,tz);
-	*/
+
+  evaluate_volume_in_world(data,
+                           sx,sy,sz,
+                           0, TRUE, 0.0, val,
+                           NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
+  
+  /*print ("%10.5f: %7.2f %7.2f %7.2f -> %7.2f %7.2f %7.2f: %5.3f:  ",
+       dist,sx,sy,sz, tx,ty,tz, val[0]);
+  */
+        /* Now, both sx,sy,sz AND tx,ty,tz are offset by the same amount, so
+	   that the following optimization will work. 
+
+           Essentially, the deformation vector associated with the offset
+           point will be returned for the original point sx,sy,sz   */
+
       }
     }
      
@@ -2068,8 +2095,12 @@ private Real get_chamfer_vector(Real capture_limit,
 
      get_volume_real_range(chamfer, &min, &max);
      thresh = Min_deriv * (max - min);
-     
+
+     thresh = 0.1;		/* gradient threshold... testing */
+
      /* compute deformations directly!       */
+
+     /* print ("%7.2f: %7.2f %7.2f\n",dist,dist_weight,capture_limit); */
      
      if (ABS(dx[0]) > thresh)              /* fastest (X) */
         def_vector[0] = -1.0 * dist_weight * val[0] /  dx[0];
@@ -2086,10 +2117,16 @@ private Real get_chamfer_vector(Real capture_limit,
      else
         def_vector[2] = 0.0;
 
+
      get_volume_separations(data, steps);
      for_less(i,0,3)            /* build the real-world displacement */
         voxel_displacement[i] = def_vector[i]  * steps[i];
-     
+
+     /*print ("der:%5.2f %5.2f %5.2f def:%5.2f %5.2f %5.2f (%7.3f %7.3f  %7.3f)\n", 
+       dx[0],dy[0],dz[0],
+       def_vector[0],def_vector[1], def_vector[2],
+       dist_weight,thresh,val[0]);
+     */
      result = sqrt (def_vector[0]*def_vector[0] +
                     def_vector[1]*def_vector[1] +
                     def_vector[2]*def_vector[2]);
@@ -2621,7 +2658,7 @@ private Real get_deformation_vector_for_node(Real spacing,
 					    Gglobals->features.model[i],
 					    ndim);
 	else                   /* must be CHAMFER */
-	  result =  get_chamfer_vector(spacing,   ,
+	  result =  get_chamfer_vector(spacing,   
 				       source_coord, mean_target,
 				       real_def, vox_def,
 				       Gglobals->features.data[i],
