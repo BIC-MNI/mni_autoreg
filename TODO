@@ -22,4 +22,7 @@
   but the handing of -verbose and -debug is currently done by some perl library
   code; maybe it could be triggered on -debug?  But what level to set?
 
+* it would be nice if xcorr_vol could optionally take a transformation
+  and apply it to one of the volumes
+
 
