@@ -7,8 +7,8 @@ LDADD = ../Files/libminctracc_files.a \
 	../../Proglib/libProglib.a \
 	@MNI_LIBS@ -lm
 
-bin_PROGRAMS = minctracc_quater
-minctracc_quater_SOURCES = \
+bin_PROGRAMS = minctracc
+minctracc_SOURCES = \
 	make_matlab_data_file.c \
 	minctracc.c 
 
