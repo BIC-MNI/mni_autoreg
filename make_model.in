@@ -4,6 +4,8 @@
 #   volumes needed to make up the volumetric features for a general
 #   set of model files needed for fitting with mritotal and nlfit.
 #
+#   All model files MUST be voxel-matched to _mask.mnc volume
+#
 #   Before running this script, the mni_reg package should be
 #   installed.
 #
@@ -57,6 +59,7 @@ else
 
    mincblur $PAD tmp_16 -fwhm 16.0
    autocrop tmp_16_blur.mnc $BLUR -extend -16mm,-16mm -16mm,-16mm -36mm,-36mm -clobber
+   mincresample -nearest  ${BASE}_mask.mnc ${BASE}_16_mask.mnc -like ${BLUR}
 
    rm tmp_16*
 endif
@@ -77,6 +80,7 @@ else
    mincblur $PAD tmp_8 -fwhm 8.0 -gradient
    autocrop tmp_8_blur.mnc $BLUR -extend -16mm,-16mm -16mm,-16mm -26mm,-26mm -clobber
    autocrop tmp_8_dxyz.mnc $GRAD -extend -16mm,-16mm -16mm,-16mm -26mm,-26mm -clobber
+   mincresample -nearest  ${BASE}_mask.mnc ${BASE}_8_mask.mnc  -like ${BLUR}
 
    rm tmp_8*
 endif
@@ -109,6 +113,7 @@ else
    mincblur $PAD4 tmp_4 -fwhm 4.0 -gradient
    autocrop tmp_4_blur.mnc $BLUR -isoexpand -9mm -clobber
    autocrop tmp_4_dxyz.mnc $GRAD -isoexpand -9mm -clobber
+   mincresample -nearest  ${BASE}_mask.mnc ${BASE}_4_mask.mnc  -like ${BLUR}
 
    rm tmp_4*
 endif
@@ -125,6 +130,7 @@ else
    mincblur $PAD4 tmp_2 -fwhm 2.0 -gradient
    autocrop tmp_2_blur.mnc $BLUR -isoexpand -7mm -clobber
    autocrop tmp_2_dxyz.mnc $GRAD -isoexpand -7mm -clobber
+   mincresample -nearest  ${BASE}_mask.mnc ${BASE}_2_mask.mnc -like ${BLUR}
 
    rm tmp_2*
 endif
