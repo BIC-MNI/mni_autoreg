@@ -14,7 +14,12 @@
 
 @CREATED    : Tue Jun 15 08:57:23 EST 1993 LC
 @MODIFIED   :  $Log: volume_functions.c,v $
-@MODIFIED   :  Revision 96.6  2000-05-23 16:29:14  louis
+@MODIFIED   :  Revision 96.7  2001-01-17 14:10:38  louis
+@MODIFIED   :  Fixed memory leak in the code used to compute the intensity
+@MODIFIED   :  normalization function.  I used a copy_volume_definition instead of
+@MODIFIED   :  copy_volume_definition_no_alloc to build a volume header structure.
+@MODIFIED   :
+@MODIFIED   :  Revision 96.6  2000/05/23 16:29:14  louis
 @MODIFIED   :  Fixed index ordering in the intensity normalization procedure
 @MODIFIED   :
 @MODIFIED   :  Revision 96.5  2000/05/16 19:48:09  louis
@@ -67,7 +72,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/volume_functions.c,v 96.6 2000-05-23 16:29:14 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/volume_functions.c,v 96.7 2001-01-17 14:10:38 louis Exp $";
 #endif
 
 #include <config.h>
@@ -517,7 +522,7 @@ public void normalize_data_to_match_target(Volume d1, Volume m1, Real thresh1,
     else {
       /* build temporary working volume */
       
-      vol = copy_volume_definition(d1, NC_UNSPECIFIED, FALSE, 0.0, 0.0);
+      vol = copy_volume_definition_no_alloc(d1, NC_UNSPECIFIED, FALSE, 0.0, 0.0);
       get_volume_real_range(d1, &min_range, &max_range);
       min_range /= result;
       max_range /= result;
