@@ -1,3 +1,12 @@
+2001-01-17  Louis COLLINS  <louis@bic.mni.mcgill.ca>
+
+	* Volume/volume_functions.c (normalize_data_to_match_target):
+ 	fixed a memory leak, where I used copy_volume_definition, when I
+ 	thought that this command only returned a volume ehader structure
+ 	(without actual volumetric data).  I've changed it to
+ 	copy_volume_definition_no_alloc, and I've done a delete_volume()
+ 	at the end of the block.  No more leak (at least for here).
+
 2000-05-23  Louis COLLINS  <louis@bic.mni.mcgill.ca>
 
 	* Volume/volume_functions.c (normalize_data_to_match_target):
