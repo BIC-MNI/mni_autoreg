@@ -20,13 +20,18 @@
 
 @CREATED    : Tue Feb 22 08:37:49 EST 1994
 @MODIFIED   : $Log: deform_support.c,v $
-@MODIFIED   : Revision 1.3  1994-06-06 18:46:53  louis
-@MODIFIED   : working version: clamp and blur of deformation lattice now ensures
-@MODIFIED   : a smooth recovered deformation.  Unfortunately, the r = cost-similarity
-@MODIFIED   : function used in the optimization is too heavy on the cost_fn.  This has
-@MODIFIED   : to get fixed...
+@MODIFIED   : Revision 1.4  1994-06-21 10:59:28  louis
+@MODIFIED   : working optimized version of program.  when compiled with -O, this
+@MODIFIED   : code is approximately 60% faster than the previous version.
 @MODIFIED   :
-@MODIFIED   :
+ * Revision 1.3  94/06/06  18:46:53  louis
+ * working version: clamp and blur of deformation lattice now ensures
+ * a smooth recovered deformation.  Unfortunately, the r = cost-similarity
+ * function used in the optimization is too heavy on the cost_fn.  This has
+ * to get fixed...
+ * 
+ * 
+
  * Revision 1.2  94/06/02  20:15:56  louis
  * made modifications to allow deformations to be calulated in 2D on slices. 
  * changes had to be made in set_up_lattice, init_lattice when defining
@@ -45,16 +50,30 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 1.3 1994-06-06 18:46:53 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 1.4 1994-06-21 10:59:28 louis Exp $";
 #endif
 
-#include "volume_io.h"
-#include "limits.h"
+#include <volume_io.h>
+#include <splines.h>
+
+#include <limits.h>
 #include "line_data.h"
+#include "point_vector.h"
+
+
 
 #define DERIV_FRAC      0.6
 #define FRAC1           0.5
 #define FRAC2           0.0833333
+
+
+public void set_up_lattice(Volume data, 
+			   double *user_step, /* user requested spacing for lattice */
+			   double *start,     /* world starting position of lattice */
+			   int    *count,     /* number of steps in each direction */
+			   double *step,      /* step size in each direction */
+			   VectorR directions[]);/* array of vector directions for each index*/
+
 
 typedef Real (*Difference_Function) 
      (Line_data *m, Line_data *d, Real offset);
@@ -722,14 +741,16 @@ public void clamp_warp_deriv(Volume dx, Volume dy, Volume dz)
     
 */
 public void smooth_the_warp(Volume smooth_dx, Volume smooth_dy, Volume smooth_dz, 
-			    Volume warp_dx, Volume warp_dy, Volume warp_dz) 
+			    Volume warp_dx, Volume warp_dy, Volume warp_dz,
+			    Volume warp_mag, Real thres) 
 {
   
   int 
     i,j,k,loop_start[3], loop_end[3],sizes[3];
   Real 
+    mag,
     wx, wy, wz, mx, my, mz, tx,ty,tz,
-    voxel, value, value2;
+    voxel;
   progress_struct
     progress;
 
@@ -755,34 +776,45 @@ public void smooth_the_warp(Volume smooth_dx, Volume smooth_dy, Volume smooth_dz
     for_less(j,loop_start[1],loop_end[1]) {
       for_less(k,loop_start[2],loop_end[2]){
 
-	convert_3D_voxel_to_world(warp_dx, i, j, k, &tx, &ty, &tz);
-
-	GET_VOXEL_3D(voxel, warp_dx, i,j,k); 
-	wx = CONVERT_VOXEL_TO_VALUE( warp_dx, voxel ); 
-	GET_VOXEL_3D(voxel, warp_dy, i,j,k); 
-	wy = CONVERT_VOXEL_TO_VALUE( warp_dy, voxel ); 
-	GET_VOXEL_3D(voxel, warp_dz, i,j,k); 
-	wz = CONVERT_VOXEL_TO_VALUE( warp_dz, voxel ); 
-
-	tx += wx; ty += wy; tz += wz;
-
-	get_average_warp_of_neighbours(warp_dx, warp_dy, warp_dz, 
-				       i,j,k,
-				       &mx, &my, &mz);
-
-	wx += (1.0 - FRAC1)*(mx - tx);
-	wy += (1.0 - FRAC1)*(my - ty);
-	wz += (1.0 - FRAC1)*(mz - tz);
-
-	voxel = CONVERT_VALUE_TO_VOXEL(smooth_dx, wx);
-	SET_VOXEL_3D(smooth_dx, i,j,k, voxel); 
-	voxel = CONVERT_VALUE_TO_VOXEL(smooth_dy, wy);
-	SET_VOXEL_3D(smooth_dy, i,j,k, voxel); 
-	voxel = CONVERT_VALUE_TO_VOXEL(smooth_dz, wz);
-	SET_VOXEL_3D(smooth_dz, i,j,k, voxel); 
-
+	GET_VOXEL_3D(voxel, warp_mag, i,j,k); 
+	mag = CONVERT_VOXEL_TO_VALUE(warp_mag , voxel ); 
+	if (mag >= thres) {
+	  
+	  convert_3D_voxel_to_world(warp_dx, i, j, k, &tx, &ty, &tz);
+	  
+	  GET_VOXEL_3D(voxel, warp_dx, i,j,k); 
+	  wx = CONVERT_VOXEL_TO_VALUE( warp_dx, voxel ); 
+	  GET_VOXEL_3D(voxel, warp_dy, i,j,k); 
+	  wy = CONVERT_VOXEL_TO_VALUE( warp_dy, voxel ); 
+	  GET_VOXEL_3D(voxel, warp_dz, i,j,k); 
+	  wz = CONVERT_VOXEL_TO_VALUE( warp_dz, voxel ); 
+	  
+	  tx += wx; ty += wy; tz += wz;
+	  
+	  get_average_warp_of_neighbours(warp_dx, warp_dy, warp_dz, 
+					 i,j,k,
+					 &mx, &my, &mz);
+	  
+	  wx += (1.0 - FRAC1)*(mx - tx);
+	  wy += (1.0 - FRAC1)*(my - ty);
+	  wz += (1.0 - FRAC1)*(mz - tz);
+	  
+	  voxel = CONVERT_VALUE_TO_VOXEL(smooth_dx, wx);
+	  SET_VOXEL_3D(smooth_dx, i,j,k, voxel); 
+	  voxel = CONVERT_VALUE_TO_VOXEL(smooth_dy, wy);
+	  SET_VOXEL_3D(smooth_dy, i,j,k, voxel); 
+	  voxel = CONVERT_VALUE_TO_VOXEL(smooth_dz, wz);
+	  SET_VOXEL_3D(smooth_dz, i,j,k, voxel); 
+	}
+	else {
+	  GET_VOXEL_3D(voxel, warp_dx, i,j,k); SET_VOXEL_3D(smooth_dx, i,j,k, voxel); 
+	  GET_VOXEL_3D(voxel, warp_dy, i,j,k); SET_VOXEL_3D(smooth_dy, i,j,k, voxel); 
+	  GET_VOXEL_3D(voxel, warp_dz, i,j,k); SET_VOXEL_3D(smooth_dz, i,j,k, voxel); 
+	}
+	  
       }
-      update_progress_report( &progress, sizes[1]*i+j+1 );
+      update_progress_report( &progress,
+			     (loop_end[1]-loop_start[1])*(i-loop_start[0])+(j-loop_start[1])+1  );
 
     }
     terminate_progress_report( &progress );
@@ -906,5 +938,222 @@ public Real get_maximum_magnitude(Volume dx, Volume dy, Volume dz)
     max = sqrt(max);
 
   return(max);
+
+}
+
+/* copied from tricubic_interpolant in interpolation.c */
+
+public int tricubic_slice_interpolant(Volume volume, 
+				      PointR *coord, double *result)
+{
+  Real
+    v00,v01,v02,v03, 
+    v10,v11,v12,v13, 
+    v20,v21,v22,v23, 
+    v30,v31,v32,v33;
+   long 
+     ind0, ind1, ind2, max[3];
+   double 
+     frac[3];
+   int 
+     sizes[3];
+   int 
+     flag;
+   double temp_result;
+
+   /* Check that the coordinate is inside the volume */
+
+   get_volume_sizes(volume, sizes);
+   max[0] = sizes[0];
+   max[1] = sizes[1];
+   max[2] = sizes[2];
+   
+   if ((Point_y( *coord ) < 0) || (Point_y( *coord ) >= max[1]-1) ||
+       (Point_z( *coord ) < 0) || (Point_z( *coord ) >= max[2]-1)) {
+
+     flag = nearest_neighbour_interpolant(volume, coord, &temp_result) ;
+     *result = temp_result;
+     return(flag);
+   }
+
+
+   /* Get the whole and fractional part of the coordinate */
+   ind0 = (long) Point_x( *coord );
+   ind1 = (long) Point_y( *coord );
+   ind2 = (long) Point_z( *coord );
+   frac[1] = Point_y( *coord ) - ind1;
+   frac[2] = Point_z( *coord ) - ind2;
+   ind1--;
+   ind2--;
+
+   /* Check for edges - do linear interpolation at edges */
+   if ((ind1 >= max[1]-3) || (ind1 < 0) ||
+       (ind2 >= max[2]-3) || (ind2 < 0)) {
+      return trilinear_interpolant(volume, coord, result);
+   }
+   
+   GET_VOXEL_3D(v00, volume, ind0, ind1, ind2);
+   GET_VOXEL_3D(v01, volume, ind0, ind1, ind2+1);
+   GET_VOXEL_3D(v02, volume, ind0, ind1, ind2+2);
+   GET_VOXEL_3D(v03, volume, ind0, ind1, ind2+3);
+
+   GET_VOXEL_3D(v10, volume, ind0, ind1+1, ind2);
+   GET_VOXEL_3D(v11, volume, ind0, ind1+1, ind2+1);
+   GET_VOXEL_3D(v12, volume, ind0, ind1+1, ind2+2);
+   GET_VOXEL_3D(v13, volume, ind0, ind1+1, ind2+3);
+
+   GET_VOXEL_3D(v20, volume, ind0, ind1+2, ind2);
+   GET_VOXEL_3D(v21, volume, ind0, ind1+2, ind2+1);
+   GET_VOXEL_3D(v22, volume, ind0, ind1+2, ind2+2);
+   GET_VOXEL_3D(v23, volume, ind0, ind1+2, ind2+3);
+
+   GET_VOXEL_3D(v30, volume, ind0, ind1+3, ind2);
+   GET_VOXEL_3D(v31, volume, ind0, ind1+3, ind2+1);
+   GET_VOXEL_3D(v32, volume, ind0, ind1+3, ind2+2);
+   GET_VOXEL_3D(v33, volume, ind0, ind1+3, ind2+3);
+
+   CUBIC_BIVAR( v00,v01,v02,v03, v10,v11,v12,v13, v20,v21,v22,v23, v30,v31,v32,v33, frac[1],frac[2], temp_result);
+
+
+  *result = CONVERT_VOXEL_TO_VALUE(volume,temp_result);
+
+   return(TRUE);
+
+}
+
+
+
+public void make_super_sampled_data(Volume orig_dx, Volume *dx, Volume *dy, Volume *dz)
+
+{
+
+  int 
+    i,
+    sizes[3], sizes2[3];
+  Real
+    voxel[3],
+    start[3],
+    steps[3],
+    steps1[3],
+    steps2[3];
+  VectorR 
+    directions[3];
+
+    
+  get_volume_sizes(orig_dx, sizes);
+  get_volume_separations(orig_dx, steps);
+  
+  for_less(i,0,3) {
+    steps1[i] = steps[i]/2;
+    if(sizes[i]==1) {
+      steps2[i] = 1000;
+    }
+    else {
+      steps2[i] = steps[i]/2;
+    }
+  }
+  
+  *dx = copy_volume_definition(orig_dx, NC_UNSPECIFIED, FALSE, 0.0,0.0);
+
+  set_up_lattice(*dx, steps2, start, sizes2, steps, directions);
+
+  for_less(i,0,3)		/* use the sign of the step returned to set the true step size */
+    if (steps[i]<0) steps[i] = -1.0 * ABS(steps1[i]); else steps[i] = ABS(steps1[i]);
+  
+  set_volume_sizes(*dx, sizes2);
+  set_volume_separations(*dx,steps);
+  voxel[0] = 0.0;  voxel[1] = 0.0;  voxel[2] = 0.0;
+  set_volume_translation(*dx, voxel, start);
+  
+  *dy = copy_volume_definition(*dx, NC_UNSPECIFIED, FALSE, 0.0,0.0);
+  *dz = copy_volume_definition(*dx, NC_UNSPECIFIED, FALSE, 0.0,0.0);
+  
+  alloc_volume_data(*dx);
+  alloc_volume_data(*dy);
+  alloc_volume_data(*dz);
+  
+
+}
+
+public void interpolate_super_sampled_data(Volume orig_dx, Volume orig_dy, Volume orig_dz,
+				      Volume dx, Volume dy, Volume dz,
+				      int dim)
+
+{
+
+  int 
+    i,j,k,
+    sizes2[3];
+  Real
+    wx,wy,wz,
+    nx,ny,nz,
+    voxel_val,
+    val_x, val_y, val_z;
+  PointR voxel_point; 
+  progress_struct
+    progress;
+
+    
+  get_volume_sizes(dx, sizes2);
+  
+  if (dim==3) {
+    initialize_progress_report( &progress, FALSE, sizes2[0],
+			       "Super-sampling defs:" );
+    for_less(i,0,sizes2[0]) {
+      for_less(j,0,sizes2[1]) {
+	for_less(k,0,sizes2[2]){
+	  convert_3D_voxel_to_world(dx, (Real)i, (Real)j, (Real)k,
+				    &wx,&wy,&wz);
+	  convert_3D_world_to_voxel(orig_dx,wx,wy,wz,&nx,&ny,&nz);
+	  
+	  fill_Point( voxel_point, nx, ny, nz  ); /* build the voxel POINT */
+	  
+	  if ( !tricubic_interpolant( orig_dx, &voxel_point, &val_x ))
+	    val_x = 0.0;
+	  if ( !tricubic_interpolant( orig_dy, &voxel_point, &val_y ))
+	    val_y = 0.0;
+	  if ( !tricubic_interpolant( orig_dz, &voxel_point, &val_z ))
+	    val_z = 0.0;
+	  voxel_val = CONVERT_VALUE_TO_VOXEL(dx, val_x); SET_VOXEL_3D(dx, i,j,k, voxel_val);
+	  voxel_val = CONVERT_VALUE_TO_VOXEL(dy, val_y); SET_VOXEL_3D(dy, i,j,k, voxel_val);
+	  voxel_val = CONVERT_VALUE_TO_VOXEL(dz, val_z); SET_VOXEL_3D(dz, i,j,k, voxel_val);
+	
+	  
+	}
+      }
+      update_progress_report( &progress, i+1 );
+    }
+    terminate_progress_report( &progress );
+  }
+  else {
+    initialize_progress_report( &progress, FALSE, sizes2[1],
+			       "Super-sampling defs:" );
+
+    for_less(j,0,sizes2[1]) {
+      for_less(k,0,sizes2[2]){
+	convert_3D_voxel_to_world(dx, 0.0, (Real)j, (Real)k,
+				  &wx,&wy,&wz);
+	convert_3D_world_to_voxel(orig_dx,wx,wy,wz,&nx,&ny,&nz);
+	
+	fill_Point( voxel_point, nx, ny, nz  ); /* build the voxel POINT */
+	
+	if ( !tricubic_slice_interpolant( orig_dx, &voxel_point, &val_x ))
+	  val_x = 0.0;
+	if ( !tricubic_slice_interpolant( orig_dy, &voxel_point, &val_y ))
+	  val_y = 0.0;
+	if ( !tricubic_slice_interpolant( orig_dz, &voxel_point, &val_z ))
+	  val_z = 0.0;
+	voxel_val = CONVERT_VALUE_TO_VOXEL(dx, val_x); SET_VOXEL_3D(dx, 0,j,k, voxel_val);
+	voxel_val = CONVERT_VALUE_TO_VOXEL(dy, val_y); SET_VOXEL_3D(dy, 0,j,k, voxel_val);
+	voxel_val = CONVERT_VALUE_TO_VOXEL(dz, val_z); SET_VOXEL_3D(dz, 0,j,k, voxel_val);
+	
+	
+      }
+      update_progress_report( &progress, j+1 );
+    }
+    
+    terminate_progress_report( &progress );
+  }
+
 
 }
