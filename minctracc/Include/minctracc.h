@@ -17,7 +17,17 @@
 
 @CREATED    : Thu May 20 14:20:21 EST 1993 Louis Collins
 @MODIFIED   : $Log: minctracc.h,v $
-@MODIFIED   : Revision 96.4  2000-03-15 08:42:39  stever
+@MODIFIED   : Revision 96.5  2002-03-07 19:07:51  louis
+@MODIFIED   : Added -lattice_diameter as an optionto minctracc to account for a
+@MODIFIED   : problem with the automated calculation of the sub-lattice diameter.
+@MODIFIED   : It used to be step*3*2 - which was pretty big, when step = 8mm.
+@MODIFIED   :
+@MODIFIED   : Now, the sub lattice diameter can be input on the command line, and I
+@MODIFIED   : suggest a lattice size 3 times greater than the step size.
+@MODIFIED   :
+@MODIFIED   : If not on the command line, the default is = 24mm.
+@MODIFIED   :
+@MODIFIED   : Revision 96.4  2000/03/15 08:42:39  stever
 @MODIFIED   : Code cleanup: all functions prototyped (except ParseArgs.c), no useless declarations, etc
 @MODIFIED   :
 @MODIFIED   : Revision 96.3  2000/02/15 19:02:06  stever
@@ -216,6 +226,7 @@ Arg_Data main_args = {
   OPT_SIMPLEX,                  /* use simplex optimization strategy      */
   0,                            /* do not force lattice on source or target */
   {4.0,4.0,4.0},		/* default step sizes for lattice         */
+  {24.0,24.0,24.0},		/* default lattice diameter               */
   {0.0,0.0,0.0},		/* default start for lattice, reset in init_lattice */
   {0,0,0},                      /* default number of element in lattice, also reset */
 

@@ -20,7 +20,17 @@
 
 @CREATED    : 
 @MODIFIED   : $Log: super_sample_def.c,v $
-@MODIFIED   : Revision 96.3  2000-04-05 04:38:25  stever
+@MODIFIED   : Revision 96.4  2002-03-07 19:08:56  louis
+@MODIFIED   : Added -lattice_diameter as an optionto minctracc to account for a
+@MODIFIED   : problem with the automated calculation of the sub-lattice diameter.
+@MODIFIED   : It used to be step*3*2 - which was pretty big, when step = 8mm.
+@MODIFIED   :
+@MODIFIED   : Now, the sub lattice diameter can be input on the command line, and I
+@MODIFIED   : suggest a lattice size 3 times greater than the step size.
+@MODIFIED   :
+@MODIFIED   : If not on the command line, the default is = 24mm.
+@MODIFIED   :
+@MODIFIED   : Revision 96.3  2000/04/05 04:38:25  stever
 @MODIFIED   : * Reordered code in super_sample_def.c so that it compiles with
 @MODIFIED   :   GCC under IRIX 5.3.
 @MODIFIED   : * set VERSION to 0.98i.
@@ -54,7 +64,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/super_sample_def.c,v 96.3 2000-04-05 04:38:25 stever Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/super_sample_def.c,v 96.4 2002-03-07 19:08:56 louis Exp $";
 #endif
 
 #include <config.h>
@@ -402,6 +412,7 @@ private void interpolate_super_sampled_data_by2_dim3(
     count = 0;
 
 
+
     /* LEVEL 0: copy original 'corner' nodes, identified as 'X' in desc above */
 
     for_less(i,0,MAX_DIMENSIONS) sindex[i]=index[i]=0;
@@ -425,6 +436,7 @@ private void interpolate_super_sampled_data_by2_dim3(
       update_progress_report( &progress, count+1 );
     }
 
+
     /* LEVEL 1: edge interpolation, identified as 'e' in desc above */
 
                /* do edges along the index[ orig_xyzv[X] ] dir */
@@ -434,6 +446,8 @@ private void interpolate_super_sampled_data_by2_dim3(
 				/* loop over all x-dirs  */
 
     for_less( index[ orig_xyzv[Y] ], 0, orig_count[ orig_xyzv[Y] ]) {
+
+
       for_less( index[ orig_xyzv[Z] ] , 0, orig_count[ orig_xyzv[Z] ]) {
 
 	sindex[ xyzv[Y] ] = 2*index[ orig_xyzv[Y] ];
@@ -504,7 +518,10 @@ private void interpolate_super_sampled_data_by2_dim3(
 				/* loop over all x-dirs  */
 
     for_less( index[ orig_xyzv[Z] ], 0, orig_count[ orig_xyzv[Z] ]) {
+
+
       for_less( index[ orig_xyzv[X] ] , 0, orig_count[ orig_xyzv[X] ]) {
+
 
 	sindex[ xyzv[Z] ] = 2*index[ orig_xyzv[Z] ];
 	sindex[ xyzv[X] ] = 2*index[ orig_xyzv[X] ];
@@ -575,6 +592,8 @@ private void interpolate_super_sampled_data_by2_dim3(
 				/* loop over all Z-dirs  */
 
     for_less( index[ orig_xyzv[X] ], 0, orig_count[ orig_xyzv[X] ]) {
+
+
       for_less( index[ orig_xyzv[Y] ] , 0, orig_count[ orig_xyzv[Y] ]) {
 
 	sindex[ xyzv[X] ] = 2*index[ orig_xyzv[X] ];

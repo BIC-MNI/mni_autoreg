@@ -16,7 +16,17 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 96.12  2000-05-23 16:33:02  louis
+@MODIFIED   : Revision 96.13  2002-03-07 19:08:55  louis
+@MODIFIED   : Added -lattice_diameter as an optionto minctracc to account for a
+@MODIFIED   : problem with the automated calculation of the sub-lattice diameter.
+@MODIFIED   : It used to be step*3*2 - which was pretty big, when step = 8mm.
+@MODIFIED   :
+@MODIFIED   : Now, the sub lattice diameter can be input on the command line, and I
+@MODIFIED   : suggest a lattice size 3 times greater than the step size.
+@MODIFIED   :
+@MODIFIED   : If not on the command line, the default is = 24mm.
+@MODIFIED   :
+@MODIFIED   : Revision 96.12  2000/05/23 16:33:02  louis
 @MODIFIED   : Fixed index ordering when normalizing intensities in volume_functions.c
 @MODIFIED   :
 @MODIFIED   : Revision 96.11  2000/05/16 19:48:03  louis
@@ -280,7 +290,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.12 2000-05-23 16:33:02 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.13 2002-03-07 19:08:55 louis Exp $";
 #endif
 
 #include <config.h>		/* MAXtype and MIN defs                      */
@@ -623,6 +633,11 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 	else
 	  print ("No sub-lattice needed.  Should be a fast run!\n");
 
+	print ( "Sub-lattice dia     = %f %f %f\n",
+		  Gglobals->lattice_width[0],
+		  Gglobals->lattice_width[1],
+		  Gglobals->lattice_width[2]);
+
       } 
    }
    else {			/* we should never get here */
@@ -865,12 +880,29 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
       print ("  The similarity function will be evaluated using tri-linear interpolation\n");
     
     if ( Gglobals->trans_info.use_magnitude) {
-      print ("    on a spherical sub-lattice with a radius of %7.2f (data voxels),\n",
-	     3.0*steps[xyzv[X]]/MAX3(steps_data[0],steps_data[1],steps_data[2]) );          
-      print ("    %7.2f(mm) or %d nodes (%7.2f vox/node or%7.2f mm/node) \n", 
-	     3.0*2*steps[xyzv[X]], Diameter_of_local_lattice,
-	     3.0*2*steps[xyzv[X]]/((Diameter_of_local_lattice-1)*MAX3(steps_data[0],steps_data[1],steps_data[2])),
-	     3.0*2*steps[xyzv[X]]/(Diameter_of_local_lattice-1));
+      print ("    on a ellipsoidal sub-lattice with a radii of\n");
+      print ("    %d nodes across the diameter\n",	     Diameter_of_local_lattice);
+      print ("    %7.2f,%7.2f,%7.2f  (data voxels),\n",
+	     globals->lattice_width[X]/steps_data[X],
+	     globals->lattice_width[Y]/steps_data[Y],
+	     globals->lattice_width[Z]/steps_data[Z]);
+
+      print ("    %7.2f %7.2f %7.2f (mm) width \n",
+	     Gglobals->lattice_width[X],    Gglobals->lattice_width[Y],   Gglobals->lattice_width[Z]);
+
+      if (Diameter_of_local_lattice > 1) {
+	print ("    %7.2f %7.2f %7.2f (data voxels) per node \n",
+	       globals->lattice_width[X]/steps_data[X]/(Diameter_of_local_lattice-1),
+	       globals->lattice_width[Y]/steps_data[Y]/(Diameter_of_local_lattice-1),
+	       globals->lattice_width[Z]/steps_data[Z]/(Diameter_of_local_lattice-1)
+	       );
+	print ("    %7.2f %7.2f %7.2f (mm) per node \n",
+	       globals->lattice_width[X]/(Diameter_of_local_lattice-1),
+	       globals->lattice_width[Y]/(Diameter_of_local_lattice-1),
+	       globals->lattice_width[Z]/(Diameter_of_local_lattice-1)
+	       );
+      }
+      
     }
     
     print ("-----------------------\n");
@@ -2099,7 +2131,7 @@ private BOOLEAN build_lattices(Real spacing,
 
     build_source_lattice(xp, yp, zp, 
 			 SX, SY, SZ,
-			 spacing*3*2, spacing*3*2, spacing*3*2,
+			 Gglobals->lattice_width[X],Gglobals->lattice_width[Y],Gglobals->lattice_width[Z],
 			 Diameter_of_local_lattice,  
 			 Diameter_of_local_lattice,  
 			 Diameter_of_local_lattice,

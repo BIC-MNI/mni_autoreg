@@ -13,7 +13,17 @@
 
    @CREATED    : February 3, 1992 - louis collins
    @MODIFIED   : $Log: minctracc.c,v $
-   @MODIFIED   : Revision 96.3  2000-03-15 08:42:41  stever
+   @MODIFIED   : Revision 96.4  2002-03-07 19:08:34  louis
+   @MODIFIED   : Added -lattice_diameter as an optionto minctracc to account for a
+   @MODIFIED   : problem with the automated calculation of the sub-lattice diameter.
+   @MODIFIED   : It used to be step*3*2 - which was pretty big, when step = 8mm.
+   @MODIFIED   :
+   @MODIFIED   : Now, the sub lattice diameter can be input on the command line, and I
+   @MODIFIED   : suggest a lattice size 3 times greater than the step size.
+   @MODIFIED   :
+   @MODIFIED   : If not on the command line, the default is = 24mm.
+   @MODIFIED   :
+   @MODIFIED   : Revision 96.3  2000/03/15 08:42:41  stever
    @MODIFIED   : Code cleanup: all functions prototyped (except ParseArgs.c), no useless declarations, etc
    @MODIFIED   :
    @MODIFIED   : Revision 96.2  2000/02/20 04:01:03  stever
@@ -91,7 +101,7 @@ Wed May 26 13:05:44 EST 1993 lc
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.3 2000-03-15 08:42:41 stever Exp $";
+static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.4 2002-03-07 19:08:34 louis Exp $";
 #endif
 
 #include <config.h>
@@ -243,6 +253,10 @@ int main ( int argc, char* argv[] )
 	          main_args.step[0],
 		  main_args.step[1],
 		  main_args.step[2]);
+    print ( "Sub-lattice dia     = %f %f %f\n",
+	          main_args.lattice_width[0],
+		  main_args.lattice_width[1],
+		  main_args.lattice_width[2]);
     print  ( "Objective function  = ");
     if (main_args.obj_function == xcorr_objective) {
       print("cross correlation (threshold = %f %f)\n",
