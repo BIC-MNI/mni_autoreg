@@ -1,0 +1,118 @@
+Testing the MNI AutoReg Package
+-------------------------------
+
+There are two phases to testing the package: the first is after you have
+compiled everything, and run "make check".  This does a series of
+low-level tests to make sure that the basic programs for blurring and
+fitting image volumes (mincblur and minctracc), along with a host of
+related utilities, work properly.  Browsing through the output of "make
+test" might be useful if you want to be sure that things are on track.
+
+To test how the package performs in the real world, though, it's best to
+get your hands on some real data and run mritotal, the high-level script
+that does a complete stereotaxic registration.  To keep things
+consistent, we have made available one complete T1-weighted MRI scan and
+the results obtained with mritotal on three different machines at the
+MNI.
+
+The example MRI data is available in two forms: "big" and "small".  The
+big form (about 23 MB uncompressed) is 256x256x180 16-bit data, exactly
+as it comes out of our scanner and as is normally fed into mritotal.
+Given the realities of transferring data by FTP, though, we have also
+made a cropped, subsampled, 8-bit version of this file available -- this
+is the "small" form (about 2.2 MB uncompressed).  Since the very first
+step normally performed by mritotal is to crop and subsample the data
+down to manageable form, working with the small and big data files
+should give exactly the same results.
+
+First, you need to have built the MNI_AutoReg package in its entirety,
+and have installed the latest version of the mni_autoreg_model
+package.  These procedures are explained in the README file.
+
+Next, you should download one of the example MRI files.  They're
+available at
+
+    ftp://ftp.bic.mni.mcgill.ca/pub/mni_autoreg
+
+as mni_autoreg_small_example_mri.mnc.gz and
+mni_autoreg_big_example_mri.mnc.gz.  (If you want to work with the big
+example but are unable to download it in one session -- a common
+problem when FTPing large files -- it is also available split up into
+half-megabyte chunks in /pub/mni_autoreg/examples_split.  You can put
+the chunks back together again with the Unix `cat' program.)
+
+Another note: you might wish to install everything to temporary
+directories for testing before doing a final installation.  This is
+easy to do using the --prefix argument of the configure script.  As an
+example, let's say you want MNI_AutoReg to be installed under /tmp,
+with binaries and scripts going to /tmp/bin, Perl library files to
+/tmp/lib/mni_autoreg, configuration files to /tmp/etc/mni_autoreg, and
+the fitting model in /tmp/lib/model.  You would configure MNI_AutoReg
+like this:
+
+    ./configure --prefix=/tmp
+
+and then run "make" and "make install".  (Even if you have already
+compiled all the C programs, it's important to rerun "configure" and
+"make".  This is because custom versions of mritotal and its
+configuration files are created with the new directories hard-coded in
+them as defaults.)
+
+Then, before running mritotal, you'll need to tell the shell where to
+find all the programs, via
+
+    PATH=/tmp/bin:$PATH,
+
+for sh, bash, ksh, or zsh users, or
+
+    set path=(/tmp/bin $path)
+
+for csh or tcsh users.
+
+If, at the end of the day, you're happy enough with MNI_AutoReg to do
+a real installation, you'll need to regenerate those custom versions
+of mritotal and its config files.  Rerun "configure" and "make" (yes,
+again!) to reflect your desired final installation directories, and
+then "make install".
+
+Anyways, whether you're working with a temporary or permanent
+installation, I'll assume that you can successfully run "mritotal
+-help".  (If this works, chances are everything's properly installed.)
+To perform a complete stereotaxic registration, the basic command is
+just
+
+    mritotal input.mnc output.xfm
+
+which creates an .xfm (transform) file containing a 9-parameter
+homogeneous transformation matrix, which can then be applied to the
+input volume to create a registered image file using mincresample.
+
+For both the official example files, things will be a tad more
+elaborate.  First of all, we use the preprocessing protocol for ICBM
+(International Consortium for Brain Mapping) data, since this data was
+acquired for that project.  Thus, to register the "big" version:
+
+    mritotal -protocol icbm \
+       mni_autoreg_big_example_mri.mnc big_example_mrital.xfm \
+       > big_example_mrital.log
+
+To register the small version, we want to suppress the initial
+crop/subsample step (since it has already been done):
+
+    mritotal -protocol icbm -nocrop \
+       mni_autoreg_small_example_mri.mnc small_example_mrital.xfm \
+       > small_example_mrital.log
+
+(Note that using the ICBM protocol is largely gratuitous; by default,
+mritotal figures out on its own how to crop and subsample the data in a
+way that is almost identical to the method explicitly specified in the
+ICBM protocol file.  It's there mainly for illustrative purposes, to be
+consistent with the way we did the "real" registration for this data,
+and to ensure that ICBM data is always processed the same way, even if
+the heuristics in mritotal for guessing reasonable crop/subsample
+parameters change.  See the mritotal man page for more information on
+protocol files.)
+
+Thanks for your interest in the MNI AutoReg package.  If you have any
+problems or questions, please send email to Louis Collins
+<louis@bic.mni.mcgill.ca>.
