@@ -40,8 +40,8 @@ file included there to build the full model.
 
 Note: it is important that you install the fitting model to the same
 directory as mritotal expects to find it in.  This is controlled by the
-prefix option to configure: the models are searched for in directory
-${prefix}/model.
+datadir option to configure: the models are searched for in directory
+${datadir}/mni_autoreg (defaults to /usr/local/share/mni_autoreg).
 
 Next, you should download one of the example MRI files.  They're
 available at

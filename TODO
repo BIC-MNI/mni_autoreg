@@ -1,0 +1,12 @@
+* the new mritotal (a.k.a. nlfit) requires 
+
+	average_305_headmask.mnc
+
+  which is not shipped currently with mni_autoreg_model
+
+
+* should change model package to install to $(pkgdatadir)
+
+* what does -step do in linear mode?
+
+

@@ -1,0 +1,403 @@
+#! @PERL@ -w
+
+# ------------------------------ MNI Header ----------------------------------
+#@NAME       : xfmtool
+#@INPUT      : 
+#@OUTPUT     : 
+#@RETURNS    : 
+#@DESCRIPTION: Tool to perform various operations on xfm files.  Currently
+#              just inverts and concatenates any number of xfm's, but
+#              I could probably extend it to more operations pretty easily.
+#@METHOD     : 
+#@GLOBALS    : 
+#@CALLS      : 
+#@CREATED    : 1996/06/07, Greg Ward
+#@MODIFIED   : 
+#@VERSION    : $Id: xfmtool.in,v 1.1 2000-02-10 15:06:22 stever Exp $
+#-----------------------------------------------------------------------------
+
+require 5.002;
+
+use lib "@LIBDIR@";
+
+require "string_utilities.pl";
+require "file_utilities.pl";
+require "path_utilities.pl";
+require "misc_utilities.pl";
+
+
+package TransformFile;
+
+use strict;
+use Carp;
+use FileHandle;
+use Cwd;
+
+# terminology: a `TransformFile' is a sequence of transforms, each of 
+# which could be linear, grid_transform, etc.
+
+sub new 
+{
+   my ($pkg, $file) = @_;
+   my $self = bless { }, $pkg;
+   if (defined $file)
+   {
+      $self->{file} = $file;
+      $self->openfile;
+   }
+   $self;
+}
+
+sub openfile
+{
+   my ($self) = @_;
+
+   $self->{handle} = new FileHandle $self->{file}, 'r';
+   croak "$self->{file}: $!" unless $self->{handle};
+}
+
+sub barf
+{
+   my ($self, $msg) = @_;
+
+   sprintf "%s:%d: %s", $self->{file}, $self->{handle}->input_line_number;
+}
+
+sub parse
+{
+   my ($self, $file) = @_;
+
+   if (! exists $self->{file})  # didn't supply filename to "new"
+   {
+      croak "must supply a filename either to 'new' or to 'parse'"
+         unless $file;
+      $self->{file} = $file;
+      $self->{dir} = (&::split_path ($file))[0];
+      $self->openfile;
+   }
+      
+   # Figure out the "reference directory", which we'll need to find
+   # any external files referenced in the TransformFile.
+
+   my ($dir) = &::split_path ($self->{file});
+   if ($self->{file} =~ m|^/|)  # does the TransformFile have an abs. path?
+   {
+      $self->{ref_dir} = $dir;
+   }
+   else
+   {
+      $self->{ref_dir}  = getcwd();
+      $self->{ref_dir} .= "/" . $dir
+         if $dir;
+   }
+
+   my $handle = $self->{handle};
+   my $state = 0;               # 0 = waiting for "MNI Transform File"
+                                # 1 = waiting for "Transform_Type"
+                                # 2 = reading transform data
+   my $num_transforms = 0;
+
+   while (<$handle>)
+   {
+      chop;
+      s/\%.*//;                 # strip comments
+      next if /^\s*$/;          # skip blank lines
+
+      if ($state == 0)
+      {
+         unless (/^\s*MNI Transform File\s*$/)
+         {
+            carp ($self->barf ("Not an MNI transform file"));
+            return 0;
+         }
+         $state = 1;
+      }
+      elsif ($state == 1)
+      {
+         s/\s*//g;              # strip whitespace
+         unless (/Transform_Type \s* = \s* (\w+) \; /x)
+         {
+            carp ($self->barf ("Couldn't find transform type"));
+         }
+         $self->{transforms}[$num_transforms]{type} = $1;
+         $state = 2;
+      }
+      elsif ($state == 2)
+      {
+         if (/Invert_Flag \s* = \s* (\w+)/x)
+         {
+            my $flag = $1;
+            carp ($self->barf ("Invert_Flag must be either true or false"))
+               unless ($flag =~ /^true|false$/i);
+            $flag = ($flag =~ /true/i);
+            $self->{transforms}[$num_transforms]{invert_flag} = $flag;
+         }
+         else
+         {
+            push (@{$self->{transforms}[$num_transforms]{data}}, $_);
+            if (/;$/)
+            {
+               $state = 1;
+               $num_transforms++;
+            }
+         }
+      }
+      else
+      {
+         confess "Impossible parse state ($state)!";
+      }
+   }
+   $self->{num_transforms} = $num_transforms;
+}
+
+
+sub get_transform               # private method!
+{
+   my ($self, $t) = @_;         # $t is zero-based
+
+   my $transform = $self->{transforms}[$t];
+   $transform->{ref_dir} = $self->{ref_dir}
+      unless exists $transform->{ref_dir};
+   $transform;
+}
+
+
+# --------------------------------------------------------------------
+# Make a new TransformFile from existing ones
+# --------------------------------------------------------------------
+
+sub invert
+{
+   my ($old) = @_;
+
+   my $self = new TransformFile;
+   my $t = $#{$old->{transforms}};
+   while ($t >= 0)
+   {
+      my $oldone = $old->get_transform ($t);
+      my $newone = $oldone;
+      $newone->{invert_flag} = ! $oldone->{invert_flag};
+      push (@{$self->{transforms}}, $newone);
+      $t--;
+   }
+   $self->{num_transforms} = $old->{num_transforms};
+   $self;
+}
+
+
+sub concat 
+{
+   shift;                       # lose the package name
+   my $self = new TransformFile;
+   my $num_transforms = 0;
+   my $old;
+
+   while ($old = shift)
+   {
+      my $t;
+      for $t (0 .. $#{$old->{transforms}})
+      {
+         push (@{$self->{transforms}}, $old->get_transform ($t));
+         $num_transforms++;
+      }
+   }
+   $self->{num_transforms} = $num_transforms;
+   $self;
+}
+
+
+sub extract
+{
+   my ($old, @nums) = @_;
+
+   my $max_t = scalar @{$old->{transforms}};
+   my $self = new TransformFile;
+   my $num_transforms = 0;
+   my $t;
+
+   foreach $t (@nums)
+   {
+      die sprintf ("Illegal transform number for %s (max %d)\n", 
+                   $old->{file}, $max_t)
+         if ($t > $max_t);
+
+      my $cur = $old->get_transform ($t-1);
+      push (@{$self->{transforms}}, $cur);
+      $num_transforms++;
+   }
+
+   $self->{num_transforms} = $num_transforms;
+   $self;
+}
+
+
+# --------------------------------------------------------------------
+# Printing stuff
+#
+#   utility subs: 
+#     &make_output_filehandle
+#     &print_preamble
+#     &print_single
+#
+#   and of course the print method
+# --------------------------------------------------------------------
+
+sub make_output_filehandle
+{
+   my ($file) = @_;
+
+   if (! (ref $file eq "FileHandle" || ref $file eq "GLOB"))
+   {
+      $file = (new FileHandle $file, "w" or croak "$file: $!");
+   }
+   $file;
+}
+
+sub print_preamble 
+{
+   my ($self, $file, $comment) = @_;
+   my $line;
+
+   print $file "MNI Transform File\n";
+   for $line (split ("\n", $comment))
+   {
+      print $file "% $line\n";
+   }
+}
+
+sub print_single
+{
+   my ($self, $file, $t) = @_;
+
+   print $file "Transform_Type = $t->{type};\n";
+   if (exists $t->{invert_flag})
+   {
+      printf $file "Invert_Flag = %s;\n", 
+                   ($t->{invert_flag} ? "True" : "False");
+   }
+   print $file join ("\n", @{$t->{data}});
+   print $file "\n";
+
+   if ($t->{type} eq 'Grid_Transform')
+   {
+      my @filenames = 
+         map { /^Displacement_Volume \s* = \s* (.*) ;/x && $1 } 
+             @{$t->{data}};
+      confess ("Bogus transform data (too many filenames):\n @{$t->{data}}")
+         if (scalar @filenames > 1);
+      confess ("Bogus transform data (no filenames):\n @{$t->{data}}")
+         if (scalar @filenames == 0);
+
+      my ($filename) = @filenames;
+
+      unless ($filename =~ m|^/|)       # relative path -- must make symlink
+      {
+         my $orig = $t->{ref_dir} . "/" . $filename;
+         my $new = $self->{ref_dir} . "/" . $filename;
+         &::check_output_path ($new) || die "Error with $new\n";
+         if (! (-e $new && -l $new && readlink ($new) eq $orig))
+         {
+            if (-e $new)
+            {
+               warn "warning: $new already exists (not making symlink)\n";
+            }
+            else
+            {
+               symlink ($orig, $new)
+                  || die "Couldn't symlink $orig -> $new: $!\n";
+            }
+         }
+      }
+   }
+
+}
+
+sub print
+{
+   my ($self, $filename, $file, $comment) = @_;
+   my $t;
+
+   if ($filename && $filename ne "-")
+   {
+      $self->{file} = $filename;
+      my $dir = (&::split_path ($filename))[0];
+      $self->{ref_dir} = 
+         ($dir =~ m|^/|)        # absolute path?
+            ? $dir              # then just use dir component of $filename
+            : getcwd() . "/" . $dir;   # else it's relative to current dir
+   }
+   else
+   {
+      $self->{ref_dir} = getcwd(); # don't have filename, so use current dir
+   }
+
+   $file = &make_output_filehandle ($file);
+   $self->print_preamble ($file, $comment);
+
+   for $t (0 .. $#{$self->{transforms}})
+   {
+      $self->print_single ($file, $self->{transforms}[$t]);
+   }
+}
+      
+   
+
+package main;
+
+$::Usage = <<USAGE;
+Usage: xfmtool in_xfm in_xfm ... out_xfm
+USAGE
+
+die $::Usage unless @ARGV >= 2;
+
+my $invert_next = 0;
+my ($arg, @xfms);
+my $comment = (sprintf "%s %s\n", &userstamp(), &timestamp()) .
+              join (" ", $0, @ARGV);
+
+my $outfile = pop;              # output file is last argument
+die "output file $outfile already exists, and I don't have a -clobber option\n"
+   if (-e $outfile);
+   
+while ($arg = shift)
+{
+   my $invert = 0;
+   my ($command, $file, $args);
+
+   my $xfm = new TransformFile;
+
+   if (($command, $args, $file) = $arg =~ /(\w+) (\([^\)]*\))? : (.*)/x)
+   {
+      $xfm->parse ($file);
+      $args =~ s/\(([^\)]*)\)/$1/ if $args;
+      
+      if ($command eq "invert")
+      {
+         $xfm = $xfm->invert();
+      }
+      elsif ($command eq "extract")
+      {
+         $xfm = $xfm->extract (&parse_num_list ($args));
+      }
+      else
+      {
+         die "bogus command: $command\n";
+      }
+   }
+   else
+   {
+      $file = $arg;
+      $xfm->parse ($file);
+   }
+
+   push (@xfms, $xfm);
+}
+
+              
+my $xfm = concat TransformFile @xfms;
+
+open (OUT, ">$outfile");
+$xfm->print ($outfile, \*OUT, $comment);
+
+
+1;

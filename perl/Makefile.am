@@ -1,6 +1,6 @@
 perllibdir = $(pkglibdir)
 configdir = $(sysconfdir)/@PACKAGE@
-modeldir = $(libdir)/model
+modeldir = $(pkgdatadir)
 
 # Helper program used by build_perl_stuff.
 noinst_PROGRAMS = version
@@ -13,7 +13,7 @@ noinst_PROGRAMS = version
 EXTRA_DIST = $(script_in) $(configdata_in) $(man_MANS) $(perllib_DATA) \
 	build_perl_stuff 
 
-script_in = autocrop.in mritoself.in mritotal.in
+script_in = autocrop.in mritoself.in mritotal.in xfmtool.in
 configdata_in = mritotal.cfg.in mritotal.default.cfg.in mritotal.icbm.cfg.in
 
 man_MANS = mritotal.1 autocrop.1 mritoself.1
@@ -31,7 +31,7 @@ if PERLGOOD
 
 CLEANFILES = $(bin_SCRIPTS) $(config_DATA)
 
-bin_SCRIPTS = autocrop mritotal mritoself
+bin_SCRIPTS = autocrop mritotal mritoself xfmtool
 config_DATA  = mritotal.cfg mritotal.default.cfg mritotal.icbm.cfg
 
 # Wacky perl script to do substitution
