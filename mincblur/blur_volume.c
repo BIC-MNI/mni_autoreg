@@ -39,12 +39,10 @@ public Status blur3D_volume(Volume data,
     
     *dat_vector,		/* temp storage of original row, col or slice vect. */
     *dat_vecto2,		/* storage of result of dat_vector*kern             */
-    *kern,			/* convolution kernel                               */
-    k1,				/* width (in pixels) of gaussian                    */
-    val;			/* temp storage, to take value from dat_vector, and */
+    *kern;			/* convolution kernel                               */
 				/*  place it back into data->voxels                 */
   int				
-    i, total_voxels,		
+    total_voxels,		
     vector_size_data,		/* original size of row, col or slice vector        */
     kernel_size_data,		/* original size of kernel vector                   */
     array_size_pow2;		/* actual size of vector/kernel data used in FFT    */
@@ -57,19 +55,13 @@ public Status blur3D_volume(Volume data,
   register int 
     slice_limit,
     row,col,slice,		/* counters to access original data                 */
-    k,kindex,			/* counters to access kernel                        */
     vindex;			/* counter to access vector and vecto2              */
 
   int 
-    voxel_size, slice_size,	/* size of each data step - in bytes              */
+    slice_size,			/* size of each data step - in bytes              */
     row_size, col_size;
                 
-  float
-    sum,			/* sum for normalization of kernel                  */
-    t1,t2,t3;			/* temp values for calculation of kernel            */
-
   FILE 
-    *f,				/* file used to print out debug info about kernel(s)*/
     *ofp;			/* file used tp write out dx,dy or dz volume        */
   char
     full_outfilename[256];	/* name of output file */
@@ -106,7 +98,6 @@ public Status blur3D_volume(Volume data,
   slice_size = sizes[Y] * sizes[X];    /* sizeof one slice  */
   col_size   = sizes[Y];               /* sizeof one column */
   row_size   = sizes[X];               /* sizeof one row    */
-  voxel_size = sizeof(float);                           
   
   total_voxels = sizes[Y]*sizes[X]*sizes[Z];
   
@@ -163,7 +154,7 @@ public Status blur3D_volume(Volume data,
   
   /*    1st calculate kern array for gaussian kernel*/
   
-  make_kernel(kern,steps[X],fwhm,array_size_pow2);
+  make_kernel(kern,(float)steps[X],fwhm,array_size_pow2);
   four1(kern,array_size_pow2,1);
   
   /*    calculate offset for original data to be placed in vector            */
@@ -243,7 +234,7 @@ public Status blur3D_volume(Volume data,
   
   /*    1st calculate kern array for gaussian kernel*/
   
-  make_kernel(kern,steps[Y],fwhm,array_size_pow2);
+  make_kernel(kern,(float)steps[Y],fwhm,array_size_pow2);
   four1(kern,array_size_pow2,1);
   
   /*    calculate offset for original data to be placed in vector            */
@@ -333,7 +324,7 @@ public Status blur3D_volume(Volume data,
     
     /*    1st calculate kern array for gaussian kernel*/
     
-    make_kernel(kern,steps[Z],fwhm,array_size_pow2);
+    make_kernel(kern,(float)steps[Z],fwhm,array_size_pow2);
     four1(kern,array_size_pow2,1);
     
     /*    calculate offset for original data to be placed in vector            */
@@ -411,11 +402,11 @@ public Status blur3D_volume(Volume data,
     sprintf(full_outfilename,"%s_reals",outfile);
     status = open_file(full_outfilename, WRITE_FILE, BINARY_FORMAT, &ofp);
     if (status != OK) 
-      print_error("problems opening blurred reals data..."__FILE__, __LINE__, 0, 0,0,0,0);
+      print_error("problems opening blurred reals data...",__FILE__, __LINE__, 0, 0,0,0,0);
     else {
       status = io_binary_data(ofp,WRITE_FILE, fdata, sizeof(float), total_voxels);
       if (status != OK) 
-	print_error("problems writing blurred reals data..."__FILE__, __LINE__, 0, 0,0,0,0);
+	print_error("problems writing blurred reals data...",__FILE__, __LINE__, 0, 0,0,0,0);
     }
     close_file(ofp);
   }
@@ -461,7 +452,7 @@ public Status blur3D_volume(Volume data,
       for_less( col, 0, sizes[X]) {
 	tmp = CONVERT_VALUE_TO_VOXEL(data, *f_ptr);
  	SET_VOXEL_3D( data, col, row, slice, tmp);
-	*f_ptr++;
+	f_ptr++;
       }
 
   FREE(fdata);
@@ -477,7 +468,7 @@ public Status blur3D_volume(Volume data,
   if (status == OK)
     close_minc_output(minc_fp);
   else
-    print_error("problems writing blurred data..."__FILE__, __LINE__, 0, 0,0,0,0);
+    print_error("problems writing blurred data...",__FILE__, __LINE__, 0, 0,0,0,0);
 
   return(status);
 

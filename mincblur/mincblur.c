@@ -115,8 +115,6 @@ main (int argc, char *argv[] )
     step[3];
   int
     sizes[3];
-  float
-    kernel1;
   
   
   /* set default values */
@@ -124,7 +122,6 @@ main (int argc, char *argv[] )
   prog_name = argv[0];
   gradonlyflg = bluronlyflg = FALSE;
   fwhm = standard = 0.0;
-  kernel1 = 0.0;
   infilename =  outfilename = NULL;
   ifd = ofd = NULL;
   dimensions = 3;

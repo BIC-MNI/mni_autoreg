@@ -37,11 +37,9 @@ public Status gradient3D_volume(FILE *ifd,
     
     *dat_vector,		/* temp storage of original row, col or slice vect. */
     *dat_vecto2,		/* storage of result of dat_vector*kern                 */
-    *kern,			/* convolution kernel                               */
-    val;			/* temp storage, to take value from dat_vector, and     */
-				/*  place it back into data->voxels                 */
+    *kern;			/* convolution kernel                               */
   int				
-    i, total_voxels,		
+    total_voxels,		
     vector_size_data,		/* original size of row, col or slice vector        */
     array_size_pow2;		/* actual size of vector/kernel data used in FFT    */
 				/* routines - needs to be a power of two            */
@@ -52,16 +50,13 @@ public Status gradient3D_volume(FILE *ifd,
   register int 
     slice_limit,
     row,col,slice,		/* counters to access original data                 */
-    k,				/* counters to access kernel                        */
     vindex;			/* counter to access vector and vecto2              */
 
   int 
-    voxel_size, slice_size,	/* size of each data step - in bytes              */
+    slice_size,			/* size of each data step - in bytes                */
     row_size, col_size;
                 
-  FILE 
-    *f,				/* file used to print out debug info about kernel(s)*/
-    *ofp;			/* file used tp write out dx,dy or dz volume        */
+
   char
     full_outfilename[256];	/* name of output file */
 
@@ -91,7 +86,6 @@ public Status gradient3D_volume(FILE *ifd,
   slice_size = sizes[Y] * sizes[X];    /* sizeof one slice  */
   col_size   = sizes[Y];               /* sizeof one column */
   row_size   = sizes[X];               /* sizeof one row    */
-  voxel_size = sizeof(float);                           
   
   total_voxels = sizes[Y]*sizes[X]*sizes[Z];
   
@@ -230,7 +224,7 @@ public Status gradient3D_volume(FILE *ifd,
       for_less( col, 0, sizes[X]) {
 	tmp = CONVERT_VALUE_TO_VOXEL(data, *f_ptr);
  	SET_VOXEL_3D( data, col, row, slice, tmp);
-	*f_ptr++;
+	f_ptr++;
       }
 
 
@@ -245,7 +239,7 @@ public Status gradient3D_volume(FILE *ifd,
   if (status == OK)
     close_minc_output(minc_fp);
   else
-    print_error("problems writing dx gradient data..."__FILE__, __LINE__, 0, 0,0,0,0);
+    print_error("problems writing dx gradient data...",__FILE__, __LINE__, 0, 0,0,0,0);
 
 
   
@@ -375,7 +369,7 @@ public Status gradient3D_volume(FILE *ifd,
       for_less( col, 0, sizes[X]) {
 	tmp = CONVERT_VALUE_TO_VOXEL(data, *f_ptr);
  	SET_VOXEL_3D( data, col, row, slice, tmp);
-	*f_ptr++;
+	f_ptr++;
       }
 
 
@@ -390,7 +384,7 @@ public Status gradient3D_volume(FILE *ifd,
   if (status == OK)
     close_minc_output(minc_fp);
   else
-    print_error("problems writing dy gradient data..."__FILE__, __LINE__, 0, 0,0,0,0);
+    print_error("problems writing dy gradient data...",__FILE__, __LINE__, 0, 0,0,0,0);
   
   
   /*--------------------------------------------------------------------------------------*/
@@ -529,7 +523,7 @@ public Status gradient3D_volume(FILE *ifd,
       for_less( col, 0, sizes[X]) {
 	tmp = CONVERT_VALUE_TO_VOXEL(data, *f_ptr);
  	SET_VOXEL_3D( data, col, row, slice, tmp);
-	*f_ptr++;
+	f_ptr++;
       }
 
 
@@ -544,7 +538,7 @@ public Status gradient3D_volume(FILE *ifd,
   if (status == OK)
     close_minc_output(minc_fp);
   else
-    print_error("problems writing dz gradient data..."__FILE__, __LINE__, 0, 0,0,0,0);
+    print_error("problems writing dz gradient data...",__FILE__, __LINE__, 0, 0,0,0,0);
 
   terminate_progress_report( &progress );
 

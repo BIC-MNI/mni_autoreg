@@ -170,8 +170,6 @@ public void build_vol_info(char   *infile,
 
    tm_stamp = time_stamp(str_count, str_vals);
 
-   pname   = str_vals[0];
-
    /* Check input file for default argument information */
    in_vol->file = MALLOC(sizeof(File_Info));
    get_file_info(infile, &defaults.volume_def, in_vol->file);

@@ -142,9 +142,8 @@ public void make_kernel_FT(float *kern, int size)
 {
 
    int kindex,k;
-   FILE *f;
    
-   memset(kern,0,(2*size+1)*sizeof(float));
+   (void)memset(kern,(int)0,(size_t)((2*size+1)*sizeof(float)));
 
    for ( k = -size/2; k<size/2; ++k) {
       kindex = ((k + size) % size)*2 +1; 
@@ -184,21 +183,16 @@ public void make_kernel_FT(float *kern, int size)
 @CREATED    : Wed Jun 23 09:04:34 EST 1993 Louis Collins
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public make_kernel(float *kern, float vsize, float fwhm, int size)
+public void make_kernel(float *kern, float vsize, float fwhm, int size)
 {
 
   int kindex,k;
-  float sum;
-  FILE *f;
   
-  memset(kern,0,(2*size+1)*sizeof(float));
+  (void)memset(kern,(int)0,(size_t)((2*size+1)*sizeof(float)));
   
-  sum = 0.0;
   for ( k = -size/2; k<size/2; ++k) {
     kindex = ((k + size) % size)*2 +1;
     kern[kindex] = normal_dist(1.0,fwhm,0.0,(float)(vsize*k));
-    sum += kern[kindex]>0.0 ? kern[kindex] : -kern[kindex];
   }
 
-  
 }
