@@ -46,7 +46,7 @@
 # the same copyright as above.
 # --------------------------------------------------------------------
 
-# $Id: mritotal.in,v 1.10 2000-06-14 12:55:01 louis Exp $
+# $Id: mritotal.in,v 1.11 2001-10-22 15:49:02 louis Exp $
 
 require 5.001;
 
@@ -85,7 +85,7 @@ use vars qw($ModelDir $Model $Protocol
             @Crop $Objective $FirstObj
             $InputXfm @Blurs @BlurModes $Blur $OldPad
             $Help $Usage $Version $LongVersion
-            @ConfigPath $ProtocolTbl $SourceVol $FinalXfm
+            @ConfigPath $ProtocolTbl $SiteTbl $SourceVol $FinalXfm
             $Clamp $ClampFactor
             $VolumeCOG $SourceBase);
 
@@ -517,7 +517,10 @@ sub ReadProtocol
       &ReadConfigFile (\@ConfigPath, $protocol_file);
    &verbose ("Loading protocol $Protocol (protocol file = $protocol_file)");
 
-   unless (&GetOptions ($ProtocolTbl, \@protocol_args))
+   my ($tbl);
+   @$tbl = (@$ProtocolTbl, @$SiteTbl) ;
+
+   unless (&GetOptions ($tbl, \@protocol_args))
    {
       warn "$ProgramName: error in protocol file $protocol_file\n";
       return 0;
@@ -622,6 +625,7 @@ sub Initialize
       &SetupArgTables ($ok_levels);
    @all_args = (@$pref_tbl, @$site_tbl, @$protocol_tbl, @$other_tbl);
    $ProtocolTbl = $protocol_tbl; # global so &ReadProtocol can see it
+   $SiteTbl     = $site_tbl;     # global so &ReadProtocol can see it
 
 
    # Make a first pass over the command line -- this doesn't actually do
