@@ -16,13 +16,16 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 96.3  1997-11-12 21:07:43  louis
-@MODIFIED   : - added support for chamfer distance as a local obj func
-@MODIFIED   : - moved all procedures used to compute the local obj function
-@MODIFIED   :   into def_obj_funcitons.c
-@MODIFIED   :   cost_fn(), similarity_fn(), go_get_samples_with_offset(),
-@MODIFIED   :   local_objective_function(), amoeba_NL_obj_function()
+@MODIFIED   : Revision 96.4  1999-06-09 13:11:08  louis
+@MODIFIED   : working version with optical flow (working by itself).
 @MODIFIED   :
+ * Revision 96.3  1997/11/12  21:07:43  louis
+ * - added support for chamfer distance as a local obj func
+ * - moved all procedures used to compute the local obj function
+ *   into def_obj_funcitons.c
+ *   cost_fn(), similarity_fn(), go_get_samples_with_offset(),
+ *   local_objective_function(), amoeba_NL_obj_function()
+ *
  * Revision 96.2  1997/11/03  20:05:41  louis
  * reorganized do_nonlinear.c
  *  - added prototypes in header files
@@ -251,7 +254,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.3 1997-11-12 21:07:43 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.4 1999-06-09 13:11:08 louis Exp $";
 #endif
 
 #include <config.h>		/* MAXtype and MIN defs                      */
@@ -548,10 +551,18 @@ public Status do_non_linear_optimization(Arg_Data *globals)
    if (Gglobals->features.number_of_features > 0) {
       ALLOC2D (Ga1_features, Gglobals->features.number_of_features, MAX_G_LEN+1);
       ALLOC( Gsqrt_features, Gglobals->features.number_of_features);
+      if (globals->flags.debug) {
+        print ("There are %d feature pairs\n",Gglobals->features.number_of_features);
+        for_less(i,0,Gglobals->features.number_of_features) {
+	  print ("%d: %s <-> %s\n", i,
+		 Gglobals->features.data_name[i],
+		 Gglobals->features.model_name[i]);
+        }
+      } 
    }
    else {
-      print_error_and_line_num("There are no features to match in non_lin optimization\n", 
-                               __FILE__, __LINE__);
+     print_error_and_line_num("There are no features to match in non_lin optimization\n", 
+			      __FILE__, __LINE__);
    }
 
    ALLOC(SX,MAX_G_LEN+1);        /* and coordinates in source volume  */
@@ -751,10 +762,24 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 
 
     print ("\nFitting STRATEGY ----------\n");
-    if ( Gglobals->trans_info.use_simplex) 
-      print ("  This fit will use local simplex optimization and\n");
-    else
-      print ("  This fit will use local quadratic fitting and\n");
+    
+    if ( Gglobals->trans_info.use_magnitude) {
+
+      if ( Gglobals->trans_info.use_simplex) {
+	print ("  This fit will use local simplex optimization and\n");
+	print ("  Simplex radius = %7.2f (voxels) or %7.2f(mm)\n",
+	       Gsimplex_size, 
+	       Gsimplex_size * MAX3(steps_data[0],steps_data[1],steps_data[2]));      }
+      else {
+	print ("  This fit will use local quadratic fitting and\n");
+	print ("  Search/quad fit radius= %7.2f (data voxels) or %7.2f(mm)\n",
+	       Gsimplex_size /2.0, 
+	       Gsimplex_size * MAX3(steps_data[0],steps_data[1],steps_data[2])/2.0);
+      }
+    }
+    else {
+	print ("  This fit will use optical flow for direct fitting\n");        
+    }
 
     if (Gglobals->trans_info.use_local_smoothing) {
       if ( Gglobals->trans_info.use_local_isotropic) 
@@ -765,28 +790,22 @@ public Status do_non_linear_optimization(Arg_Data *globals)
     else {
       print ("    global smoothing.\n");
     }
-
-    if ( Gglobals->trans_info.use_simplex) 
-      print ("  Simplex radius = %7.2f (voxels) or %7.2f(mm)\n",
-             Gsimplex_size, 
-             Gsimplex_size * MAX3(steps_data[0],steps_data[1],steps_data[2]));
-    else
-      print ("  Search/quad fit radius= %7.2f (data voxels) or %7.2f(mm)\n",
-             Gsimplex_size /2.0, 
-             Gsimplex_size * MAX3(steps_data[0],steps_data[1],steps_data[2])/2.0);
+    
 
     if (Gglobals->interpolant==nearest_neighbour_interpolant) 
       print ("  The similarity function will be evaluated using NN interpolation\n");
     else
       print ("  The similarity function will be evaluated using tri-linear interpolation\n");
-    print ("    on a spherical sub-lattice with a diameter of %7.2f (data voxels),\n",
-           3.0*steps[xyzv[X]]/MAX3(steps_data[0],steps_data[1],steps_data[2]) );          
-    print ("    %7.2f(mm) or %d nodes (%7.2f vox/node or%7.2f mm/node) \n", 
-           3.0*steps[xyzv[X]], Diameter_of_local_lattice,
-           3.0*steps[xyzv[X]]/((Diameter_of_local_lattice-1)*MAX3(steps_data[0],steps_data[1],steps_data[2])),
-           3.0*steps[xyzv[X]]/(Diameter_of_local_lattice-1));
-
-
+    
+    if ( Gglobals->trans_info.use_magnitude) {
+      print ("    on a spherical sub-lattice with a diameter of %7.2f (data voxels),\n",
+	     3.0*steps[xyzv[X]]/MAX3(steps_data[0],steps_data[1],steps_data[2]) );          
+      print ("    %7.2f(mm) or %d nodes (%7.2f vox/node or%7.2f mm/node) \n", 
+	     3.0*steps[xyzv[X]], Diameter_of_local_lattice,
+	     3.0*steps[xyzv[X]]/((Diameter_of_local_lattice-1)*MAX3(steps_data[0],steps_data[1],steps_data[2])),
+	     3.0*steps[xyzv[X]]/(Diameter_of_local_lattice-1));
+    }
+    
     print ("-----------------------\n");
   }
 
@@ -1755,6 +1774,79 @@ private BOOLEAN get_best_start_from_neighbours(
 
 
 
+
+private Real get_optical_flow_vector(Real threshold1, 
+				     Real source_coord[],
+				     Real mean_target[],
+				     Real def_vector[],
+				     Real voxel_displacement[],
+				     int *num_functions,
+				     int ndim)
+{ 
+  Real
+    val[MAX_DIMENSIONS],	/* the interpolated intensity value     */
+    result,			/* the magnitude of the estimated def   */
+    xp, yp, zp,			/* temp storage for coordinate position */
+    d1x[MAX_DIMENSIONS],	/* derivative in X (world-coord)        */
+    d1y[MAX_DIMENSIONS],	/*     "         Y                      */
+    d1z[MAX_DIMENSIONS],	/*     "         Z                      */
+    steps[MAX_DIMENSIONS];
+  int
+    i;				/* a counter                            */
+
+    get_volume_separations(Gglobals->features.data[0], steps);
+  
+    xp = mean_target[0];	/* get intensity in target volume       */
+    yp = mean_target[1];
+    zp = mean_target[2];
+    evaluate_volume_in_world(Gglobals->features.model[0],
+			     xp, yp, zp,
+			     0, TRUE, 0.0, val,
+			     NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
+    Gproj_d2 = val[0];
+    
+    xp = source_coord[0];	/* get intensity and derivatives        */
+    yp = source_coord[1];	/* in source volume                     */
+    zp = source_coord[2];
+    evaluate_volume_in_world(Gglobals->features.data[0],
+			     xp, yp, zp,
+			     0, TRUE, 0.0, val,
+                             d1x,d1y,d1z,
+			     NULL,NULL,NULL,
+			     NULL,NULL,NULL);
+    Gproj_d1 = val[0];
+    
+				/* compute deformations directly!       */
+
+    if (ABS(d1x[0]) > threshold1)   /* fastest (X) */
+      def_vector[0] = ((Gproj_d1 - Gproj_d2) /  d1x[0]);
+    else
+      def_vector[0] = 0.0;
+    
+    if (ABS(d1y[0]) > threshold1)
+      def_vector[1] = ((Gproj_d1 - Gproj_d2) /  d1y[0]);
+    else
+      def_vector[1] = 0.0;
+    
+    if (ABS(d1z[0]) > threshold1 && ndim==3)  /* slowest  (Z) */
+      def_vector[2] = ((Gproj_d1 - Gproj_d2) /  d1z[0]);
+    else
+      def_vector[2] = 0.0;
+    
+    
+    for_less(i,0,3)            /* build the real-world displacement */
+      voxel_displacement[i] = def_vector[i]  * steps[i];
+    
+    result = sqrt (def_vector[0]*def_vector[0] +
+		   def_vector[1]*def_vector[1] +
+		   def_vector[2]*def_vector[2]);
+    
+    *num_functions = 1;
+    return(result);
+
+}
+
+
 /**********************************************************
 
   get_deformation_vector_for_node will return the magnitude of the
@@ -1790,6 +1882,7 @@ private BOOLEAN get_best_start_from_neighbours(
 
 */
 
+
 private Real get_deformation_vector_for_node(Real spacing, 
 					     Real threshold1, 
 					     Real source_coord[],
@@ -1800,8 +1893,8 @@ private Real get_deformation_vector_for_node(Real spacing,
 					     int *num_functions,
 					     int ndim)
 {
+
   Real
-     ttx,tty,ttz,
     du,dv,dw,
     xt, yt, zt,
     local_corr3D[3][3][3],
@@ -1816,7 +1909,6 @@ private Real get_deformation_vector_for_node(Real spacing,
   float 
     pos_vector[4];
   int 
-     flag_tt,
     flag,
     nfunk,
     i,j,k;
@@ -1826,16 +1918,18 @@ private Real get_deformation_vector_for_node(Real spacing,
     *parameters;
   FILE *tmp_fp;
 
-                                /* for debug */
-  ttx = source_coord[X] - -76.0; if (ttx<0.0) ttx *= -1.0;
-  tty = source_coord[Y] - -38.0; if (tty<0.0) tty *= -1.0;
-  ttz = source_coord[Z] - 14.0; if (ttz<0.0) ttz *= -1.0;
+
+
+  if (!Gglobals->trans_info.use_magnitude) { /* then use optical flow */
+    
+    return( get_optical_flow_vector(threshold1, 
+				    source_coord, mean_target,
+				    def_vector,   voxel_displacement,
+				    num_functions,ndim));
+  }                                                                       
+
+  /* otherwise, use magnitude info */        
   
-  flag_tt =  FALSE; /*(ttx < 0.01 && tty < 0.01 && ttz < 0.01) ;*/
-
-
-
-
   result = 0.0;			/* assume no additional deformation */
   def_vector[X] = def_vector[Y] = def_vector[Z] = 0.0;
   *num_functions = 0;		/* assume no optimization done      */
@@ -1846,7 +1940,7 @@ private Real get_deformation_vector_for_node(Real spacing,
 
      otherwise
 
-     bias the initial starting search position for the local
+     Bias the initial starting search position for the local
      deformation vector by calculating a target position that is equal
      to the vector average of 
      (current_transformation(source) + average_position(source in target)
@@ -1920,10 +2014,6 @@ private Real get_deformation_vector_for_node(Real spacing,
       Glen = 1;
     }
 
-if (flag_tt) {
-   print ("before %6.2f %6.2f %6.2f\n", SX[1], SY[1], SZ[1]);
-}    
-
     /* -------------------------------------------------------------- */
     /* BUILD THE TARGET VOLUME LOCAL NEIGHBOURHOOD INFO */
 
@@ -1969,9 +2059,6 @@ if (flag_tt) {
 		ydim, and TZ the voxel xdim coordinate.  BIZARRE I know,
 		but it works... */
 
-if (flag_tt) {
-   print ("target  %6.2f %6.2f %6.2f\n", TX[1], TY[1], TZ[1]);
-}    
     for_inclusive(i,1,Glen) {
       convert_3D_world_to_voxel(Gglobals->features.model[0], 
 				(Real)TX[i],(Real)TY[i],(Real)TZ[i], 
@@ -1993,10 +2080,6 @@ if (flag_tt) {
       }
     }
 
-if (flag_tt) {
-   print ("after  %6.2f %6.2f %6.2f\n", SX[1], SY[1], SZ[1]);
-}    
-    
     /* -------------------------------------------------------------- */
     /* GO GET FEATURES IN SOURCE VOLUME actually get the feature data from
        the source volume local neighbourhood and compute the required
@@ -2011,34 +2094,6 @@ if (flag_tt) {
 				 (Gglobals->interpolant==nearest_neighbour_interpolant ? -1 : 0)
 				 );
       }
-    }
-    else {			
-
-      /* build projection data, ie go get f, df/dx, df/dy, df/dz to be
-         able to reconstruct the equivalent of a sub-lattice, based
-         only on these first four terms of the Taylor expansion. */
-
-      evaluate_volume_in_world(Gglobals->features.data[0],
-			       xp, yp, zp, 
-			       0, TRUE, 0.0, val,
-			       NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
-      Gproj_d1 = val[0];
-      evaluate_volume_in_world(Gglobals->features.data[1],
-			       xp, yp, zp, 
-			       0, TRUE, 0.0, val,
-			       NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
-      Gproj_d1x = 2.0*val[0];
-      evaluate_volume_in_world(Gglobals->features.data[2],
-			       xp, yp, zp, 
-			       0, TRUE, 0.0, val,
-			       NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
-      Gproj_d1y = 2.0*val[0];
-      evaluate_volume_in_world(Gglobals->features.data[3],
-			       xp, yp, zp, 
-			       0, TRUE, 0.0, val,
-			       NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
-      Gproj_d1z = 2.0*val[0];
-
     }
 
     /* -------------------------------------------------------------- */
@@ -2065,17 +2120,6 @@ if (flag_tt) {
 	break;
       case NONLIN_CHAMFER:
 	Gsqrt_features[i] = 0;
-
-        if (flag_tt) {
-           print ("\nchamfer:\n");
-           print ("%6.2f %6.2f, %6.2f %6.2f, %6.2f %6.2f\n",
-                  source_coord[X],xp,source_coord[Y],yp,source_coord[Z],zp);
-           for_inclusive(j,1,Glen) {
-              if (Ga1_features[i][j] > 0.0) {
-                 print ("%3d %6.2f %6.2f %6.2f -> %8.3f\n", j, SX[j], SY[j], SZ[j], Ga1_features[i][j]);
-              }
-           }
-        }
 
 	break;
       default:
