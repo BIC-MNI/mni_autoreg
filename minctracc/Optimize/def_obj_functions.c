@@ -4,11 +4,12 @@
               optimization              
 @CREATED    : Nov 4, 1997, Louis Collins
 @MODIFIED   : not yet!
-@VERSION    : $Id: def_obj_functions.c,v 1.1 1997-11-12 21:07:43 louis Exp $
+@VERSION    : $Id: def_obj_functions.c,v 1.2 1998-03-13 20:16:44 louis Exp $
 -----------------------------------------------------------------------------*/
 
 #include <config.h>		
 #include <internal_volume_io.h>	
+#include "constants.h"
 #include <arg_data.h>           /* definition of the global data struct      */
 
 
@@ -90,7 +91,7 @@ private Real similarity_fn(float *d)
       norm,
       val[MAX_DIMENSIONS],
       voxel[MAX_DIMENSIONS],
-      xw,yw,zw,
+      xw,yw,zw, 
       s, s1, s2, func_sim;
    
    /* note: here the displacement order for go_get_samples_with_offset
@@ -106,8 +107,7 @@ private Real similarity_fn(float *d)
       s = norm = 0.0;
       
       for_less(i,0,Gglobals->features.number_of_features)  {
-         norm += ABS(Gglobals->features.weight[i]);
-         func_sim = Gglobals->features.weight[i] * 
+         func_sim = 
             (Real)go_get_samples_with_offset(Gglobals->features.model[i],
                                              TX,TY,TZ,
                                              d[3], d[2], d[1],
@@ -115,9 +115,14 @@ private Real similarity_fn(float *d)
                                              Glen, 
                                              Gsqrt_features[i], Ga1_features[i],
                                              Gglobals->interpolant==nearest_neighbour_interpolant);
-         s += func_sim;
-
-/*  print ("s%12.9f ",func_sim); /* !!! */
+         if ((Gglobals->features.obj_func[i]==NONLIN_CHAMFER) && (func_sim > 1.5)) {
+                                /* do nothing, do not add the chamfer distance info */
+         }
+         else {
+            norm += ABS(Gglobals->features.weight[i]);
+            s += Gglobals->features.weight[i] * func_sim;
+         }
+/*  print ("s%12.9f ",func_sim); !!! */
          
       }
       
@@ -185,13 +190,13 @@ public Real local_objective_function(float *d)
   similarity = (Real)similarity_fn( d );
   cost       = (Real)cost_fn( d[1], d[2], d[3], Gcost_radius );
 
-/*  print ("c%12.9f ",cost); /* !!! */
+/*  print ("c%12.9f ",cost);  !!! */
   
   r = 1.0 - 
       similarity * similarity_cost_ratio + 
       cost       * (1.0-similarity_cost_ratio);
 
-/*  print ("  -> %12.9f\n",r); /* !!! */
+/*  print ("  -> %12.9f\n",r);  !!! */
   
   return(r);
 }
