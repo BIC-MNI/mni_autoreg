@@ -20,13 +20,18 @@
 
 @CREATED    : Thu Jun  2 10:21:00 EST 1994   Louis Collins
 @MODIFIED   : $Log: mincbbox.c,v $
-@MODIFIED   : Revision 1.1  2000-01-27 16:40:02  louis
+@MODIFIED   : Revision 1.2  2000-02-02 20:10:14  stever
+@MODIFIED   : * minctracc/Testing was a copy of Testing with one extra test only;
+@MODIFIED   :   folded the extra test into Testing, and removed minctracc/Testing
+@MODIFIED   : * minor source changes to placate GCC's -Wall option
+@MODIFIED   :
+@MODIFIED   : Revision 1.1  2000/01/27 16:40:02  louis
 @MODIFIED   : Initial revision
 @MODIFIED   :
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincbbox/mincbbox.c,v 1.1 2000-01-27 16:40:02 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincbbox/mincbbox.c,v 1.2 2000-02-02 20:10:14 stever Exp $";
 #endif
 
 
@@ -40,10 +45,8 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincbbox
 static char *default_dim_names[N_DIMENSIONS] = { MIxspace, MIyspace, MIzspace };
 static char *My_File_order_dimension_names[MAX_DIMENSIONS] = { "", "", "", "", "" };
 
-main (int argc, char *argv[] )
+int main (int argc, char *argv[] )
 {   
-  FILE 
-    *ofd;
   char 
     *infilename;
   Status 

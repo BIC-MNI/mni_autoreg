@@ -1,3 +1,8 @@
+2000-02-02  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* Testing: removed.  Folded extra test for "animal" into
+	../Testing.
+
 Fri Jan 28 16:44:19 2000  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* Include/globals.h (argTable): remove ifdef NONLINEAR_RELEASE.

@@ -20,7 +20,12 @@
               express or implied warranty.
    @CREATED    : Wed Mar 16 20:20:50 EST 1994  Louis Collins
    @MODIFIED   : $Log: make_phantom.c,v $
-   @MODIFIED   : Revision 1.1  1996-08-21 15:25:05  louis
+   @MODIFIED   : Revision 1.2  2000-02-02 20:10:13  stever
+   @MODIFIED   : * minctracc/Testing was a copy of Testing with one extra test only;
+   @MODIFIED   :   folded the extra test into Testing, and removed minctracc/Testing
+   @MODIFIED   : * minor source changes to placate GCC's -Wall option
+   @MODIFIED   :
+   @MODIFIED   : Revision 1.1  1996/08/21 15:25:05  louis
    @MODIFIED   : Initial revision
    @MODIFIED   :
  * Revision 1.1  94/03/16  22:58:40  louis
@@ -78,7 +83,7 @@ public Real partial_elliptical(Volume data, Real center[], Real r2[], Real step[
 			       int vx, int vy, int vz)
 {
   Real istep,jstep,kstep,coord[3];
-  int total,total_in,i,j,k,m,n;
+  int total,total_in,i,j,k,m;
   Real frac;
 
   total = total_in = 0;
@@ -147,7 +152,7 @@ public BOOLEAN is_inside_ellipse(Volume data, Real center[], Real r2[], int i, i
 }
 
 
-main (int argc, char *argv[] )
+int main (int argc, char *argv[] )
 {   
   FILE 
     *ofd;
@@ -163,15 +168,13 @@ main (int argc, char *argv[] )
     r2[3],
     coord[3],
     voxel[3];
-  progress_struct 
-    progress;
   char *history;
   Real
     w_minz,w_maxz,
     w_miny,w_maxy,
     w_minx,w_maxx;
   int 
-    inside,in1,in2,in3,in4,in5,in6,in7,
+    in1,in2,in3,in4,in5,in6,in7,
     minz,maxz,
     miny,maxy,
     minx,maxx,
@@ -372,7 +375,7 @@ main (int argc, char *argv[] )
 	  if (in1 && in2 && in3 && in4 && in5 && in6 && in7) {
 	    SET_VOXEL_3D(data, i,j,k, one);
 	  }
-	  else 
+	  else {
 	    if (in1 || in2 || in3 || in4 || in5 || in6 || in7) {
 
 	      if (partial_flag) {
@@ -382,13 +385,14 @@ main (int argc, char *argv[] )
 		SET_VOXEL_3D(data, i,j,k, value);
 	      }
 	      else {
-		if (in7)
-		  SET_VOXEL_3D(data, i,j,k, one);
+		  if (in7) {
+		      SET_VOXEL_3D(data, i,j,k, one);
+		  }
 	      }
-
+	      
 	    }
-	  
-	}
+	  }	  
+    }
     
   }
   

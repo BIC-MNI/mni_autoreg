@@ -2,7 +2,8 @@
  * Program to write out the build information.
  */
 
-#include "config.h"
+#include <config.h>
+#include <stdio.h>
 
 int main (void)
 {

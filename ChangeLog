@@ -1,3 +1,16 @@
+2000-02-02  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* Testing/Makefile.am (TEST_LIST): add animal.test, taken from
+	minctracc/Testing/Makefile.
+
+	* mincbbox/mincbbox.c (main): 
+	* make_phantom/make_phantom.c (partial_elliptical, main): small
+	fixes to placate "gcc -Wall", e.g. removed unused variables, add
+	braces, declare main to return 'int'.
+
+	* Proglib/print_error.c (print_error_and_line_num): removed
+	fixed-length buffer.
+
 Sun Jan 30 09:49:35 2000  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* NEWS: note revamped build process; minctracc includes nonlinear.

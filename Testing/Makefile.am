@@ -10,7 +10,8 @@ TEST_LIST = \
 	mincblur.test \
 	xcorr_vol.test \
 	volume_cog.test \
-	minctracc.test
+	minctracc.test \
+	animal.test
 
 
 
@@ -141,6 +142,24 @@ minctracc.act: object1_dxyz.mnc object2_dxyz.mnc
 	../minctracc/Extra_progs/xfm2param -center 0 0 0 output.xfm
 	touch $@
 	@echo "minctracc successful"
+	@echo ""
+
+
+mess.animal:
+	@echo "---------------------------------------"
+	@echo "testing animal: the nonlinear registration engine"
+	@echo "(this may take a few minutes)"
+	@echo ""
+
+animal.test: mess.animal animal.act
+
+animal.act: object1_dxyz.mnc object2_dxyz.mnc
+	../minctracc/Main/minctracc -identity object1_dxyz.mnc object2_dxyz.mnc \
+		-est_center -debug  -step 10 10 10 -nonlin \
+		-clobber def.xfm 
+	@echo ""
+	touch $@
+	@echo "animal successful"
 	@echo ""
 
 

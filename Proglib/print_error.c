@@ -1,4 +1,5 @@
-#include  <stdarg.h>
+#include <stdarg.h>
+#include <stdio.h>
 
 /* private  void  (*print_function) ( char [] ); */
 extern   char *prog_name;
@@ -26,32 +27,12 @@ Wed Apr 26 14:55:51 MET DST 1995
 void  print_error_and_line_num( char format[], char *name, int line, ... )
 {
     va_list  ap;
-    char     print_buffer[10000];
 
+    fprintf( stderr, "Error in %s in file %s, line %d\n", prog_name, name, line );
 
-				/* do the standard error message: */
-    sprintf (print_buffer,"Error in %s in file %s, line %d\n",prog_name,name,line);
-
-/*
-    if( print_function != NULL )
-        (*print_function) ( print_buffer );
-    else
-*/
-        (void) printf( "%s", print_buffer );
-
-
-
-				/* now to the variable argument part! */
     va_start( ap, line );
-    (void) vsprintf( print_buffer, format, ap );
+    vfprintf( stderr, format, ap );
     va_end( ap );
-
-/*
-    if( print_function != NULL )
-        (*print_function) ( print_buffer );
-    else
-*/
-        (void) printf( "%s\n", print_buffer );
 
     exit(-1);
 }
