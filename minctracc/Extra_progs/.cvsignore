@@ -1,4 +1,6 @@
 Makefile.in
+Makefile
+.deps
 check_scale
 param2xfm
 volume_cog

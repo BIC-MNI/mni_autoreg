@@ -4,5 +4,6 @@ config.h
 config.cache
 config.status
 stamp-h.in
+stamp-h
 Makefile.in
-
+Makefile

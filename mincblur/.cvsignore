@@ -1,2 +1,5 @@
-.warned mincblur mincblur.1
+.warned
 Makefile.in
+Makefile
+.deps
+mincblur

@@ -1,6 +1,3 @@
-mritotal.1
-autocrop.1
-mritoself.1
 autocrop
 version
 mritotal
@@ -9,3 +6,5 @@ mritotal.cfg
 mritotal.default.cfg
 mritotal.icbm.cfg
 Makefile.in
+Makefile
+.deps

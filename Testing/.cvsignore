@@ -1,4 +1,6 @@
 Makefile.in
+Makefile
+.deps
 make_phantom.act
 mincblur.act
 mincresample.act

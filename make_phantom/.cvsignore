@@ -1,2 +1,4 @@
-make_phantom
 Makefile.in
+Makefile
+.deps
+make_phantom

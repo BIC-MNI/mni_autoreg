@@ -1,2 +1,4 @@
-mincbbox
 Makefile.in
+Makefile
+.deps
+mincbbox
