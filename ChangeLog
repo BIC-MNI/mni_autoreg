@@ -1,5 +1,7 @@
 2000-02-16  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
 
+	* configure.in: remove check volume_io version using RCS id.
+
 	* mincchamfer: new.  Copied from Louis' home directory.
 
 	* Makefile.am (SUBDIRS): add mincchamfer.

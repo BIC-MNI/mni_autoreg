@@ -57,10 +57,8 @@ AC_PROG_RANLIB
 # Look for perl (and make sure it's the right version)
 #------------------------------------------------------------------------
 
-if test -z "$PERL"; then
-  AC_PATH_PROGS(PERL, [perl5 perl], no)
-fi
-AC_SUBST(PERL)
+AC_PATH_PROGS(PERL, [perl5 perl], no)
+
 if test "$PERL" = no; then
   AC_MSG_WARN(The mritotal script will not run since Perl 5 is not found. 
    You must install Perl 5 before installing MNI AutoReg.)
@@ -197,7 +195,9 @@ AC_SUBST(LIBDIRS)
 save_CPPFLAGS="$CPPFLAGS"
 save_LIBS="$LIBS"
 CPPFLAGS="$CPPFLAGS $INCLUDEDIRS"
-LIBS="$LIBS $LIBDIRS -lvolume_io -lminc -lnetcdf -lm"
+LIBS="$LIBS $LIBDIRS -lm"
+
+old_volumeio=
 
 # Test if volume data structure has array.data member (CURRNENT), 
 # or just data member (OLD).
@@ -209,6 +209,7 @@ AC_TRY_COMPILE( [#include <volume_io.h>],
 		autoreg_test=fail )
 
 if test $autoreg_test = "fail"; then
+    old_volumeio=yes
     autoreg_test="volume->data"
     AC_TRY_COMPILE( [#include <volume_io.h>], 
 		    [Volume v; v->data = NULL;],
@@ -235,6 +236,7 @@ AC_TRY_COMPILE( [#include <volume_io.h>],
 		autoreg_test=fail )
 
 if test $autoreg_test = "fail"; then
+    old_volumeio=yes
     autoreg_test="3"
     AC_TRY_COMPILE( [#include <volume_io.h>], 
 		    [STRING s; format_time( s, "%g %s", 0 );],
@@ -258,6 +260,7 @@ AC_TRY_COMPILE( [#include <volume_io.h>],
 		autoreg_test=fail )
 
 if test $autoreg_test = "fail"; then
+    old_volumeio=yes
     autoreg_test="1"
     AC_TRY_COMPILE( [#include <volume_io.h>], 
 		    [Volume v; char** names; delete_dimension_names(v,names);],
@@ -270,48 +273,11 @@ if test $autoreg_test = "fail"; then
     AC_MSG_ERROR(Cannot determine arguments to delete_dimension_names.)
 fi
 
-dnl This bit of magic was borrowed from XEmacs via FVWM.
-dnl If the program compiles and runs, we run again with a dummy argument
-dnl that outputs the RCSID revision number.
-dnl Note that this check is only informational.  The source code only
-dnl depends on the more specific tests, above.
-AC_MSG_CHECKING(revision of volume_io.h)
-AC_TRY_RUN([
-    #include <string.h>
-    #include <volume_io.h>
-    int main(int c, char **v) {
-	char* s = strstr(volume_io_rcsid,"volume_io.h,v ");
-	char* t;
-	if ( s == NULL ) return 1;
-	s += 14;
-	t = strchr(s,' ');
-	if ( t == NULL ) return 2;
-	*t = 0;
-	if ( c > 1 ) printf("%s\n", s);
-	return 0;
-    }],
-    [vio_ver=`./conftest dummy_arg`],
-    [AC_MSG_RESULT(unknown)
-     AC_MSG_ERROR([Cannot determine version.  See config.log for details.])])
-
 CPPFLAGS="$save_CPPFLAGS"
 LIBS="$save_LIBS"
 
-if test x$vio_ver = x; then
-    AC_MSG_RESULT(unknown)
-    AC_MSG_WARN([you seem to have an ancient version of Volume_io; if you have problems compiling, please upgrade])
-else
-    AC_MSG_RESULT($vio_ver)
-    case $vio_ver in
-    	1.[[1-5]]) 
-	    AC_MSG_WARN([you have an old version of Volume_io; if you have problems compiling, please upgrade])
-	    ;;
-    	1.6) 
-	    AC_MSG_RESULT([you have the version distributed with MINC 0.3 -- no problem!]) 
-	    ;;
-    	*)  AC_MSG_RESULT([you have an up-to-date version -- excellent!])
-	    ;;
-    esac
+if test x$old_volumeio = xyes; then
+    AC_MSG_WARN([you seem to have an ancient version of Volume_io; please upgrade])
 fi
 
 
