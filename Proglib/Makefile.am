@@ -9,14 +9,3 @@ libProglib_a_SOURCES = \
 	print_version.c print_version.h \
 	time_stamp.c time_stamp.h
 
-EXTRA_DIST = #$(oddities)
-
-oddities = \
-	def_tag_io.h \
-	evaluate.c \
-	minc_def.h \
-	splines.h \
-	tag_io.c \
-	test.c \
-	vax_conversions.c vax_conversions.h
-
