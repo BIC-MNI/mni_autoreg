@@ -3,7 +3,7 @@
 @DESCRIPTION: Simplex Optimization
 @METHOD     : Nelder & Mead 
 @GLOBALS    : none
-@CALLS      : volume_io library routines/macros
+@CALLS      : internal_volume_io library routines/macros
 @COPYRIGHT  :
               Copyright 1995 David MacDonald, McConnell Brain Imaging Centre, 
               Montreal Neurological Institute, McGill University.
@@ -17,9 +17,13 @@
 
 @CREATED    : 
 @MODIFIED   : $Log: amoeba.c,v $
-@MODIFIED   : Revision 96.0  1996-08-21 18:22:10  louis
-@MODIFIED   : Release of MNI_AutoReg version 0.96
+@MODIFIED   : Revision 96.1  1997-11-03 15:04:23  louis
+@MODIFIED   : working version, before creation of mni_animal package, and before inserting
+@MODIFIED   : distance transforms
 @MODIFIED   :
+ * Revision 96.0  1996/08/21  18:22:10  louis
+ * Release of MNI_AutoReg version 0.96
+ *
  * Revision 9.6  1996/08/21  18:22:01  louis
  * Pre-release
  *
@@ -98,11 +102,11 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/amoeba.c,v 96.0 1996-08-21 18:22:10 louis Rel $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/amoeba.c,v 96.1 1997-11-03 15:04:23 louis Exp $";
 #endif
 
 
-#include <volume_io.h>
+#include <internal_volume_io.h>
 #include <amoeba.h>
 
 #define  FLIP_RATIO      1.0

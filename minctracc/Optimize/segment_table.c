@@ -1,4 +1,4 @@
-#include <volume_io.h>
+#include <internal_volume_io.h>
 #include <print_error.h>
 
 #include "segment_table.h"

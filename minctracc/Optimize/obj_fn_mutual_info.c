@@ -21,9 +21,13 @@
 
 @CREATED    : Tue Mar 12 09:37:44 MET 1996
 @MODIFIED   : $Log: obj_fn_mutual_info.c,v $
-@MODIFIED   : Revision 96.0  1996-08-21 18:22:10  louis
-@MODIFIED   : Release of MNI_AutoReg version 0.96
+@MODIFIED   : Revision 96.1  1997-11-03 15:06:29  louis
+@MODIFIED   : working version, before creation of mni_animal package, and before inserting
+@MODIFIED   : distance transforms
 @MODIFIED   :
+ * Revision 96.0  1996/08/21  18:22:10  louis
+ * Release of MNI_AutoReg version 0.96
+ *
  * Revision 9.6  1996/08/21  18:22:04  louis
  * Pre-release
  *
@@ -39,13 +43,14 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/obj_fn_mutual_info.c,v 96.0 1996-08-21 18:22:10 louis Rel $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/obj_fn_mutual_info.c,v 96.1 1997-11-03 15:06:29 louis Exp $";
 #endif
 
-#include <volume_io.h>
+#include <internal_volume_io.h>
 #include "constants.h"
 #include "local_macros.h"
 #include "arg_data.h"
+#include "vox_space.h"
 
 extern Arg_Data main_args;
 
@@ -56,6 +61,8 @@ extern Real            *prob_fn1;
 extern Real            *prob_fn2;         
 
 public int point_not_masked(Volume volume, Real wx, Real wy, Real wz);
+public int voxel_point_not_masked(Volume volume, 
+                                  Real vx, Real vy, Real vz);
 
 				
 
@@ -160,7 +167,115 @@ public BOOLEAN partial_volume_interpolation(Volume data,
   return TRUE;
   
 }
+	
+
+private blur_pdf( Real *pdf, int blur_size, int pdf_length) {
+
+    Real *temp_pdf;
+    int  i,j,blur_by2;
+
+    if (blur_size > 1) 
+    {
+	
+        ALLOC(temp_pdf, pdf_length);
+
+				/* copy the pdf into the temporary pdf */
+	for_less(i,0,pdf_length)	   
+	    temp_pdf[i] = pdf[i];
+
+	if (blur_size==3) 
+	{
+	   for_less(i,1,pdf_length-1)  
+	       pdf[i] = (temp_pdf[i-1] + temp_pdf[i] + temp_pdf[i+1])/3.0;	   
+	}
+	else 
+	{
 	    
+				/* now blur it, storing result in pdf */
+
+	    blur_by2 = (int)(blur_size / 2);
+	    
+	    blur_size = blur_by2 * 2 + 1;
+	    
+				/* blur the starting end */
+	    if (blur_by2 > 1 && pdf_length > blur_size)	
+	    {
+		for_less(i,0,blur_by2) 
+		{
+		    pdf[i] = 0.0;
+		    for_less(j,0,2*i)
+			pdf[i] += temp_pdf[j];
+		    pdf[i] /= (2.0*i);		
+		}	    
+	    }
+	    
+	    
+	    for_less(i,blur_by2,pdf_length-blur_by2) 
+	    {
+		pdf[i] = 0.0;
+		
+		for_inclusive(j, -blur_by2, blur_by2)
+		    pdf[i] += temp_pdf[i+j];
+		
+		pdf[i] /= (Real)blur_size;	    
+	    }	
+			   
+				/* blur the ending end */
+	    if (blur_by2 > 1 && pdf_length > blur_size)	
+	    {
+		for_less(i,0,blur_by2) 
+		{
+		    pdf[pdf_length-i-1] = 0.0;
+		    for_less(j,0,2*i)
+			pdf[pdf_length-i-1] += temp_pdf[pdf_length-1-j];
+		    pdf[pdf_length-i-1] /= (2.0*i);		
+		}	    
+	    }
+	    
+	}	
+	FREE(temp_pdf);
+    }
+    
+}    
+
+
+
+private blur_jpdf (Real **hist, int blur_size, int pdf_length) {
+
+    Real **temp_hist, *temp_col;
+    int i,j;
+    
+    if (blur_size > 1) 
+    {
+		    
+	ALLOC2D(temp_hist, pdf_length, pdf_length);
+	ALLOC  (temp_col, pdf_length);
+
+	for_less(i,0,pdf_length)   /* copy the histogram */
+	    for_less(j,0,pdf_length)	   
+		temp_hist[i][j] = hist[i][j];
+
+	for_less(i,1,pdf_length-1)   /* blur the rows */
+	    blur_pdf(temp_hist[i], blur_size, pdf_length);
+	
+	for_less(i,1,pdf_length-1)  { /* blur the cols */
+
+	    for_less(j,0,pdf_length)
+		temp_col[j] = temp_hist[j][i];	    
+
+	    blur_pdf(temp_col, blur_size, pdf_length);
+
+	    for_less(j,0,pdf_length)
+		hist[j][i] = temp_col[j];	    
+	}
+	
+
+	FREE  (temp_col);
+	FREE2D(temp_hist);
+    }
+
+}
+
 
 /* this function will calculate the mutual information similarity
    value based on the paper by Collignon, IPMI95, p 266 
@@ -215,6 +330,9 @@ public float mutual_information_objective(Volume d1,
   float 
     mutual_info_result;			
 
+  Voxel_space_struct *vox_space;
+  Transform          *trans;
+
 
 				/* init any objective function specific
 				   stuff here                           */
@@ -236,31 +354,46 @@ public float mutual_information_objective(Volume d1,
   range1 = max_range1 - min_range1;
   range2 = max_range2 - min_range2;
 
-				/* build world lattice info */
+                                /* prepare data for the voxel-to-voxel
+                                   space transformation (instead of the
+                                   general but inefficient world-world
+                                   computations. */
 
-  fill_Point( starting_position, globals->start[X], globals->start[Y], globals->start[Z]);
+  vox_space = new_voxel_space_struct();
+  get_into_voxel_space(globals, vox_space, d1, d2);
+  trans = get_linear_transform_ptr(vox_space->voxel_to_voxel_space);
 
-				/* loop through each node of lattice */
-  for_inclusive(s,0,globals->count[SLICE_IND]) {
+				/* get ready to step though the 3D lattice
+                                   */
 
-    SCALE_VECTOR( vector_step, globals->directions[SLICE_IND], s);
+  fill_Point( starting_position, vox_space->start[X], vox_space->start[Y], vox_space->start[Z]);
+
+  /* ---------- step through all slices of lattice ------------- */
+  for_less(s,0,globals->count[SLICE_IND]) {
+
+    SCALE_VECTOR( vector_step, vox_space->directions[SLICE_IND], s);
     ADD_POINT_VECTOR( slice, starting_position, vector_step );
 
-    for_inclusive(r,0,globals->count[ROW_IND]) {
+    /* ---------- step through all rows of lattice ------------- */
+    for_less(r,0,globals->count[ROW_IND]) {
       
-      SCALE_VECTOR( vector_step, globals->directions[ROW_IND], r);
+      SCALE_VECTOR( vector_step, vox_space->directions[ROW_IND], r);
       ADD_POINT_VECTOR( row, slice, vector_step );
       
       SCALE_POINT( col, row, 1.0); /* init first col position */
-      for_inclusive(c,0,globals->count[COL_IND]) {
+
+      /* ---------- step through all cols of lattice ------------- */
+      for_less(c,0,globals->count[COL_IND]) {
 	
 				   /* get the node value in volume 1,
 				      if it falls within the volume    */
 
-	if (point_not_masked(m1, Point_x(col), Point_y(col), Point_z(col))) {
+	if (voxel_point_not_masked(m1, Point_x(col), Point_y(col), Point_z(col))) {
 	  
-	  convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col),
-				    &(voxel_coord[X]), &(voxel_coord[Y]), &(voxel_coord[Z]));
+           voxel_coord[X] = Point_x(col);
+           voxel_coord[Y] = Point_y(col);
+           voxel_coord[Z] = Point_z(col);
+           
 
 	  if (partial_volume_interpolation(d1, 
 					   voxel_coord, 
@@ -274,48 +407,50 @@ public float mutual_information_objective(Volume d1,
 				/* transform the node coordinate into
 				   volume 2                             */
 
-	      DO_TRANSFORM(pos2, globals->trans_info.transformation, col);
-	      
+              my_homogenous_transform_point(trans,
+                                            Point_x(col), Point_y(col), Point_z(col), 1.0,
+                                            &Point_x(pos2), &Point_y(pos2), &Point_z(pos2));
 	      
 	      /* get the node value in volume 2,
 		 if it falls within the volume    */
 	      
-	      if (point_not_masked(m2,Point_x(pos2), Point_y(pos2), Point_z(pos2) )) {
-		
-		convert_3D_world_to_voxel(d2, Point_x(pos2), Point_y(pos2), Point_z(pos2), 
-					  &(voxel_coord[X]), &(voxel_coord[Y]), &(voxel_coord[Z]));
-
-		if (partial_volume_interpolation(d2, 
-						 voxel_coord, 
-						 intensity_vals2,
-						 fractional_vals2,
-						 &value2 )) {
+	      if (voxel_point_not_masked(m2,Point_x(pos2), Point_y(pos2), Point_z(pos2) )) {
+                 
+                 voxel_coord[X] = Point_x(pos2);
+                 voxel_coord[Y] = Point_y(pos2);
+                 voxel_coord[Z] = Point_z(pos2);
+                 
+                 if (partial_volume_interpolation(d2, 
+                                                  voxel_coord, 
+                                                  intensity_vals2,
+                                                  fractional_vals2,
+                                                  &value2 )) {
 		  
-		  if (value2 > globals->threshold[1]) { /* is the voxel in the thresholded region? */
+                    if (value2 > globals->threshold[1]) { /* is the voxel in the thresholded region? */
 
-		    count2++;
-
-		    for_less(i,0,8) {
-		      index1[i] = ROUND( intensity_vals1[i] );
-		      index2[i] = ROUND( intensity_vals2[i] );
-		      prob_fn1[ index1[i] ] += fractional_vals1[i];
-		      prob_fn2[ index2[i] ] += fractional_vals2[i];
-		    }
-		    for_less(i,0,8) 
-		      for_less(j,0,8) {
-			prob_hash_table[ index1[i] ][ index2[j] ] += 
-			  fractional_vals1[i]*fractional_vals2[j];
-		      }
-		      
-
-		  } /* if value2>thres */
-		} /* if voxel in d2 */
+                       count2++;
+                       
+                       for_less(i,0,8) {
+                          index1[i] = ROUND( intensity_vals1[i] );
+                          index2[i] = ROUND( intensity_vals2[i] );
+                          prob_fn1[ index1[i] ] += fractional_vals1[i];
+                          prob_fn2[ index2[i] ] += fractional_vals2[i];
+                       }
+                       for_less(i,0,8) 
+                          for_less(j,0,8) {
+                             prob_hash_table[ index1[i] ][ index2[j] ] += 
+                                fractional_vals1[i]*fractional_vals2[j];
+                          }
+                       
+                       
+                    } /* if value2>thres */
+                 } /* if voxel in d2 */
 	      } /* if point in mask volume two */
-	    } /* if value1>thres */
-	  } /* if voxel in d1 */
+           } /* if value1>thres */
+         } /* if voxel in d1 */
 	} /* if point in mask volume one */
 	
-	ADD_POINT_VECTOR( col, col, globals->directions[COL_IND] );
+	ADD_POINT_VECTOR( col, col, vox_space->directions[COL_IND] );
 	
       } /* for c */
     } /* for r */
@@ -327,39 +462,9 @@ public float mutual_information_objective(Volume d1,
      over the lattice nodes, blur the probability distribution functions
   */
 
-  ALLOC(temp_pdf, globals->groups);
-
-  for_less(i,0,globals->groups)	   /* copy the 1st pdf */
-    temp_pdf[i] = prob_fn1[i];
-  for_less(i,1,globals->groups-1)  /* now blur it, storing result in prob_fn1 */
-    prob_fn1[i] = (temp_pdf[i-1] + temp_pdf[i] + temp_pdf[i+1])/3.0 ;
-
-  for_less(i,0,globals->groups)	   /* copy the 2nd pdf */
-    temp_pdf[i] = prob_fn2[i];
-  for_less(i,1,globals->groups-1)  /* now blur it, storing result in prob_fn2 */
-    prob_fn2[i] = (temp_pdf[i-1] + temp_pdf[i] + temp_pdf[i+1])/3.0 ;
-
-  FREE(temp_pdf);
-
-  ALLOC2D(temp_hist, globals->groups, globals->groups);
-
-  for_less(i,0,globals->groups)	   /* copy the histogram */
-    for_less(j,0,globals->groups)	   
-      temp_hist[i][j] = prob_hash_table[i][j];
-
-  for_less(i,1,globals->groups-1)   /* now blur it, leaving result in prob_hash_table */
-    for_less(j,1,globals->groups-1)	   
-      prob_hash_table[i][j] = (temp_hist[i+1][j+1] + 
-			       temp_hist[i+1][j  ] + 
-			       temp_hist[i+1][j-1] + 
-			       temp_hist[i  ][j+1] + 
-			       temp_hist[i  ][j  ] + 
-			       temp_hist[i  ][j-1] + 
-			       temp_hist[i-1][j+1] + 
-			       temp_hist[i-1][j  ] + 
-			       temp_hist[i-1][j-1]) / 9.0;
-
-  FREE2D(temp_hist);
+  blur_pdf (prob_fn1,        globals->blur_pdf, globals->groups);
+  blur_pdf (prob_fn2,        globals->blur_pdf, globals->groups);
+  blur_jpdf(prob_hash_table, globals->blur_pdf, globals->groups);  
 
   /* now finish the objective function calculation, 
      placing the final objective function value in  'mutual_info_result' */

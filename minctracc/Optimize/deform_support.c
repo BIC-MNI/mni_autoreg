@@ -20,9 +20,13 @@
 
 @CREATED    : Tue Feb 22 08:37:49 EST 1994
 @MODIFIED   : $Log: deform_support.c,v $
-@MODIFIED   : Revision 96.0  1996-08-21 18:22:10  louis
-@MODIFIED   : Release of MNI_AutoReg version 0.96
+@MODIFIED   : Revision 96.1  1997-11-03 15:06:29  louis
+@MODIFIED   : working version, before creation of mni_animal package, and before inserting
+@MODIFIED   : distance transforms
 @MODIFIED   :
+ * Revision 96.0  1996/08/21  18:22:10  louis
+ * Release of MNI_AutoReg version 0.96
+ *
  * Revision 9.6  1996/08/21  18:22:01  louis
  * Pre-release
  *
@@ -137,18 +141,18 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 96.0 1996-08-21 18:22:10 louis Rel $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 96.1 1997-11-03 15:06:29 louis Exp $";
 #endif
 
 #include <config.h>             /* for VOXEL_DATA macro */
-#include <volume_io.h>
+#include <internal_volume_io.h>
+#include "arg_data.h"
 #include <louis_splines.h>
 #include <print_error.h>
-
-#include "point_vector.h"
-
+#include "local_macros.h"
 #include "constants.h"
 
+extern Arg_Data main_args;
 
 #define DERIV_FRAC      0.6
 #define FRAC1           0.5
@@ -731,6 +735,11 @@ public void extrapolate_to_unestimated_nodes(General_transform *current,
 
   extrapolated = many = total = 0;
 
+                                /* verify that the deformation volumes for
+                                   current and additional warps are
+                                   compatible in dimension, size and
+                                   order. */
+
   if (get_volume_n_dimensions(additional->displacement_volume) != 
       get_volume_n_dimensions(current->displacement_volume)) {
     print_error_and_line_num("extrapolate_the_warp: warp dim error",
@@ -764,16 +773,20 @@ public void extrapolate_to_unestimated_nodes(General_transform *current,
 			       __FILE__, __LINE__, i, count_current[xyzv_current[i]], count_flag[i] );
     }
   }
-  
+
+                                /* verification completed, now get loop
+                                   limits to go through the deformation
+                                   volume and extrapolate the estimated
+                                   vectors from the additional volume */
   for_less(i,0,MAX_DIMENSIONS) {
-    index[i]=0;
+    index[i] = 0;
     start[i] = 0;
-    end[i] = 0;
+    end[i]   = 0;
   }
   
   get_voxel_spatial_loop_limits(additional->displacement_volume, start, end);
   start[Z+1] = 0;
-  end[Z+1] = 3;
+  end[Z+1]   = 3;
  
   initialize_progress_report( &progress, FALSE, 
 			     (end[X]-start[X])*
@@ -797,10 +810,16 @@ public void extrapolate_to_unestimated_nodes(General_transform *current,
 				    index[ xyzv[Z] ],
 				    0, 0) < 1.0) {
 
-	  /* then, this node has not been estimated at this iteration,
+	  /* 
+             then, this node has not been estimated at this iteration,
              so we have to interpolate a deformation value from
              neighbouring nodes, and then apply the proper local
-	     smoothing. */
+	     smoothing. 
+
+             local smoothing is defined to be the average deformation of
+             the 26 8-connected neighbours and is computed in the loop
+             below
+          */
 
 	  many++;
 				/* go get the current warp vector for
@@ -814,7 +833,6 @@ public void extrapolate_to_unestimated_nodes(General_transform *current,
 				    index[3],index[4]);
 
 	  }
-
 				/* get an average of the current additional 
 				   deformation */
 
@@ -1157,6 +1175,8 @@ public void save_data(char *basename, int i, int j,
     comments,name;
   FILE *file;
 
+  ALLOC(comments, 512);
+  ALLOC(name, 512);
   (void)sprintf(comments,"step %d of %d of the non-linear estimation",i,j);
   
   (void)sprintf(name,"%s%d",basename,i);
@@ -1176,6 +1196,9 @@ public void save_data(char *basename, int i, int j,
   
   if (status!=OK)
     print ("Error saving %s%d\n",basename,i);
+
+  FREE(name);
+  FREE(comments);
 }
 
 /*********************************************************************** 
@@ -1812,5 +1835,108 @@ public void build_two_perpendicular_vectors(Real orig[],
   else
     print_error_and_line_num("Null length for vector normalization\n", 
 		__FILE__, __LINE__);
+}
+
+
+public float xcorr_objective_with_def(Volume d1,
+                                      Volume d2,
+                                      Volume m1,
+                                      Volume m2, 
+                                      Arg_Data *globals)
+{
+
+  VectorR
+    vector_step;
+
+  PointR
+    starting_position,
+    slice,
+    row,
+    col,
+    pos2,
+    voxel;
+
+  double
+    tx,ty,tz;
+  int
+    r,c,s;
+
+  Real
+    value1, value2;
+  
+  Real
+    s1,s2,s3;                   /* to store the sums for f1,f2,f3 */
+  float 
+    result;				/* the result */
+  int 
+    count1,count2;
+
+
+  fill_Point( starting_position, globals->start[X], globals->start[Y], globals->start[Z]);
+
+  s1 = s2 = s3 = 0.0;
+  count1 = count2 = 0;
+
+  for_inclusive(s,0,globals->count[SLICE_IND]) {
+
+    SCALE_VECTOR( vector_step, globals->directions[SLICE_IND], s);
+    ADD_POINT_VECTOR( slice, starting_position, vector_step );
+
+    for_inclusive(r,0,globals->count[ROW_IND]) {
+      
+      SCALE_VECTOR( vector_step, globals->directions[ROW_IND], r);
+      ADD_POINT_VECTOR( row, slice, vector_step );
+      
+      SCALE_POINT( col, row, 1.0); /* init first col position */
+      for_inclusive(c,0,globals->count[COL_IND]) {
+	
+	convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
+	
+	fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
+	
+	if (point_not_masked(m1, Point_x(col), Point_y(col), Point_z(col))) {
+	  
+	  if (INTERPOLATE_TRUE_VALUE( d1, &voxel, &value1 )) {
+
+	    count1++;
+
+	    DO_TRANSFORM(pos2, globals->trans_info.transformation, col);
+	    
+	    convert_3D_world_to_voxel(d2, Point_x(pos2), Point_y(pos2), Point_z(pos2), &tx, &ty, &tz);
+	    
+	    fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
+	
+	    if (point_not_masked(m2, Point_x(pos2), Point_y(pos2), Point_z(pos2))) {
+	      
+	      if (INTERPOLATE_TRUE_VALUE( d2, &voxel, &value2 )) {
+
+
+		if (value1 > globals->threshold[0] && value2 > globals->threshold[1] ) {
+		  
+		  count2++;
+
+		  s1 += value1*value2;
+		  s2 += value1*value1;
+		  s3 += value2*value2;
+		  
+		} 
+		
+	      } /* if voxel in d2 */
+	    } /* if point in mask volume two */
+	  } /* if voxel in d1 */
+	} /* if point in mask volume one */
+	
+	ADD_POINT_VECTOR( col, col, globals->directions[COL_IND] );
+	
+      } /* for c */
+    } /* for r */
+  } /* for s */
+  
+  result = 1.0 - s1 / (sqrt((double)s2)*sqrt((double)s3));
+  
+  if (globals->flags.debug) (void)print ("%7d %7d -> %10.8f\n",count1,count2,result);
+  
+  return (result);
+  
 }
 

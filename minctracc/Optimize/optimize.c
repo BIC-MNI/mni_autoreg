@@ -14,9 +14,13 @@
               express or implied warranty.
 
 @MODIFIED   : $Log: optimize.c,v $
-@MODIFIED   : Revision 96.0  1996-08-21 18:22:10  louis
-@MODIFIED   : Release of MNI_AutoReg version 0.96
+@MODIFIED   : Revision 96.1  1997-11-03 15:06:29  louis
+@MODIFIED   : working version, before creation of mni_animal package, and before inserting
+@MODIFIED   : distance transforms
 @MODIFIED   :
+ * Revision 96.0  1996/08/21  18:22:10  louis
+ * Release of MNI_AutoReg version 0.96
+ *
  * Revision 9.6  1996/08/21  18:22:05  louis
  * Pre-release
  *
@@ -100,11 +104,11 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 96.0 1996-08-21 18:22:10 louis Rel $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 96.1 1997-11-03 15:06:29 louis Exp $";
 #endif
 
 #include <config.h>
-#include <volume_io.h>
+#include <internal_volume_io.h>
 #include <print_error.h>
 #include <amoeba.h>
 

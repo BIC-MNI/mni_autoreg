@@ -5,11 +5,11 @@
                world coordinates to voxel coordinates.
 #@CREATED    : Wed Jun 25, 1997, Louis Collins
 #@MODIFIED   : not yet!
-#@VERSION    : $Id: vox_space.c,v 1.1 1997-06-27 14:36:52 louis Exp $
+#@VERSION    : $Id: vox_space.c,v 1.2 1997-11-03 15:06:29 louis Exp $
 #-----------------------------------------------------------------------------
 */
 
-#include <volume_io.h>
+#include <internal_volume_io.h>
 #include "constants.h"
 #include "arg_data.h"
 #include "vox_space.h"
