@@ -132,9 +132,36 @@ public void get_mag_slice(Slice_Data *result,
 			  Slice_Data *slice_dz,			  
 			  double *minimum, double *maximum);
 
+
+public void get_curvature_slice(Slice_Data *result,
+				Slice_Data *slice_dx,
+				Slice_Data *slice_dy,
+				Slice_Data *slice_dz,
+				Slice_Data *slice_dxx,
+				Slice_Data *slice_dyy,
+				Slice_Data *slice_dzz,
+				double thresh,
+				double *minimum, double *maximum);
+
 public void make_gradmag_volumes(MincVolume *in_vol1, 
 				 MincVolume *in_vol2, 
 				 MincVolume *in_vol3, 
-				 MincVolume *out_vol);
+				 MincVolume *out_vol,
+				 double *min_value, double *max_value);
+
+public void make_curvature_volumes(MincVolume *in_vol1, 
+				   MincVolume *in_vol2, 
+				   MincVolume *in_vol3, 
+				   MincVolume *in_volxx, 
+				   MincVolume *in_volyy, 
+				   MincVolume *in_volzz, 
+				   MincVolume *out_vol,
+				   double thresh);
 
 public void make_vol_icv(MincVolume *in_vol);
+
+public void calc_gradient_magnitude(char *infilename, char *history, 
+				    double *min_value, double *max_value);
+
+public void calc_gaussian_curvature(char *infilename, char *history,
+				    double min_value, double max_value);

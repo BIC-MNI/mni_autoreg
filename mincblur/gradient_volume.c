@@ -30,7 +30,9 @@ public Status gradient3D_volume(FILE *ifd,
 				char *infile,
 				char *outfile, 
 				int ndim,
-				char *history)
+				char *history,
+				int curvature_flg)
+
 { 
   float 
     *fdata,			/* floating point storage for blurred volume */
@@ -131,7 +133,10 @@ public Status gradient3D_volume(FILE *ifd,
   /*    1st calculate kern array for FT of 1st derivitive */
   
   make_kernel_FT(kern,array_size_pow2, steps[X]);
-  
+
+  if (curvature_flg)		/* 2nd derivative kernel */
+    muli_vects(kern,kern,kern,array_size_pow2);
+
   /*    calculate offset for original data to be placed in vector            */
   
   data_offset = (array_size_pow2-sizes[X])/2;
@@ -203,7 +208,10 @@ public Status gradient3D_volume(FILE *ifd,
       }
 
 
-  sprintf(full_outfilename,"%s_dx.mnc",outfile);
+  if (!curvature_flg)
+    sprintf(full_outfilename,"%s_dx.mnc",outfile);
+  else
+    sprintf(full_outfilename,"%s_dxx.mnc",outfile);
 
   if (debug)
     print ("dx: min = %f, max = %f\n",min_val, max_val);
@@ -248,6 +256,9 @@ public Status gradient3D_volume(FILE *ifd,
   
   make_kernel_FT(kern,array_size_pow2, steps[Y]);
   
+  if (curvature_flg)		/* 2nd derivative kernel */
+    muli_vects(kern,kern,kern,array_size_pow2);
+
   /*    calculate offset for original data to be placed in vector            */
   
   data_offset = (array_size_pow2-sizes[Y])/2;
@@ -323,7 +334,11 @@ public Status gradient3D_volume(FILE *ifd,
       }
 
 
-  sprintf(full_outfilename,"%s_dy.mnc",outfile);
+  if (!curvature_flg)
+    sprintf(full_outfilename,"%s_dy.mnc",outfile);
+  else
+    sprintf(full_outfilename,"%s_dyy.mnc",outfile);
+
 
   if (debug)
     print ("dy: min = %f, max = %f\n",min_val, max_val);
@@ -364,6 +379,9 @@ public Status gradient3D_volume(FILE *ifd,
     /*    1st calculate kern array for FT of 1st derivitive */
     
     make_kernel_FT(kern,array_size_pow2, steps[Z]);
+
+    if (curvature_flg)		/* 2nd derivative kernel */
+      muli_vects(kern,kern,kern,array_size_pow2);
     
     /*    calculate offset for original data to be placed in vector            */
     
@@ -448,7 +466,11 @@ public Status gradient3D_volume(FILE *ifd,
       }
 
 
-  sprintf(full_outfilename,"%s_dz.mnc",outfile);
+  if (!curvature_flg)
+    sprintf(full_outfilename,"%s_dz.mnc",outfile);
+  else
+    sprintf(full_outfilename,"%s_dzz.mnc",outfile);
+
 
   if (debug)
     print ("dz: min = %f, max = %f\n",min_val, max_val);

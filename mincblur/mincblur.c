@@ -50,67 +50,10 @@
 #include <volume_io.h>
 #include <ParseArgv.h>
 #include <minc.h>
-#include <mincblur.h>
 #include <kernel.h>
+#include <mincblur.h>
 #include <time_stamp.h>
-
-char *prog_name;
-int  debug;
-int  verbose;
-int 
-  apodize_data_flg,
-  kernel_type,
-  dimensions,
-  gradonlyflg,
-  bluronlyflg;
-double   
-  fwhm,
-  standard;
-int clobber_flag = FALSE;
-
-extern int ms_volume_reals_flag;
-
-public void apodize_data(Volume data, 
-			 double xramp1,double xramp2,
-			 double yramp1,double yramp2,
-			 double zramp1,double zramp2);
-
-
-static ArgvInfo argTable[] = {
-  {"-fwhm", ARGV_FLOAT, (char *) 0, (char *) &fwhm, 
-     "Full-width-half-maximum of gaussian kernel"},
-  {"-standarddev", ARGV_FLOAT, (char *) 0, (char *) &standard,
-     "Standard deviation of gaussian kernel"},
-  {"-dimensions", ARGV_INT, (char *) 0, (char *) &dimensions,
-     "Number of dimensions to blur (either 1,2 or 3)."},
-  {NULL, ARGV_HELP, NULL, NULL,
-     "Program flags."},
-  {"-gaussian", ARGV_CONSTANT, (char *) KERN_GAUSSIAN, (char *) &kernel_type,
-     "Use a gaussian smoothing kernel (default)."},
-  {"-rect", ARGV_CONSTANT, (char *) KERN_RECT, (char *) &kernel_type,
-     "Use a rect (box) smoothing kernel."},
-  {"-blur_only", ARGV_CONSTANT, (char *) TRUE, (char *) &bluronlyflg,
-     "Create only the blurred volume."},
-  {"-grad_only", ARGV_CONSTANT, (char *) TRUE, (char *) &gradonlyflg, 
-     "Create only the gradient volumes."},
-  {"-no_apodize", ARGV_CONSTANT, (char *) FALSE, (char *) &apodize_data_flg, 
-     "Do not apodize the data before blurring."},
-  {"-no_reals", ARGV_CONSTANT, (char *) FALSE, (char *) &ms_volume_reals_flag, 
-     "Do not write out the real (float) data."},
-  {"-no_clobber", ARGV_CONSTANT, (char *) FALSE, (char *) &clobber_flag,
-     "Do not overwrite output file (default)."},
-  {"-clobber", ARGV_CONSTANT, (char *) TRUE, (char *) &clobber_flag,
-     "Overwrite output file."},
-  {NULL, ARGV_HELP, NULL, NULL,
-     "Options for logging progress. Default = -verbose."},
-  {"-verbose", ARGV_CONSTANT, (char *) TRUE, (char *) &verbose,
-     "Write messages indicating progress"},
-  {"-quiet", ARGV_CONSTANT, (char *) FALSE , (char *) &verbose,
-     "Do not write log messages"},
-  {"-debug", ARGV_CONSTANT, (char *) TRUE, (char *) &debug,
-     "Print out debug info."},
-  {NULL, ARGV_END, NULL, NULL, NULL}
-};
+#include <print_error.h>
 
 static char *default_dim_names[N_DIMENSIONS] = { MIzspace, MIyspace, MIxspace };
  
@@ -143,7 +86,7 @@ main (int argc, char *argv[] )
   /* set default values */
   apodize_data_flg = ms_volume_reals_flag = TRUE;
   prog_name = argv[0];
-  gradonlyflg = bluronlyflg = FALSE;
+  gradonlyflg = curveonlyflg = curvatureflg = bluronlyflg = FALSE;
   fwhm = standard = 0.0;
   infilename =  outfilename = NULL;
   ifd = ofd = NULL;
@@ -201,82 +144,100 @@ main (int argc, char *argv[] )
   /*             create blurred volume first                                    */
   /******************************************************************************/
   
-  status = input_volume(infilename, 3, default_dim_names, NC_UNSPECIFIED,
-			FALSE, 0.0, 0.0, TRUE, &data, (minc_input_options *)NULL);
-  if ( status != OK )
-    print_error("problems reading `%s'.\n",__FILE__, __LINE__,infilename);
+  if (!curveonlyflg) {
+    status = input_volume(infilename, 3, default_dim_names, NC_UNSPECIFIED,
+			  FALSE, 0.0, 0.0, TRUE, &data, (minc_input_options *)NULL);
+    if ( status != OK )
+      print_error("problems reading `%s'.\n",__FILE__, __LINE__,infilename);
     
-  get_volume_sizes(data, sizes);
-  get_volume_separations(data, step);
-
-  if (debug) {
-    printf ( "===== Debugging information from %s =====\n", prog_name);
-    printf ( "Data filename     = %s\n", infilename);
-    printf ( "Output basename   = %s\n", outfilename);
-    printf ( "Input volume      = %3d cols by %3d rows by %d slices\n",
-		  sizes[INTERNAL_X], sizes[INTERNAL_Y], sizes[INTERNAL_Z]);
-    printf ( "Input voxels are  = %8.3f %8.3f %8.3f\n", 
-		  step[INTERNAL_X], step[INTERNAL_Y], step[INTERNAL_Z]);
-    get_volume_real_range(data,&min_value, &max_value);
-    printf ( "min/max value     = %8.3f %8.3f\n", min_value, max_value);
-  }
-
-  if (data->n_dimensions!=3) {
-    print_error ("File %s has %d dimensions.  Only 3 dims supported.", 
-		 __FILE__, __LINE__, infilename, data->n_dimensions);
-  }
-
-
-  if (apodize_data_flg) {
-     if (debug) print ("Apodizing data at %f\n",fwhm);
-     apodize_data(data, fwhm, fwhm, fwhm, fwhm, fwhm, fwhm );
-  }
-
-
-  if (bluronlyflg || !gradonlyflg) {
-    status = blur3D_volume(data,
-			   fwhm,
-			   infilename,
-			   outfilename,
-			   dimensions,kernel_type,history);
+    get_volume_sizes(data, sizes);
+    get_volume_separations(data, step);
     
-    if (status==OK) {
-      status = close_file(ifd);
-      if (status!=OK)
-	print_error("Error closing <%s>.",__FILE__, __LINE__, infilename);
+    if (debug) {
+      printf ( "===== Debugging information from %s =====\n", prog_name);
+      printf ( "Data filename     = %s\n", infilename);
+      printf ( "Output basename   = %s\n", outfilename);
+      printf ( "Input volume      = %3d cols by %3d rows by %d slices\n",
+	      sizes[INTERNAL_X], sizes[INTERNAL_Y], sizes[INTERNAL_Z]);
+      printf ( "Input voxels are  = %8.3f %8.3f %8.3f\n", 
+	      step[INTERNAL_X], step[INTERNAL_Y], step[INTERNAL_Z]);
+      get_volume_real_range(data,&min_value, &max_value);
+      printf ( "min/max value     = %8.3f %8.3f\n", min_value, max_value);
     }
-    else
-      print_error("Problems blurring <%s>.",__FILE__, __LINE__, infilename);
-  }
+    
+    if (data->n_dimensions!=3) {
+      print_error ("File %s has %d dimensions.  Only 3 dims supported.", 
+		   __FILE__, __LINE__, infilename, data->n_dimensions);
+    }
+    
+    
+    if (apodize_data_flg) {
+      if (debug) print ("Apodizing data at %f\n",fwhm);
+      apodize_data(data, fwhm, fwhm, fwhm, fwhm, fwhm, fwhm );
+    }
+    
+
+    if (bluronlyflg || !gradonlyflg || curvatureflg) {
+      
+      status = blur3D_volume(data,
+			     fwhm,
+			     infilename,
+			     outfilename,
+			     dimensions,kernel_type,history);
+      
+      if (status==OK) {
+	status = close_file(ifd);
+	if (status!=OK)
+	  print_error("Error closing <%s>.",__FILE__, __LINE__, infilename);
+      }
+      else
+	print_error("Problems blurring <%s>.",__FILE__, __LINE__, infilename);
+    }
+
+  }    
 
   /******************************************************************************/
   /*             calculate d/dx,  d/dy and d/dz volumes                         */
   /******************************************************************************/
 
 
-   if ((!bluronlyflg || gradonlyflg ) && (ms_volume_reals_flag)) {
+   if ( (!bluronlyflg || curvatureflg || gradonlyflg ) && (ms_volume_reals_flag)) {
       sprintf(blur_datafile,"%s_reals",outfilename);
       
       status = open_file( blur_datafile ,READ_FILE, BINARY_FORMAT,  &ifd );
       if (status!=OK)
 	 print_error("Error opening <%s>.",__FILE__, __LINE__, blur_datafile);
       
-      gradient3D_volume(ifd,data,infilename,outfilename,dimensions,history);
-      
+      if (!curveonlyflg)
+	gradient3D_volume(ifd,data,infilename,outfilename,dimensions,
+			  history,FALSE);
+      if (!curveonlyflg && curvatureflg) {
+	gradient3D_volume(ifd,data,infilename,outfilename,dimensions,
+			  history,TRUE);
+      }
+
       status = close_file(ifd);
       if (status!=OK)
 	 print_error("Error closing <%s>.",__FILE__, __LINE__, blur_datafile);
-      
+    }
       /*************************************************************************/
       /*           calculate magnitude of gradient                             */
       /*************************************************************************/
       
-      calc_gradient_magnitude(outfilename, history);
-   }
+  if ((!bluronlyflg || gradonlyflg || curveonlyflg)) {
+    calc_gradient_magnitude(outfilename, history, &min_value, &max_value);
 
-   status = close_file(ofd);
+    if (debug)
+      print ("max, min grad mag = %f %f\n",min_value, max_value);
+  }
 
-   return(status);
+  if (!bluronlyflg && !gradonlyflg && (curveonlyflg || curvatureflg) ) {
+    print ("gaussian curvature:\n");
+    calc_gaussian_curvature(outfilename, history, min_value, max_value);
+  }
+      
+  
+  return(status);
    
 }
 

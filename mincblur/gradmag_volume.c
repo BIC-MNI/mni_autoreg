@@ -28,10 +28,11 @@
 
 /* Main program */
 
-int verbose;
-int debug;
+extern int verbose;
+extern int debug;
 
-public void calc_gradient_magnitude(char *infilename, char *history)
+public void calc_gradient_magnitude(char *infilename, char *history, 
+				    double *min_value, double *max_value)
 {   
   MincVolume 
     in_vol_struct1, 
@@ -49,7 +50,6 @@ public void calc_gradient_magnitude(char *infilename, char *history)
     infilename3[1024],
     fulloutfilename[1024];
 
-
   sprintf (infilename1,"%s_dx.mnc",infilename);
   sprintf (infilename2,"%s_dy.mnc",infilename);
   sprintf (infilename3,"%s_dz.mnc",infilename);
@@ -65,10 +65,81 @@ public void calc_gradient_magnitude(char *infilename, char *history)
   make_vol_icv(in_vol3);
   
   /* calculate the gradient magnitude */
-  make_gradmag_volumes(in_vol1, in_vol2, in_vol3, out_vol);
-  
+  make_gradmag_volumes(in_vol1, in_vol2, in_vol3, out_vol, min_value, max_value);
+
   /* Finish up */
   finish_up(in_vol1, in_vol2, in_vol3, out_vol);
+  
+}
+
+public void calc_gaussian_curvature(char *infilename, char *history,
+				    double min_value, double max_value)
+{
+   
+  MincVolume 
+    in_vol_structx, 
+    in_vol_structy, 
+    in_vol_structz, 
+    in_vol_structxx, 
+    in_vol_structyy, 
+    in_vol_structzz, 
+    out_vol_struct;
+  MincVolume 
+    *in_volx  = &in_vol_structx, 
+    *in_voly  = &in_vol_structy, 
+    *in_volz  = &in_vol_structz, 
+    *in_volxx = &in_vol_structxx, 
+    *in_volyy = &in_vol_structyy, 
+    *in_volzz = &in_vol_structzz, 
+    *out_vol = &out_vol_struct;
+  char
+    infilenamex[1024],
+    infilenamey[1024],
+    infilenamez[1024],
+    infilenamexx[1024],
+    infilenameyy[1024],
+    infilenamezz[1024],
+    fulloutfilename[1024];
+  double thresh;
+
+
+  thresh = 0.10*(max_value - min_value) + min_value;
+
+if (debug)
+  (void)printf("min = %f, max = %f, thresh = %f\n",min_value, max_value, thresh);
+
+  sprintf (infilenamex,"%s_dx.mnc",infilename);
+  sprintf (infilenamey,"%s_dy.mnc",infilename);
+  sprintf (infilenamez,"%s_dz.mnc",infilename);
+  sprintf (infilenamexx,"%s_dxx.mnc",infilename);
+  sprintf (infilenameyy,"%s_dyy.mnc",infilename);
+  sprintf (infilenamezz,"%s_dzz.mnc",infilename);
+  sprintf (fulloutfilename,"%s_gcur.mnc",infilename);
+
+  build_vol_info(infilenamex, fulloutfilename,  in_volx, out_vol, history);
+
+  load_vol_info(infilenamey, in_voly);
+  load_vol_info(infilenamez, in_volz);
+  load_vol_info(infilenamexx,in_volxx);
+  load_vol_info(infilenameyy,in_volyy);
+  load_vol_info(infilenamezz,in_volzz);
+
+  make_vol_icv(in_volx);
+  make_vol_icv(in_voly);
+  make_vol_icv(in_volz);
+  make_vol_icv(in_volxx);
+  make_vol_icv(in_volyy);
+  make_vol_icv(in_volzz);
+  
+  /* calculate the gradient magnitude */
+  make_curvature_volumes(in_volx, in_voly, in_volz, 
+			 in_volxx, in_volyy, in_volzz, 
+			 out_vol,
+			 thresh);
+  
+  /* Finish up */
+  finish_up(in_volx, in_voly, in_volz, out_vol);
+  finish_up(in_volxx, in_volyy, in_volzz, (MincVolume *)NULL);
   
 }
 
@@ -837,9 +908,11 @@ public void finish_up(MincVolume *in_vol1,
 
 
    /* Close the output file */
-   out_file = out_vol->file;
-   (void) miattputstr(out_file->mincid, out_file->imgid, MIcomplete, MI_TRUE);
-   (void) ncclose(out_file->mincid);
+   if (out_vol != (MincVolume *)NULL) {
+     out_file = out_vol->file;
+     (void) miattputstr(out_file->mincid, out_file->imgid, MIcomplete, MI_TRUE);
+     (void) ncclose(out_file->mincid);
+   }
 
    /* Close the input files */
    in_file = in_vol1->file;
@@ -872,7 +945,8 @@ public void finish_up(MincVolume *in_vol1,
 public void make_gradmag_volumes(MincVolume *in_vol1, 
 				 MincVolume *in_vol2, 
 				 MincVolume *in_vol3, 
-				 MincVolume *out_vol)
+				 MincVolume *out_vol,
+				 double *min_val, double *max_val)
 {
    long in_start[MAX_VAR_DIMS], in_count[MAX_VAR_DIMS], in_end[MAX_VAR_DIMS];
    long out_start[MAX_VAR_DIMS], out_count[MAX_VAR_DIMS];
@@ -881,6 +955,7 @@ public void make_gradmag_volumes(MincVolume *in_vol1,
    int idim, slice_dim, index, slice_index;
    double maximum, minimum, valid_range[2];
    File_Info *ifp,*ofp;
+
 
    /* Set pointers to file information */
    ifp = in_vol1->file;
@@ -953,6 +1028,152 @@ public void make_gradmag_volumes(MincVolume *in_vol1,
      
      get_mag_slice(out_vol->slice, in_vol1->slice, in_vol2->slice, in_vol3->slice, 
 		   &minimum, &maximum);
+
+     /* Update global max and min */
+     if (maximum > valid_range[1]) valid_range[1] = maximum;
+     if (minimum < valid_range[0]) valid_range[0] = minimum;
+     
+     /* Write the max, min and slice */
+     (void) mivarput1(ofp->mincid, ofp->maxid, 
+		      mitranslate_coords(ofp->mincid, 
+					 ofp->imgid, out_start,
+					 ofp->maxid, mm_start),
+		      NC_DOUBLE, NULL, &maximum);
+     (void) mivarput1(ofp->mincid, ofp->minid, 
+		      mitranslate_coords(ofp->mincid, 
+					 ofp->imgid, out_start,
+					 ofp->minid, mm_start),
+		      NC_DOUBLE, NULL, &minimum);
+     (void) miicv_put(ofp->icvid, out_start, out_count,
+		      out_vol->slice->data);
+     
+   }    /* End loop over slices */
+   
+   
+   /* Print end of log message */
+   if (verbose) {
+      (void) fprintf(stderr, "Done\n");
+      (void) fflush(stderr);
+   }
+
+   /* If output volume is floating point, write out global max and min */
+   if ((ofp->datatype == NC_FLOAT) || (ofp->datatype == NC_DOUBLE)) {
+      (void) ncattput(ofp->mincid, ofp->imgid, MIvalid_range, 
+                      NC_DOUBLE, 2, valid_range);
+   }
+
+   *min_val = valid_range[0]; 
+   *max_val = valid_range[1];
+
+}
+/* ----------------------------- MNI Header -----------------------------------
+@NAME       : make_curvature_volumes
+@INPUT      : in_vol1 - description of input dx volume
+              in_vol2 - description of input dy volume
+              in_vol3 - description of input dz volume
+              out_vol - description of output dxyz volume
+@OUTPUT     : (none)
+@RETURNS    : (none)
+@DESCRIPTION: dxyz = sqrt(dx*dx + dy*dy + dz*dz), on a voxel by voxel basis.
+                this is calculated one slice at a time.
+@METHOD     : 
+@GLOBALS    : 
+@CALLS      : 
+@CREATED    : Wed Jun 30 09:01:51 EST 1993 Louis Collins
+@MODIFIED   : 
+---------------------------------------------------------------------------- */
+public void make_curvature_volumes(MincVolume *in_vol1, 
+				   MincVolume *in_vol2, 
+				   MincVolume *in_vol3, 
+				   MincVolume *in_volxx, 
+				   MincVolume *in_volyy, 
+				   MincVolume *in_volzz, 
+				   MincVolume *out_vol,
+				   double thresh)
+{
+   long in_start[MAX_VAR_DIMS], in_count[MAX_VAR_DIMS], in_end[MAX_VAR_DIMS];
+   long out_start[MAX_VAR_DIMS], out_count[MAX_VAR_DIMS];
+   long mm_start[MAX_VAR_DIMS];   /* Vector for min/max variables */
+   long nslice, islice;
+   int idim, slice_dim, index, slice_index;
+   double maximum, minimum, valid_range[2];
+   File_Info *ifp,*ofp;
+
+   /* Set pointers to file information */
+   ifp = in_vol1->file;
+   ofp = out_vol->file;
+
+   /* Set input file start, count and end vectors for reading a volume
+      at a time */
+   (void) miset_coords(ifp->ndims, (long) 0, in_start);
+   (void) miset_coords(ifp->ndims, (long) 1, in_count);
+   for (idim=0; idim < ifp->ndims; idim++) {
+      in_end[idim] = ifp->nelements[idim];
+   }
+   for (idim=0; idim < VOL_NDIMS; idim++) {
+      index = ifp->indices[idim];
+      in_count[index] = ifp->nelements[index];
+   }
+
+   /* Set output file count for writing a slice and get the number of 
+      output slices */
+   (void) miset_coords(ifp->ndims, (long) 1, out_count);
+   for (idim=0; idim < VOL_NDIMS; idim++) {
+      index = ofp->indices[idim];
+      if (idim==0) {
+         slice_index = index;
+         nslice = ofp->nelements[index];
+      }
+      else {
+         out_count[index] = ofp->nelements[index];
+      }
+   }
+
+   slice_dim = ifp->ndims - 3;
+
+   /* Initialize global max and min */
+   valid_range[0] =  DBL_MAX;
+   valid_range[1] = -DBL_MAX;
+
+   /* Print log message */
+   if (verbose) {
+      (void) fprintf(stderr, "Transforming slices:");
+      (void) fflush(stderr);
+   }
+
+
+   /* Copy the start vector */
+   for (idim=0; idim < ifp->ndims; idim++)
+     out_start[idim] = in_start[idim];
+   
+   /* Loop over slices */
+   for (islice=0; islice < nslice; islice++) {
+     
+     /* Print log message */
+     if (verbose) {
+       (void) fprintf(stderr, ".");
+       (void) fflush(stderr);
+     }
+     
+     /* Read in one slice from each volume */
+     in_start[slice_dim] = islice;
+     in_count[slice_dim] = 1;
+     
+     (void) miicv_get(in_vol1->file->icvid, in_start, in_count, in_vol1->slice->data); 
+     (void) miicv_get(in_vol2->file->icvid, in_start, in_count, in_vol2->slice->data); 
+     (void) miicv_get(in_vol3->file->icvid, in_start, in_count, in_vol3->slice->data); 
+     (void) miicv_get(in_volxx->file->icvid, in_start, in_count, in_volxx->slice->data); 
+     (void) miicv_get(in_volyy->file->icvid, in_start, in_count, in_volyy->slice->data); 
+     (void) miicv_get(in_volzz->file->icvid, in_start, in_count, in_volzz->slice->data); 
+     
+     /* Set slice number in out_start */
+     out_start[slice_index] = islice;
+     
+     /* Get the slice */
+     
+     get_curvature_slice(out_vol->slice, in_vol1->slice, in_vol2->slice, in_vol3->slice, 
+			 in_volxx->slice, in_volyy->slice, in_volzz->slice, 
+			 thresh,&minimum, &maximum);
      
      /* Update global max and min */
      if (maximum > valid_range[1]) valid_range[1] = maximum;
@@ -1044,7 +1265,9 @@ public void get_mag_slice(Slice_Data *result,
        
      }     /* Loop over columns */
    }        /* Loop over rows */
-   
+
+
+
    if ((*maximum == -DBL_MAX) && (*minimum ==  DBL_MAX)) {
      *minimum = 0.0;
      *maximum = SMALL_VALUE;
@@ -1057,6 +1280,104 @@ public void get_mag_slice(Slice_Data *result,
      else
        *maximum = 2.0 * (*minimum);
    }
+
+}
+
+/* ----------------------------- MNI Header -----------------------------------
+@NAME       : get_curvature_slice
+@INPUT      : slice_dx - slice data struct contains 1st partial dirivitive in x dir
+              slice_dy - slice data struct contains 1st partial dirivitive in y dir
+	      slice_dz - slice data struct contains 1st partial dirivitive in z dir
+	      slice_dxx - slice data struct contains 2nd partial dirivitive in x dir
+              slice_dyy - slice data struct contains 2nd partial dirivitive in y dir
+	      slice_dzz - slice data struct contains 2nd partial dirivitive in z dir
+@OUTPUT     : result - slice data struct contains new slice
+              minimum - slice minimum (excluding data from outside volume)
+              maximum - slice maximum (excluding data from outside volume)
+@RETURNS    : (none)
+@DESCRIPTION: result = (dx^2)*dyy*dzz + (dy^2)*dxx*dzz + (dz^2)*dxx*dyy
+                       ------------------------------------------------
+                                     (dx^2+ dy^2 + dz^2)^2
+                   for each pixel.
+@METHOD     : 
+@GLOBALS    : 
+@CALLS      : 
+@CREATED    : Apr 6, 1994 lc
+@MODIFIED   : 
+---------------------------------------------------------------------------- */
+public void get_curvature_slice(Slice_Data *result,
+				Slice_Data *slice_dx,
+				Slice_Data *slice_dy,
+				Slice_Data *slice_dz,
+				Slice_Data *slice_dxx,
+				Slice_Data *slice_dyy,
+				Slice_Data *slice_dzz,
+				double thresh,
+				double *minimum, double *maximum)
+{
+   double *dptr;
+   double *dptrx;
+   double *dptry;
+   double *dptrz;
+   double *dptrxx;
+   double *dptryy;
+   double *dptrzz;
+   double t,numerator;
+   long irow, icol;
+   
+   /* Get slice and volume pointers */
+   
+   dptr  = result->data;
+   dptrx = slice_dx->data;  dptry =slice_dy->data;  dptrz =slice_dz->data;
+   dptrxx= slice_dxx->data; dptryy=slice_dyy->data; dptrzz=slice_dzz->data;
+
+   *maximum = -DBL_MAX;
+   *minimum =  DBL_MAX;
+
+   for (irow=0; irow < result->size[0]; irow++) {   /* Loop over rows of slice */
+     
+     for (icol=0; icol < result->size[1]; icol++) {      /* Loop over columns */
+       
+       t = (*dptrx * *dptrx) + (*dptry * *dptry) + (*dptrz * *dptrz);
+
+       if (t < thresh*thresh) {
+	 *dptr = 0.0;
+       }
+       else {
+
+	 numerator = (*dptrx * *dptrx) * *dptryy * *dptrzz + 
+	             (*dptry * *dptry) * *dptrxx * *dptrzz +
+	             (*dptrz * *dptrz) * *dptrxx * *dptryy;
+
+	 *dptr = numerator / (t*t);
+
+       }
+
+       if (*dptr > *maximum) *maximum = *dptr;
+       if (*dptr < *minimum) *minimum = *dptr;
+
+       dptr++;
+       dptrx++;  dptry++;  dptrz++;
+       dptrxx++; dptryy++; dptrzz++;
+       
+     }     /* Loop over columns */
+   }        /* Loop over rows */
+   
+
+   if ((*maximum == -DBL_MAX) && (*minimum ==  DBL_MAX)) {
+     *minimum = 0.0;
+     *maximum = SMALL_VALUE;
+   }
+   else if (*maximum <= *minimum) {
+     if (*minimum == 0.0) 
+       *maximum = SMALL_VALUE;
+     else if (*minimum < 0.0)
+       *maximum = 0.0;
+     else
+       *maximum = 2.0 * (*minimum);
+   }
+
+print("%12.10f %12.10f\n",*minimum,*maximum);
 
 }
 
