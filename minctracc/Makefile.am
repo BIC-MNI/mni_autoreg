@@ -19,9 +19,6 @@ includes = \
 	Include/arg_data.h \
 	Include/constants.h \
 	Include/cov_to_praxes.h \
-	Include/def_segment_table.h \
-	Include/def_tag_io.h \
-	Include/def_tps.h \
 	Include/deform_support.h \
 	Include/extras.h \
 	Include/globals.h \
@@ -96,6 +93,9 @@ notes = \
 oddities = $(matlab) $(notes) \
 	todo \
 	Include/boolean.h \
+	Include/def_segment_table.h \
+	Include/def_tag_io.h \
+	Include/def_tps.h \
 	Include/deform_field.h \
 	Include/line_data.h \
 	Include/procrustes.h \

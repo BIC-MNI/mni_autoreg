@@ -37,7 +37,7 @@ config_DATA  = mritotal.cfg mritotal.default.cfg mritotal.icbm.cfg
 # which fails (sigh) if builddir != srcdir
 #
 $(bin_SCRIPTS) $(config_DATA): version Makefile
-	$(PERL) $(srcdir)/build_perl_stuff \
+	$(PERL) $(srcdir)/build_perl_stuff --srcdir $(srcdir) \
 	    PERL=$(PERL) LIBDIR=$(perllibdir) \
 	    MODELDIR=$(modeldir) CONFIGDIR=$(configdir) \
 	    $(bin_SCRIPTS) $(config_DATA)

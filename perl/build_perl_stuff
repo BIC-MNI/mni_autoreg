@@ -5,6 +5,12 @@
 $|=1;
 print "Performing keyword substitions: ";
 
+if ( $ARGV[0] eq '--srcdir' ) {
+    shift;
+    $srcdir = shift;
+} else {
+    $srcdir = '.'
+}
 
 # Walk over the command line, splitting up any "VAR=value" arguments
 
@@ -61,7 +67,7 @@ sub perform_subs
 {
    my ($file) = @_;
    my ($infile) = "${file}.in"; 
-   open (INFILE, $infile) || die "Couldn't open ${infile}: $!\n";
+   open (INFILE, "$srcdir/$infile") || die "Couldn't open $srcdir/${infile}: $!\n";
    open (OUTFILE, ">$file") || die "Couldn't open ${file}: $!\n";
 
    while (<INFILE>)

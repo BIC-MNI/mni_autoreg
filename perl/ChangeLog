@@ -1,3 +1,8 @@
+Sun Jan 30 09:28:03 2000  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* build_perl_stuff: add --srcdir option to support srcdir !=
+	builddir.
+
 Fri Jan 28 11:06:45 2000  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* Makefile.am: perl helper files (*.pl, *.pm) are installed into 

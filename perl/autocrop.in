@@ -1,4 +1,4 @@
-#!@PERL@ -w
+#! @PERL@ -w
 
 # autocrop - a program for extracting and manipulating the bounds of a
 # MINC volume, with the capability to output parameters for mincresample
@@ -22,7 +22,7 @@
 
 # By Greg Ward 94/9/22
 
-# $Id: autocrop.in,v 1.2 2000-01-28 16:21:47 stever Exp $
+# $Id: autocrop.in,v 1.3 2000-01-30 18:15:35 stever Exp $
 
 use lib "@LIBDIR@";
 
