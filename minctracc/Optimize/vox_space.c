@@ -12,7 +12,7 @@
 
 #@CREATED    : Wed Jun 25, 1997, Louis Collins
 #@MODIFIED   : not yet!
-#@VERSION    : $Id: vox_space.c,v 1.5 2002-03-26 14:15:46 stever Exp $
+#@VERSION    : $Id: vox_space.c,v 1.6 2002-11-20 21:39:17 lenezet Exp $
 #----------------------------------------------------------------------------- */
 
 #include <volume_io/internal_volume_io.h>
@@ -107,7 +107,9 @@ public void get_into_voxel_space(Arg_Data *globals,
    General_transform 
       *reorder,
       *w2v;
-   Real tx,ty,tz;
+   Real 
+     sign,
+     tx,ty,tz;
    PointR pnt,tmp_pt;
    Real 
       voxel_vector[MAX_DIMENSIONS],
@@ -124,13 +126,24 @@ public void get_into_voxel_space(Arg_Data *globals,
 
                                 /* take care of the directions required to step
                                    through the volume */
+
+
    for_less(i,0,3) {
-      convert_world_vector_to_voxel(v1,
-                                    RVector_x(globals->directions[i]),
-                                    RVector_y(globals->directions[i]),
-                                    RVector_z(globals->directions[i]),
-                                    voxel_vector);
-      fill_Vector(vox->directions[i], voxel_vector[0],voxel_vector[1],voxel_vector[2]);
+
+
+     if (globals->step[i] > 0.0) {
+       sign = 1.0;
+     }
+     else{
+       sign = -1.0;
+     }
+     convert_world_vector_to_voxel(v1,
+				   RVector_x(globals->directions[i]) * sign,
+				   RVector_y(globals->directions[i]) * sign,
+				   RVector_z(globals->directions[i]) * sign,
+				   voxel_vector);
+     
+     fill_Vector(vox->directions[i], voxel_vector[0],voxel_vector[1],voxel_vector[2]);
    }
 
                                 /* take care of the

@@ -1,3 +1,13 @@
+/* ----------------------------- MNI Header -----------------------------------
+@NAME       : quaternion.h
+@DESCRIPTION: Header file for quaternion.c
+@METHOD     : 
+@GLOBALS    : 
+@CALLS      : 
+---------------------------------------------------------------------------- */
+
+
+/*  ------------------------ Function prototypes  ------------------------ */
 void vcopy(double *copy, double *v);
 
 

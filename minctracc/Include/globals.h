@@ -193,7 +193,7 @@ static ArgvInfo argTable[] = {
      "Step size along each dimension (X, Y, Z)"},
   {"-xstep", ARGV_FLOAT, (char *) 0, 
      (char *) &main_args.step[0],
-     "Step size along the column dimension"},
+     "Step size along the column dimension (mm)"},
   {"-ystep", ARGV_FLOAT, (char *) 0, 
      (char *) &main_args.step[1],
      "Step size along the row dimension"},
@@ -214,8 +214,13 @@ static ArgvInfo argTable[] = {
   {"-lattice_diameter", ARGV_FLOAT, (char *) 3, 
      (char *) main_args.lattice_width,
      "widths of sub-lattice along each dimension (X, Y, Z)"},
+  {"-max_def_magnitude", ARGV_FLOAT, (char *) 0, 
+     (char *) &main_args.trans_info.max_def_magnitude,
+     "maximum expected deformation magnitude (mm)"},
+
   {"-use_magnitude", ARGV_CONSTANT, (char *) TRUE, (char *) &main_args.trans_info.use_magnitude,
      "use magnitude data local deformation (default)."},
+
   {"-optical_flow", ARGV_CONSTANT, (char *) FALSE, (char *) &main_args.trans_info.use_magnitude,
      "use optical flow to compute deformation."},
   {"-use_simplex", ARGV_CONSTANT, (char *) TRUE, (char *) &main_args.trans_info.use_simplex,

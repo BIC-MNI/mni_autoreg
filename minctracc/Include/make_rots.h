@@ -16,7 +16,7 @@
 @CREATED    : Mon Jun  7 11:41:02 EST 1993 (LC) 
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-#include "quaternion.h"
+
 
 public void   
   make_resampling_matrix(float **xmat,
@@ -31,12 +31,7 @@ public void
 				  float *rot_x,float *rot_y,float *rot_z,
 				  float *scale_x,float *scale_y,float *scale_z);
 
-/*public void build_transformation_matrix(Transform *trans,
-					double *center,
-					double *translations,
-					double *scales,
-					double *shears,
-					double *rotations);*/
+
 
 public void build_transformation_matrix_quater(Transform *trans,
 					       double *center,
@@ -45,12 +40,6 @@ public void build_transformation_matrix_quater(Transform *trans,
 					       double *shears,
 					       double *quaternions);
 
-/*public void build_inverse_transformation_matrix(Transform *trans,
-						 double *center,
-						 double *translations,
-						 double *scales,
-						 double *shears,
-						 double *rotations);*/
 
 public void build_inverse_transformation_matrix_quater(Transform *trans,
 						       double *center,
@@ -59,19 +48,6 @@ public void build_inverse_transformation_matrix_quater(Transform *trans,
 						       double *shears,
 						       double *quaternions);
 
-/*public BOOLEAN extract_parameters_from_matrix(Transform *trans,
-					      double *center,
-					      double *translations,
-					      double *scales,
-					      double *shears,
-					      double *rotations);*/
-
-/*public BOOLEAN extract2_parameters_from_matrix(Transform *trans,
-					      double *center,
-					      double *translations,
-					      double *scales,
-					      double *shears,
-					      double *rotations);*/
 
 public BOOLEAN extract2_parameters_from_matrix_quater(Transform *trans,
 						      double *center,

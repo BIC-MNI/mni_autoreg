@@ -14,7 +14,12 @@
               express or implied warranty.
 @CREATED    : Tue Jun  8 08:44:59 EST 1993 LC
 @MODIFIED   : $Log: make_rots.c,v $
-@MODIFIED   : Revision 96.3  2002-08-14 19:54:26  lenezet
+@MODIFIED   : Revision 96.4  2002-11-20 21:38:49  lenezet
+@MODIFIED   :
+@MODIFIED   : Fix the code to take in consideration the direction cosines especially in the grid transform.
+@MODIFIED   : Add an option to choose the maximum expected deformation magnitude.
+@MODIFIED   :
+@MODIFIED   : Revision 96.3  2002/08/14 19:54:26  lenezet
 @MODIFIED   :  quaternion option added for the rotation
 @MODIFIED   :
 @MODIFIED   : Revision 96.2  2002/03/26 14:15:40  stever
@@ -63,15 +68,13 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/make_rots.c,v 96.3 2002-08-14 19:54:26 lenezet Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/make_rots.c,v 96.4 2002-11-20 21:38:49 lenezet Exp $";
 #endif
 
 #include <volume_io/internal_volume_io.h>
 #include "matrix_basics.h"
 #include "rotmat_to_ang.h"
 #include "local_macros.h"
-#include "quaternion.h"
-
 
 #define  FILL_NR_COLVEC( vector, x, y, z ) \
             { \
@@ -124,6 +127,8 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 		v1[3][1] * v1[3][1] ) )
 
 
+void build_rotmatrix(float **m, double *quat);
+void extract_quaternions(float **m, double *quat);
 
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : make_rots

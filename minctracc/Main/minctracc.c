@@ -13,7 +13,12 @@
 
    @CREATED    : February 3, 1992 - louis collins
    @MODIFIED   : $Log: minctracc.c,v $
-   @MODIFIED   : Revision 96.6  2002-08-14 19:54:42  lenezet
+   @MODIFIED   : Revision 96.7  2002-11-20 21:38:31  lenezet
+   @MODIFIED   :
+   @MODIFIED   : Fix the code to take in consideration the direction cosines especially in the grid transform.
+   @MODIFIED   : Add an option to choose the maximum expected deformation magnitude.
+   @MODIFIED   :
+   @MODIFIED   : Revision 96.6  2002/08/14 19:54:42  lenezet
    @MODIFIED   :  quaternion option added for the rotation
    @MODIFIED   :
    @MODIFIED   : Revision 96.5  2002/03/26 14:15:38  stever
@@ -107,14 +112,13 @@ Wed May 26 13:05:44 EST 1993 lc
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.6 2002-08-14 19:54:42 lenezet Exp $";
+static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.7 2002-11-20 21:38:31 lenezet Exp $";
 #endif
 
 #include <config.h>
 #include <volume_io/internal_volume_io.h>
 #include <minctracc.h>
 #include <globals.h>
-#include "quaternion.h"
 
        Real initial_corr, final_corr;
 static char *default_dim_names[N_DIMENSIONS] =
@@ -415,7 +419,7 @@ int main ( int argc, char* argv[] )
   get_volume_voxel_range(data, &min_value, &max_value);
   DEBUG_PRINT2 ( "min/max voxel= %8.3f %8.3f\n\n", min_value, max_value);
 
-  get_volume_separations(model, step);
+  get_volume_separations(model, step); 
   get_volume_sizes(model, sizes);
   get_volume_real_range(model, &min_value, &max_value);
   DEBUG_PRINT3 ( "Target volume size: %3d  by %3d  by %d \n",
@@ -646,6 +650,7 @@ int main ( int argc, char* argv[] )
   status = output_transform_file(main_args.filenames.output_trans,
 				 comments,
 				 main_args.trans_info.transformation);
+     
   if (status!=OK) {
     print_error_and_line_num("Error saving transformation file.`\n",
 		__FILE__, __LINE__);

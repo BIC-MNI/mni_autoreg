@@ -57,6 +57,7 @@ typedef struct {
   int use_identity;
   int use_default;
   int use_magnitude;
+  Real max_def_magnitude;	/* maximum size of deformation in def field */
   int use_simplex;
   int use_super;
   int use_local_smoothing;

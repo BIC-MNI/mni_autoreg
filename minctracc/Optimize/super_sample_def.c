@@ -20,7 +20,12 @@
 
 @CREATED    : 
 @MODIFIED   : $Log: super_sample_def.c,v $
-@MODIFIED   : Revision 96.5  2002-03-26 14:15:46  stever
+@MODIFIED   : Revision 96.6  2002-11-20 21:39:16  lenezet
+@MODIFIED   :
+@MODIFIED   : Fix the code to take in consideration the direction cosines especially in the grid transform.
+@MODIFIED   : Add an option to choose the maximum expected deformation magnitude.
+@MODIFIED   :
+@MODIFIED   : Revision 96.5  2002/03/26 14:15:46  stever
 @MODIFIED   : Update includes to <volume_io/foo.h> style.
 @MODIFIED   :
 @MODIFIED   : Revision 96.4  2002/03/07 19:08:56  louis
@@ -67,7 +72,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/super_sample_def.c,v 96.5 2002-03-26 14:15:46 stever Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/super_sample_def.c,v 96.6 2002-11-20 21:39:16 lenezet Exp $";
 #endif
 
 #include <config.h>
@@ -86,6 +91,7 @@ public void interpolate_deformation_slice(Volume volume,
 public void set_up_lattice(Volume data, 
 			   double *user_step, 
 			   double *start,     
+			   double *wstart,     
 			   int    *count,     
 			   double *step,      
 			   VectorR directions[]);
@@ -114,6 +120,7 @@ public void create_super_sampled_data_volumes(General_transform *orig_deformatio
   Real
     voxel[MAX_DIMENSIONS],
     start[MAX_DIMENSIONS],
+    wstart[MAX_DIMENSIONS],
     orig_steps[MAX_DIMENSIONS],
     new_steps[MAX_DIMENSIONS],
     xyz_steps[MAX_DIMENSIONS];
@@ -145,7 +152,7 @@ public void create_super_sampled_data_volumes(General_transform *orig_deformatio
   }
   
   set_up_lattice(orig_deformation->displacement_volume, 
-		 new_steps, start, xyz_count, xyz_steps, directions);
+		 new_steps, start, wstart, xyz_count, xyz_steps, directions);
 
       /* use the sign of the step returned to set the true step size */
   for_less(i,0,3)	
@@ -280,7 +287,9 @@ public void create_super_sampled_data_volumes_by2(General_transform *orig_deform
     orig_count[MAX_DIMENSIONS], 
     new_count[MAX_DIMENSIONS];
   Real
+    dirs[MAX_DIMENSIONS],
     voxel[MAX_DIMENSIONS],
+    wstart[MAX_DIMENSIONS],
     start[MAX_DIMENSIONS],
     orig_steps[MAX_DIMENSIONS],
     new_steps[MAX_DIMENSIONS];
@@ -304,7 +313,6 @@ public void create_super_sampled_data_volumes_by2(General_transform *orig_deform
   get_volume_XYZV_indices(super_sampled->displacement_volume,    new_xyzv);
   get_volume_sizes(       orig_deformation->displacement_volume, orig_count);
   get_volume_separations( orig_deformation->displacement_volume, orig_steps);
-  
 
   for_less(i,0, get_volume_n_dimensions(orig_deformation->displacement_volume)) {		
     new_steps[new_xyzv[i]] = orig_steps[xyzv[i]];

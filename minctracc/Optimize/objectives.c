@@ -16,7 +16,12 @@
 
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   :  $Log: objectives.c,v $
-@MODIFIED   :  Revision 96.5  2002-03-26 14:15:45  stever
+@MODIFIED   :  Revision 96.6  2002-11-20 21:39:16  lenezet
+@MODIFIED   :
+@MODIFIED   :  Fix the code to take in consideration the direction cosines especially in the grid transform.
+@MODIFIED   :  Add an option to choose the maximum expected deformation magnitude.
+@MODIFIED   :
+@MODIFIED   :  Revision 96.5  2002/03/26 14:15:45  stever
 @MODIFIED   :  Update includes to <volume_io/foo.h> style.
 @MODIFIED   :
 @MODIFIED   :  Revision 96.4  2000/03/17 01:11:30  stever
@@ -81,7 +86,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/objectives.c,v 96.5 2002-03-26 14:15:45 stever Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/objectives.c,v 96.6 2002-11-20 21:39:16 lenezet Exp $";
 #endif
 
 #include <volume_io/internal_volume_io.h>
@@ -187,6 +192,7 @@ public float xcorr_objective(Volume d1,
     voxel;
 
   int
+    i,j,
     r,c,s;
 
   Real
@@ -214,12 +220,14 @@ public float xcorr_objective(Volume d1,
                                    computations. */
 
   vox_space = new_voxel_space_struct();
+
   get_into_voxel_space(globals, vox_space, d1, d2);
+
   trans = get_linear_transform_ptr(vox_space->voxel_to_voxel_space);
-  
+
 
                                 /* loop through all nodes of the lattice */
-
+                                                                                                                              
   fill_Point( starting_position, vox_space->start[X], vox_space->start[Y], vox_space->start[Z]);
 
   /* ---------- step through all slices of lattice ------------- */
@@ -243,7 +251,8 @@ public float xcorr_objective(Volume d1,
                                    node. 
                                 */
 	fill_Point( voxel, ROUND(Point_x(col)), ROUND(Point_y(col)), ROUND(Point_z(col)) ); 
-	
+
+
 	if (voxel_point_not_masked(m1, Point_x(voxel), Point_y(voxel), Point_z(voxel))) {
 	  
 	  if (nearest_neighbour_interpolant( d1, &voxel, &value1 )) {

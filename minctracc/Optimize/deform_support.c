@@ -20,7 +20,12 @@
 
 @CREATED    : Tue Feb 22 08:37:49 EST 1994
 @MODIFIED   : $Log: deform_support.c,v $
-@MODIFIED   : Revision 96.6  2002-03-26 14:15:43  stever
+@MODIFIED   : Revision 96.7  2002-11-20 21:39:14  lenezet
+@MODIFIED   :
+@MODIFIED   : Fix the code to take in consideration the direction cosines especially in the grid transform.
+@MODIFIED   : Add an option to choose the maximum expected deformation magnitude.
+@MODIFIED   :
+@MODIFIED   : Revision 96.6  2002/03/26 14:15:43  stever
 @MODIFIED   : Update includes to <volume_io/foo.h> style.
 @MODIFIED   :
 @MODIFIED   : Revision 96.5  2000/03/15 08:42:45  stever
@@ -187,7 +192,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 96.6 2002-03-26 14:15:43 stever Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 96.7 2002-11-20 21:39:14 lenezet Exp $";
 #endif
 
 #include <config.h>
@@ -1092,7 +1097,6 @@ public void build_two_perpendicular_vectors(Real orig[],
 		__FILE__, __LINE__);
 }
 
-
 public float xcorr_objective_with_def(Volume d1,
                                       Volume d2,
                                       Volume m1,
@@ -1101,6 +1105,9 @@ public float xcorr_objective_with_def(Volume d1,
 {
 
   VectorR
+    slice_dir,
+    row_dir,
+    col_dir,
     vector_step;
 
   PointR
@@ -1117,6 +1124,7 @@ public float xcorr_objective_with_def(Volume d1,
     r,c,s;
 
   Real
+    sign_x,sign_y,sign_z,
     value1, value2;
   
   Real
@@ -1132,18 +1140,22 @@ public float xcorr_objective_with_def(Volume d1,
   s1 = s2 = s3 = 0.0;
   count1 = count2 = 0;
 
-  for_inclusive(s,0,globals->count[SLICE_IND]) {
+  if (globals->step[X] > 0 ) sign_x = 1.0; else sign_x = -1.0;
+  if (globals->step[Y] > 0 ) sign_y = 1.0; else sign_y = -1.0;
+  if (globals->step[Z] > 0 ) sign_z = 1.0; else sign_z = -1.0;
 
-    SCALE_VECTOR( vector_step, globals->directions[SLICE_IND], s);
+  for_inclusive(s,0,globals->count[Z]) {
+
+    SCALE_VECTOR( vector_step, globals->directions[Z], s*sign_z);
     ADD_POINT_VECTOR( slice, starting_position, vector_step );
 
-    for_inclusive(r,0,globals->count[ROW_IND]) {
+    for_inclusive(r,0,globals->count[Y]) {
       
-      SCALE_VECTOR( vector_step, globals->directions[ROW_IND], r);
+      SCALE_VECTOR( vector_step, globals->directions[Y], r*sign_y);
       ADD_POINT_VECTOR( row, slice, vector_step );
       
       SCALE_POINT( col, row, 1.0); /* init first col position */
-      for_inclusive(c,0,globals->count[COL_IND]) {
+      for_inclusive(c,0,globals->count[X]) {
 	
 	convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
 	
@@ -1181,7 +1193,12 @@ public float xcorr_objective_with_def(Volume d1,
 	  } /* if voxel in d1 */
 	} /* if point in mask volume one */
 	
-	ADD_POINT_VECTOR( col, col, globals->directions[COL_IND] );
+	if (sign_x > 0) {
+	  ADD_POINT_VECTOR( col, col, globals->directions[X] );
+	}
+	else {
+	  SUB_POINT_VECTOR( col, col, globals->directions[X] );
+	}
 	
       } /* for c */
     } /* for r */

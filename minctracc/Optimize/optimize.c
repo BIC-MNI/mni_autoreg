@@ -14,7 +14,12 @@
               express or implied warranty.
 
 @MODIFIED   : $Log: optimize.c,v $
-@MODIFIED   : Revision 96.8  2002-08-14 19:53:41  lenezet
+@MODIFIED   : Revision 96.9  2002-11-20 21:39:16  lenezet
+@MODIFIED   :
+@MODIFIED   : Fix the code to take in consideration the direction cosines especially in the grid transform.
+@MODIFIED   : Add an option to choose the maximum expected deformation magnitude.
+@MODIFIED   :
+@MODIFIED   : Revision 96.8  2002/08/14 19:53:41  lenezet
 @MODIFIED   :  quaternion option added for the rotation
 @MODIFIED   :
 @MODIFIED   : Revision 96.7  2002/03/26 14:15:45  stever
@@ -129,7 +134,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 96.8 2002-08-14 19:53:41 lenezet Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 96.9 2002-11-20 21:39:16 lenezet Exp $";
 #endif
 
 #include <config.h>
@@ -1974,8 +1979,7 @@ public BOOLEAN optimize_non_linear_transformation(Arg_Data *globals)
 	   /* ---------------- call requested optimization strategy ---------*/
 
   stat = ( do_non_linear_optimization(globals)==OK );
-
-
+ 
   
           /* ----------------finish up parameter/matrix manipulations ------*/
 
@@ -1983,6 +1987,7 @@ public BOOLEAN optimize_non_linear_transformation(Arg_Data *globals)
     {
       stat = free_segment_table(segment_table);
     }
+
 
 
   return(stat);

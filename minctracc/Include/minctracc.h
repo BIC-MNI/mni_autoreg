@@ -17,7 +17,12 @@
 
 @CREATED    : Thu May 20 14:20:21 EST 1993 Louis Collins
 @MODIFIED   : $Log: minctracc.h,v $
-@MODIFIED   : Revision 96.6  2002-08-14 19:54:49  lenezet
+@MODIFIED   : Revision 96.7  2002-11-20 21:38:02  lenezet
+@MODIFIED   :
+@MODIFIED   : Fix the code to take in consideration the direction cosines especially in the grid transform.
+@MODIFIED   : Add an option to choose the maximum expected deformation magnitude.
+@MODIFIED   :
+@MODIFIED   : Revision 96.6  2002/08/14 19:54:49  lenezet
 @MODIFIED   :  quaternion option added for the rotation
 @MODIFIED   :
 @MODIFIED   : Revision 96.5  2002/03/07 19:07:51  louis
@@ -225,6 +230,7 @@ Arg_Data main_args = {
     FALSE,			/*   use identity tranformation to start */
     TRUE,			/*   do default tranformation (PAT) to start */
     TRUE,			/*   use_mag=TRUE; do not use projections by default */
+    50.0,
     TRUE,			/*   use_simplex=TRUE ie use 3d simplex by default */
     2,				/*   use super sampling of deformation field  */
     FALSE,			/* use local smoothing       */
