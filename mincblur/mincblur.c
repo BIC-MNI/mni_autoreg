@@ -54,7 +54,14 @@
               express or implied warranty.
    @CREATED    : January 25, 1992 louis collins (Original using .iff files)
    @MODIFIED   : $Log: mincblur.c,v $
-   @MODIFIED   : Revision 96.1  2000-01-27 18:03:52  louis
+   @MODIFIED   : Revision 96.2  2000-02-20 04:01:00  stever
+   @MODIFIED   : * use new history_string() function to generate history strings
+   @MODIFIED   :   when outputting MNI files (.mnc, .xfm)
+   @MODIFIED   : * removed unused vax routines from Proglib
+   @MODIFIED   : * tuned configure script; CPPFLAGS and LDFLAGS are now left alone,
+   @MODIFIED   :   for the installer to use
+   @MODIFIED   :
+   @MODIFIED   : Revision 96.1  2000/01/27 18:03:52  louis
    @MODIFIED   : final checkin before switch to CVS
    @MODIFIED   :
  * Revision 96.0  1996/08/21  18:22:24  louis
@@ -94,7 +101,7 @@
         rewrite using mnc files and David Macdonald's libmni.a
    ---------------------------------------------------------------------------- */
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/mincblur.c,v 96.1 2000-01-27 18:03:52 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/mincblur.c,v 96.2 2000-02-20 04:01:00 stever Exp $";
 #endif
 
 #include <config.h>
@@ -158,7 +165,7 @@ int main (int argc, char *argv[] )
   for_less(i,0,3) 
     fwhm_3D[i] = -DBL_MAX;
 
-  history = time_stamp(argc, argv);
+  history = history_string(argc, argv);
 
 
    /******************************************************************************/

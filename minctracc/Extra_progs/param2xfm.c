@@ -9,7 +9,14 @@
 @CALLS      : 
 @CREATED    : Mon Nov 29 11:01:47 EST 1993 Louis
 @MODIFIED   : $Log: param2xfm.c,v $
-@MODIFIED   : Revision 96.1  1999-10-25 19:52:07  louis
+@MODIFIED   : Revision 96.2  2000-02-20 04:01:02  stever
+@MODIFIED   : * use new history_string() function to generate history strings
+@MODIFIED   :   when outputting MNI files (.mnc, .xfm)
+@MODIFIED   : * removed unused vax routines from Proglib
+@MODIFIED   : * tuned configure script; CPPFLAGS and LDFLAGS are now left alone,
+@MODIFIED   :   for the installer to use
+@MODIFIED   :
+@MODIFIED   : Revision 96.1  1999/10/25 19:52:07  louis
 @MODIFIED   : final checkin before switch to CVS
 @MODIFIED   :
  * Revision 96.0  1996/08/21  18:21:36  louis
@@ -73,6 +80,7 @@ int main(int argc, char *argv[])
    General_transform transform, new_transform;
    Transform
      lt;
+   char* history = history_string( argc, argv );
    static Real 
      scales[3], trans[3], rots[3], skews[3], center[3];
    static int clobber = FALSE;
@@ -137,7 +145,7 @@ int main(int argc, char *argv[])
    
 
    /* Write out the transform */
-   if (output_transform_file(argv[1], NULL, &new_transform) != OK) {
+   if (output_transform_file(argv[1], history, &new_transform) != OK) {
       (void) fprintf(stderr, "%s: Error writing transform file %s\n",
                      argv[0], argv[1]);
       exit(EXIT_FAILURE);

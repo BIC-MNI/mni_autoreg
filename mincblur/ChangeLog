@@ -1,3 +1,7 @@
+2000-02-19  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* mincblur.c (main): create history from history_string.
+
 Fri Jan 28 11:05:33 2000  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* apodize_data.c: 

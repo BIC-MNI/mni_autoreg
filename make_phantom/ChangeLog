@@ -1,3 +1,8 @@
+2000-02-19  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* make_phantom.c (main): use history_string rather than time_stamp
+	for history.
+
 2000-02-15  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* make_phantom.c (main): minor cleanup; fix bug that prevents

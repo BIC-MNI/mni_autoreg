@@ -20,7 +20,14 @@
               express or implied warranty.
    @CREATED    : Wed Mar 16 20:20:50 EST 1994  Louis Collins
    @MODIFIED   : $Log: make_phantom.c,v $
-   @MODIFIED   : Revision 1.3  2000-02-15 19:01:59  stever
+   @MODIFIED   : Revision 1.4  2000-02-20 04:00:58  stever
+   @MODIFIED   : * use new history_string() function to generate history strings
+   @MODIFIED   :   when outputting MNI files (.mnc, .xfm)
+   @MODIFIED   : * removed unused vax routines from Proglib
+   @MODIFIED   : * tuned configure script; CPPFLAGS and LDFLAGS are now left alone,
+   @MODIFIED   :   for the installer to use
+   @MODIFIED   :
+   @MODIFIED   : Revision 1.3  2000/02/15 19:01:59  stever
    @MODIFIED   : Add tests for param2xfm, minctracc -linear.
    @MODIFIED   :
    @MODIFIED   : Revision 1.2  2000/02/02 20:10:13  stever
@@ -186,7 +193,7 @@ int main (int argc, char *argv[] )
   prog_name = argv[0];
   outfilename = NULL;
 
-  history = time_stamp(argc, argv);
+  history = history_string(argc, argv);
 
   /* Call ParseArgv to interpret all command line args */
 

@@ -7,6 +7,7 @@ Release 0.98h
   environment variables are required to specify library locations.
 * Fixed bug that caused PROCRUSTES transformations to optimize only
   the x-scale, rather than a global scale (as LSQ7 does).
+* Generated files contain the long version string.
 
 
 Release 0.98g

@@ -13,7 +13,14 @@
 
    @CREATED    : February 3, 1992 - louis collins
    @MODIFIED   : $Log: minctracc.c,v $
-   @MODIFIED   : Revision 96.1  1999-10-25 19:52:19  louis
+   @MODIFIED   : Revision 96.2  2000-02-20 04:01:03  stever
+   @MODIFIED   : * use new history_string() function to generate history strings
+   @MODIFIED   :   when outputting MNI files (.mnc, .xfm)
+   @MODIFIED   : * removed unused vax routines from Proglib
+   @MODIFIED   : * tuned configure script; CPPFLAGS and LDFLAGS are now left alone,
+   @MODIFIED   :   for the installer to use
+   @MODIFIED   :
+   @MODIFIED   : Revision 96.1  1999/10/25 19:52:19  louis
    @MODIFIED   : final checkin before switch to CVS
    @MODIFIED   :
  * Revision 96.0  1996/08/21  18:21:51  louis
@@ -81,7 +88,7 @@ Wed May 26 13:05:44 EST 1993 lc
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.1 1999-10-25 19:52:19 louis Exp $";
+static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.2 2000-02-20 04:01:03 stever Exp $";
 #endif
 
 #include <config.h>
@@ -115,15 +122,13 @@ int main ( argc, argv )
   Real
     min_value, max_value, step[3];
   char 
-    *comments;
+    *comments = history_string( argc, argv );
   FILE
     *ofd;
   Real
     obj_func_val;
 
   prog_name     = argv[0];	
-
-  comments = time_stamp(argc, argv); /* build comment history line for below */
 
   /* Call ParseArgv to interpret all command line args (returns TRUE if error) */
   parse_flag = ParseArgv(&argc, argv, argTable, 0);

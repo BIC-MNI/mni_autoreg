@@ -30,7 +30,9 @@ aux_testfiles = \
 	test3.xfm
 
 $(TESTS): $(aux_testfiles)
-CLEANFILES = $(aux_testfiles)
+CLEANFILES = $(aux_testfiles) \
+	linear-1.log linear-2.log linear-3.log \
+	nonlinear-2.log
 
 ellipse0.mnc: Makefile.am
 	../make_phantom/make_phantom -clobber -ellipse \

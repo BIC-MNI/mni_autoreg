@@ -4,23 +4,6 @@ AC_INIT(minctracc/Include/minctracc.h)
 AM_INIT_AUTOMAKE(mni_autoreg, 0.98h)
 AM_CONFIG_HEADER(config.h)
 
-# If prefix is set, use it to set CPPFLAGS and LDFLAGS.
-# This helps when probing for libraries, later on, in the common case
-# that the 3rd party libraries are also installed in the place where
-# this package is going.
-#
-if test "$prefix" != "NONE"; then
-    if test "$CPPFLAGS" = "" -a -d "${prefix}/include"; then
-        CPPFLAGS="-I${prefix}/include"
-	# volume_io is weird; we'll hack it for now
-        test -d "${prefix}/include/volume_io" && \
-		CPPFLAGS="$CPPFLAGS -I${prefix}/include/volume_io"
-    fi
-    if test "$LDFLAGS" = "" -a -d "${prefix}/lib"; then
-        LDFLAGS="-L${prefix}/lib"
-    fi
-fi
-
 #------------------------------------------------------------------------
 # Define symbols specifying the package version number,
 # compilation user, host, date, and time.
@@ -156,34 +139,77 @@ AC_C_CONST
 AC_TYPE_SIZE_T
 
 #------------------------------------------------------------------------
+# Checks for standard library functions.
+#------------------------------------------------------------------------
+AC_CHECK_FUNCS(strtod strtol vprintf,
+	:, AC_ERROR(Required library function not found))
+
+
+#------------------------------------------------------------------------
 # Checks for libraries.
 #------------------------------------------------------------------------
+
+# 2000-02-19 - smr
+# - these libraries look like cruft
+#   must find out just exactly why these are needed...
+# - xdr_long, for instance is not used in any code here
+# - using libucb is often just asking for trouble
+#
 AC_CHECK_LIB(c, xdr_long,:,AC_CHECK_LIB(sun, xdr_long))
 AC_CHECK_LIB(c_s, main)
 AC_CHECK_LIB(ucb, random)
 
-smr_CHECK_LIB(netcdf,,
-[NetCDF library], ncopen, netcdf.h)
+# We'll need to look for a slew of third-party libraries: NetCDF,
+# and MNI libraries minc, and volume_io.
+#
+# These are often installed into /usr/local/{include,lib}, 
+# or ${prefix}/{include,lib}, so we'll add these to the search paths
+# for the C preprocessor and the linker.
+#
+if test x$GCC != xyes; then
+    mni_dirs=/usr/local
+else
+    # GCC will search in /usr/local by default
+    mni_dirs=
+fi
+if test x$prefix != xNONE -a x$prefix != x/usr/local; then
+    mni_dirs="$prefix $mni_dirs"
+fi
+
+for d in $mni_dirs; do
+    test -d $d/include && MNI_CPPFLAGS="-I$d/include $MNI_CPPFLAGS"
+    test -d $d/include/volume_io && MNI_CPPFLAGS="-I$d/include/volume_io $MNI_CPPFLAGS"
+    test -d $d/lib && MNI_LDFLAGS="-L$d/lib $MNI_LDFLAGS"
+done
+
+smr_CHECK_LIB(netcdf,, [NetCDF library], ncopen, netcdf.h, 
+$MNI_LDFLAGS, $MNI_CPPFLAGS)
 if test "$netcdf_LIBS" = ""; then
     AC_MSG_ERROR([Required library NetCDF not found!])
 fi
+MNI_LIBS=$netcdf_LIBS
+MNI_INCLUDES=$netcdf_CFLAGS
 
-smr_CHECK_LIB(minc,,
-[MNI medical image library], miicv_create, minc.h, 
-$netcdf_LIBS, $netcdf_CFLAGS)
+smr_CHECK_LIB(minc,, [MNI medical image library], miicv_create, minc.h, 
+[$MNI_LDFLAGS $MNI_LIBS], [$MNI_INCLUDES $MNI_CPPFLAGS])
 if test "$minc_LIBS" = ""; then
     AC_MSG_ERROR([Required library minc not found!])
 fi
+MNI_LIBS="$minc_LIBS $MNI_LIBS"
+MNI_INCLUDES="$minc_CFLAGS $MNI_INCLUDES"
 
-smr_CHECK_LIB(volumeio,volume_io,
-[MNI Volume IO library], input_volume, volume_io.h,
-[$netcdf_LIBS $minc_LIBS -lm],[$netcdf_CFLAGS $minc_CFLAGS])
+smr_CHECK_LIB(volumeio, volume_io, [MNI Volume IO library], input_volume, volume_io.h,
+[$MNI_LDFLAGS $MNI_LIBS -lm],[$MNI_INCLUDES $MNI_CPPFLAGS])
 if test "$volumeio_LIBS" = ""; then
     AC_MSG_ERROR([Required library volume_io not found!])
 fi
+MNI_LIBS="$MNI_LDFLAGS $volumeio_LIBS $MNI_LIBS"
+MNI_INCLUDES="$volumeio_CFLAGS $MNI_INCLUDES $MNI_CPPFLAGS"
 
-INCLUDEDIRS="$volumeio_CFLAGS $minc_CFLAGS $netcdf_CFLAGS"
-LIBDIRS="$volumeio_LIBS $minc_LIBS $netcdf_LIBS"
+# These two names are historical; they are not simple
+# directories at all, but preprocessor and linker flags.
+INCLUDEDIRS=$MNI_INCLUDES
+LIBDIRS=$MNI_LIBS
 
 AC_SUBST(INCLUDEDIRS)
 AC_SUBST(LIBDIRS)
@@ -192,10 +218,8 @@ AC_SUBST(LIBDIRS)
 # Check some oddities of the volume IO library.
 #------------------------------------------------------------------------
 
-save_CPPFLAGS="$CPPFLAGS"
-save_LIBS="$LIBS"
-CPPFLAGS="$CPPFLAGS $INCLUDEDIRS"
-LIBS="$LIBS $LIBDIRS -lm"
+save_CPPFLAGS="${CPPFLAGS-unset}"
+CPPFLAGS="$CPPFLAGS $MNI_INCLUDES"
 
 old_volumeio=
 
@@ -273,19 +297,15 @@ if test $autoreg_test = "fail"; then
     AC_MSG_ERROR(Cannot determine arguments to delete_dimension_names.)
 fi
 
-CPPFLAGS="$save_CPPFLAGS"
-LIBS="$save_LIBS"
+if test x$save_CPPFLAGS == xunset; then
+    unset CPPFLAGS
+else
+    CPPFLAGS="$save_CPPFLAGS"
+fi
 
 if test x$old_volumeio = xyes; then
     AC_MSG_WARN([you seem to have an ancient version of Volume_io; please upgrade])
 fi
-
-
-#------------------------------------------------------------------------
-# Checks for library functions.
-#------------------------------------------------------------------------
-AC_FUNC_VPRINTF
-AC_CHECK_FUNCS(strtod strtol)
 
 
 AC_OUTPUT(Makefile

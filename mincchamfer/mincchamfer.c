@@ -19,11 +19,8 @@
 #include "mincchamfer.h"
 #include "chamfer.h"
 
-main ( argc, argv )
-   int argc;
-   char *argv[];
+main ( int argc, char* argv[] )
 {   
-   
    static char *default_dim_names[N_DIMENSIONS] = { MIzspace, MIyspace, MIxspace };
 
    char 
@@ -38,7 +35,9 @@ main ( argc, argv )
    
    Status 
       status;
-   
+
+   char* history = history_string( argc, argv );
+
    int
       i;
    /* set globals */
@@ -106,7 +105,7 @@ main ( argc, argv )
       printf ("output file:%s\n",outfilename);
    
    status = output_modified_volume(outfilename, NC_UNSPECIFIED, FALSE, 0.0, 0.0, data, 
-                                   infilename, NULL, (minc_output_options *)NULL);
+                                   infilename, history, (minc_output_options *)NULL);
    
    if (status != OK)
       print_error_and_line_num("problems writing chamfer...",__FILE__, __LINE__);

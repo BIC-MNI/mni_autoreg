@@ -1,3 +1,9 @@
+2000-02-19  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* Extra_progs/param2xfm.c (main): 
+	* Main/minctracc.c (main): use history_string() to generate
+	history.
+
 2000-02-15  Steve ROBBINS  <stever@bic.mni.mcgill.ca>
 
 	* Extra_progs/param2xfm.tests: rename function `test' to

@@ -1,6 +1,23 @@
+2000-02-19  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* Testing/Makefile.am (CLEANFILES): clean the log files.
+
+	* Proglib/Proglib.h: don't include vax_conversions.h.
+
+	* Proglib/Makefile.am (libProglib_a_SOURCES): removed
+	vax_conversions.[ch]; add history.[ch].
+
+	* Proglib/history.[ch]: new.  Create a history string consisting
+	of the time_stamp, _plus_ the long version string.
+
+	* configure.in (MNI_INCLUDES, MNI_LIBS): use these variables,
+	rather than CPPFLAGS and LDFLAGS.  The latter must be
+	user-settable at build time.  Fail if a probed-for library
+	function is not found.
+
 2000-02-16  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
 
-	* configure.in: remove check volume_io version using RCS id.
+	* configure.in: remove check of volume_io version using RCS id.
 
 	* mincchamfer: new.  Copied from Louis' home directory.
 
