@@ -46,7 +46,7 @@
 # the same copyright as above.
 # --------------------------------------------------------------------
 
-# $Id: mritotal.in,v 1.8 2000-05-12 17:31:38 stever Exp $
+# $Id: mritotal.in,v 1.9 2000-05-25 13:50:04 louis Exp $
 
 require 5.001;
 
@@ -775,7 +775,8 @@ sub Initialize
 		     "zscore" => "normalized difference",
 		     "ssc"    => "stochastic sign change",
 		     "vr"     => "variance of ratios",
-		     "mi"     => "mutual information");
+		     "mi"     => "mutual information",
+		     "optic"  => "optical flow");
 
    &verbose(" protocol = $Protocol:");
    my $fit_desc = 
@@ -1461,6 +1462,19 @@ sub SetupFits
    # See &SetupNLFits for a description of the fields used to describe
    # nonlinear fitting.
    
+      # check on the default objective function.  If optic, then
+      # change to xcorr default for the linear fits.
+
+   if ($default_obj eq 'optic') { 
+
+     warn <<WARN_optic;
+$ProgramName: warning: Optical flow not available for linear fitting,
+defaulting to xcorr for the linear fitting steps only.
+WARN_optic
+	 
+     $default_obj = 'xcorr';
+   }
+   
    if (! defined $input_xfm)
    {
       # we only defined fits if $input_xfm is undefined, because if we have
@@ -1686,9 +1700,9 @@ sub SetupNLFits
          sub_lattice => 6,
          optimizer   => 'simplex',
          similarity  => 0.5,
-         iterations  => 12,
-         weight      => 0.5,
-         stiffness   => 0.5,
+         iterations  => ($default_obj eq 'optic') ? 20  : 12, # 20 iters for optic, else 12
+         weight      => ($default_obj eq 'optic') ? 0.5 : 0.5,
+         stiffness   => ($default_obj eq 'optic') ? 0.8 : 0.5,
          supersample => 2 },
        { level       => '8',
          description => "level 8 nonlinear: $blurs{'8'}mm intensity fit, no masks",
@@ -1705,9 +1719,9 @@ sub SetupNLFits
          sub_lattice => 6,
          optimizer   => 'simplex',
          similarity  => 0.5,
-         iterations  => 8,
-         weight      => 0.6,
-         stiffness   => 0.5,
+         iterations  => ($default_obj eq 'optic') ? 12  : 8, 
+         weight      => ($default_obj eq 'optic') ? 0.6 : 0.6,
+         stiffness   => ($default_obj eq 'optic') ? 0.8 : 0.5,
          supersample => 2 },
        { level       => '4a',
          description => "level 4 nonlinear: $blurs{'4a'}mm intensity fit, target masked",
@@ -1725,9 +1739,9 @@ sub SetupNLFits
          sub_lattice => 5,
          optimizer   => 'quadratic',
          similarity  => 0.5,
-         iterations  => 5,
-         weight      => 1.0,
-         stiffness   => 0.5,
+         iterations  => ($default_obj eq 'optic') ? 10  : 5, 
+         weight      => ($default_obj eq 'optic') ? 0.8 : 1.0,
+         stiffness   => ($default_obj eq 'optic') ? 0.8 : 0.5,
          supersample => 0 },
        { level       => '4b',
          description => "level 4b nonlinear: $blurs{'4b'}mm gradient fit, target masked",
@@ -1745,9 +1759,9 @@ sub SetupNLFits
          sub_lattice => 5,
          optimizer   => 'quadratic',
          similarity  => 0.5,
-         iterations  => 5,
-         weight      => 1.0,
-         stiffness   => 0.5,
+         iterations  => ($default_obj eq 'optic') ? 10  : 5, 
+         weight      => ($default_obj eq 'optic') ? 0.8 : 1.0,
+         stiffness   => ($default_obj eq 'optic') ? 0.8 : 0.5,
          supersample => 0 },
        { level       => '2',
          description => "level 2 nonlinear: $blurs{'2'}mm gradient fit, target masked",
@@ -1765,9 +1779,9 @@ sub SetupNLFits
          sub_lattice => 5,
          optimizer   => 'quadratic',
          similarity  => 0.5,
-         iterations  => 3,
-         weight      => 1.0,
-         stiffness   => 0.5,
+         iterations  => ($default_obj eq 'optic') ? 6  : 3, 
+         weight      => ($default_obj eq 'optic') ? 0.8 : 1.0,
+         stiffness   => ($default_obj eq 'optic') ? 0.8 : 0.5,
          supersample => 0 }
       );
 

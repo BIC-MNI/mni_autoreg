@@ -1,3 +1,17 @@
+2000-05-25  Louis COLLINS  <louis@bic.mni.mcgill.ca>
+
+	* mritotal.in (SetupNLFits): changed iterations, weight and
+ 	stiffness to have different values for optical flow and xcorr.
+
+	(SetupFits): tested if optical flow was requested when doing
+ 	linear fits.  If so, then we default back to xcorr, only for the
+ 	linear fits.
+
+2000-05-24  Louis COLLINS  <louis@bic.mni.mcgill.ca>
+
+	* mritotal.in (Initialize): added optical flow to the list of accepted
+	  objective functions for nonlinear registration.
+
 2000-05-02  Steve ROBBINS  <stever@bic.mni.mcgill.ca>
 
 	* mritotal.in (pad_amounts): fix for hypothetical case where more
