@@ -16,10 +16,14 @@
 @CREATED    : Tue Nov 16 14:51:04 EST 1993 lc
                     based on transformations.c from fit_vol
 @MODIFIED   : $Log: transformations.c,v $
-@MODIFIED   : Revision 1.10  1995-07-04 11:42:45  louis
-@MODIFIED   : removed apply_deformation_field and apply_inverse_deform... since they
-@MODIFIED   : are now included in volume_io
+@MODIFIED   : Revision 1.11  1995-09-11 12:37:16  louis
+@MODIFIED   : All refs to numerical recipes routines have been replaced.
+@MODIFIED   : this is an updated working version - corresponds to mni_reg-0.1g
 @MODIFIED   :
+ * Revision 1.10  1995/07/04  11:42:45  louis
+ * removed apply_deformation_field and apply_inverse_deform... since they
+ * are now included in volume_io
+ *
  * Revision 1.9  1995/02/22  08:56:06  louis
  * Montreal Neurological Institute version.
  * compiled and working on SGI.  this is before any changes for SPARC/
@@ -56,7 +60,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/transformations.c,v 1.10 1995-07-04 11:42:45 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/transformations.c,v 1.11 1995-09-11 12:37:16 louis Exp $";
 #endif
 
 
@@ -83,12 +87,6 @@ public int tricubic_interpolant(Volume volume,
                                 PointR *coord, double *result);
 
 extern Arg_Data main_args;
-
-
-static char *default_dim_names[N_DIMENSIONS] =
-   { MIzspace, MIyspace, MIxspace };
-
-
 
 
 public General_transform *get_linear_part_of_transformation(General_transform *trans)

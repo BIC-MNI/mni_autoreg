@@ -1,6 +1,6 @@
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : rotmat_to_ang.c
-@INPUT      : rot      - rotation matrix (3x3 in num recipes form) calculated
+@INPUT      : rot      - rotation matrix (3x3 in zero offset form) calculated
                          by the calling program.
 @OUTPUT     : ang      - vector giving rx,ry and rz rotation angles (in 
                          radians). This vector must be defined by the 
@@ -8,7 +8,7 @@
 @RETURNS    : TRUE if ok, FALSE if error.
 @DESCRIPTION: this routine extracts the rotation angles from the rotation
               matrix.  The rotation matrix is assumed to be a 3x3 matrix in
-	      numerical recipes form.  It is locally copied into a 
+	      zero offset form [1..3][1..3].  It is locally copied into a 
 	      4x4 homogeneous matrix for manipulation.
 
 	      we assume that the matrix rotation center is (0,0,0).
@@ -54,7 +54,7 @@
 		 the required rotations are -RX,-RY and -RZ!
 
 @GLOBALS    : 
-@CALLS      : mfmult(), rotx(),roty(),rotz(),matrix(),vector()
+@CALLS      : mfmult(), rotx(),roty(),rotz()
 @COPYRIGHT  :
               Copyright 1993 Louis Collins, McConnell Brain Imaging Centre, 
               Montreal Neurological Institute, McGill University.
@@ -68,11 +68,15 @@
 
 @CREATED    : Feb 9, 1992 lc
 @MODIFIED   :  $Log: rotmat_to_ang.c,v $
-@MODIFIED   :  Revision 1.9  1995-02-22 08:56:06  louis
-@MODIFIED   :  Montreal Neurological Institute version.
-@MODIFIED   :  compiled and working on SGI.  this is before any changes for SPARC/
-@MODIFIED   :  Solaris.
+@MODIFIED   :  Revision 1.10  1995-09-11 12:37:16  louis
+@MODIFIED   :  All refs to numerical recipes routines have been replaced.
+@MODIFIED   :  this is an updated working version - corresponds to mni_reg-0.1g
 @MODIFIED   :
+ * Revision 1.9  1995/02/22  08:56:06  louis
+ * Montreal Neurological Institute version.
+ * compiled and working on SGI.  this is before any changes for SPARC/
+ * Solaris.
+ *
  * Revision 1.8  94/04/06  11:48:49  louis
  * working linted version of linear + non-linear registration based on Lvv
  * operator working in 3D
@@ -92,24 +96,20 @@ Tue Jun  8 08:44:59 EST 1993 LC
 
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/rotmat_to_ang.c,v 1.9 1995-02-22 08:56:06 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/rotmat_to_ang.c,v 1.10 1995-09-11 12:37:16 louis Exp $";
 #endif
 
 
 #include <volume_io.h>
-#include <recipes.h>
-#include <print_error.h>
+#include "local_macros.h"
+#include "matrix_basics.h"
 
 extern char *prog_name;
 
 
 #define EPS  0.00000000001	/* epsilon, should be calculated */
 
-#include "local_macros.h"
-#include "matrix_basics.h"
 
-/* VARARGS */
-public  void  print_error( char format[], char *name, int line, ... );
 
 public BOOLEAN rotmat_to_ang(float **rot, float *ang)
 {
@@ -127,13 +127,13 @@ public BOOLEAN rotmat_to_ang(float **rot, float *ang)
    int
       m,n;
 
-   t  = matrix(1,4,1,1);	/* make two column vectors */
-   s  = matrix(1,4,1,1);
+   ALLOC2D(t  ,5,5);	/* make two column vectors */
+   ALLOC2D(s  ,5,5);
 
-   R  = matrix(1,4,1,4);	/* working space matrices */
-   Rx = matrix(1,4,1,4);
-   Ry = matrix(1,4,1,4);
-   Rz = matrix(1,4,1,4);
+   ALLOC2D(R  ,5,5);	/* working space matrices */
+   ALLOC2D(Rx ,5,5);
+   ALLOC2D(Ry ,5,5);
+   ALLOC2D(Rz ,5,5);
 
    nr_identf(R,1,4,1,4);	/* init R homogeneous matrix */
 
@@ -155,13 +155,13 @@ public BOOLEAN rotmat_to_ang(float **rot, float *ang)
    k = t[3][1];
 
    if (i<EPS) {			/* if i is not already in the positive X range, */
-      print_error("%s",__FILE__, __LINE__,"step one: rz not in the range -pi/2..pi/2");
+      print("WARNING: (%s:%d) %s\n",__FILE__, __LINE__,"step one: rz not in the range -pi/2..pi/2");
       return(FALSE);
    }
 
    len = sqrt(i*i + j*j);	/* length of vect x on XY plane */
    if (ABS(len)<EPS) {
-      print_error("%s",__FILE__, __LINE__,"step one: length of vect x null.");
+      print("WARNING: (%s:%d) %s\n",__FILE__, __LINE__,"step one: length of vect x null.");
       return(FALSE);
    }
 
@@ -196,14 +196,14 @@ public BOOLEAN rotmat_to_ang(float **rot, float *ang)
    k = s[3][1];
 
    if (i<EPS) {
-      print_error("%s",__FILE__, __LINE__,"step two: ry not in the range -pi/2..pi/2");
+      print("WARNING: (%s:%d) %s\n",__FILE__, __LINE__,"step two: ry not in the range -pi/2..pi/2");
       return(FALSE);
    }
 
    len = sqrt(i*i + k*k);		/* length of vect x in XZ plane, after RZ */
 
    if (ABS(len)<EPS) {
-      print_error("%s",__FILE__, __LINE__,"step two: length of vect z null.");
+      print("WARNING: (%s:%d) %s\n",__FILE__, __LINE__,"step two: length of vect z null.");
       return(FALSE);
    }
 
@@ -241,7 +241,7 @@ public BOOLEAN rotmat_to_ang(float **rot, float *ang)
    len = sqrt(j*j + k*k);	/* length of vect x in Y,Z plane */
 
    if (ABS(len)<EPS) {
-      print_error("%s",__FILE__, __LINE__,"step three: length of vect z null.");
+      print("WARNING: (%s:%d) %s\n",__FILE__, __LINE__,"step three: length of vect z null.");
       return(FALSE);
    }
 
@@ -264,12 +264,12 @@ public BOOLEAN rotmat_to_ang(float **rot, float *ang)
    ang[2] = ry;
    ang[3] = rz;
 
-   free_matrix(t,1,4,1,1);
-   free_matrix(s,1,4,1,1);
-   free_matrix(R,1,4,1,4);
-   free_matrix(Rx,1,4,1,4);
-   free_matrix(Ry,1,4,1,4);
-   free_matrix(Rz,1,4,1,4);
+   FREE2D(t);
+   FREE2D(s);
+   FREE2D(R);
+   FREE2D(Rx);
+   FREE2D(Ry);
+   FREE2D(Rz);
 
    return(TRUE);
 }
