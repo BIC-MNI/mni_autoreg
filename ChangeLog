@@ -1,3 +1,9 @@
+2004-08-04  Andrew Janke <rotor@cmr.uq.edu.au>
+
+	* removed all the public/private syntatic sugar (private->static)
+	* Added use of FindBin::Bin to perl progs for libs, data and config
+	    the old method failed with binary distributions with a prefix
+
 2004-02-04  patricia Le Nezet <lenezet@bic.mni.mcgill.ca>
 
 	* fixed direction cosines problems

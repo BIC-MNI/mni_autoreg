@@ -1,5 +1,16 @@
 CHANGES to the MNI_AutoReg package...
 
+Release 0.98q
+-------------
+
+* Removed all reference to public and private syntatic sugar
+    private has been replaced with static.  This has caused
+	erratic build problems in the past.  Let's see if things
+	are better now.
+* Removed most Keyword Substitutions in perl programs in favour
+    of the perl module FindBin::Bin this module is part of the
+	base perl distribution
+
 Release 0.98p
 -------------
 

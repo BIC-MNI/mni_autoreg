@@ -97,8 +97,3 @@
    " on " MNI_AUTOREG_COMPILE_DATE \
    " at " MNI_AUTOREG_COMPILE_TIME
 
-
-/* For documenting public and private interfaces.  */
-#define public
-#define private static
-
