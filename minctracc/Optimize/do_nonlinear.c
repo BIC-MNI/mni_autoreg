@@ -15,9 +15,20 @@
 
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 1.3  1994-05-28 15:57:33  louis
-@MODIFIED   : working version, before removing smoothing and adding springs!
+@MODIFIED   : Revision 1.4  1994-06-02 20:12:07  louis
+@MODIFIED   : made modifications to allow deformations to be calulated in 2D on slices. 
+@MODIFIED   : changes had to be made in set_up_lattice, init_lattice when defining
+@MODIFIED   : the special case of a single slice....
+@MODIFIED   : Build_default_deformation_field also had to reflect these changes.
+@MODIFIED   : do_non-linear-optimization also had to check if one of dimensions had
+@MODIFIED   : a single element.
+@MODIFIED   : All these changes were made, and slightly tested.  Another type of
+@MODIFIED   : deformation strategy will be necessary (to replace the deformation 
+@MODIFIED   : perpendicular to the surface, since it does not work well).
 @MODIFIED   :
+ * Revision 1.3  94/05/28  15:57:33  louis
+ * working version, before removing smoothing and adding springs!
+ * 
  * Revision 1.2  94/04/06  11:47:47  louis
  * working linted version of linear + non-linear registration based on Lvv
  * operator working in 3D
@@ -28,7 +39,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 1.3 1994-05-28 15:57:33 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 1.4 1994-06-02 20:12:07 louis Exp $";
 #endif
 
 #include <volume_io.h>
@@ -38,11 +49,8 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #include <print_error.h>
 #include <limits.h>
 
-#define FRAC1           0.5
-#define FRAC2           0.0833333
 #define BRUTE_FORCE     1
 #define SECANT_METHOD   0
-#define DERIV_FRAC      0.6
 #define TEST_LENGTH     1.0
 
 static Volume   Gd1;
@@ -76,6 +84,7 @@ public Status save_deform_data(Volume dx,
 			       char *history);
 
 public  Real CUBIC_PP(Real f1, Real f2, Real f3, Real f4, Real xpos);
+public  Real CUBIC_P(Real f1, Real f2, Real f3, Real f4, Real xpos);
 
 public Real find_offset_to_match(Line_data *m,
 				 Line_data *d,
@@ -84,6 +93,7 @@ public Real find_offset_to_match(Line_data *m,
 
 private Real optimize_deformation_for_single_node(Real spacing, Real threshold1, Real threshold2,
 						  Real wx, Real wy, Real wz,
+						  Real mx, Real my, Real mz,
 						  Real *def_x, Real *def_y, Real *def_z,
 						  int match_type);
 
@@ -92,29 +102,54 @@ private Real get_normalized_world_gradient_direction(Real xworld, Real yworld, R
 						     Real *DX_dir, Real *DY_dir, Real *DZ_dir,
 						     Real thresh);
 
-private float interp_data_along_gradient(Real dist_from, Real x, Real y, Real z, 
+private float interp_data_along_gradient(Real dist_from, int inter_type,
+					 Real x, Real y, Real z, 
 					 Real dx, Real dy, Real dz,
 					 Volume data);
 
-private void clamp_warp_deriv(Volume dx, Volume dy, Volume dz);
+
+public void clamp_warp_deriv(Volume dx, Volume dy, Volume dz);
 
 
-private void smooth_the_warp(Volume smooth_dx, Volume smooth_dy, Volume smooth_dz, 
+public void get_average_warp_of_neighbours(int sizes[],
+					   Volume dx, Volume dy, Volume dz, 
+					   int i,int j,int k,
+					   Real *mx, Real *my, Real *mz);
+
+public void smooth_the_warp(Volume smooth_dx, Volume smooth_dy, Volume smooth_dz, 
 			     Volume warp_dx, Volume warp_dy, Volume warp_dz);
+
+public void add_additional_warp_to_current(Volume dx, Volume dy, Volume dz,
+					    Volume adx, Volume ady, Volume adz,
+					    Real weight);
+
+public Real get_maximum_magnitude(Volume dx, Volume dy, Volume dz);
+
+
+
 
 private BOOLEAN build_second_derivative_data(Line_data *line, int num_samples, Real spacing,
 					     Real wx, Real wy, Real wz, 
 					     Real dx_dir, Real dy_dir, Real dz_dir, 
 					     Volume intensity);
 
+private BOOLEAN build_first_derivative_data(Line_data *line, int num_samples, Real spacing,
+					     Real wx, Real wy, Real wz, 
+					     Real dx_dir, Real dy_dir, Real dz_dir, 
+					     Volume intensity);
 
-
-
+private BOOLEAN build_line_data(Line_data *line, int num_samples, Real spacing,
+				Real wx, Real wy, Real wz, 
+				Real dx_dir, Real dy_dir, Real dz_dir, 
+				Volume intensity);
 
 public void save_data(char *basename, int i, int j,
 		      Volume dx,Volume dy,Volume dz);
 
-private Real get_maximum_magnitude(Volume dx, Volume dy, Volume dz);
+
+
+
+/******************************************************************************************/
 
 public Status do_non_linear_optimization(Volume d1,
 					 Volume d1_dx, 
@@ -131,14 +166,24 @@ public Status do_non_linear_optimization(Volume d1,
 					 Arg_Data *globals)
 {
   Volume            
-    warps_dx,warps_dy,warps_dz,
-    warps1_dx,warps1_dy,warps1_dz;
+    additional_dx,additional_dy,additional_dz;
   Deform_field 
-    *def_data;
-  Real steps[3];
-  int iters,i,j,k,sizes[3];
-  Real voxel, value,value2,  def_x, def_y, def_z, wx,wy,wz,tx,ty,tz;
+    *current;
+  int 
+    loop_start[3], loop_end[3],
+    iters,
+    i,j,k,
+    nodes_done, nodes_seen, matching_type, over,
+    sizes[3];
   Real 
+    min, max, sum, sum2, mean, std, var, grad,
+    voxel,val_x, val_y, val_z,
+    dirx, diry, dirz,
+    steps[3],
+    def_x, def_y, def_z, 
+    wx,wy,wz,
+    mx,my,mz,
+    tx,ty,tz, 
     displace,
     zero,
     threshold1,
@@ -146,10 +191,9 @@ public Status do_non_linear_optimization(Volume d1,
     result;
   progress_struct
     progress;
-  int 
-    nodes_done, nodes_seen, matching_type;
-  General_transform *all_until_last, *tmp_trans;
-
+  General_transform 
+    *all_until_last, *tmp_trans;
+  PointR pointr;
 				/* set up globals for communication with other routines */
   Gd1     = d1;
   Gd1_dx  = d1_dx; 
@@ -195,13 +239,13 @@ public Status do_non_linear_optimization(Volume d1,
   /*  so that it can be used to update the global transformation at each         */
   /*  iterative step.                                                            */
 
-  def_data = (Deform_field *)NULL;
+  current = (Deform_field *)NULL;
   for_less(i,0,get_n_concated_transforms(globals->trans_info.transformation)) {
     if (get_transform_type( get_nth_general_transform(globals->trans_info.transformation,i) ) 
 	       == USER_TRANSFORM)
-      def_data = (Deform_field *)get_nth_general_transform(globals->trans_info.transformation,i)->user_data;
+      current = (Deform_field *)get_nth_general_transform(globals->trans_info.transformation,i)->user_data;
   }
-  if (def_data == (Deform_field *)NULL) { /* exit if no deformation */
+  if (current == (Deform_field *)NULL) { /* exit if no deformation */
     print_error("Cannot find the deformation field transform to optimize",
 		__FILE__, __LINE__);
   }
@@ -209,35 +253,27 @@ public Status do_non_linear_optimization(Volume d1,
   /*******************************************************************************/
   /*   build and allocate the temporary deformation volume needed                */
 
-  warps1_dx = copy_volume_definition(def_data->dx, NC_UNSPECIFIED, FALSE, 0.0,0.0);
-  warps1_dy = copy_volume_definition(def_data->dy, NC_UNSPECIFIED, FALSE, 0.0,0.0);
-  warps1_dz = copy_volume_definition(def_data->dz, NC_UNSPECIFIED, FALSE, 0.0,0.0);
+  additional_dx = copy_volume_definition(current->dx, NC_UNSPECIFIED, FALSE, 0.0,0.0);
+  additional_dy = copy_volume_definition(current->dy, NC_UNSPECIFIED, FALSE, 0.0,0.0);
+  additional_dz = copy_volume_definition(current->dz, NC_UNSPECIFIED, FALSE, 0.0,0.0);
 
-  alloc_volume_data(warps1_dx);
-  alloc_volume_data(warps1_dy);
-  alloc_volume_data(warps1_dz);
+  alloc_volume_data(additional_dx);
+  alloc_volume_data(additional_dy);
+  alloc_volume_data(additional_dz);
 
-  warps_dx = copy_volume_definition(def_data->dx, NC_UNSPECIFIED, FALSE, 0.0,0.0);
-  warps_dy = copy_volume_definition(def_data->dy, NC_UNSPECIFIED, FALSE, 0.0,0.0);
-  warps_dz = copy_volume_definition(def_data->dz, NC_UNSPECIFIED, FALSE, 0.0,0.0);
-
-  alloc_volume_data(warps_dx);
-  alloc_volume_data(warps_dy);
-  alloc_volume_data(warps_dz);
-
-  get_volume_sizes(warps1_dx, sizes);
-  get_volume_separations(warps1_dx, steps);
+  get_volume_sizes(additional_dx, sizes);
+  get_volume_separations(additional_dx, steps);
 
   /*******************************************************************************/
   /*   initialize this iterations warp                                           */
 
-  zero = CONVERT_VALUE_TO_VOXEL(warps_dx, 0.0);	
+  zero = CONVERT_VALUE_TO_VOXEL(additional_dx, 0.0);	
   for_less(i,0,sizes[0])
     for_less(j,0,sizes[1])
       for_less(k,0,sizes[2]){
-	SET_VOXEL_3D(warps_dx, i,j,k, zero);
-	SET_VOXEL_3D(warps_dy, i,j,k, zero);
-	SET_VOXEL_3D(warps_dz, i,j,k, zero);
+	SET_VOXEL_3D(additional_dx, i,j,k, zero);
+	SET_VOXEL_3D(additional_dy, i,j,k, zero);
+	SET_VOXEL_3D(additional_dz, i,j,k, zero);
       }
 
 
@@ -249,14 +285,13 @@ public Status do_non_linear_optimization(Volume d1,
   threshold2 = 0.10 * get_maximum_magnitude(d2_dx, d2_dy, d2_dz); 
 
   if (threshold1<0.0 || threshold2<0.0) {
-    print_error("Gradient magnitude threshold error: %f %f\n",
-		__FILE__, __LINE__), threshold1, threshold2;
+    print_error("Gradient magnitude threshold error: %f %f\n", __FILE__, __LINE__, threshold1, threshold2);
   }
   if (globals->flags.debug) {	
     print("Source vol threshold = %f\n", threshold1);
     print("Target vol threshold = %f\n", threshold2);
     print("Iteration limit      = %d\n", iteration_limit);
-    print("Iteration weight      = %f\n", iteration_weight);
+    print("Iteration weight     = %f\n", iteration_weight);
   }
 
   /*******************************************************************************/
@@ -274,68 +309,123 @@ public Status do_non_linear_optimization(Volume d1,
  	      add WEIGHTING*best_deformation to the current deformation
 	   }
 
-	   smooth the warp;
 	}
   */
+
+  for_less(i,0,3) {
+    if (sizes[i]>3) {
+      loop_start[i] = 1;
+      loop_end[i] = sizes[i]-1;
+    }
+    else {
+      loop_start[i]=0;
+      loop_end[i] = sizes[i];
+    }
+  }
+
+  if (globals->flags.debug) {
+    print("loop: (%d %d) (%d %d) (%d %d)\n",
+	  loop_start[0],loop_end[0],loop_start[1],loop_end[1],loop_start[2],loop_end[2]);
+  }
 
   for_less(iters,0,iteration_limit) {
 
     print("Iteration %2d of %2d\n",iters+1, iteration_limit);
-  
-    initialize_progress_report( &progress, FALSE, sizes[0]*sizes[1] + 1,
+
+    if (Gglobals->trans_info.use_magnitude==TRUE) 
+      print ("will use magnitude\n");
+    else
+      print ("will use second derivative\n");
+
+    initialize_progress_report( &progress, FALSE, (loop_end[0]-loop_start[0])*(loop_end[1]-loop_start[1]) + 1,
 			       "Estimating deformations" );
     
-    if (iters<3)
-      matching_type = BRUTE_FORCE;
-    else
-      matching_type = SECANT_METHOD;
+    /* if (iters<3) matching_type = BRUTE_FORCE; else matching_type = SECANT_METHOD; */
 
     matching_type = BRUTE_FORCE; /* force matching type to be BRUTE_FORCE for now!!! */
 
+    nodes_done = 0; nodes_seen=0; displace = 0.0; over = 0;
+    sum = sum2 = 0.0;
+    min = 1000.0;
+    max = -1000.0;
 
-    nodes_done = 0; nodes_seen=0; displace = 0.0;
 
-    for_less(i,0,sizes[0]) {
-      for_less(j,0,sizes[1]) {
-	for_less(k,0,sizes[2]){
-/*
-    for_less(i,20,21) {
-      for_less(j,18,19) {
-	for_less(k,20,21){
-*/
+    for_less(i,loop_start[0],loop_end[0]) {
+      for_less(j,loop_start[1],loop_end[1]) {
+	for_less(k,loop_start[2],loop_end[2]){
+	  
 	  
 	  nodes_seen++;
 	  def_x = def_y = def_z = 0.0;
 	  
-	  /* remember that lattice stored in def_data was defined on 
+	  /* remember that lattice stored in current was defined on 
 	     the target volume! and now I have to get the corresponding
 	     point back in the original space */
 	  
-	  convert_3D_voxel_to_world(def_data->dx, (Real)i, (Real)j, (Real)k,
+
+				/* get the lattice coordinate */
+	  convert_3D_voxel_to_world(current->dx, (Real)i, (Real)j, (Real)k,
 				    &wx, &wy, &wz);
 
+				/* map it back (linearly) to the source */
+	  general_inverse_transform_point(all_until_last, wx,wy,wz, &tx,&ty,&tz);
+
+				/* get the warp to be added to the target point */
+	  GET_VOXEL_3D(voxel, current->dx, i,j,k); val_x = CONVERT_VOXEL_TO_VALUE(current->dx , voxel ); 
+	  GET_VOXEL_3D(voxel, current->dy, i,j,k); val_y = CONVERT_VOXEL_TO_VALUE(current->dy , voxel ); 
+	  GET_VOXEL_3D(voxel, current->dz, i,j,k); val_z = CONVERT_VOXEL_TO_VALUE(current->dz , voxel ); 
+
+				/* add the warp to the target lattice point */
+	  wx += val_x; wy += val_y; wz += val_z;
+
+
 	  if ( point_not_masked(m2, wx, wy, wz)) {
-	    
-	    general_inverse_transform_point(all_until_last,
-					    wx,wy,wz,
-					    &tx,&ty,&tz);
-	    
-	    result = optimize_deformation_for_single_node(steps[0], threshold1,threshold2,
-							  tx,ty,tz,
-							  &def_x, &def_y, &def_z, matching_type);
-	    
-	    if (result != 0.0) {
-	      nodes_done++;
-	      displace += ABS(result);
-	    }
+
+				/* check to see is there is a gradient edge to grab on to
+				   in the source data set */
+
+/*	    grad = get_normalized_world_gradient_direction(tx,ty,tz, 
+							   Gd1_dx, Gd1_dy, Gd1_dz, 
+							   &dirx, &diry, &dirz,
+							   threshold1);
+	    if ( grad > threshold1) {
+*/
+
+				/* now get the mean warped position of the target's neighbours */
+
+	      get_average_warp_of_neighbours(sizes, current->dx, current->dy, current->dz, i,j,k,
+					     &mx, &my, &mz);
+
+
+	  
+	      general_inverse_transform_point(globals->trans_info.transformation,
+					      wx,wy,wz,
+					      &tx,&ty,&tz);
+	      
+	      result = optimize_deformation_for_single_node(steps[0], threshold1,threshold2,
+							    tx,ty,tz,
+							    mx, my, mz,
+							    &def_x, &def_y, &def_z, 
+							    matching_type);
+	      if (result != 0.0) { /* debugging statistics */
+		if (ABS(result) > 0.95*steps[0])
+		  over++;
+		nodes_done++;
+		displace += ABS(result);
+		sum += ABS(result);
+		sum2 += ABS(result) * ABS(result);
+		if (ABS(result)>max) max = ABS(result);
+		if (ABS(result)<min) min = ABS(result);
+	      }
+/*	    } */
 	  }
 	  
-	  def_x = CONVERT_VALUE_TO_VOXEL(warps1_dx, def_x); 
-	  SET_VOXEL_3D(warps1_dx, i,j,k, def_x);
-	  def_y = CONVERT_VALUE_TO_VOXEL(warps1_dy, def_y); 
-	  SET_VOXEL_3D(warps1_dy, i,j,k, def_y);
-	  def_z = CONVERT_VALUE_TO_VOXEL(warps1_dz, def_z); 
-	  SET_VOXEL_3D(warps1_dz, i,j,k, def_z);
+	  def_x = CONVERT_VALUE_TO_VOXEL(additional_dx, def_x); 
+	  SET_VOXEL_3D(additional_dx, i,j,k, def_x);
+	  def_y = CONVERT_VALUE_TO_VOXEL(additional_dy, def_y); 
+	  SET_VOXEL_3D(additional_dy, i,j,k, def_y);
+	  def_z = CONVERT_VALUE_TO_VOXEL(additional_dz, def_z); 
+	  SET_VOXEL_3D(additional_dz, i,j,k, def_z);
 	  
 	}
 	update_progress_report( &progress, sizes[1]*i+j+1 );
@@ -344,85 +434,34 @@ public Status do_non_linear_optimization(Volume d1,
     terminate_progress_report( &progress );
 
     if (globals->flags.debug) {
-      if (nodes_done>0)
-	displace = displace/nodes_done;
-      else
-	displace=0.0;
-      print ("Nodes seen = %d  , done = %d, avg displacement = %f\n",
-	     nodes_seen, nodes_done, displace);
+      if (nodes_done>0) {
+	mean = displace/nodes_done;
+	var = ((sum2 * nodes_done) - sum*sum) / ((float)nodes_done*(float)(nodes_done-1));
+	std = sqrt(var);
+      }
+      else {
+	mean=0.0; std = 0.0;
+      }
+      print ("Nodes seen = %d  , done = %d, avg disp = %f +/- %f\n",
+	     nodes_seen, nodes_done, mean, std);
+      print ("over = %d, max disp = %f, min disp = %f\n", over, max, min);
     }
 
 
-    
+    add_additional_warp_to_current(current->dx, current->dy, current->dz,
+				   additional_dx, additional_dy, additional_dz,
+				   iteration_weight);
 
-				/* add this iteration to the current warp at this scale */
-    for_less(i,0,sizes[0])
-      for_less(j,0,sizes[1])
-	for_less(k,0,sizes[2]){
-	  GET_VOXEL_3D(voxel, warps1_dx, i,j,k); 
-	  value = CONVERT_VOXEL_TO_VALUE( warps1_dx, voxel );
-	  GET_VOXEL_3D(voxel, warps_dx, i,j,k); 
-	  value2 = CONVERT_VOXEL_TO_VALUE( warps_dx, voxel );
-	  value = iteration_weight*value + value2; 
-	  voxel = CONVERT_VALUE_TO_VOXEL(warps_dx, value);
-	  SET_VOXEL_3D(warps_dx, i,j,k, voxel); 
+    clamp_warp_deriv(current->dx, current->dy, current->dz);
 
-	  GET_VOXEL_3D(voxel, warps1_dy, i,j,k); 
-	  value = CONVERT_VOXEL_TO_VALUE( warps1_dy, voxel );
-	  GET_VOXEL_3D(voxel, warps_dy, i,j,k); 
-	  value2 = CONVERT_VOXEL_TO_VALUE( warps_dy, voxel );
-	  value = iteration_weight*value + value2; 
-	  voxel = CONVERT_VALUE_TO_VOXEL(warps_dy, value);
-	  SET_VOXEL_3D(warps_dy, i,j,k, voxel); 
-
-	  GET_VOXEL_3D(voxel, warps1_dz, i,j,k); 
-	  value = CONVERT_VOXEL_TO_VALUE( warps1_dz, voxel );
-	  GET_VOXEL_3D(voxel, warps_dz, i,j,k); 
-	  value2 = CONVERT_VOXEL_TO_VALUE( warps_dz, voxel );
-	  value = iteration_weight*value + value2; 
-	  voxel = CONVERT_VALUE_TO_VOXEL(warps_dz, value);
-	  SET_VOXEL_3D(warps_dz, i,j,k, voxel); 
-	}
-    
-
-				/* smooth the current warp  
-				   (smooth warps_ , returning warps1_) */
-
-    smooth_the_warp(warps1_dx, warps1_dy, warps1_dz, 
-		    warps_dx,  warps_dy,  warps_dz);
-    
-				/* make sure that the derivative of the deformation field
-				   is invertible */
-/*    clamp_warp_deriv(warps1_dx, warps1_dy, warps1_dz);*/
-
-				/* copy data from temporary volume, back into
-				   complete general transformation, and into
-				   temp current warps... */
-    for_less(i,0,sizes[0])
-      for_less(j,0,sizes[1])
-	for_less(k,0,sizes[2]){
-	  GET_VOXEL_3D(voxel, warps1_dx, i,j,k); 
-	  SET_VOXEL_3D(def_data->dx, i,j,k, voxel); 
-	  SET_VOXEL_3D(warps_dx, i,j,k, voxel); 
-
-	  GET_VOXEL_3D(voxel, warps1_dy, i,j,k); 
-	  SET_VOXEL_3D(def_data->dy, i,j,k, voxel); 
-	  SET_VOXEL_3D(warps_dy, i,j,k, voxel); 
-
-	  GET_VOXEL_3D(voxel, warps1_dz, i,j,k); 
-	  SET_VOXEL_3D(def_data->dz, i,j,k, voxel); 
-	  SET_VOXEL_3D(warps_dz, i,j,k, voxel); 
-	}
-
-    
 				/* reset the next iteration's warp. */
-    zero = CONVERT_VALUE_TO_VOXEL(warps1_dx, 0.0);
+    zero = CONVERT_VALUE_TO_VOXEL(additional_dx, 0.0);
     for_less(i,0,sizes[0])
       for_less(j,0,sizes[1])
 	for_less(k,0,sizes[2]){
-	  SET_VOXEL_3D(warps1_dx, i,j,k, zero);
-	  SET_VOXEL_3D(warps1_dy, i,j,k, zero);
-	  SET_VOXEL_3D(warps1_dz, i,j,k, zero);
+	  SET_VOXEL_3D(additional_dx, i,j,k, zero);
+	  SET_VOXEL_3D(additional_dy, i,j,k, zero);
+	  SET_VOXEL_3D(additional_dz, i,j,k, zero);
 
 	}
   
@@ -430,243 +469,21 @@ public Status do_non_linear_optimization(Volume d1,
     if (globals->flags.debug && 
 	globals->flags.verbose == 3)
       save_data(globals->filenames.output_trans, iters+1, iteration_limit, 
-		def_data->dx, def_data->dy, def_data->dz);
+		current->dx, current->dy, current->dz);
 
   }
 
 				/* free up allocated temporary deformation volumes */
 
-  (void)free_volume_data(warps1_dx); (void)delete_volume(warps1_dx);
-  (void)free_volume_data(warps1_dy); (void)delete_volume(warps1_dy);
-  (void)free_volume_data(warps1_dz); (void)delete_volume(warps1_dz);
-
-  (void)free_volume_data(warps_dx); (void)delete_volume(warps_dx);
-  (void)free_volume_data(warps_dy); (void)delete_volume(warps_dy);
-  (void)free_volume_data(warps_dz); (void)delete_volume(warps_dz);
+  (void)free_volume_data(additional_dx); (void)delete_volume(additional_dx);
+  (void)free_volume_data(additional_dy); (void)delete_volume(additional_dy);
+  (void)free_volume_data(additional_dz); (void)delete_volume(additional_dz);
 
   return (OK);
 
 }
 
 
-
-private void clamp_warp_deriv(Volume dx, Volume dy, Volume dz)
-{
-  int clamp_needed, clamped_once, i,j,k,sizes[3];
-  Real steps[3], diff, voxel, value1, value2, old2 ;
-  progress_struct
-    progress;
-
-  get_volume_sizes(dx, sizes);
-  get_volume_separations(dx, steps);
-  
-  initialize_progress_report( &progress, FALSE, sizes[0]+sizes[1]+sizes[2] + 1,
-			     "Deriv check" );
-
-  clamped_once = FALSE;
-
-  for_less(j,0,sizes[1]) {
-    for_less(k,0,sizes[2]){      
-
-      
-      do {
-	
-	clamp_needed = FALSE;
-	
-	GET_VOXEL_3D(voxel, dz, 0 ,j,k); value1 = CONVERT_VOXEL_TO_VALUE( dz, voxel ); 
-	
-	for_less(i,1,sizes[0]) {
-	  GET_VOXEL_3D(voxel, dz, i,j,k);   value2 = CONVERT_VOXEL_TO_VALUE( dz, voxel ); 
-	  old2 = value2;
-	  
-	  diff = value1 - (value2+steps[0]);
-	  
-	  if (diff>0.0) {
-	    clamp_needed = TRUE; clamped_once = TRUE;
-	    
-	    value1 -= diff * DERIV_FRAC;
-	    value2 += diff * DERIV_FRAC;
-	    
-	    voxel = CONVERT_VALUE_TO_VOXEL( dz, value1); SET_VOXEL_3D(dz, i-1,j,k, voxel);
-	    voxel = CONVERT_VALUE_TO_VOXEL( dz, value2); SET_VOXEL_3D(dz, i,j,k, voxel);
-	  }
-	  
-	  value1 = old2;
-	}
-
-      } while (clamp_needed); 
-    }
-
-    update_progress_report( &progress, j+1 );
-  }
-
-
-  for_less(k,0,sizes[2]){      
-    for_less(i,0,sizes[0]) {
-
-      
-      do { 
-	
-      clamp_needed = FALSE;
-
-	GET_VOXEL_3D(voxel, dy, i ,0,k); value1 = CONVERT_VOXEL_TO_VALUE( dy, voxel ); 
-	
-	for_less(j,1,sizes[1]) {
-	  GET_VOXEL_3D(voxel, dy, i,j,k);   value2 = CONVERT_VOXEL_TO_VALUE( dy, voxel ); 
-	  old2 = value2;
-	  
-	  diff = value1 - (value2+steps[1]);
-	  
-	  if (diff>0.0) {
-	    clamp_needed = TRUE; clamped_once = TRUE;
-
-	    value1 -= diff * DERIV_FRAC;
-	    value2 += diff * DERIV_FRAC;
-	    
-	    voxel = CONVERT_VALUE_TO_VOXEL( dy, value1); SET_VOXEL_3D(dy, i,j-1,k, voxel);
-	    voxel = CONVERT_VALUE_TO_VOXEL( dy, value2); SET_VOXEL_3D(dy, i,j,k, voxel);
-	  }
-	  
-	  value1 = old2;
-	}
-
-      } while (clamp_needed); 
-    }
-    update_progress_report( &progress, sizes[1]+k+1 );
-  }
-
-
-  for_less(i,0,sizes[0]) {
-    for_less(j,0,sizes[1]) {
-
-      
-      do {
-	
-      clamp_needed = FALSE;
-
-	GET_VOXEL_3D(voxel, dx, i ,j,0); value1 = CONVERT_VOXEL_TO_VALUE( dx, voxel ); 
-	
-	for_less(k,0,sizes[2]){      
-	  GET_VOXEL_3D(voxel, dx, i,j,k);   value2 = CONVERT_VOXEL_TO_VALUE( dx, voxel ); 
-	  old2 = value2;
-	  
-	  diff = value1 - (value2+steps[2]);
-	  
-	  if (diff>0.0) {
-	    clamp_needed = TRUE; clamped_once = TRUE;
-
-	    value1 -= diff * DERIV_FRAC;
-	    value2 += diff * DERIV_FRAC;
-	    
-	    voxel = CONVERT_VALUE_TO_VOXEL( dx, value1); SET_VOXEL_3D(dx, i,j,k-1, voxel);
-	    voxel = CONVERT_VALUE_TO_VOXEL( dx, value2); SET_VOXEL_3D(dx, i,j,k, voxel);
-	  }
-	  
-	  value1 = old2;
-	}
-
-      } while (clamp_needed);
-    }
-    update_progress_report( &progress, sizes[2]+sizes[1]+i+1 );
-
-  }
-
-
-  if (clamped_once)
-    print ("Clamped once!\n");
-
-}
-
-
-/*******************************************************************************/
-/*  procedure: smooth_the_warp
-
-    desc: this procedure will smooth the current warp stored in warp_d? and 
-          return the smoothed warp in smooth_d?
-
-    meth: smoothing is accomplished by averaging the 6 neighbour of each node
-          with the value at that node.
-
-	  new_val = FRAC1*old_val + (1-FRAC1)*sum_6_neighbours(val);
-    
-*/
-private void smooth_the_warp(Volume smooth_dx, Volume smooth_dy, Volume smooth_dz, 
-			     Volume warp_dx, Volume warp_dy, Volume warp_dz) {
-
-  int i,j,k,sizes[3];
-  Real voxel, value, value2;
-  progress_struct
-    progress;
-
-  get_volume_sizes(warp_dx, sizes);
-  
-  initialize_progress_report( &progress, FALSE, sizes[0]*sizes[1] + 1,
-			     "Smoothing deformations" );
-
-  for_less(i,1,sizes[0]-1)
-    for_less(j,1,sizes[1]-1) {
-      for_less(k,1,sizes[2]-1){
-	
-	GET_VOXEL_3D(voxel, warp_dx, i,j,k); 
-	value = CONVERT_VOXEL_TO_VALUE( warp_dx, voxel ); value *= FRAC1;
-	GET_VOXEL_3D(voxel, warp_dx, i+1,j,k); 
-	value2 = CONVERT_VOXEL_TO_VALUE( warp_dx, voxel ); value += value2*FRAC2; 
-	GET_VOXEL_3D(voxel, warp_dx, i-1,j,k); 
-	value2 = CONVERT_VOXEL_TO_VALUE( warp_dx, voxel ); value += value2*FRAC2; 
-	GET_VOXEL_3D(voxel, warp_dx, i,j+1,k); 
-	value2 = CONVERT_VOXEL_TO_VALUE( warp_dx, voxel ); value += value2*FRAC2; 
-	GET_VOXEL_3D(voxel, warp_dx, i,j-1,k); 
-	value2 = CONVERT_VOXEL_TO_VALUE( warp_dx, voxel ); value += value2*FRAC2; 
-	GET_VOXEL_3D(voxel, warp_dx, i,j,k+1); 
-	value2 = CONVERT_VOXEL_TO_VALUE( warp_dx, voxel ); value += value2*FRAC2; 
-	GET_VOXEL_3D(voxel, warp_dx, i,j,k-1); 
-	value2 = CONVERT_VOXEL_TO_VALUE( warp_dx, voxel ); value += value2*FRAC2; 
-	voxel = CONVERT_VALUE_TO_VOXEL(warp_dx, value);
-	SET_VOXEL_3D(smooth_dx, i,j,k, voxel); 
-	
-	GET_VOXEL_3D(voxel, warp_dy, i,j,k); 
-	value = CONVERT_VOXEL_TO_VALUE( warp_dy, voxel ); value *= FRAC1;
-	GET_VOXEL_3D(voxel, warp_dy, i+1,j,k); 
-	value2 = CONVERT_VOXEL_TO_VALUE( warp_dy, voxel ); value += value2*FRAC2; 
-	GET_VOXEL_3D(voxel, warp_dy, i-1,j,k); 
-	value2 = CONVERT_VOXEL_TO_VALUE( warp_dy, voxel ); value += value2*FRAC2; 
-	GET_VOXEL_3D(voxel, warp_dy, i,j+1,k); 
-	value2 = CONVERT_VOXEL_TO_VALUE( warp_dy, voxel ); value += value2*FRAC2; 
-	GET_VOXEL_3D(voxel, warp_dy, i,j-1,k); 
-	value2 = CONVERT_VOXEL_TO_VALUE( warp_dy, voxel ); value += value2*FRAC2; 
-	GET_VOXEL_3D(voxel, warp_dy, i,j,k+1); 
-	value2 = CONVERT_VOXEL_TO_VALUE( warp_dy, voxel ); value += value2*FRAC2; 
-	GET_VOXEL_3D(voxel, warp_dy, i,j,k-1); 
-	value2 = CONVERT_VOXEL_TO_VALUE( warp_dy, voxel ); value += value2*FRAC2; 
-	voxel = CONVERT_VALUE_TO_VOXEL(smooth_dy, value);
-	SET_VOXEL_3D(smooth_dy, i,j,k, voxel); 
-	
-	GET_VOXEL_3D(voxel, warp_dz, i,j,k); 
-	value = CONVERT_VOXEL_TO_VALUE( warp_dz, voxel ); value *= FRAC1;
-	GET_VOXEL_3D(voxel, warp_dz, i+1,j,k); 
-	value2 = CONVERT_VOXEL_TO_VALUE( warp_dz, voxel ); value += value2*FRAC2; 
-	GET_VOXEL_3D(voxel, warp_dz, i-1,j,k); 
-	value2 = CONVERT_VOXEL_TO_VALUE( warp_dz, voxel ); value += value2*FRAC2; 
-	GET_VOXEL_3D(voxel, warp_dz, i,j+1,k); 
-	value2 = CONVERT_VOXEL_TO_VALUE( warp_dz, voxel ); value += value2*FRAC2; 
-	GET_VOXEL_3D(voxel, warp_dz, i,j-1,k); 
-	value2 = CONVERT_VOXEL_TO_VALUE( warp_dz, voxel ); value += value2*FRAC2; 
-	GET_VOXEL_3D(voxel, warp_dz, i,j,k+1); 
-	value2 = CONVERT_VOXEL_TO_VALUE( warp_dz, voxel ); value += value2*FRAC2; 
-	GET_VOXEL_3D(voxel, warp_dz, i,j,k-1); 
-	value2 = CONVERT_VOXEL_TO_VALUE( warp_dz, voxel ); value += value2*FRAC2; 
-	voxel = CONVERT_VALUE_TO_VOXEL(smooth_dz, value);
-	SET_VOXEL_3D(smooth_dz, i,j,k, voxel); 
-	
-      }
-      update_progress_report( &progress, sizes[1]*i+j+1 );
-
-    }
-    terminate_progress_report( &progress );
-
-
-  
-}
 
 
 
@@ -680,25 +497,30 @@ private void smooth_the_warp(Volume smooth_dx, Volume smooth_dy, Volume smooth_d
 
    spacing should be equal to half the fwhm value used to blur the data.
 
+
+   wx,wy,wz is the position of the point in the source volume
+   mx,my,mz is the position of the average neighbourhood warp, in the target volume.
+
 */
 
 private Real optimize_deformation_for_single_node(Real spacing, Real threshold1, Real threshold2,
 						  Real wx, Real wy, Real wz,
+						  Real mx, Real my, Real mz,
 						  Real *def_x, Real *def_y, Real *def_z,
 						  int match_type)
 {
   Line_data 
     data1, data2;
   Real
-    offset,
+    offset, t,
     result,mag_normal1,mag_normal2,
     mag,
-    tx,ty,tz, tempx,tempy,tempz,temp1x,temp1y,temp1z,
+    tx,ty,tz, nx, ny, nz, tempx,tempy,tempz,temp1x,temp1y,temp1z,
     px_dir, py_dir, pz_dir,
     d1x_dir, d1y_dir, d1z_dir,
     d2x_dir, d2y_dir, d2z_dir;
   int 
-    flag1, flag2;
+    i, flag1, flag2;
 
   result = 0.0;			/* assume no additional deformation */
   *def_x = 0.0;
@@ -712,58 +534,31 @@ private Real optimize_deformation_for_single_node(Real spacing, Real threshold1,
 					    &d1x_dir, &d1y_dir, &d1z_dir,
 					    threshold1);
 
+
   if (mag_normal1 < threshold1) {
 
-    return(result);	/* exit right away */ 
-				/* if the mag is too small, then the direction is
-				   unreliable, so try to get a direction from the
-				   target volume */
 
+				/* map point from source, forward into target space */
     general_transform_point(Gglobals->trans_info.transformation, wx,wy,wz, &tx,&ty,&tz);
-    mag_normal2 = 
-      get_normalized_world_gradient_direction(tx,ty,tz, 
-					      Gd2_dx, Gd2_dy, Gd2_dz, 
-					      &d2x_dir, &d2y_dir, &d2z_dir,
-					      threshold2);
-    if (mag_normal2 < threshold2)
-      return(result);		/* RETURN since no directions can be found! */
+				/* average out this point with the mean position of its neightbours */
 
-    px_dir = d2x_dir;
-    py_dir = d2y_dir;
-    pz_dir = d2z_dir;
+    nx = (tx+mx)/2.0; ny = (ty+my)/2.0; nz = (tz+mz)/2.0; 
+				/* store the difference as the 1st part of the additional warp */
+    *def_x = nx-tx;
+    *def_y = ny-ty;
+    *def_z = nz-tz;
 
-
-				/* since the first mag_normal is too small,  project d2?_dir
-				   into the source space, and use that for a direction */
-    tempx = tx+d2x_dir;
-    tempy = ty+d2y_dir;
-    tempz = tz+d2z_dir;
-    general_inverse_transform_point(Gglobals->trans_info.transformation,
-				    tempx,tempy,tempz,
-				    &temp1x,&temp1y,&temp1z);
-    tempx = temp1x - wx;
-    tempy = temp1y - wy;
-    tempz = temp1z - wz;
     
-    mag = sqrt(tempx*tempx + tempy*tempy + tempz*tempz);
+    return(offset);	/* now exit, since we cant estimate a deformation */ 
     
-    if (mag>0) {
-      d1x_dir = tempx / mag;
-      d1y_dir = tempy / mag;
-      d1z_dir = tempz / mag;
-    } 
-    else {
-      d1x_dir = tempx;
-      d1y_dir = tempy;
-      d1z_dir = tempz;
-    }
-      
   }
   else {
 				/* first direction is fine, get its equivalent in the 
 				   other volume */
 
+				/* map point from source, forward into target space */
     general_transform_point(Gglobals->trans_info.transformation, wx,wy,wz, &tx,&ty,&tz);
+
 
     mag_normal2 = 
       get_normalized_world_gradient_direction(tx,ty,tz, 
@@ -795,7 +590,7 @@ private Real optimize_deformation_for_single_node(Real spacing, Real threshold1,
       pz_dir = tempz;
     }
       
-				/* if mag_normal is too small, than use projection of d1?_dir
+				/* if mag_normal2 is too small, than use projection of d1?_dir
 				   in the target space for the direction vector */
     if (mag_normal2 < threshold2) {
       d2x_dir = px_dir;
@@ -834,34 +629,70 @@ private Real optimize_deformation_for_single_node(Real spacing, Real threshold1,
 
 
 
+				/* project the mean point in target space onto the plane defined by the 
+				   direction d2?_dir and the point tx,ty,tz */
+
+  t = ( d2x_dir * (tx - mx) + d2y_dir * (ty - my) + d2z_dir * (tz - mz) ) / 
+         (d2x_dir*d2x_dir + d2y_dir*d2y_dir + d2z_dir*d2z_dir);
+
+  nx = mx + t*d2x_dir;
+  ny = my + t*d2y_dir;
+  nz = mz + t*d2z_dir;
+
+  /* nx = (mx+tx)/2;   ny = (my+ty)/2; nz = (mz+tz)/2; */
+
+				/* store the difference as the 1st part of the additional warp */
+  *def_x = nx-tx;
+  *def_y = ny-ty;
+  *def_z = nz-tz;
+				/* replace the target point with this new point */
+  tx = nx; ty = ny; tz = nz;
+
+
   /* we now have direction vectors and positions for both volumes.
      Now, get samples of 2nd derivative along gradient direction 
      from both volumes. */
 
 
 				/* from data1, get samples from -spacing to spacing */
-  flag1 = build_second_derivative_data(&data1, 5, spacing, 
-				       wx,wy,wz, d1x_dir, d1y_dir, d1z_dir, Gd1);
+  if (Gglobals->trans_info.use_magnitude==TRUE) {
+
+    flag1 = build_first_derivative_data(&data1, 5, spacing, 
+			    wx,wy,wz, d1x_dir, d1y_dir, d1z_dir, Gd1_dxyz);
 
 				/* from data2, get samples from -2*spacing to 2*spacing */
-  flag2 = build_second_derivative_data(&data2, 10, spacing, 
-				       tx,ty,tz, d2x_dir, d2y_dir, d2z_dir, Gd2);
+    flag2 = build_first_derivative_data(&data2, 10, spacing, 
+			    tx,ty,tz, d2x_dir, d2y_dir, d2z_dir, Gd2_dxyz);
 
+  }
+  else {
+    flag1 = build_second_derivative_data(&data1, 5, spacing, 
+			    wx,wy,wz, d1x_dir, d1y_dir, d1z_dir, Gd1);
+
+				/* from data2, get samples from -2*spacing to 2*spacing */
+    flag2 = build_second_derivative_data(&data2, 10, spacing, 
+			    tx,ty,tz, d2x_dir, d2y_dir, d2z_dir, Gd2);
+  }
 
   if (flag1 && flag2 && data1.count>=5 && data2.count>=10) {
     offset = find_offset_to_match(&data1,&data2,spacing,match_type);
+
+    if (ABS(offset)>0.95*spacing) {
+      offset = 0.0; 
+    }
     
     
-    *def_x = offset*px_dir;	/* use the projection of dir 1 */
-    *def_y = offset*py_dir;
-    *def_z = offset*pz_dir;
-    
+    *def_x += offset*px_dir;	/* use the projection of dir 1 */
+    *def_y += offset*py_dir;
+    *def_z += offset*pz_dir;
+
     result = offset;
+	
   }
   else {
     if (!flag1) print("can't build_second_derivative_data at (v1) %f %f %f\n", wx,wy,wz);
     if (!flag2) print("can't build_second_derivative_data at (v2) %f %f %f\n", tx,ty,tz);
-    if (data1.count<5) print("can't data1.count<5 at (v1) %f %f %f\n", tx,ty,tz);
+    if (data1.count<5) print("can't data1.count<5 at (v1) %f %f %f\n", wx,wy,wz);
     if (data2.count<9) print("can't data2.count<9 at (v2) %f %f %f\n", tx,ty,tz);
 
   }
@@ -895,6 +726,8 @@ private Real optimize_deformation_for_single_node(Real spacing, Real threshold1,
 
 
 */
+
+
 private BOOLEAN build_second_derivative_data(Line_data *line, int num_samples, Real spacing,
 					  Real wx, Real wy, Real wz, 
 					  Real dx_dir, Real dy_dir, Real dz_dir, 
@@ -916,7 +749,7 @@ private BOOLEAN build_second_derivative_data(Line_data *line, int num_samples, R
   near_edge = FALSE;
   for_inclusive(i,-num_samples-2,num_samples+2) {
     frac = ((Real)i - 0.5)*line->step ;
-    data[i+num_samples+2] = interp_data_along_gradient(frac, 
+    data[i+num_samples+2] = interp_data_along_gradient(frac, 3,  
 						       wx,wy,wz, 
 						       dx_dir, dy_dir, dz_dir, intensity);
     if (data[i+num_samples+2] == -DBL_MAX) {
@@ -974,7 +807,7 @@ private BOOLEAN build_second_derivative_data(Line_data *line, int num_samples, R
       line->data[i] = line->data[start_i+num_samples];
     }
 
-
+    return(TRUE);
   }
   else {
     for_inclusive(i,-num_samples,num_samples) {
@@ -988,6 +821,35 @@ private BOOLEAN build_second_derivative_data(Line_data *line, int num_samples, R
     }
     return(TRUE);
   }
+
+}
+
+private BOOLEAN build_first_derivative_data(Line_data *line, int num_samples, Real spacing,
+					    Real wx, Real wy, Real wz, 
+					    Real dx_dir, Real dy_dir, Real dz_dir, 
+					    Volume intensity)
+{
+  int near_edge,i,start_i, end_i;  
+  Real frac;
+  Real data[30];
+  
+				/* set up Line_data structure */
+  line->step = spacing/4.0;
+  line->start = -num_samples * line->step;
+  line->count = num_samples*2 +1;
+
+ 				/* make space for intensity data */
+
+				/* get intensity data */
+
+
+  for_inclusive(i,-num_samples,num_samples) {
+    frac = ((Real)i - 0.5)*line->step ;
+    line->data[i+num_samples] = interp_data_along_gradient(frac,  1, 
+						     wx,wy,wz, 
+						     dx_dir, dy_dir, dz_dir, intensity);
+  }
+  return(TRUE);
 
 }
 
@@ -1013,8 +875,7 @@ private Real get_normalized_world_gradient_direction(Real xworld, Real yworld, R
 {
 
   Real
-    d1,d2,
-    dist,mag1,
+    mag,mag1,
     dx_dir, dy_dir, dz_dir,
     xvox, yvox, zvox;
   
@@ -1027,13 +888,13 @@ private Real get_normalized_world_gradient_direction(Real xworld, Real yworld, R
 
 				/* interpolate the real values from */
 				/* the volume data structures */
-  if (!trilinear_interpolant(data_x, &voxel, &dx_dir))  return(0.0); 
-  if (!trilinear_interpolant(data_y, &voxel, &dy_dir))  return(0.0); 
-  if (!trilinear_interpolant(data_z, &voxel, &dz_dir))  return(0.0); 
+  if (!trilinear_interpolant(data_x, &voxel, &dx_dir)) return(0.0); 
+  if (!trilinear_interpolant(data_y, &voxel, &dy_dir)) return(0.0); 
+  if (!trilinear_interpolant(data_z, &voxel, &dz_dir)) return(0.0); 
 
-  dist = sqrt(dx_dir*dx_dir + dy_dir*dy_dir + dz_dir*dz_dir);
-  if (dist < thresh) {
-    mag1 = (float)dist;
+  mag = sqrt(dx_dir*dx_dir + dy_dir*dy_dir + dz_dir*dz_dir);
+  if (mag < thresh) {
+    mag1 = (float)mag;
     return(mag1);
   }
 				/* check to see if we are on a ridge line: If the first 
@@ -1090,11 +951,11 @@ private Real get_normalized_world_gradient_direction(Real xworld, Real yworld, R
   }
 */				/* get normal vector in voxel coordinates: */
 
-  dist = sqrt(dx_dir*dx_dir + dy_dir*dy_dir + dz_dir*dz_dir);
-  if (dist > 0) {
-    dx_dir /= dist;
-    dy_dir /= dist;
-    dz_dir /= dist;
+  mag = sqrt(dx_dir*dx_dir + dy_dir*dy_dir + dz_dir*dz_dir);
+  if (mag > 0) {
+    dx_dir /= mag;
+    dy_dir /= mag;
+    dz_dir /= mag;
   }
   else {
     dx_dir = 0.0;
@@ -1102,7 +963,7 @@ private Real get_normalized_world_gradient_direction(Real xworld, Real yworld, R
     dz_dir = 0.0;
   }
 
-  mag1 = (float) dist;
+  mag1 = (float) mag;
 
   *DX_dir = dx_dir;
   *DY_dir = dy_dir;
@@ -1116,7 +977,8 @@ private Real get_normalized_world_gradient_direction(Real xworld, Real yworld, R
    from the global position Gxpf, Gypf, Gzpf along the gradient direction
    stored in DX_dir, DY_dir, DZ_dir */
 
-private float interp_data_along_gradient(Real dist_from, Real x, Real y, Real z, 
+private float interp_data_along_gradient(Real dist_from, int inter_type,
+					 Real x, Real y, Real z, 
 					 Real dx, Real dy, Real dz,
 					 Volume data)  
 {
@@ -1128,14 +990,21 @@ private float interp_data_along_gradient(Real dist_from, Real x, Real y, Real z,
     xvox, yvox, zvox;
   PointR
     voxel;
+  int f;
 
   convert_3D_world_to_voxel(data,
 			    x+dist_from*dx, y+dist_from*dy, z+dist_from*dz,
 			    &xvox, &yvox, &zvox);
   
   fill_Point( voxel, xvox, yvox, zvox );
+
+  if (inter_type==3)
+    f = tricubic_interpolant(data, &voxel, &value);
+  else
+    f = trilinear_interpolant(data, &voxel, &value);
+
   
-  if (tricubic_interpolant(data, &voxel, &value) )
+  if ( f  )
     value_flt = (float)value;
   else {
     value_flt = -DBL_MAX;
@@ -1169,33 +1038,5 @@ public void save_data(char *basename, int i, int j,
 }
 
 
-/*   get the value of the maximum gradient magnitude */
 
-private Real get_maximum_magnitude(Volume dx, Volume dy, Volume dz)
-{
-  int iters,i,j,k,sizes[3];
-  Real vx, vy, vz, x, y, z, val, max;
-
-  max = -DBL_MAX;
-  get_volume_sizes(dx, sizes);
-
-  for_less(i,0,sizes[0])
-    for_less(j,0,sizes[1])
-      for_less(k,0,sizes[2]){
-
-	GET_VOXEL_3D(vx, dx, i,j,k); x = CONVERT_VOXEL_TO_VALUE(dx, vx);
-	GET_VOXEL_3D(vy, dy, i,j,k); y = CONVERT_VOXEL_TO_VALUE(dy, vy);
-	GET_VOXEL_3D(vz, dz, i,j,k); z = CONVERT_VOXEL_TO_VALUE(dz, vz);
-	val = x*x + y*y + z*z;
-
-	if (val > max) max = val;
-
-      }
-
-  if (max>0.0)
-    max = sqrt(max);
-
-  return(max);
-
-}
 

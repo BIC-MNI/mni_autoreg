@@ -20,19 +20,34 @@
 
 @CREATED    : Tue Feb 22 08:37:49 EST 1994
 @MODIFIED   : $Log: deform_support.c,v $
-@MODIFIED   : Revision 1.1  1994-04-06 11:47:27  louis
-@MODIFIED   : Initial revision
+@MODIFIED   : Revision 1.2  1994-06-02 20:15:56  louis
+@MODIFIED   : made modifications to allow deformations to be calulated in 2D on slices. 
+@MODIFIED   : changes had to be made in set_up_lattice, init_lattice when defining
+@MODIFIED   : the special case of a single slice....
+@MODIFIED   : Build_default_deformation_field also had to reflect these changes.
+@MODIFIED   : do_non-linear-optimization also had to check if one of dimensions had
+@MODIFIED   : a single element.
+@MODIFIED   : All these changes were made, and slightly tested.  Another type of
+@MODIFIED   : deformation strategy will be necessary (to replace the deformation 
+@MODIFIED   : perpendicular to the surface, since it does not work well).
 @MODIFIED   :
+ * Revision 1.1  94/04/06  11:47:27  louis
+ * Initial revision
+ * 
 
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 1.1 1994-04-06 11:47:27 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 1.2 1994-06-02 20:15:56 louis Exp $";
 #endif
 
 #include "volume_io.h"
 #include "limits.h"
 #include "line_data.h"
+
+#define DERIV_FRAC      0.6
+#define FRAC1           0.5
+#define FRAC2           0.0833333
 
 typedef Real (*Difference_Function) 
      (Line_data *m, Line_data *d, Real offset);
@@ -64,7 +79,7 @@ function v = cubic_p(f1,f2,f3,f4,xpos)
 %      fpp = 2*a3 + 6*a4*xpos;	                   second derivitive 
 */
 
-private Real CUBIC_PP(Real f1, Real f2, Real f3, Real f4, Real xpos) {
+public Real CUBIC_PP(Real f1, Real f2, Real f3, Real f4, Real xpos) {
   Real v,a3,a4;
   
   a3 =      f1/2.0 - f2     + f3/2.0 ;
@@ -75,7 +90,7 @@ private Real CUBIC_PP(Real f1, Real f2, Real f3, Real f4, Real xpos) {
   return(v);
 }
 
-private Real CUBIC_P(Real f1, Real f2, Real f3, Real f4, Real xpos) {
+public Real CUBIC_P(Real f1, Real f2, Real f3, Real f4, Real xpos) {
 
   Real v,a2,a3,a4;
   
@@ -309,8 +324,12 @@ public Real brute(Difference_Function differ,
 
   while (pos<=limit) {
 
+
     v = (*(differ))(m,d,pos);
 
+/*
+print ("%6.2f %10.8f\n",pos,v*1000);
+*/
     if (v<v_min) {
       v_min = v;
       dist = pos;
@@ -322,6 +341,7 @@ public Real brute(Difference_Function differ,
 
   if (dist<limit) {
     v = (*(differ))(m,d,pos+step/2);
+
     if (v<v_min) {
       v_min = v;
       dist = pos+step/2;
@@ -415,8 +435,8 @@ public Real gold(Difference_Function differ,
 public Real find_offset_to_match(Line_data *m,
 				 Line_data *d,
 				 Real      limit,
-				 int       op_type) {
-
+				 int       op_type) 
+{
 
   Real dist,step;
 
@@ -432,3 +452,370 @@ public Real find_offset_to_match(Line_data *m,
 
 
 
+public void get_average_warp_of_neighbours(int sizes[],Volume dx, Volume dy, Volume dz, 
+					   int i,int j,int k,
+					   Real *mx, Real *my, Real *mz)
+{
+  int 
+    count;
+  Real 
+    ri,rj,rk,
+    voxel,
+    val_x, val_y, val_z,
+    tx, ty, tz;
+  
+  get_volume_sizes(dx, sizes);
+
+  *mx = 0.0; *my = 0.0; *mz = 0.0;
+  ri = (Real)i; rj = (Real)j; rk = (Real)k;
+  count = 0;
+
+  if (sizes[0]>1) {
+    convert_3D_voxel_to_world(dx, ri+1, rj, rk, &tx, &ty, &tz);
+    GET_VOXEL_3D(voxel, dx, i+1,j,k); val_x = CONVERT_VOXEL_TO_VALUE(dx , voxel ); 
+    GET_VOXEL_3D(voxel, dy, i+1,j,k); val_y = CONVERT_VOXEL_TO_VALUE(dy , voxel ); 
+    GET_VOXEL_3D(voxel, dz, i+1,j,k); val_z = CONVERT_VOXEL_TO_VALUE(dz , voxel ); 
+    *mx += tx+val_x; *my += ty+val_y; *mz+= tz+val_z;
+    
+    convert_3D_voxel_to_world(dx, ri-1, rj, rk, &tx, &ty, &tz);
+    GET_VOXEL_3D(voxel, dx, i-1,j,k); val_x = CONVERT_VOXEL_TO_VALUE(dx , voxel ); 
+    GET_VOXEL_3D(voxel, dy, i-1,j,k); val_y = CONVERT_VOXEL_TO_VALUE(dy , voxel ); 
+    GET_VOXEL_3D(voxel, dz, i-1,j,k); val_z = CONVERT_VOXEL_TO_VALUE(dz , voxel ); 
+    *mx += tx+val_x; *my += ty+val_y; *mz+= tz+val_z;
+    count += 2;
+  }
+
+  if (sizes[1]>1) {
+    convert_3D_voxel_to_world(dy, ri, rj+1, rk, &tx, &ty, &tz);
+    GET_VOXEL_3D(voxel, dx, i,j+1,k); val_x = CONVERT_VOXEL_TO_VALUE(dx , voxel ); 
+    GET_VOXEL_3D(voxel, dy, i,j+1,k); val_y = CONVERT_VOXEL_TO_VALUE(dy , voxel ); 
+    GET_VOXEL_3D(voxel, dz, i,j+1,k); val_z = CONVERT_VOXEL_TO_VALUE(dz , voxel ); 
+    *mx += tx+val_x; *my += ty+val_y; *mz+= tz+val_z;
+    
+    convert_3D_voxel_to_world(dy, ri, rj-1, rk, &tx, &ty, &tz);
+    GET_VOXEL_3D(voxel, dx, i,j-1,k); val_x = CONVERT_VOXEL_TO_VALUE(dx , voxel ); 
+    GET_VOXEL_3D(voxel, dy, i,j-1,k); val_y = CONVERT_VOXEL_TO_VALUE(dy , voxel ); 
+    GET_VOXEL_3D(voxel, dz, i,j-1,k); val_z = CONVERT_VOXEL_TO_VALUE(dz , voxel ); 
+    *mx += tx+val_x; *my += ty+val_y; *mz+= tz+val_z;
+    count += 2;
+  }
+
+  if (sizes[2]>1) {
+    convert_3D_voxel_to_world(dz, ri, rj, rk+1, &tx, &ty, &tz);
+    GET_VOXEL_3D(voxel, dx, i,j,k+1); val_x = CONVERT_VOXEL_TO_VALUE(dx , voxel ); 
+    GET_VOXEL_3D(voxel, dy, i,j,k+1); val_y = CONVERT_VOXEL_TO_VALUE(dy , voxel ); 
+    GET_VOXEL_3D(voxel, dz, i,j,k+1); val_z = CONVERT_VOXEL_TO_VALUE(dz , voxel ); 
+    *mx += tx+val_x; *my += ty+val_y; *mz+= tz+val_z;
+    
+    convert_3D_voxel_to_world(dz, ri, rj, rk-1, &tx, &ty, &tz);
+    GET_VOXEL_3D(voxel, dx, i,j,k-1); val_x = CONVERT_VOXEL_TO_VALUE(dx , voxel ); 
+    GET_VOXEL_3D(voxel, dy, i,j,k-1); val_y = CONVERT_VOXEL_TO_VALUE(dy , voxel ); 
+    GET_VOXEL_3D(voxel, dz, i,j,k-1); val_z = CONVERT_VOXEL_TO_VALUE(dz , voxel ); 
+    *mx += tx+val_x; *my += ty+val_y; *mz+= tz+val_z;
+    count += 2;
+  }
+  
+  *mx /= count; *my /= count; *mz /= count; /* average warp of neighbours, in target space  */
+}
+
+public void add_additional_warp_to_current(Volume dx, Volume dy, Volume dz,
+					   Volume adx, Volume ady, Volume adz,
+					   Real weight)
+{
+  int
+    loop_start[3], loop_end[3],
+    i,j,k,sizes[3];
+  Real 
+    value, value2, voxel;
+
+  get_volume_sizes(adx, sizes);
+
+  for_less(i,0,3) {
+    if (sizes[i]>3) {
+      loop_start[i] = 1;
+      loop_end[i] = sizes[i]-1;
+    }
+    else {
+      loop_start[i]=0;
+      loop_end[i] = sizes[i];
+    }
+  }
+
+
+  for_less(i,loop_start[0],loop_end[0]) {
+    for_less(j,loop_start[1],loop_end[1]) {
+      for_less(k,loop_start[2],loop_end[2]){
+	
+	
+	GET_VOXEL_3D(voxel, adx, i,j,k); value = CONVERT_VOXEL_TO_VALUE( adx, voxel ); 
+	GET_VOXEL_3D(voxel, dx,  i,j,k); value2 = CONVERT_VOXEL_TO_VALUE( dx, voxel ); value2 += value*weight;
+	voxel = CONVERT_VALUE_TO_VOXEL(dx, value2);
+	SET_VOXEL_3D(dx, i,j,k, voxel); 
+
+	GET_VOXEL_3D(voxel, ady, i,j,k); value = CONVERT_VOXEL_TO_VALUE( ady, voxel ); 
+	GET_VOXEL_3D(voxel, dy,  i,j,k); value2 = CONVERT_VOXEL_TO_VALUE( dy, voxel ); value2 += value*weight;
+	voxel = CONVERT_VALUE_TO_VOXEL(dy, value2);
+	SET_VOXEL_3D(dy, i,j,k, voxel); 
+		
+	GET_VOXEL_3D(voxel, adz, i,j,k); value = CONVERT_VOXEL_TO_VALUE( adz, voxel ); 
+	GET_VOXEL_3D(voxel, dz,  i,j,k); value2 = CONVERT_VOXEL_TO_VALUE( dz, voxel ); value2 += value*weight;
+	voxel = CONVERT_VALUE_TO_VOXEL(dz, value2);
+	SET_VOXEL_3D(dz, i,j,k, voxel); 
+		
+      }
+    }
+  }
+  
+}
+					    
+
+public void clamp_warp_deriv(Volume dx, Volume dy, Volume dz)
+{
+  int clamp_needed, clamped_once, i,j,k,sizes[3];
+  Real steps[3], diff, voxel, value1, value2, old2 ;
+  progress_struct
+    progress;
+
+  get_volume_sizes(dx, sizes);
+  get_volume_separations(dx, steps);
+  
+  initialize_progress_report( &progress, FALSE, sizes[0]+sizes[1]+sizes[2] + 1,
+			     "Deriv check" );
+
+  clamped_once = FALSE;
+
+  if (sizes[0]>2)
+  for_less(j,0,sizes[1]) {
+    for_less(k,0,sizes[2]){      
+
+      
+      do {
+	
+	clamp_needed = FALSE;
+	
+	GET_VOXEL_3D(voxel, dz, 0 ,j,k); value1 = CONVERT_VOXEL_TO_VALUE( dz, voxel ); 
+	
+	for_less(i,1,sizes[0]) {
+	  GET_VOXEL_3D(voxel, dz, i,j,k);   value2 = CONVERT_VOXEL_TO_VALUE( dz, voxel ); 
+	  old2 = value2;
+	  
+	  diff = value1 - (value2+steps[0]);
+	  
+	  if (diff>0.0) {
+	    clamp_needed = TRUE; clamped_once = TRUE;
+	    
+	    value1 -= diff * DERIV_FRAC;
+	    value2 += diff * DERIV_FRAC;
+	    
+	    voxel = CONVERT_VALUE_TO_VOXEL( dz, value1); SET_VOXEL_3D(dz, i-1,j,k, voxel);
+	    voxel = CONVERT_VALUE_TO_VOXEL( dz, value2); SET_VOXEL_3D(dz, i,j,k, voxel);
+	  }
+	  
+	  value1 = old2;
+	}
+
+      } while (clamp_needed); 
+    }
+
+    update_progress_report( &progress, j+1 );
+  }
+
+
+  if (sizes[1]>2)
+  for_less(k,0,sizes[2]){      
+    for_less(i,0,sizes[0]) {
+
+      
+      do { 
+	
+      clamp_needed = FALSE;
+
+	GET_VOXEL_3D(voxel, dy, i ,0,k); value1 = CONVERT_VOXEL_TO_VALUE( dy, voxel ); 
+	
+	for_less(j,1,sizes[1]) {
+	  GET_VOXEL_3D(voxel, dy, i,j,k);   value2 = CONVERT_VOXEL_TO_VALUE( dy, voxel ); 
+	  old2 = value2;
+	  
+	  diff = value1 - (value2+steps[1]);
+	  
+	  if (diff>0.0) {
+	    clamp_needed = TRUE; clamped_once = TRUE;
+
+	    value1 -= diff * DERIV_FRAC;
+	    value2 += diff * DERIV_FRAC;
+	    
+	    voxel = CONVERT_VALUE_TO_VOXEL( dy, value1); SET_VOXEL_3D(dy, i,j-1,k, voxel);
+	    voxel = CONVERT_VALUE_TO_VOXEL( dy, value2); SET_VOXEL_3D(dy, i,j,k, voxel);
+	  }
+	  
+	  value1 = old2;
+	}
+
+      } while (clamp_needed); 
+    }
+    update_progress_report( &progress, sizes[1]+k+1 );
+  }
+
+
+  if (sizes[2]>2)
+  for_less(i,0,sizes[0]) {
+    for_less(j,0,sizes[1]) {
+
+      
+      do {
+	
+      clamp_needed = FALSE;
+
+	GET_VOXEL_3D(voxel, dx, i ,j,0); value1 = CONVERT_VOXEL_TO_VALUE( dx, voxel ); 
+	
+	for_less(k,0,sizes[2]){      
+	  GET_VOXEL_3D(voxel, dx, i,j,k);   value2 = CONVERT_VOXEL_TO_VALUE( dx, voxel ); 
+	  old2 = value2;
+	  
+	  diff = value1 - (value2+steps[2]);
+	  
+	  if (diff>0.0) {
+	    clamp_needed = TRUE; clamped_once = TRUE;
+
+	    value1 -= diff * DERIV_FRAC;
+	    value2 += diff * DERIV_FRAC;
+	    
+	    voxel = CONVERT_VALUE_TO_VOXEL( dx, value1); SET_VOXEL_3D(dx, i,j,k-1, voxel);
+	    voxel = CONVERT_VALUE_TO_VOXEL( dx, value2); SET_VOXEL_3D(dx, i,j,k, voxel);
+	  }
+	  
+	  value1 = old2;
+	}
+
+      } while (clamp_needed);
+    }
+    update_progress_report( &progress, sizes[2]+sizes[1]+i+1 );
+
+  }
+
+
+  if (clamped_once)
+    print ("Clamped once!\n");
+
+}
+
+
+/*******************************************************************************/
+/*  procedure: smooth_the_warp
+
+    desc: this procedure will smooth the current warp stored in warp_d? and 
+          return the smoothed warp in smooth_d?
+
+    meth: smoothing is accomplished by averaging the 6 neighbour of each node
+          with the value at that node.
+
+	  new_val = FRAC1*old_val + (1-FRAC1)*sum_6_neighbours(val);
+    
+*/
+public void smooth_the_warp(Volume smooth_dx, Volume smooth_dy, Volume smooth_dz, 
+			     Volume warp_dx, Volume warp_dy, Volume warp_dz) {
+
+  int i,j,k,sizes[3];
+  Real voxel, value, value2;
+  progress_struct
+    progress;
+
+  get_volume_sizes(warp_dx, sizes);
+  
+  initialize_progress_report( &progress, FALSE, sizes[0]*sizes[1] + 1,
+			     "Smoothing deformations" );
+
+  for_less(i,1,sizes[0]-1)
+    for_less(j,1,sizes[1]-1) {
+      for_less(k,1,sizes[2]-1){
+	
+	GET_VOXEL_3D(voxel, warp_dx, i,j,k); 
+	value = CONVERT_VOXEL_TO_VALUE( warp_dx, voxel ); value *= FRAC1;
+	GET_VOXEL_3D(voxel, warp_dx, i+1,j,k); 
+	value2 = CONVERT_VOXEL_TO_VALUE( warp_dx, voxel ); value += value2*FRAC2; 
+	GET_VOXEL_3D(voxel, warp_dx, i-1,j,k); 
+	value2 = CONVERT_VOXEL_TO_VALUE( warp_dx, voxel ); value += value2*FRAC2; 
+	GET_VOXEL_3D(voxel, warp_dx, i,j+1,k); 
+	value2 = CONVERT_VOXEL_TO_VALUE( warp_dx, voxel ); value += value2*FRAC2; 
+	GET_VOXEL_3D(voxel, warp_dx, i,j-1,k); 
+	value2 = CONVERT_VOXEL_TO_VALUE( warp_dx, voxel ); value += value2*FRAC2; 
+	GET_VOXEL_3D(voxel, warp_dx, i,j,k+1); 
+	value2 = CONVERT_VOXEL_TO_VALUE( warp_dx, voxel ); value += value2*FRAC2; 
+	GET_VOXEL_3D(voxel, warp_dx, i,j,k-1); 
+	value2 = CONVERT_VOXEL_TO_VALUE( warp_dx, voxel ); value += value2*FRAC2; 
+	voxel = CONVERT_VALUE_TO_VOXEL(warp_dx, value);
+	SET_VOXEL_3D(smooth_dx, i,j,k, voxel); 
+	
+	GET_VOXEL_3D(voxel, warp_dy, i,j,k); 
+	value = CONVERT_VOXEL_TO_VALUE( warp_dy, voxel ); value *= FRAC1;
+	GET_VOXEL_3D(voxel, warp_dy, i+1,j,k); 
+	value2 = CONVERT_VOXEL_TO_VALUE( warp_dy, voxel ); value += value2*FRAC2; 
+	GET_VOXEL_3D(voxel, warp_dy, i-1,j,k); 
+	value2 = CONVERT_VOXEL_TO_VALUE( warp_dy, voxel ); value += value2*FRAC2; 
+	GET_VOXEL_3D(voxel, warp_dy, i,j+1,k); 
+	value2 = CONVERT_VOXEL_TO_VALUE( warp_dy, voxel ); value += value2*FRAC2; 
+	GET_VOXEL_3D(voxel, warp_dy, i,j-1,k); 
+	value2 = CONVERT_VOXEL_TO_VALUE( warp_dy, voxel ); value += value2*FRAC2; 
+	GET_VOXEL_3D(voxel, warp_dy, i,j,k+1); 
+	value2 = CONVERT_VOXEL_TO_VALUE( warp_dy, voxel ); value += value2*FRAC2; 
+	GET_VOXEL_3D(voxel, warp_dy, i,j,k-1); 
+	value2 = CONVERT_VOXEL_TO_VALUE( warp_dy, voxel ); value += value2*FRAC2; 
+	voxel = CONVERT_VALUE_TO_VOXEL(smooth_dy, value);
+	SET_VOXEL_3D(smooth_dy, i,j,k, voxel); 
+	
+	GET_VOXEL_3D(voxel, warp_dz, i,j,k); 
+	value = CONVERT_VOXEL_TO_VALUE( warp_dz, voxel ); value *= FRAC1;
+	GET_VOXEL_3D(voxel, warp_dz, i+1,j,k); 
+	value2 = CONVERT_VOXEL_TO_VALUE( warp_dz, voxel ); value += value2*FRAC2; 
+	GET_VOXEL_3D(voxel, warp_dz, i-1,j,k); 
+	value2 = CONVERT_VOXEL_TO_VALUE( warp_dz, voxel ); value += value2*FRAC2; 
+	GET_VOXEL_3D(voxel, warp_dz, i,j+1,k); 
+	value2 = CONVERT_VOXEL_TO_VALUE( warp_dz, voxel ); value += value2*FRAC2; 
+	GET_VOXEL_3D(voxel, warp_dz, i,j-1,k); 
+	value2 = CONVERT_VOXEL_TO_VALUE( warp_dz, voxel ); value += value2*FRAC2; 
+	GET_VOXEL_3D(voxel, warp_dz, i,j,k+1); 
+	value2 = CONVERT_VOXEL_TO_VALUE( warp_dz, voxel ); value += value2*FRAC2; 
+	GET_VOXEL_3D(voxel, warp_dz, i,j,k-1); 
+	value2 = CONVERT_VOXEL_TO_VALUE( warp_dz, voxel ); value += value2*FRAC2; 
+	voxel = CONVERT_VALUE_TO_VOXEL(smooth_dz, value);
+	SET_VOXEL_3D(smooth_dz, i,j,k, voxel); 
+	
+      }
+      update_progress_report( &progress, sizes[1]*i+j+1 );
+
+    }
+    terminate_progress_report( &progress );
+
+
+  
+}
+
+/*   get the value of the maximum gradient magnitude */
+
+public Real get_maximum_magnitude(Volume dx, Volume dy, Volume dz)
+{
+  int i,j,k,sizes[3];
+  Real vx, vy, vz, x, y, z, val, max;
+
+  max = -DBL_MAX;
+  get_volume_sizes(dx, sizes);
+
+  for_less(i,0,sizes[0])
+    for_less(j,0,sizes[1])
+      for_less(k,0,sizes[2]){
+
+	GET_VOXEL_3D(vx, dx, i,j,k); x = CONVERT_VOXEL_TO_VALUE(dx, vx);
+	GET_VOXEL_3D(vy, dy, i,j,k); y = CONVERT_VOXEL_TO_VALUE(dy, vy);
+	GET_VOXEL_3D(vz, dz, i,j,k); z = CONVERT_VOXEL_TO_VALUE(dz, vz);
+	val = x*x + y*y + z*z;
+
+	if (val > max) max = val;
+
+      }
+
+  if (max>0.0)
+    max = sqrt(max);
+
+  return(max);
+
+}
