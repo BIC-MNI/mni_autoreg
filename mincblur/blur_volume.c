@@ -29,9 +29,12 @@
               express or implied warranty.
 
 @MODIFIED   : $Log: blur_volume.c,v $
-@MODIFIED   : Revision 96.0  1996-08-21 18:22:24  louis
-@MODIFIED   : Release of MNI_AutoReg version 0.96
+@MODIFIED   : Revision 96.1  2000-01-27 16:51:27  louis
+@MODIFIED   : working version
 @MODIFIED   :
+ * Revision 96.0  1996/08/21  18:22:24  louis
+ * Release of MNI_AutoReg version 0.96
+ *
  * Revision 9.6  1996/08/21  18:22:17  louis
  * Pre-release
  *
@@ -65,13 +68,13 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/blur_volume.c,v 96.0 1996-08-21 18:22:24 louis Rel $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/blur_volume.c,v 96.1 2000-01-27 16:51:27 louis Exp $";
 #endif
 
 #include <volume_io.h>
 #include <config.h>
-#include "blur_support.h"
 #include <print_error.h>
+#include "blur_support.h"
 
 extern int debug;
 
@@ -418,6 +421,7 @@ if (debug) print("before blur min/max = %f %f\n", min_val, max_val);
 	
 	fft1(dat_vector,array_size_pow2,1);
 	muli_vects(dat_vecto2,dat_vector,kern,array_size_pow2);
+
 	fft1(dat_vecto2,array_size_pow2,-1);
 	
 	f_ptr = fdata + col*col_size + row;
