@@ -1,5 +1,8 @@
 2000-03-16  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
 
+	* Volume/interpolation.c (point_not_masked,
+	voxel_point_not_masked): simplified the code.
+
 	* Optimize/do_nonlinear.c: declare SX, SY, SZ static.  Re-enable
 	dumping of per-iteration warps, when debugging and verbose == 3.
 

@@ -16,7 +16,10 @@
 
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   :  $Log: objectives.c,v $
-@MODIFIED   :  Revision 96.3  2000-03-15 08:42:47  stever
+@MODIFIED   :  Revision 96.4  2000-03-17 01:11:30  stever
+@MODIFIED   :  code simplification
+@MODIFIED   :
+@MODIFIED   :  Revision 96.3  2000/03/15 08:42:47  stever
 @MODIFIED   :  Code cleanup: all functions prototyped (except ParseArgs.c), no useless declarations, etc
 @MODIFIED   :
 @MODIFIED   :  Revision 96.2  1997/11/12 21:07:43  louis
@@ -75,7 +78,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/objectives.c,v 96.3 2000-03-15 08:42:47 stever Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/objectives.c,v 96.4 2000-03-17 01:11:30 stever Exp $";
 #endif
 
 #include <internal_volume_io.h>
@@ -86,6 +89,7 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #include "local_macros.h"
 #include <print_error.h>
 #include "vox_space.h"
+#include "interpolation.h"
 
 extern Arg_Data main_args;
 

@@ -16,7 +16,10 @@
 @CREATED    : Wed May 26 13:05:44 EST 1993 LC using routines from NEELIN's
               mincresample.
 @MODIFIED   :  $Log: interpolation.c,v $
-@MODIFIED   :  Revision 96.1  1999-10-25 19:59:17  louis
+@MODIFIED   :  Revision 96.2  2000-03-17 01:11:31  stever
+@MODIFIED   :  code simplification
+@MODIFIED   :
+@MODIFIED   :  Revision 96.1  1999/10/25 19:59:17  louis
 @MODIFIED   :  final checkin before switch to CVS
 @MODIFIED   :
  * Revision 96.0  1996/08/21  18:22:15  louis
@@ -47,7 +50,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/interpolation.c,v 96.1 1999-10-25 19:59:17 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/interpolation.c,v 96.2 2000-03-17 01:11:31 stever Exp $";
 #endif
 
 #include <internal_volume_io.h>
@@ -348,54 +351,46 @@ public int tricubic_interpolant(Volume volume,
 }
 
 
-public int point_not_masked(Volume volume, 
-			    Real wx, Real wy, Real wz)
+/* A point is not masked if it is a point we should consider.
+   If the mask volume is NULL, we consider all points.
+   Otherwise, consider a point if the mask volume value is > 0.
+*/
+public int point_not_masked( Volume volume, 
+			     Real wx, Real wy, Real wz)
 {
+    double result;
+    PointR coord;
 
-  double result;
-  PointR coord;
-  
+    if ( volume == NULL )
+	return TRUE;
 
-  if (volume!=(Volume)NULL) {
-    convert_3D_world_to_voxel(volume, wx, wy, wz, &Point_x(coord),&Point_y(coord),&Point_z(coord));
+    convert_3D_world_to_voxel( volume, wx, wy, wz, 
+			       &Point_x(coord), &Point_y(coord), &Point_z(coord) );
     
+    /* interpolation returns TRUE iff coordinate is inside volume */
     if ( nearest_neighbour_interpolant(volume,&coord,&result) ) {
-      
-      if (result>0.0)
-	return(TRUE);
-      else
-	return(FALSE);
+	return (result > 0.0);
     }
-    else
-      return(FALSE) ;
-  }
-  else
-    return(TRUE) ;
+
+    return(FALSE) ;
 }
 
 
-public int voxel_point_not_masked(Volume volume, 
-                                  Real vx, Real vy, Real vz)
+public int voxel_point_not_masked( Volume volume, 
+                                   Real vx, Real vy, Real vz)
 {
-
-  double result;
-  PointR coord;
+    double result;
+    PointR coord;
   
+    if ( volume == NULL )
+	return TRUE;
 
-  if (volume!=(Volume)NULL) {
-     fill_Point(coord, vx, vy, vz);
+    fill_Point(coord, vx, vy, vz);
     
-     if ( nearest_neighbour_interpolant(volume,&coord,&result) ) {
-      
-        if (result>0.0)
-           return(TRUE);
-        else
-           return(FALSE);
-     }
-     else
-        return(FALSE) ;
-  }
-  else
-     return(TRUE) ;
+    if ( nearest_neighbour_interpolant(volume,&coord,&result) ) {
+	return (result > 0.0);
+    }
+
+    return(FALSE) ;
 }
 
