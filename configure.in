@@ -327,6 +327,7 @@ Proglib/Makefile
 make_phantom/Makefile
 mincbbox/Makefile
 mincblur/Makefile
+mincchamfer/Makefile
 minctracc/Makefile
 minctracc/Files/Makefile
 minctracc/Main/Makefile

@@ -5,6 +5,7 @@ SUBDIRS = \
 	make_phantom \
 	mincbbox \
 	mincblur \
+	mincchamfer \
         minctracc \
         perl \
 	Testing
