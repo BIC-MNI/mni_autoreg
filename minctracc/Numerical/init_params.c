@@ -17,7 +17,11 @@
 @CREATED    : Thu May 27 16:50:50 EST 1993
                   
 @MODIFIED   :  $Log: init_params.c,v $
-@MODIFIED   :  Revision 96.6  2003-02-05 21:27:26  lenezet
+@MODIFIED   :  Revision 96.7  2004-01-27 00:28:03  lenezet
+@MODIFIED   :  change init_params to correct the COG bug when there is not input transform.
+@MODIFIED   :  add the cosines director to the resampled field
+@MODIFIED   :
+@MODIFIED   :  Revision 96.6  2003/02/05 21:27:26  lenezet
 @MODIFIED   :  array size correction.
 @MODIFIED   :
 @MODIFIED   :  Revision 96.5  2003/02/04 06:08:45  stever
@@ -98,7 +102,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 96.6 2003-02-05 21:27:26 lenezet Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 96.7 2004-01-27 00:28:03 lenezet Exp $";
 #endif
 
 
@@ -170,6 +174,7 @@ BOOLEAN vol_cog(Volume d1, Volume m1, float *centroid, double *step)
     tx,ty,tz;
 
   int
+    i,
     r,c,s;
 
   float
@@ -185,13 +190,21 @@ BOOLEAN vol_cog(Volume d1, Volume m1, float *centroid, double *step)
     wstart[ MAX_DIMENSIONS],
     local_step[ MAX_DIMENSIONS];
   VectorR
+    scaled_directions[MAX_DIMENSIONS],
     directions[ MAX_DIMENSIONS];  
 
 				/* build default sampling lattice info
 				   on the data set (d1)               */
   set_up_lattice(d1, step,start, wstart, count, local_step, directions);
 
-  fill_Point( starting_position, wstart[0], wstart[1], wstart[2]);
+  
+   for_less(i,0,3) {
+     Point_x(scaled_directions[i]) = Point_x(directions[i]) * local_step[i];
+     Point_y(scaled_directions[i]) = Point_y(directions[i]) * local_step[i];
+     Point_z(scaled_directions[i]) = Point_z(directions[i]) * local_step[i];
+   }
+
+  fill_Point( starting_position, start[0], start[1], start[2]);
   
 				/* calculate centroids */
 
@@ -202,20 +215,19 @@ BOOLEAN vol_cog(Volume d1, Volume m1, float *centroid, double *step)
 
  
 
-  for_less(s,0,(int)(count[SLICE_IND]*abs(step[SLICE_IND]))) {
+  for_less(s,0,count[SLICE_IND]) {
 
-    SCALE_VECTOR( vector_step, directions[SLICE_IND], s);
+    SCALE_VECTOR( vector_step, scaled_directions[SLICE_IND], s);
     ADD_POINT_VECTOR( slice, starting_position, vector_step );
 
-    for_less(r,0,(int)(count[ROW_IND]*abs(step[ROW_IND]))) {
+    for_less(r,0,count[ROW_IND]) {
 
-      SCALE_VECTOR( vector_step, directions[ROW_IND], r);
+      SCALE_VECTOR( vector_step, scaled_directions[ROW_IND], r);
       ADD_POINT_VECTOR( row, slice, vector_step );
 
       SCALE_POINT( col, row, 1.0); /* init first col position */
-      for_less(c,0,(int)(count[COL_IND]*abs(step[COL_IND]))) {
+      for_less(c,0,count[COL_IND]) {
 
-	
 	convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
 
 
@@ -237,12 +249,11 @@ BOOLEAN vol_cog(Volume d1, Volume m1, float *centroid, double *step)
 
 	}
 	
-	ADD_POINT_VECTOR( col, col, directions[COL_IND] );
+	ADD_POINT_VECTOR( col, col, scaled_directions[COL_IND] );
 	
       }
     }
   }
-
 
   if (si!=0.0) {
     centroid[1] = sx/ si;
@@ -299,7 +310,7 @@ BOOLEAN vol_cov(Volume d1, Volume m1, float *centroid, float **covar, double *st
     tx,ty,tz;
 
   int
-    r,c,s;
+    i,r,c,s;
 
   float
     sxx,syy,szz,
@@ -316,6 +327,7 @@ BOOLEAN vol_cov(Volume d1, Volume m1, float *centroid, float **covar, double *st
     wstart[MAX_DIMENSIONS],
     local_step[MAX_DIMENSIONS];
   VectorR
+    scaled_directions[MAX_DIMENSIONS],
     directions[MAX_DIMENSIONS];  
 
 				/* build default sampling lattice info
@@ -324,7 +336,13 @@ BOOLEAN vol_cov(Volume d1, Volume m1, float *centroid, float **covar, double *st
   set_up_lattice(d1, step,
 		 start, wstart, count, local_step, directions);
 
+   for_less(i,0,3) {
+     Point_x(scaled_directions[i]) = Point_x(directions[i]) * local_step[i];
+     Point_y(scaled_directions[i]) = Point_y(directions[i]) * local_step[i];
+     Point_z(scaled_directions[i]) = Point_z(directions[i]) * local_step[i];
+   }
 
+  
   fill_Point( starting_position, start[0], start[1], start[2]);
   
   si = 0.0;
@@ -333,18 +351,18 @@ BOOLEAN vol_cov(Volume d1, Volume m1, float *centroid, float **covar, double *st
     
 				/* now calculate variances and co-variances */
 
-  for_less(s,0,(int)(count[SLICE_IND]*ABS(step[SLICE_IND]))) {
+  for_less(s,0,count[SLICE_IND]) {
     
-    SCALE_VECTOR( vector_step, directions[SLICE_IND], s);
+    SCALE_VECTOR( vector_step, scaled_directions[SLICE_IND], s);
     ADD_POINT_VECTOR( slice, starting_position, vector_step );
     
-    for_less(r,0,(int)(count[ROW_IND]*ABS(step[ROW_IND]))) {
+    for_less(r,0,count[ROW_IND]) {
       
-      SCALE_VECTOR( vector_step, directions[ROW_IND], r);
+      SCALE_VECTOR( vector_step, scaled_directions[ROW_IND], r);
       ADD_POINT_VECTOR( row, slice, vector_step );
       
       SCALE_POINT( col, row, 1.0); /* init first col position */
-      for_less(c,0,(int)(count[COL_IND]*ABS(step[COL_IND]))) {
+      for_less(c,0,count[COL_IND]) {
 	
 	
 	convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
@@ -367,12 +385,12 @@ BOOLEAN vol_cov(Volume d1, Volume m1, float *centroid, float **covar, double *st
 	  
 	} 
 	
-	ADD_POINT_VECTOR( col, col, directions[COL_IND] );
+	ADD_POINT_VECTOR( col, col, scaled_directions[COL_IND] );
 	
       }
     }
   }
-  
+
   if (si != 0.0) {
     covar[1][1] = sxx/si; covar[1][2] = sxy/si; covar[1][3] = sxz/si;
     covar[2][1] = sxy/si; covar[2][2] = syy/si; covar[2][3] = syz/si;
@@ -538,18 +556,14 @@ private  BOOLEAN init_transformation(
   stat = TRUE;
 
   /* =========  calculate COG and COV for volume 1   =======  */
-  print("init_transformation ligne 553\n");
 				/* if center already set, then don't recalculate */
   if ( !forced_center) {
-    print("avant vol_cog d1\n");
     stat = vol_cog(d1, m1, c1, step);
-    print("apres vol_cog d1\n");
     if (verbose>0 && stat) print ("COG of v1: %f %f %f\n",c1[1],c1[2],c1[3]);
   }
   else {
     if (verbose>0) print ("COG of v1 forced: %f %f %f\n",c1[1],c1[2],c1[3]);
   }
-
   if (!stat || !vol_cov(d1, m1, c1, cov1, step ) ) {
     print_error_and_line_num("%s", __FILE__, __LINE__,"Cannot calculate the COG or COV of volume 1.\n" );
     return(FALSE);

@@ -35,7 +35,11 @@
       created by removing build_default_deformation_field from 
       transformations.c
 @MODIFIED   : $Log: default_def.c,v $
-@MODIFIED   : Revision 96.5  2002-12-13 21:16:30  lenezet
+@MODIFIED   : Revision 96.6  2004-01-27 00:28:03  lenezet
+@MODIFIED   : change init_params to correct the COG bug when there is not input transform.
+@MODIFIED   : add the cosines director to the resampled field
+@MODIFIED   :
+@MODIFIED   : Revision 96.5  2002/12/13 21:16:30  lenezet
 @MODIFIED   : nonlinear in 2D has changed. The option -2D-non-lin is no more necessary. The grid transform has been adapted to feet on the target volume whatever is size. The Optimization is done on the dimensions for which "count" is greater than 1.
 @MODIFIED   :
 @MODIFIED   : Revision 96.4  2002/11/20 21:38:49  lenezet
@@ -151,7 +155,8 @@ private void resample_the_deformation_field(Arg_Data *globals)
     step[     MAX_DIMENSIONS ],  
     step2[    MAX_DIMENSIONS ],
     s1[       MAX_DIMENSIONS ],
-    voxel[    MAX_DIMENSIONS ];
+    voxel[    MAX_DIMENSIONS ],
+    dir[3][3];
   int 
     i,
     siz[      MAX_DIMENSIONS ],
@@ -204,13 +209,12 @@ private void resample_the_deformation_field(Arg_Data *globals)
     step2[i] = globals->step[i];  
 				/* get new start, count, step and directions,
 				   all returned in X, Y, Z order.          */
-
+   
   set_up_lattice(existing_field, step2, XYZstart, wstart, XYZcount, XYZstep, XYZdirections);
-
 
 				/* reset count and step to be in volume order */
   for_less(i,0,N_DIMENSIONS) {
-    start[ i ] = XYZstart[ i ];
+    start[ i ] = XYZstart[i ]; 
     count[ xyzv[i] ] = XYZcount[ i ];
     step[  xyzv[i] ] = XYZstep[  i ];
   }
@@ -234,6 +238,19 @@ private void resample_the_deformation_field(Arg_Data *globals)
   set_volume_voxel_range( new_field, -MY_MAX_VOX, MY_MAX_VOX);
   set_volume_real_range(  new_field, -1.0*globals->trans_info.max_def_magnitude, globals->trans_info.max_def_magnitude);
   set_volume_translation( new_field, voxel, start);
+  
+  for_less(i,0,N_DIMENSIONS) {
+    dir[X][i]=XYZdirections[X].coords[i];
+    dir[Y][i]=XYZdirections[Y].coords[i];
+    dir[Z][i]=XYZdirections[Z].coords[i];
+
+  }
+
+
+  set_volume_direction_cosine(new_field,xyzv[X],dir[X]);
+  set_volume_direction_cosine(new_field,xyzv[Y],dir[Y]);
+  set_volume_direction_cosine(new_field,xyzv[Z],dir[Z]);
+
   
 				/* make sure that the vector dimension 
 				   is named! */
