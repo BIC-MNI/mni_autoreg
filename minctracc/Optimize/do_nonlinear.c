@@ -16,7 +16,10 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 96.18  2003-02-26 00:56:37  lenezet
+@MODIFIED   : Revision 96.19  2003-02-26 01:20:34  lenezet
+@MODIFIED   : *** empty log message ***
+@MODIFIED   :
+@MODIFIED   : Revision 96.18  2003/02/26 00:56:37  lenezet
 @MODIFIED   : for 2D : now computes all 3 coordinates for the "start" (to take into account the slice position).
 @MODIFIED   : simplification of build_lattices.
 @MODIFIED   : bug correction in amoeba_NL_obj_function.
@@ -310,7 +313,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.18 2003-02-26 00:56:37 lenezet Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.19 2003-02-26 01:20:34 lenezet Exp $";
 #endif
 
 #include <config.h>		/* MAXtype and MIN defs                      */
@@ -504,7 +507,7 @@ private double return_locally_smoothed_def(int  isotropic_smoothing,
 
 
 
-private BOOLEAN get_best_start_from_neighbours2(
+private BOOLEAN get_best_start_from_neighbours(
 					       Real threshold1, 
 					       Real source[],
 					       Real mean_target[],
@@ -542,7 +545,7 @@ public int nearest_neighbour_interpolant(Volume volume,
 private BOOLEAN is_a_sub_lattice_needed (char obj_func[],
 					 int  number_of_features);
 
-private BOOLEAN build_lattices2(Real spacing, 
+private BOOLEAN build_lattices(Real spacing, 
 			       Real threshold, 
 			       Real source_coord[],
 			       Real mean_target[],
@@ -550,7 +553,7 @@ private BOOLEAN build_lattices2(Real spacing,
 			       Real def_vector[],
 			       int ndim);
 
-public void    build_target_lattice2(float px[], float py[], float pz[],
+public void    build_target_lattice(float px[], float py[], float pz[],
 				    float tx[], float ty[], float tz[],
 				     int len, int dim);
 
@@ -1879,7 +1882,7 @@ private double return_locally_smoothed_def(int isotropic_smoothing,
 		      the best starting target.
 */
 
-private BOOLEAN get_best_start_from_neighbours2(
+private BOOLEAN get_best_start_from_neighbours(
 			   Real threshold1, 
 			   Real source[],
 			   Real mean_target[],
@@ -2212,7 +2215,7 @@ print ("%5.3f: %7.2f %7.2f %7.2f -> %7.2f %7.2f %7.2f [%7.2f %7.2f %7.2f ]",
   return(result);
 }
 
-private BOOLEAN build_lattices2(Real spacing, 
+private BOOLEAN build_lattices(Real spacing, 
 			       Real threshold, 
 			       Real source_coord[],
 			       Real mean_target[],
@@ -2244,7 +2247,7 @@ private BOOLEAN build_lattices2(Real spacing,
 
   result = TRUE;
 
-  if (!get_best_start_from_neighbours2(threshold,
+  if (!get_best_start_from_neighbours(threshold,
 				      source_coord, mean_target, target_coord,
 				      def_vector)) {
     
@@ -2293,7 +2296,7 @@ private BOOLEAN build_lattices2(Real spacing,
       build_target_lattice_using_super_sampled_def(
 		  SX,SY,SZ, TX,TY,TZ, Glen, ndim);
     else 
-      build_target_lattice2(SX,SY,SZ, TX,TY,TZ, Glen, ndim);
+      build_target_lattice(SX,SY,SZ, TX,TY,TZ, Glen, ndim);
       
 
     /* -------------------------------------------------------------- */
@@ -2491,7 +2494,7 @@ private Real get_deformation_vector_for_node(Real spacing,
 				/* build sub-lattice if necessary */
   if (sub_lattice_needed) {
 
-    if ( ! build_lattices2(spacing, threshold1, 
+    if ( ! build_lattices(spacing, threshold1, 
 			  source_coord, mean_target, target_coord, def_vector,
 			  ndim) ){
       result = -DBL_MAX;
