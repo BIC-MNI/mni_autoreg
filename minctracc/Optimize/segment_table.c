@@ -8,13 +8,16 @@ public BOOLEAN build_segment_table(Segment_Table **s_table, Volume d1, int group
 
   float
     frac;
+  Data_types
+    data_type;
   int
     i,min,max;
 
   Segment_Table *st;
   int *it;
 
-  switch (d1->data_type) {
+  data_type = get_volume_data_type (d1);
+  switch (data_type) {
   case   UNSIGNED_BYTE:
     min = 0; max = (1<<8)-1;
     break;
@@ -29,7 +32,7 @@ public BOOLEAN build_segment_table(Segment_Table **s_table, Volume d1, int group
     break;
   default:
     print_error_and_line_num("Currently an unsupported data type (%d).", __FILE__, __LINE__, 
-		d1->data_type);
+		data_type);
     return(FALSE);
   }
 
