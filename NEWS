@@ -1,5 +1,13 @@
 CHANGES to the MNI_AutoReg package...
 
+Release 0.98p
+-------------
+
+* Fixed problems with Direction cosines of input volumes
+* Changed from volume_stats to mincstats in minc_utilities.pl
+   this will mean that we no longer have a dependency on N3.Z
+
+
 Release 0.98j
 -------------
 
