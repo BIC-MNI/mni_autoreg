@@ -297,7 +297,7 @@ if test $autoreg_test = "fail"; then
     AC_MSG_ERROR(Cannot determine arguments to delete_dimension_names.)
 fi
 
-if test x$save_CPPFLAGS == xunset; then
+if test x$save_CPPFLAGS = xunset; then
     unset CPPFLAGS
 else
     CPPFLAGS="$save_CPPFLAGS"
