@@ -16,17 +16,24 @@
 @CREATED    : Tue Nov 16 14:51:04 EST 1993 lc
                     based on transformations.c from fit_vol
 @MODIFIED   : $Log: transformations.c,v $
-@MODIFIED   : Revision 1.7  1994-06-02 20:15:59  louis
-@MODIFIED   : made modifications to allow deformations to be calulated in 2D on slices. 
-@MODIFIED   : changes had to be made in set_up_lattice, init_lattice when defining
-@MODIFIED   : the special case of a single slice....
-@MODIFIED   : Build_default_deformation_field also had to reflect these changes.
-@MODIFIED   : do_non-linear-optimization also had to check if one of dimensions had
-@MODIFIED   : a single element.
-@MODIFIED   : All these changes were made, and slightly tested.  Another type of
-@MODIFIED   : deformation strategy will be necessary (to replace the deformation 
-@MODIFIED   : perpendicular to the surface, since it does not work well).
+@MODIFIED   : Revision 1.8  1994-06-06 09:37:56  louis
+@MODIFIED   : modifed the voxel and real range calls, in build_default_deformation_field
+@MODIFIED   : where the new voxel range: 0.0, 32767.0, new real range: -50.0, 50.0.
 @MODIFIED   :
+@MODIFIED   : These ranges are copied for all other deformation fields created from
+@MODIFIED   : the 1st scale deformation field.
+@MODIFIED   :
+ * Revision 1.7  94/06/02  20:15:59  louis
+ * made modifications to allow deformations to be calulated in 2D on slices. 
+ * changes had to be made in set_up_lattice, init_lattice when defining
+ * the special case of a single slice....
+ * Build_default_deformation_field also had to reflect these changes.
+ * do_non-linear-optimization also had to check if one of dimensions had
+ * a single element.
+ * All these changes were made, and slightly tested.  Another type of
+ * deformation strategy will be necessary (to replace the deformation 
+ * perpendicular to the surface, since it does not work well).
+ * 
  * Revision 1.6  94/05/28  16:18:29  louis
  * working version before modification of non-linear optimiation
  * 
@@ -40,7 +47,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/transformations.c,v 1.7 1994-06-02 20:15:59 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/transformations.c,v 1.8 1994-06-06 09:37:56 louis Exp $";
 #endif
 
 
@@ -303,9 +310,14 @@ public void build_default_deformation_field(Arg_Data *globals)
     /* build the three deformation volumes: */
     
     *dx = create_volume(3, default_dim_names, NC_SHORT, FALSE, 0.0, 0.0);
-    set_volume_voxel_range(*dx, 1.0, 32767.0);  
-    set_volume_real_range(*dx, -2.0*globals->step[0], 2.0*globals->step[0] );
-    
+    set_volume_voxel_range(*dx, 0.0, 32767.0);  
+/*    set_volume_real_range(*dx, -4.0*globals->step[0], 4.0*globals->step[0] );*/
+    set_volume_real_range(*dx, -50.0, 50.0);
+
+/*
+    set_volume_voxel_range(*dx, -32767.0, 32767.0)
+    set_volume_real_range(*dx, -45.0, 45.0);
+*/
     set_volume_sizes(*dx, globals->count);
     set_volume_separations(*dx,globals->step);
     
