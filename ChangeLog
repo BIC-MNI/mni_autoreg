@@ -1,3 +1,8 @@
+2000-01-25  Louis COLLINS  <louis@bic.mni.mcgill.ca>
+
+	* configure.in: removed definitions to /usr/local for $PREFIX since
+	$PREFIX is defined by default in configure.
+
 Wed Jan 19 22:23:46 2000  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* ChangeLog:
