@@ -194,8 +194,6 @@ static ArgvInfo argTable[] = {
      (char *) &main_args.step[2],
      "Step size along the slice dimension"},
 
-#ifdef NONLINEAR_RELEASE
-  
   {NULL, ARGV_HELP, NULL, NULL,
      "\nNon-linear transformation information:"},
   {"-nonlinear", ARGV_CONSTANT, (char *) TRANS_NONLIN, (char *) &main_args.trans_info.transform_type,
@@ -234,8 +232,6 @@ static ArgvInfo argTable[] = {
   {"-similarity_cost_ratio", ARGV_FLOAT, (char *) 0, 
      (char *) &similarity_cost_ratio,
      "Weighting factor for  r=similarity*w + cost(1*w)"},
-
-#endif
 
   {NULL, ARGV_HELP, NULL, NULL,
      "\nOptions for logging progress. Default = -verbose 1."},
