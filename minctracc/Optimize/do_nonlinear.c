@@ -16,18 +16,25 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 96.2  1997-11-03 20:05:41  louis
-@MODIFIED   : reorganized do_nonlinear.c
-@MODIFIED   :  - added prototypes in header files
-@MODIFIED   :    sub_lattice.h
-@MODIFIED   :    extras.h
-@MODIFIED   :    quad_max_fit.h
-@MODIFIED   :  - moved functions
-@MODIFIED   :    build_target_lattice()
-@MODIFIED   :    build_target_lattice_using_super_sampled_def()
-@MODIFIED   :    build_source_lattice()
-@MODIFIED   :    into sub_lattice.c
+@MODIFIED   : Revision 96.3  1997-11-12 21:07:43  louis
+@MODIFIED   : - added support for chamfer distance as a local obj func
+@MODIFIED   : - moved all procedures used to compute the local obj function
+@MODIFIED   :   into def_obj_funcitons.c
+@MODIFIED   :   cost_fn(), similarity_fn(), go_get_samples_with_offset(),
+@MODIFIED   :   local_objective_function(), amoeba_NL_obj_function()
 @MODIFIED   :
+ * Revision 96.2  1997/11/03  20:05:41  louis
+ * reorganized do_nonlinear.c
+ *  - added prototypes in header files
+ *    sub_lattice.h
+ *    extras.h
+ *    quad_max_fit.h
+ *  - moved functions
+ *    build_target_lattice()
+ *    build_target_lattice_using_super_sampled_def()
+ *    build_source_lattice()
+ *    into sub_lattice.c
+ *
  * Revision 96.1  1997/11/03  15:06:29  louis
  * working version, before creation of mni_animal package, and before inserting
  * distance transforms
@@ -244,7 +251,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.2 1997-11-03 20:05:41 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.3 1997-11-12 21:07:43 louis Exp $";
 #endif
 
 #include <config.h>		/* MAXtype and MIN defs                      */
@@ -267,8 +274,6 @@ time_t time(time_t *tloc);
 #include <sub_lattice.h>        /* prototypes for sub_lattice manipulation   */
 #include <extras.h>             /* prototypes for extra convienience routines*/
 #include <quad_max_fit.h>       /* prototypes for quadratic fitting routines */
-
-int FLAG_HAHA = FALSE;
 
 int stat_quad_total;            /* these are used as globals to tally stats  */
 int stat_quad_zero;             /* in Numerical/quad_max_stats.c             */
@@ -293,26 +298,26 @@ static stats_struct
                                 /* these Globals are used to communicate to
                                    the correlation functions over top the
                                    SIMPLEX optimization routine */
-static float	
+float	
   *Gsqrt_features,		/* normalization const for correlation       */
   **Ga1_features,		/* samples in source sub-lattice             */
   *TX, *TY, *TZ,		/* sample sub-lattice positions in target    */
   *SX, *SY, *SZ;		/* sample sub-lattice positions in source    */
 
-static int 
+int 
   Glen;				/* # of samples in sub-lattice               */
 
 
          /* these Globals are used to communicate the projection */
          /* values over top the SIMPLEX optimization  routine    */ 
-static Real
+Real
   Gtarget_vox_x, Gtarget_vox_y, Gtarget_vox_z,
   Gproj_d1,  Gproj_d1x,  Gproj_d1y,  Gproj_d1z, 
   Gproj_d2,  Gproj_d2x,  Gproj_d2y,  Gproj_d2z;
 
 	/* Globals used for local simplex Optimization  */
 static Real     Gsimplex_size;	/* the radius of the local simplex           */
-static Real     Gcost_radius;	/* constant used in the cost function        */
+Real     Gcost_radius;	/* constant used in the cost function        */
 
         /* Globals used to split the input transformation into a
 	   linear part and a super-sampled non-linear part */
@@ -395,15 +400,9 @@ public  Real  get_amoeba_parameters(amoeba_struct  *amoeba,
 
 public  void  terminate_amoeba( amoeba_struct  *amoeba );
 
-private Real amoeba_obj_function(void * dummy, float d[]);
+public  Real amoeba_NL_obj_function(void * dummy, float d[]);
 
-
-
-private Real cost_fn(float x, float y, float z, Real max_length);
-
-private Real similarity_fn(float *d);
-
-private Real local_objective_function(float *x);
+public  Real local_objective_function(float *x);
 
 private Real get_deformation_vector_for_node(Real spacing, Real threshold1, 
 					     Real source_coord[],
@@ -883,13 +882,6 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 
     for_less(i,0,MAX_DIMENSIONS) index[i]=0;
 
-    /* FLAG_HAHA stuff:   
-
-       start[X] = 7;  end[X] = start[X]+1;
-       start[Y] = 13; end[Y] = start[Y]+1;
-       start[Z] = 15; end[Z] = start[Z]+1;
-       */
-
     /* step index[] through all the nodes in the deformation field. */
 
     for_less( index[ xyzv[X] ] , start[ X ], end[ X ]) {
@@ -953,9 +945,6 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 				/* find the best deformation for
 				   this node                        */
 
-
-/*	      FLAG_HAHA = (index[xyzv[X]] == 7 && index[xyzv[Y]] == 13 && index[xyzv[Z]] == 15);
-*/
 
 	      result = get_deformation_vector_for_node(steps[xyzv[X]], 
 						       threshold1,
@@ -1812,6 +1801,7 @@ private Real get_deformation_vector_for_node(Real spacing,
 					     int ndim)
 {
   Real
+     ttx,tty,ttz,
     du,dv,dw,
     xt, yt, zt,
     local_corr3D[3][3][3],
@@ -1826,6 +1816,7 @@ private Real get_deformation_vector_for_node(Real spacing,
   float 
     pos_vector[4];
   int 
+     flag_tt,
     flag,
     nfunk,
     i,j,k;
@@ -1834,6 +1825,14 @@ private Real get_deformation_vector_for_node(Real spacing,
   Real
     *parameters;
   FILE *tmp_fp;
+
+                                /* for debug */
+  ttx = source_coord[X] - -76.0; if (ttx<0.0) ttx *= -1.0;
+  tty = source_coord[Y] - -38.0; if (tty<0.0) tty *= -1.0;
+  ttz = source_coord[Z] - 14.0; if (ttz<0.0) ttz *= -1.0;
+  
+  flag_tt =  FALSE; /*(ttx < 0.01 && tty < 0.01 && ttz < 0.01) ;*/
+
 
 
 
@@ -1921,6 +1920,10 @@ private Real get_deformation_vector_for_node(Real spacing,
       Glen = 1;
     }
 
+if (flag_tt) {
+   print ("before %6.2f %6.2f %6.2f\n", SX[1], SY[1], SZ[1]);
+}    
+
     /* -------------------------------------------------------------- */
     /* BUILD THE TARGET VOLUME LOCAL NEIGHBOURHOOD INFO */
 
@@ -1966,6 +1969,9 @@ private Real get_deformation_vector_for_node(Real spacing,
 		ydim, and TZ the voxel xdim coordinate.  BIZARRE I know,
 		but it works... */
 
+if (flag_tt) {
+   print ("target  %6.2f %6.2f %6.2f\n", TX[1], TY[1], TZ[1]);
+}    
     for_inclusive(i,1,Glen) {
       convert_3D_world_to_voxel(Gglobals->features.model[0], 
 				(Real)TX[i],(Real)TY[i],(Real)TZ[i], 
@@ -1986,13 +1992,17 @@ private Real get_deformation_vector_for_node(Real spacing,
 	SZ[i] += source_coord[Z] - zp;
       }
     }
+
+if (flag_tt) {
+   print ("after  %6.2f %6.2f %6.2f\n", SX[1], SY[1], SZ[1]);
+}    
     
     /* -------------------------------------------------------------- */
-    /* GO GET FEATURES IN SOURCE VOLUME
-          actually get the feature data from the source volume
-	  local neighbourhood.  The target volume features are 
-	  retrieved in go_get_samples_with_offset() called
-	  from 1.0 - local_objective_function()                       */
+    /* GO GET FEATURES IN SOURCE VOLUME actually get the feature data from
+       the source volume local neighbourhood and compute the required
+       similarity function.  The target volume features are retrieved and
+       the similarity function computed in go_get_samples_with_offset() */
+
 
     if (Gglobals->trans_info.use_magnitude) {
       for_less(i,0, Gglobals->features.number_of_features) {
@@ -2032,9 +2042,9 @@ private Real get_deformation_vector_for_node(Real spacing,
     }
 
     /* -------------------------------------------------------------- */
-    /* calc one of the normalization coefficients for correlation,
-       when using the magnitude data.  This saves a few CPU cycles in
-       go_get_samples_with_offset(), since the constants only have to be
+    /* calc one of the normalization coefficients for the similarity
+       measure, when using the magnitude data.  This saves a few CPU cycles
+       in go_get_samples_with_offset(), since the constants only have to be
        eval'd once for the source volume. Note that this variable is not
        used when using projections. */
 
@@ -2053,8 +2063,24 @@ private Real get_deformation_vector_for_node(Real spacing,
       case NONLIN_LABEL:
 	Gsqrt_features[i] = (Real)Glen;
 	break;
+      case NONLIN_CHAMFER:
+	Gsqrt_features[i] = 0;
+
+        if (flag_tt) {
+           print ("\nchamfer:\n");
+           print ("%6.2f %6.2f, %6.2f %6.2f, %6.2f %6.2f\n",
+                  source_coord[X],xp,source_coord[Y],yp,source_coord[Z],zp);
+           for_inclusive(j,1,Glen) {
+              if (Ga1_features[i][j] > 0.0) {
+                 print ("%3d %6.2f %6.2f %6.2f -> %8.3f\n", j, SX[j], SY[j], SZ[j], Ga1_features[i][j]);
+              }
+           }
+        }
+
+	break;
       default:
-	print_error_and_line_num("Objective function %d not supported in go_get_samples_with_offset",__FILE__, __LINE__,Gglobals->features.obj_func[i]);
+	print_error_and_line_num("Objective function %d not supported in get_deformation_vector_for_node",
+                                 __FILE__, __LINE__,Gglobals->features.obj_func[i]);
       }
     }
 
@@ -2133,8 +2159,9 @@ private Real get_deformation_vector_for_node(Real spacing,
 	(0.5 + 
 	 0.5*((Real)(total_iters-iteration)/(Real)total_iters));
 
+/*print("amoeba\n");*/
       initialize_amoeba(&the_amoeba, ndim, parameters, 
-			simplex_size, amoeba_obj_function, 
+			simplex_size, amoeba_NL_obj_function, 
 			NULL, (Real)ftol);
       
       /*                do the actual SIMPLEX optimization        */
@@ -2151,15 +2178,6 @@ private Real get_deformation_vector_for_node(Real spacing,
 
 	get_amoeba_parameters(&the_amoeba,parameters);
 	
-	if (FLAG_HAHA) {
-	  for_less( i, 0, the_amoeba.n_parameters+1 )  {
-	    print ("%2d: %10.8f ",i,the_amoeba.values[i]);
-	    for_less( j, 0, the_amoeba.n_parameters )
-	      print ("%8.6f ",the_amoeba.parameters[i][j]);
-	    print ("\n");
-	  }
-	}
-
 	*num_functions = nfunk;
     
 	if (ndim>2) {
@@ -2245,235 +2263,9 @@ private Real get_deformation_vector_for_node(Real spacing,
       print ("Gsimplex_size = %f\n",Gsimplex_size);
     }
 
-
-    /* build output file x,y & z to look at neighbourhood correlation data */
-
-    if (FLAG_HAHA==TRUE) {
-      print ("Flag_haha in get def for node\n");
-      print ("def found was: %f %f %f -> %f %f %f\n", 
-	     voxel_displacement[0], voxel_displacement[1], voxel_displacement[2],
-	     def_vector[X], def_vector[Y], def_vector[Z]);
-      
-      pos_vector[3] = 0.0;
-      pos_vector[2] = 0.0;
-      pos_vector[1] = 0.0;
-      print ("At 0,0,0 obj_fn        = %f\n",local_objective_function(pos_vector)); 
-      pos_vector[3] = voxel_displacement[0];
-      pos_vector[2] = voxel_displacement[1];
-      pos_vector[1] = voxel_displacement[2];
-      print ("At returned def obj_fn = %f\n",local_objective_function(pos_vector)); 
-      if (open_file("x", WRITE_FILE, ASCII_FORMAT, &tmp_fp) != OK) {
-	print_error_and_line_num("Can't open 'x' file\n",
-				 __FILE__, __LINE__);
-      }
-      else {
-	i = j = k = 0;
-	for_inclusive(i,-200,200) {
-	  pos_vector[1] = ((float)i/100.0) * Gsimplex_size/4.0;
-	  pos_vector[2] = ((float)j/100.0) * Gsimplex_size/4.0;
-	  pos_vector[3] = ((float)k/100.0) * Gsimplex_size/4.0;
-	  fprintf (tmp_fp, "%f %f\n",(float)i/400.0,local_objective_function(pos_vector)); 
-	}
-	close_file(tmp_fp);
-      }
-      
-      if (open_file("y", WRITE_FILE, ASCII_FORMAT, &tmp_fp) != OK) {
-	print_error_and_line_num("Can't open 'y' file\n",
-				 __FILE__, __LINE__);
-      }
-      else {
-	i = j = k = 0;
-	for_inclusive(j,-200,200) {
-	  pos_vector[1] = ((float)i/100.0) * Gsimplex_size/4.0;
-	  pos_vector[2] = ((float)j/100.0) * Gsimplex_size/4.0;
-	  pos_vector[3] = ((float)k/100.0) * Gsimplex_size/4.0;
-	  fprintf (tmp_fp, "%f %f\n",(float)j/400.0,local_objective_function(pos_vector)); 
-	}
-	close_file(tmp_fp);
-      }
-      
-      if (open_file("z", WRITE_FILE, ASCII_FORMAT, &tmp_fp) != OK) {
-	print_error_and_line_num("Can't open 'z' file\n",
-				 __FILE__, __LINE__);
-      }
-      else {
-	i = j = k = 0;
-	for_inclusive(k,-200,200) {
-	  pos_vector[1] = ((float)i/100.0) * Gsimplex_size/4.0;
-	  pos_vector[2] = ((float)j/100.0) * Gsimplex_size/4.0;
-	  pos_vector[3] = ((float)k/100.0) * Gsimplex_size/4.0;
-	  fprintf (tmp_fp, "%f %f\n",(float)k/400.0,local_objective_function(pos_vector)); 
-	}
-	close_file(tmp_fp);
-      }
-    }
-
-    
-
   } /*  if (!get_best_start_from_neighbours()) */
   
   return(result);
-}
-
-
-
-
-/* This is the COST FUNCTION TO BE MINIMIZED.
-   so that very large displacements are impossible */
-
-private Real cost_fn(float x, float y, float z, Real max_length)
-{
-  Real v2,v,d;
-
-  v2 = x*x + y*y + z*z;
-  v = sqrt(v2);
-
-  v *= v2;
-
-  if (v<max_length)
-    d = 0.2 * v / (max_length - v);
-  else
-    d = 1e38;
-
-  return(d);
-}
-
-/* This is the SIMILARITY FUNCTION TO BE MAXIMIZED.
-
-      it is maximum when source and target data are most similar.
-      The value is normalized by the weights associated with each feature,
-      so that 0 <= similarity_fn() <= 1.0 
-
-      the input parameter D stores the displacement offsets for the
-      target lattice:
-         D[1] stores the xdisp in voxels
-         D[2] stores the ydisp
-         D[3] stores the zdisp
-*/
-
-private Real similarity_fn(float *d)
-{
-  int i;
-  Real
-    norm,
-    val[MAX_DIMENSIONS],
-    voxel[MAX_DIMENSIONS],
-    xw,yw,zw,
-    s, s1, s2;
-
-  /* note: here the displacement order for go_get_samples_with_offset
-     is 3,2,1 (=Z,Y,X) since the source and target volumes are stored in
-     Z,Y,X order.
-
-     This backward ordering is necessary since the same function is
-     used for 2D and 3D optimization, and simplex will only modify d[1]
-     and d[2] in 2D (d[3] stays const=0). */
-
-  if (Gglobals->trans_info.use_magnitude) {
-
-    s = norm = 0.0;
-    
-    for_less(i,0,Gglobals->features.number_of_features)  {
-      norm += ABS(Gglobals->features.weight[i]);
-      s += Gglobals->features.weight[i] * 
-	(Real)go_get_samples_with_offset(Gglobals->features.model[i],
-					 TX,TY,TZ,
-					 d[3], d[2], d[1],
-					 Gglobals->features.obj_func[i],
-					 Glen, 
-					 Gsqrt_features[i], Ga1_features[i],
-					 Gglobals->interpolant==nearest_neighbour_interpolant);
-
-    }
-
-    if (norm != 0.0) 
-      s = s / norm;
-    else
-      print_error_and_line_num("The feature weights are null.", 
-		__FILE__, __LINE__);
-
-
-  } else {
-	/* calc correlation based on projection data */
-    voxel[0] = Gtarget_vox_x + d[3];
-    voxel[1] = Gtarget_vox_y + d[2]; 
-    voxel[2] = Gtarget_vox_z + d[1];
-    voxel[3] = 0.0;
-    voxel[4] = 0.0;
-
-    convert_voxel_to_world(Gglobals->features.model[0], voxel, &xw, &yw, &zw);
-
-    evaluate_volume_in_world(Gglobals->features.model[0], xw, yw, zw, 
-			     0, TRUE, 0.0, val,
-			     NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
-    Gproj_d2 = val[0];
-    evaluate_volume_in_world(Gglobals->features.model[1], xw, yw, zw, 
-			     0, TRUE, 0.0, val,
-			     NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
-    Gproj_d2x = 2.0*val[0];
-    evaluate_volume_in_world(Gglobals->features.model[2], xw, yw, zw, 
-			     0, TRUE, 0.0, val,
-			     NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
-    Gproj_d2y = 2.0*val[0];
-    evaluate_volume_in_world(Gglobals->features.model[3], xw, yw, zw, 
-			     0, TRUE, 0.0, val,
-			     NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
-    Gproj_d2z = 2.0*val[0];
-    
-    s  = (Gproj_d1*Gproj_d2   + Gproj_d1x*Gproj_d2x + 
-	  Gproj_d1y*Gproj_d2y + Gproj_d1z*Gproj_d2z);
-    s1 = (Gproj_d1*Gproj_d1   +  Gproj_d1x*Gproj_d1x + 
-	  Gproj_d1y*Gproj_d1y + Gproj_d1z*Gproj_d1z);
-    s2 = (Gproj_d2*Gproj_d2   + Gproj_d2x*Gproj_d2x + 
-	  Gproj_d2y*Gproj_d2y + Gproj_d2z*Gproj_d2z);
-
-    if ((s1!=0.0) && (s2 !=0.0)) {
-      s = s / ( sqrt(s1) * sqrt(s2) );
-    }
-    else
-      s = 0.0;
-    
-    
-  }
-  return( s );
-}
-
-
-private Real amoeba_obj_function(void * dummy, float d[])
-{
-  int i;
-  float p[4];
-  Real obj_func_val;
-
-
-  for_less(i,0,number_dimensions)
-    p[i+1] = d[i];
-  obj_func_val =  local_objective_function(p);
-
-  if (FLAG_HAHA) {
-    print ("\n%15.12f: %12.8f  %12.8f  %12.8f: ", obj_func_val, d[0], d[1], d[2]);
-  }
-
-  return ( obj_func_val );
-  
-}
-
-private Real local_objective_function(float *d)
-     
-{
-  Real
-    similarity,
-    cost, 
-    r;
-  
-  similarity = (Real)similarity_fn( d );
-  cost       = (Real)cost_fn( d[1], d[2], d[3], Gcost_radius );
-  
-  r = 1.0 - 
-      similarity * similarity_cost_ratio + 
-      cost       * (1.0-similarity_cost_ratio);
-  
-  return(r);
 }
 
 
