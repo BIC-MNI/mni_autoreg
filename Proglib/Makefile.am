@@ -1,4 +1,3 @@
-
 noinst_LIBRARIES = libProglib.a
 
 libProglib_a_SOURCES = \
@@ -15,10 +14,12 @@ libProglib_a_SOURCES = \
 	vax_conversions.c \
 	vax_conversions.h
 
-dubious = \
+EXTRA_DIST = #$(oddities)
+
+oddities = \
 	def_tag_io.h \
+	evaluate.c \
 	minc_def.h \
 	splines.h \
 	tag_io.c \
 	test.c
-

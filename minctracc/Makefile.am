@@ -1,11 +1,12 @@
 SUBDIRS = Files Numerical Optimize Volume Main Extra_progs
 
-# Automake does not handle sources in subdirs (yet).  We kludge our way
-# around this by making a bunch of (noninstalled) libraries --- one per subdir ---
-# and building the minctracc program in subdirectory Main.  The extra programs
-# are likewise built in their subdirectory, Extra_progs.
+# Automake does not handle sources in subdirs (yet).  We kludge our
+# way around this by making a bunch of (noninstalled) libraries ---
+# one per subdir --- and building the minctracc program in
+# subdirectory Main.  The extra programs are likewise built in their
+# subdirectory, Extra_progs.
 
-EXTRA_DIST = $(man_MANS) $(docs) $(includes) $(matlab) $(notes)
+EXTRA_DIST = $(man_MANS) $(docs) $(includes) #$(oddities)
 
 man_MANS = minctracc.1
 
@@ -92,3 +93,25 @@ matlab = \
 notes = \
 	Notes/limited_fov
 
+oddities = $(matlab) $(notes) \
+	todo \
+	Include/boolean.h \
+	Include/deform_field.h \
+	Include/line_data.h \
+	Include/procrustes.h \
+	Include/recipes.h \
+	Main/debug_lines1.c \
+	Numerical/FROM_LIONEL/fem.h \
+	Numerical/FROM_LIONEL/similar_correlate.c \
+	Numerical/Other_progs/align_z.c \
+	Numerical/Other_progs/procrustes.c \
+	Numerical/Other_progs/transformations.c \
+	Numerical/c2p.c \
+	Numerical/procrustes.c \
+	Numerical/random_numbers.c \
+	Numerical/transformations.c \
+	Optimize/amoeba2.c \
+	Optimize/3d_surf_fit \
+	Optimize/d.c \
+	Optimize/m.c \
+	Optimize/old_methods.c

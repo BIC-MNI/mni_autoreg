@@ -1,3 +1,10 @@
+Sat Jan 29 10:02:19 2000  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* Proglib/Makefile.am: 
+	* minctracc/Makefile.am:
+	* minctracc/Extra_progs/Makefile.am: list unused files as
+	oddities.
+
 Fri Jan 28 12:22:46 2000  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* Makefile.am (EXTRA_DIST): add config.h.in.

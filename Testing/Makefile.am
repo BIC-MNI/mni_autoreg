@@ -17,7 +17,7 @@ TEST_LIST = \
 check-local: banner $(TEST_LIST)
 	@echo "Tests completed successfully."
 
-clean:
+clean-local:
 	rm -f *.test *.act *.mnc *.xfm *reals
 
 # -------banner message------------------
