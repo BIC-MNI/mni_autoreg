@@ -15,17 +15,24 @@
 
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 1.5  1994-06-06 09:32:41  louis
-@MODIFIED   : working version: 2d deformations based on local neighbourhood correlation.
-@MODIFIED   : numerous small bugs over 1.4.  Major bug fix: the routine will now 
-@MODIFIED   : properly calculate the additional warp (instead of the absolute amount)
-@MODIFIED   : that needs to be added.  This was due to a mis-type in a call to
-@MODIFIED   : go_get_values_with_offset.  It was being called with points from the
-@MODIFIED   : target volume, when they should have been from the source vol.
+@MODIFIED   : Revision 1.6  1994-06-06 18:45:24  louis
+@MODIFIED   : working version: clamp and blur of deformation lattice now ensures
+@MODIFIED   : a smooth recovered deformation.  Unfortunately, the r = cost-similarity
+@MODIFIED   : function used in the optimization is too heavy on the cost_fn.  This has
+@MODIFIED   : to get fixed...
 @MODIFIED   :
-@MODIFIED   : Some fixes still need to be done: smoothing, clamp 1st deriv, balence
-@MODIFIED   : of r = cost +  similarity.
 @MODIFIED   :
+ * Revision 1.5  94/06/06  09:32:41  louis
+ * working version: 2d deformations based on local neighbourhood correlation.
+ * numerous small bugs over 1.4.  Major bug fix: the routine will now 
+ * properly calculate the additional warp (instead of the absolute amount)
+ * that needs to be added.  This was due to a mis-type in a call to
+ * go_get_values_with_offset.  It was being called with points from the
+ * target volume, when they should have been from the source vol.
+ * 
+ * Some fixes still need to be done: smoothing, clamp 1st deriv, balence
+ * of r = cost +  similarity.
+ * 
  * Revision 1.4  94/06/02  20:12:07  louis
  * made modifications to allow deformations to be calulated in 2D on slices. 
  * changes had to be made in set_up_lattice, init_lattice when defining
@@ -50,7 +57,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 1.5 1994-06-06 09:32:41 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 1.6 1994-06-06 18:45:24 louis Exp $";
 #endif
 
 
@@ -195,8 +202,7 @@ private float interp_data_along_gradient(Real dist_from, int inter_type,
 public void clamp_warp_deriv(Volume dx, Volume dy, Volume dz);
 
 
-public void get_average_warp_of_neighbours(int sizes[],
-					   Volume dx, Volume dy, Volume dz, 
+public void get_average_warp_of_neighbours(Volume dx, Volume dy, Volume dz, 
 					   int i,int j,int k,
 					   Real *mx, Real *my, Real *mz);
 
@@ -267,7 +273,7 @@ public Status do_non_linear_optimization(Volume d1,
     def_x, def_y, def_z, 
     wx,wy,wz,
     mx,my,mz,
-    tx,ty,tz, xx,yy,zz,
+    tx,ty,tz, 
     displace,
     zero,
     threshold1,
@@ -467,7 +473,7 @@ public Status do_non_linear_optimization(Volume d1,
 
 				/* now get the mean warped position of the target's neighbours */
 
-	    get_average_warp_of_neighbours(sizes, current->dx, current->dy, current->dz, 
+	    get_average_warp_of_neighbours(current->dx, current->dy, current->dz, 
 					   i,j,k,
 					   &mx, &my, &mz);
 
@@ -485,6 +491,8 @@ public Status do_non_linear_optimization(Volume d1,
 							     iters, iteration_limit,
 							     &nfunks,
 							     2);
+	    def_z = 0.0;
+
 	    if (result == -40.0) {
 	      nodes_tried++;
 	      result = 0.0;
@@ -537,16 +545,21 @@ public Status do_non_linear_optimization(Volume d1,
 				   next iteration will use all the data
 				   caluculated thus far.                    */
 
-    add_additional_warp_to_current(current->dx, current->dy, current->dz,
+    add_additional_warp_to_current(
 				   additional_dx, additional_dy, additional_dz,
+				   current->dx, current->dy, current->dz,
 				   iteration_weight);
+
+    smooth_the_warp(current->dx, current->dy, current->dz,
+		    additional_dx, additional_dy, additional_dz);
+    
 
 /*                                 clamp the data so that the 1st derivative of
 				   the deformation field does not exceed 1.0*step
 				   in magnitude 
 
-     clamp_warp_deriv(current->dx, current->dy, current->dz); */
-
+     clamp_warp_deriv(current->dx, current->dy, current->dz); 
+*/
 				/* reset the next iteration's warp. */
 
     zero = CONVERT_VALUE_TO_VOXEL(additional_dx, 0.0);
@@ -1177,6 +1190,7 @@ private Real optimize_3D_deformation_for_single_node(Real spacing,
     simplex_size,
     result,
     tx,ty,tz, 
+    xp,yp,zp, 
     px_dir, py_dir, pz_dir,
     d1x_dir, d1y_dir, d1z_dir,
     d2x_dir, d2y_dir, d2z_dir;
@@ -1213,7 +1227,7 @@ private Real optimize_3D_deformation_for_single_node(Real spacing,
 
        src_x, src_y, src_z - point in source volume
        tx, ty, tz          - best point in target volume, so far.
-       def_x,def_y,def_z   - currently contain the additional def needed to 
+       def_x,def_y,def_z   - currently contains the additional def needed to 
                              take src_x,src_y,src_z mid-way to the neighbour's mean-point
 			     (which is now stored in tx,ty,tz).
                     
@@ -1238,13 +1252,14 @@ private Real optimize_3D_deformation_for_single_node(Real spacing,
     TY = vector(1,len);
     TZ = vector(1,len);
 
-				/* reset the deformation, set by
-				   get_best_start_from_neightbours */
 
-    *def_x = 0.0; *def_y = 0.0; *def_z = 0.0;
+    general_inverse_transform_point(Gglobals->trans_info.transformation, 
+				    tx,  ty,  tz,
+				    &xp, &yp, &zp);
 
 				/* build the lattice of points, in the source volume */
-    build_source_lattice(src_x, src_y, src_z,
+				/* taking into consideration the warp from neighbours */
+    build_source_lattice(xp, yp, zp, 
 			 SX,    SY,    SZ,
 			 spacing*3, spacing*3, spacing*3, /* lattice size= 1.5*fwhm */
 			 numsteps,  numsteps,  numsteps,
@@ -1255,13 +1270,21 @@ private Real optimize_3D_deformation_for_single_node(Real spacing,
     build_target_lattice(SX,SY,SZ,
 			 TX,TY,TZ,
 			 len);
-    
+
+				/* build the source lattice (without warp),
+				   that will be used in the optimization below */
+    build_source_lattice(src_x, src_y, src_z,
+			 SX,    SY,    SZ,
+			 spacing*3, spacing*3, spacing*3, /* lattice size= 1.5*fwhm */
+			 numsteps,  numsteps,  numsteps,
+			 ndim);
     
     go_get_samples(Gd2_dxyz, TX,TY,TZ, Ga2xyz, len, 3);
 
 /*
     go_get_samples(Gd1_dxyz, SX,SY,SZ, Ga1xyz, len, 3);
- for_inclusive(i,1,len) print ("%d: %7.2f %7.2f %7.2f %7.2f %7.2f %7.2f \n",i, SX[i], SY[i], SZ[i],TX[i], TY[i], TZ[i]);
+ for_inclusive(i,1,len) print ("%d: %7.2f %7.2f %7.2f %7.2f %7.2f %7.2f \n",i, 
+                               SX[i], SY[i], SZ[i],TX[i], TY[i], TZ[i]);
 
 */
 
@@ -1526,7 +1549,6 @@ private float gauss_3d(float c,
       dy = muy-y;
       dz = muz-z;
       
-      two_pi3 = 8*PI*PI*PI;
       
       t1 = c; /*/(sigma_x*sigma_y*sigma_z*fsqrt(two_pi3)); */
       
@@ -1599,7 +1621,7 @@ private Real cost_fn(float x, float y, float z, Real max_length)
   v = sqrt(v2);
 
   if (v<max_length)
-    d = 0.5 * v2 / (max_length*max_length - v2);
+    d = 0.5 * v2 / (2.25*max_length*max_length - v2);
   else
     d = FLT_MAX;
 

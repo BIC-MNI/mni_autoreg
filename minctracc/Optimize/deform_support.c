@@ -20,17 +20,24 @@
 
 @CREATED    : Tue Feb 22 08:37:49 EST 1994
 @MODIFIED   : $Log: deform_support.c,v $
-@MODIFIED   : Revision 1.2  1994-06-02 20:15:56  louis
-@MODIFIED   : made modifications to allow deformations to be calulated in 2D on slices. 
-@MODIFIED   : changes had to be made in set_up_lattice, init_lattice when defining
-@MODIFIED   : the special case of a single slice....
-@MODIFIED   : Build_default_deformation_field also had to reflect these changes.
-@MODIFIED   : do_non-linear-optimization also had to check if one of dimensions had
-@MODIFIED   : a single element.
-@MODIFIED   : All these changes were made, and slightly tested.  Another type of
-@MODIFIED   : deformation strategy will be necessary (to replace the deformation 
-@MODIFIED   : perpendicular to the surface, since it does not work well).
+@MODIFIED   : Revision 1.3  1994-06-06 18:46:53  louis
+@MODIFIED   : working version: clamp and blur of deformation lattice now ensures
+@MODIFIED   : a smooth recovered deformation.  Unfortunately, the r = cost-similarity
+@MODIFIED   : function used in the optimization is too heavy on the cost_fn.  This has
+@MODIFIED   : to get fixed...
 @MODIFIED   :
+@MODIFIED   :
+ * Revision 1.2  94/06/02  20:15:56  louis
+ * made modifications to allow deformations to be calulated in 2D on slices. 
+ * changes had to be made in set_up_lattice, init_lattice when defining
+ * the special case of a single slice....
+ * Build_default_deformation_field also had to reflect these changes.
+ * do_non-linear-optimization also had to check if one of dimensions had
+ * a single element.
+ * All these changes were made, and slightly tested.  Another type of
+ * deformation strategy will be necessary (to replace the deformation 
+ * perpendicular to the surface, since it does not work well).
+ * 
  * Revision 1.1  94/04/06  11:47:27  louis
  * Initial revision
  * 
@@ -38,7 +45,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 1.2 1994-06-02 20:15:56 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 1.3 1994-06-06 18:46:53 louis Exp $";
 #endif
 
 #include "volume_io.h"
@@ -452,12 +459,12 @@ public Real find_offset_to_match(Line_data *m,
 
 
 
-public void get_average_warp_of_neighbours(int sizes[],Volume dx, Volume dy, Volume dz, 
+public void get_average_warp_of_neighbours(Volume dx, Volume dy, Volume dz, 
 					   int i,int j,int k,
 					   Real *mx, Real *my, Real *mz)
 {
   int 
-    count;
+    count, sizes[3];
   Real 
     ri,rj,rk,
     voxel,
@@ -518,8 +525,10 @@ public void get_average_warp_of_neighbours(int sizes[],Volume dx, Volume dy, Vol
   *mx /= count; *my /= count; *mz /= count; /* average warp of neighbours, in target space  */
 }
 
-public void add_additional_warp_to_current(Volume dx, Volume dy, Volume dz,
-					   Volume adx, Volume ady, Volume adz,
+				/* add additional to current, return answer in additional */
+
+public void add_additional_warp_to_current(Volume adx, Volume ady, Volume adz,
+					   Volume dx, Volume dy, Volume dz,
 					   Real weight)
 {
   int
@@ -549,18 +558,18 @@ public void add_additional_warp_to_current(Volume dx, Volume dy, Volume dz,
 	
 	GET_VOXEL_3D(voxel, adx, i,j,k); value = CONVERT_VOXEL_TO_VALUE( adx, voxel ); 
 	GET_VOXEL_3D(voxel, dx,  i,j,k); value2 = CONVERT_VOXEL_TO_VALUE( dx, voxel ); value2 += value*weight;
-	voxel = CONVERT_VALUE_TO_VOXEL(dx, value2);
-	SET_VOXEL_3D(dx, i,j,k, voxel); 
+	voxel = CONVERT_VALUE_TO_VOXEL(adx, value2);
+	SET_VOXEL_3D(adx, i,j,k, voxel); 
 
 	GET_VOXEL_3D(voxel, ady, i,j,k); value = CONVERT_VOXEL_TO_VALUE( ady, voxel ); 
 	GET_VOXEL_3D(voxel, dy,  i,j,k); value2 = CONVERT_VOXEL_TO_VALUE( dy, voxel ); value2 += value*weight;
-	voxel = CONVERT_VALUE_TO_VOXEL(dy, value2);
-	SET_VOXEL_3D(dy, i,j,k, voxel); 
+	voxel = CONVERT_VALUE_TO_VOXEL(ady, value2);
+	SET_VOXEL_3D(ady, i,j,k, voxel); 
 		
 	GET_VOXEL_3D(voxel, adz, i,j,k); value = CONVERT_VOXEL_TO_VALUE( adz, voxel ); 
 	GET_VOXEL_3D(voxel, dz,  i,j,k); value2 = CONVERT_VOXEL_TO_VALUE( dz, voxel ); value2 += value*weight;
-	voxel = CONVERT_VALUE_TO_VOXEL(dz, value2);
-	SET_VOXEL_3D(dz, i,j,k, voxel); 
+	voxel = CONVERT_VALUE_TO_VOXEL(adz, value2);
+	SET_VOXEL_3D(adz, i,j,k, voxel); 
 		
       }
     }
@@ -713,6 +722,86 @@ public void clamp_warp_deriv(Volume dx, Volume dy, Volume dz)
     
 */
 public void smooth_the_warp(Volume smooth_dx, Volume smooth_dy, Volume smooth_dz, 
+			    Volume warp_dx, Volume warp_dy, Volume warp_dz) 
+{
+  
+  int 
+    i,j,k,loop_start[3], loop_end[3],sizes[3];
+  Real 
+    wx, wy, wz, mx, my, mz, tx,ty,tz,
+    voxel, value, value2;
+  progress_struct
+    progress;
+
+  get_volume_sizes(warp_dx, sizes);
+  
+  for_less(i,0,3) {
+    if (sizes[i]>3) {
+      loop_start[i] = 1;
+      loop_end[i] = sizes[i]-1;
+    }
+    else {
+      loop_start[i]=0;
+      loop_end[i] = sizes[i];
+    }
+  }
+
+
+  initialize_progress_report( &progress, FALSE, 
+			     (loop_end[0]-loop_start[0])*(loop_end[1]-loop_start[1]) + 1,
+			     "Smoothing deformations" );
+
+  for_less(i,loop_start[0],loop_end[0]) {
+    for_less(j,loop_start[1],loop_end[1]) {
+      for_less(k,loop_start[2],loop_end[2]){
+
+	convert_3D_voxel_to_world(warp_dx, i, j, k, &tx, &ty, &tz);
+
+	GET_VOXEL_3D(voxel, warp_dx, i,j,k); 
+	wx = CONVERT_VOXEL_TO_VALUE( warp_dx, voxel ); 
+	GET_VOXEL_3D(voxel, warp_dy, i,j,k); 
+	wy = CONVERT_VOXEL_TO_VALUE( warp_dy, voxel ); 
+	GET_VOXEL_3D(voxel, warp_dz, i,j,k); 
+	wz = CONVERT_VOXEL_TO_VALUE( warp_dz, voxel ); 
+
+	tx += wx; ty += wy; tz += wz;
+
+	get_average_warp_of_neighbours(warp_dx, warp_dy, warp_dz, 
+				       i,j,k,
+				       &mx, &my, &mz);
+
+	wx += (1.0 - FRAC1)*(mx - tx);
+	wy += (1.0 - FRAC1)*(my - ty);
+	wz += (1.0 - FRAC1)*(mz - tz);
+
+	voxel = CONVERT_VALUE_TO_VOXEL(smooth_dx, wx);
+	SET_VOXEL_3D(smooth_dx, i,j,k, voxel); 
+	voxel = CONVERT_VALUE_TO_VOXEL(smooth_dy, wy);
+	SET_VOXEL_3D(smooth_dy, i,j,k, voxel); 
+	voxel = CONVERT_VALUE_TO_VOXEL(smooth_dz, wz);
+	SET_VOXEL_3D(smooth_dz, i,j,k, voxel); 
+
+      }
+      update_progress_report( &progress, sizes[1]*i+j+1 );
+
+    }
+    terminate_progress_report( &progress );
+  }
+}
+
+/*******************************************************************************/
+/*  procedure: smooth_the_warp
+
+    desc: this procedure will smooth the current warp stored in warp_d? and 
+          return the smoothed warp in smooth_d?
+
+    meth: smoothing is accomplished by averaging the 6 neighbour of each node
+          with the value at that node.
+
+	  new_val = FRAC1*old_val + (1-FRAC1)*sum_6_neighbours(val);
+    
+*/
+public void smooth2_the_warp(Volume smooth_dx, Volume smooth_dy, Volume smooth_dz, 
 			     Volume warp_dx, Volume warp_dy, Volume warp_dz) {
 
   int i,j,k,sizes[3];
@@ -743,7 +832,7 @@ public void smooth_the_warp(Volume smooth_dx, Volume smooth_dy, Volume smooth_dz
 	value2 = CONVERT_VOXEL_TO_VALUE( warp_dx, voxel ); value += value2*FRAC2; 
 	GET_VOXEL_3D(voxel, warp_dx, i,j,k-1); 
 	value2 = CONVERT_VOXEL_TO_VALUE( warp_dx, voxel ); value += value2*FRAC2; 
-	voxel = CONVERT_VALUE_TO_VOXEL(warp_dx, value);
+	voxel = CONVERT_VALUE_TO_VOXEL(smooth_dx, value);
 	SET_VOXEL_3D(smooth_dx, i,j,k, voxel); 
 	
 	GET_VOXEL_3D(voxel, warp_dy, i,j,k); 
