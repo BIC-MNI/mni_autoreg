@@ -17,7 +17,10 @@
 @CREATED    : Thu May 27 16:50:50 EST 1993
                   
 @MODIFIED   :  $Log: init_params.c,v $
-@MODIFIED   :  Revision 96.5  2003-02-04 06:08:45  stever
+@MODIFIED   :  Revision 96.6  2003-02-05 21:27:26  lenezet
+@MODIFIED   :  array size correction.
+@MODIFIED   :
+@MODIFIED   :  Revision 96.5  2003/02/04 06:08:45  stever
 @MODIFIED   :  Add support for correlation coefficient and sum-of-squared difference.
 @MODIFIED   :
 @MODIFIED   :  Revision 96.4  2002/12/13 21:16:30  lenezet
@@ -95,7 +98,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 96.5 2003-02-04 06:08:45 stever Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 96.6 2003-02-05 21:27:26 lenezet Exp $";
 #endif
 
 
@@ -197,6 +200,7 @@ BOOLEAN vol_cog(Volume d1, Volume m1, float *centroid, double *step)
   sz = 0.0;
   si = 0.0;
 
+ 
 
   for_less(s,0,(int)(count[SLICE_IND]*abs(step[SLICE_IND]))) {
 
@@ -306,18 +310,20 @@ BOOLEAN vol_cov(Volume d1, Volume m1, float *centroid, float **covar, double *st
     true_value;
 
   int
-    count[3];
+    count[MAX_DIMENSIONS];
   double 
-    start[3],
-    wstart[3],
-    local_step[3];
+    start[MAX_DIMENSIONS],
+    wstart[MAX_DIMENSIONS],
+    local_step[MAX_DIMENSIONS];
   VectorR
-    directions[3];  
+    directions[MAX_DIMENSIONS];  
 
 				/* build default sampling lattice info
 				   on the data set (d1)               */
+
   set_up_lattice(d1, step,
 		 start, wstart, count, local_step, directions);
+
 
   fill_Point( starting_position, start[0], start[1], start[2]);
   
@@ -408,13 +414,13 @@ BOOLEAN vol_cov(Volume d1, Volume m1, float *centroid, float **covar, double *st
 BOOLEAN vol_to_cov(Volume d1, Volume m1, float *centroid, float **covar, double *step)
 {
   int
-    i,count[3];
+    i,count[MAX_DIMENSIONS];
   double 
-    start[3],
-    wstart[3],
-    local_step[3];
+    start[MAX_DIMENSIONS],
+    wstart[MAX_DIMENSIONS],
+    local_step[MAX_DIMENSIONS];
   VectorR
-    directions[3];  
+    directions[MAX_DIMENSIONS];  
 
   if (main_args.flags.debug) {
 
@@ -532,10 +538,12 @@ private  BOOLEAN init_transformation(
   stat = TRUE;
 
   /* =========  calculate COG and COV for volume 1   =======  */
-
+  print("init_transformation ligne 553\n");
 				/* if center already set, then don't recalculate */
   if ( !forced_center) {
+    print("avant vol_cog d1\n");
     stat = vol_cog(d1, m1, c1, step);
+    print("apres vol_cog d1\n");
     if (verbose>0 && stat) print ("COG of v1: %f %f %f\n",c1[1],c1[2],c1[3]);
   }
   else {
