@@ -20,10 +20,40 @@
 
 @CREATED    : Tue Feb 22 08:37:49 EST 1994
 @MODIFIED   : $Log: deform_support.c,v $
-@MODIFIED   : Revision 1.11  1996-03-07 13:25:19  louis
-@MODIFIED   : small reorganisation of procedures and working version of non-isotropic
-@MODIFIED   : smoothing.
+@MODIFIED   : Revision 1.12  1996-03-25 10:33:15  louis
+@MODIFIED   : used inter_type to specify degress_continuity in the call to
+@MODIFIED   : evaluate_volume_in_world() in procedure go_get_samples_in_source().
 @MODIFIED   :
+@MODIFIED   : ----
+@MODIFIED   : added support for tri-linear interpolation in
+@MODIFIED   : go_get_samples_with_offset() since the local objective function is not
+@MODIFIED   : smooth (but is actually step-wise) with NN interpolation.  This is
+@MODIFIED   : specified by an extra boolean parameter to go_get_samples_with_offset
+@MODIFIED   : that should be TRUE to use NN interpolation.  This is controled from
+@MODIFIED   : the command line by the -nearest_neighbour / -trilinear options.
+@MODIFIED   :
+@MODIFIED   : NOTE: NN is faster, but the local obj function will have steps (ie it
+@MODIFIED   :       will have plateaus and discontinuous changes).  Also, there
+@MODIFIED   :       seems to be a `drapery' effect, such that the function is _not_
+@MODIFIED   :       monotonically increasing with mis-registration -> thus yielding
+@MODIFIED   :       local minima.
+@MODIFIED   :       -> trilin is the default, and should be used unless you really
+@MODIFIED   :          know what you are doing!
+@MODIFIED   :
+@MODIFIED   : ----
+@MODIFIED   :
+@MODIFIED   : removed dx += 0.5; dy += 0.5; dz += 0.5.; in
+@MODIFIED   : go_get_samples_with_offset().  this was originally supposed to give a
+@MODIFIED   : `rounding' effect for NN interpolation, but is no longer needed with
+@MODIFIED   : tri-linear interpolation.  IN FACT: keeping it caused a certain bias
+@MODIFIED   : so that a deformation was returned _even_ when an object was matched
+@MODIFIED   : to itself; after removal- there are only small sporadic deviations
+@MODIFIED   : from a null deformation field.
+@MODIFIED   :
+ * Revision 1.11  1996/03/07  13:25:19  louis
+ * small reorganisation of procedures and working version of non-isotropic
+ * smoothing.
+ *
  * Revision 1.10  1995/10/06  09:25:02  louis
  * removed references to line_data.h since it hos not been used in a while.
  *
@@ -86,7 +116,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 1.11 1996-03-07 13:25:19 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 1.12 1996-03-25 10:33:15 louis Exp $";
 #endif
 
 #include <limits.h>
@@ -606,10 +636,23 @@ public void smooth_the_warp(General_transform *smoothed,
 
    Here we must store the mean_vector location in additional_warp for
    all nodes where there was no estimatation possible (and thus no
-   local smoothing completed).  This will achieve a homogeneous smoothing
-   throughout the entire field.
+   local smoothing completed).  This will achieve a homogeneous
+   smoothing throughout the entire field.  (Here, smoothing_weight is
+   effectively equal to 1.0 - since the local node has no information
+   available to it.
 
-*/
+   The idea is to set the node value in additional_vol, so that when
+   added to the corresponding node value in current_vol, a smoothed
+   vector field results.
+   ie 
+      additional = absolute_mean_vector - absolute_current_vector
+
+   This procedure should only be called when
+   Gglobals->trans_info.use_local_smoothing is true.  (When false,
+   extrapolation is not needed, since it is addressed in the global
+   smoothing process.
+
+      */
 
 public void extrapolate_to_unestimated_nodes(General_transform *current,
 					     General_transform *additional,
@@ -631,8 +674,8 @@ public void extrapolate_to_unestimated_nodes(General_transform *current,
     end[MAX_DIMENSIONS],
     i;
   Real 
-    value[3], 
-    wx, wy, wz, 
+    current_deform[3], 
+    additional_deform[3], 
     mx, my, mz;
   progress_struct
     progress;
@@ -704,23 +747,21 @@ public void extrapolate_to_unestimated_nodes(General_transform *current,
 				    flag_index[ Y ],
 				    flag_index[ Z ],
 				    0, 0) < 1.0) {
-
+	  /* then, this node has not been estimated at this iteration,
+             so we have to interpolate a deformation value from
+             neighbouring nodes. */
 	  many++;
 				/* go get the current warp vector for
                                    this node. */
 	  
 	  for_less(index[ xyzv[Z+1] ], start[ Z+1 ], end[ Z+1 ]) {
 
-	    value[index[ xyzv[Z+1] ]] = 
+	    current_deform[index[ xyzv[Z+1] ]] = 
 	      get_volume_real_value(current->displacement_volume,
 				    index[0],index[1],index[2],
 				    index[3],index[4]);
 
 	  }
-				/* store the current warp in wx, wy,
-                                   wz */
-
-	  wx = value[X]; wy = value[Y]; wz = value[Z]; 
 
 	  index[ xyzv[Z+1]] = 0;
 
@@ -732,13 +773,19 @@ public void extrapolate_to_unestimated_nodes(General_transform *current,
 						       index, 2 ,
 						       &mx, &my, &mz) ) {
 	    
-	    value[X] = smoothing_weight*(mx - value[X]); 
-	    value[Y] = smoothing_weight*(my - value[Y]); 
-	    value[Z] = smoothing_weight*(mz - value[Z]); 
-
+	    /*
+	       this was (3.11.96)
+	       current_deform[X] = smoothing_weight*(mx - current_deform[X]); 
+	       current_deform[Y] = smoothing_weight*(my - current_deform[Y]); 
+	       current_deform[Z] = smoothing_weight*(mz - current_deform[Z]); 
+	       now changed to have effective smoothing_weight=1.0
+	    */
+	    additional_deform[X] = 0.5*(mx - current_deform[X]); 
+	    additional_deform[Y] = 0.5*(my - current_deform[Y]); 
+	    additional_deform[Z] = 0.5*(mz - current_deform[Z]); 
 	  } 
 	  else {
-	    value[X] = value[Y] = value[Z] = 0.0;
+	    additional_deform[X] = additional_deform[Y] = additional_deform[Z] = 0.0;
 	  }
 	  
 				/* now put the averaged vector into
@@ -748,7 +795,7 @@ public void extrapolate_to_unestimated_nodes(General_transform *current,
 	    set_volume_real_value(additional->displacement_volume,
 				  index[0],index[1],index[2],
 				  index[3],index[4],
-				  value[index[ xyzv[Z+1] ]] );  
+				  additional_deform[index[ xyzv[Z+1] ]] );  
 	}
 	  
       }
@@ -1259,7 +1306,7 @@ public void go_get_samples_in_source(Volume data,
   for_inclusive(c,1,len) {
     evaluate_volume_in_world(data,
 			     (Real)x[c], (Real)y[c], (Real)z[c], 
-			     -1,
+			     inter_type,
 			     TRUE,
 			     0.0, 
 			     val,
@@ -1288,6 +1335,11 @@ public void go_get_samples_in_source(Volume data,
    processing, the first dimension (x[]) is assumed to be the slowest
    varying, and the deformation in dx=0.
 
+   CAVEAT 1: only nearest neighbour and tri-linear interpolation
+             are supported.
+   CAVEAT 2: only Volume data types of UNSIGNED_BYTE, SIGNED_SHORT, and
+             UNSIGNED_SHORT are supported.
+
 */
 
 public float go_get_samples_with_offset(Volume data,
@@ -1295,7 +1347,8 @@ public float go_get_samples_with_offset(Volume data,
 					Real  dx, Real  dy, Real dz,
 					int obj_func,
 					int len, 
-					float sqrt_s1, float *a1)
+					float sqrt_s1, float *a1,
+					BOOLEAN use_nearest_neighbour)
 {
   float
     tmp,
@@ -1309,10 +1362,19 @@ public float go_get_samples_with_offset(Volume data,
   float
     f_trans, f_scale;
 
+  static double v0, v1, v2;
+  static double f0, f1, f2, r0, r1, r2, r1r2, r1f2, f1r2, f1f2;
+  static double v000, v001, v010, v011, v100, v101, v110, v111;
+
   unsigned char  ***byte_ptr;
   unsigned short ***ushort_ptr;
            short ***sshort_ptr;
+
+  Data_types 
+    data_type;
   
+
+  data_type = get_volume_data_type(data);
   get_volume_sizes(data, sizes);  
   xs = sizes[0];  
   ys = sizes[1];  
@@ -1321,150 +1383,336 @@ public float go_get_samples_with_offset(Volume data,
   f_trans = data->real_value_translation;
   f_scale = data->real_value_scale;
 
-  dx += 0.5;
-  dy += 0.5;
-  dz += 0.5;
 
   s1 = 0.0;
   s3 = 0.0;
 
   ++a1; 
 
-  switch( data->data_type ) {
-  case UNSIGNED_BYTE:  
 
-    byte_ptr = data->data;
+  if (use_nearest_neighbour) {
+				/* then do fast NN interpolation */
 
-    ++x; ++y; ++z; 
-
-    for_inclusive(c,1,len) {
+    dx += 0.5;			/* to achieve `rounding' for ind0, ind1 and */
+    dy += 0.5;			/* ind2 below */
+    dz += 0.5;
+    
+    switch( data_type ) {
+    case UNSIGNED_BYTE:  
       
-      ind0 = (int) ( *x++ + dx );
-      ind1 = (int) ( *y++ + dy );
-      ind2 = (int) ( *z++ + dz );
+      byte_ptr = data->data;
       
-      if (ind0>=0 && ind0<xs &&
-	  ind1>=0 && ind1<ys &&
-	  ind2>=0 && ind2<zs) {
-	sample = (float)(byte_ptr[ind0][ind1][ind2]) * f_scale + f_trans;
+      ++x; ++y; ++z; 
+      
+      for_inclusive(c,1,len) {
+	
+	/*
+	   this is code to test timing of David's evaluate_volume_in_world()
+	   interpolation code.  While it is _VERY_ general, the eval_vol_in_world()'s
+	   NN interpolation is approximately 8-9 times slower than the bit of 
+	   fast NN code below.
+	   
+	   Real
+	   sampleR,index[5], wx, wy,wz;
+	   
+	   index[0] = (Real) ( *x++ + dx );
+	   index[1] = (Real) ( *y++ + dy );
+	   index[2] = (Real) ( *z++ + dz );
+	   index[3] = 0.0;
+	   index[4] = 0.0;
+	   
+	   convert_voxel_to_world(data, index, &wx, &wy, &wz );
+	   
+	   evaluate_volume_in_world(data, wx, wy, wz,
+				    0, TRUE, 0.0, &sampleR,
+				    NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
+	   sample = (float)sampleR;
+	*/
+	
+	ind0 = (int) ( *x++ + dx );
+	ind1 = (int) ( *y++ + dy );
+	ind2 = (int) ( *z++ + dz );
+	
+	if (ind0>=0 && ind0<xs &&
+	    ind1>=0 && ind1<ys &&
+	    ind2>=0 && ind2<zs) {
+	  sample = (float)(byte_ptr[ind0][ind1][ind2]) * f_scale + f_trans;
+	}
+	else
+	  sample = 0.0;
+		
+	
+#include "switch_obj_func.c"
+
       }
-      else
-	sample = 0.0;
+      break;
+    case SIGNED_SHORT:  
       
-      switch (obj_func) {
-      case NONLIN_XCORR:
-	s1 += *a1++ * sample;
-	s3 += sample * sample;
-	break;
-      case NONLIN_DIFF:
-	tmp = *a1++ - sample;
-	if (tmp<0) tmp *= -1.0;
-	s1 -= tmp;
-	break;
-      case NONLIN_LABEL:
-	tmp = *a1++ - sample;
-	if (tmp<0) tmp *= -1.0;
-	if (tmp < 0.000001)
-	  s1 += 1.0;
-	break;
-      default:
-	print_error_and_line_num("Objective function %d not supported in go_get_samples_with_offset",__FILE__, __LINE__,obj_func);
+      sshort_ptr = data->data;
+      
+      ++x; ++y; ++z; 
+      
+      for_inclusive(c,1,len) {
+	
+	ind0 = (int) ( *x++ + dx );
+	ind1 = (int) ( *y++ + dy );
+	ind2 = (int) ( *z++ + dz );
+	
+	if (ind0>=0 && ind0<xs &&
+	    ind1>=0 && ind1<ys &&
+	    ind2>=0 && ind2<zs) {
+	  sample = sshort_ptr[ind0][ind1][ind2] * f_scale + f_trans;
+	}
+	else
+	  sample = 0.0;
+	
+#include "switch_obj_func.c"
+	
       }
+      break;
+    case UNSIGNED_SHORT:  
+      
+      ushort_ptr = data->data;
+      
+      ++x; ++y; ++z; 
+      
+      for_inclusive(c,1,len) {
+	
+	ind0 = (int) ( *x++ + dx );
+	ind1 = (int) ( *y++ + dy );
+	ind2 = (int) ( *z++ + dz );
+	
+	if (ind0>=0 && ind0<xs &&
+	    ind1>=0 && ind1<ys &&
+	    ind2>=0 && ind2<zs) {
+	  sample = (float)(ushort_ptr[ind0][ind1][ind2]) * f_scale + f_trans;
+	}
+	else
+	  sample = 0.0;
+	
+#include "switch_obj_func.c"
 
+      }
+      break;
+    default:
+      print_error_and_line_num("Data type not supported in go_get_samples_with_offset (only signed_byte, signed_short, unsigned_short allowed)",__FILE__, __LINE__);
     }
-    break;
-  case SIGNED_SHORT:  
-
-    sshort_ptr = data->data;
-
-    ++x; ++y; ++z; 
-
-    for_inclusive(c,1,len) {
-      
-      ind0 = (int) ( *x++ + dx );
-      ind1 = (int) ( *y++ + dy );
-      ind2 = (int) ( *z++ + dz );
-      
-      if (ind0>=0 && ind0<xs &&
-	  ind1>=0 && ind1<ys &&
-	  ind2>=0 && ind2<zs) {
-	sample = sshort_ptr[ind0][ind1][ind2] * f_scale + f_trans;
-      }
-      else
-	sample = 0.0;
-      
-      switch (obj_func) {
-      case NONLIN_XCORR:
-	s1 += *a1++ * sample;
-	s3 += sample * sample;
-	break;
-      case NONLIN_DIFF:
-	tmp = *a1++ - sample;
-	if (tmp<0) tmp *= -1.0;
-	s1 -= tmp;
-	break;
-      case NONLIN_LABEL:
-	tmp = *a1++ - sample;
-	if (tmp<0) tmp *= -1.0;
-	if (tmp < 0.01)
-	  s1 += 1.0;
-	break;
-      default:
-	print_error_and_line_num("Objective function %d not supported in go_get_samples_with_offset",__FILE__, __LINE__,obj_func);
-      }
-      
-
-    }
-    break;
-  case UNSIGNED_SHORT:  
-
-    ushort_ptr = data->data;
-
-    ++x; ++y; ++z; 
-
-    for_inclusive(c,1,len) {
-      
-      ind0 = (int) ( *x++ + dx );
-      ind1 = (int) ( *y++ + dy );
-      ind2 = (int) ( *z++ + dz );
-      
-      if (ind0>=0 && ind0<xs &&
-	  ind1>=0 && ind1<ys &&
-	  ind2>=0 && ind2<zs) {
-	sample = (float)(ushort_ptr[ind0][ind1][ind2]) * f_scale + f_trans;
-      }
-      else
-	sample = 0.0;
-      
-      switch (obj_func) {
-      case NONLIN_XCORR:
-	s1 += *a1++ * sample;
-	s3 += sample * sample;
-	break;
-      case NONLIN_DIFF:
-	tmp = *a1++ - sample;
-	if (tmp<0) tmp *= -1.0;
-	s1 -= tmp;
-	break;
-      case NONLIN_LABEL:
-	tmp = *a1++ - sample;
-	if (tmp<0) tmp *= -1.0;
-	if (tmp < 0.01)
-	  s1 += 1.0;
-	break;
-      default:
-	print_error_and_line_num("Objective function %d not supported in go_get_samples_with_offset",__FILE__, __LINE__,obj_func);
-      }
-            
-
-    }
-    break;
-  default:
-    print_error_and_line_num("Data type not supported in go_get_samples_with_offset (only signed_byte, signed_short, unsigned_short allowed)",__FILE__, __LINE__);
+    
   }
+  else {			/* then do fast trilinear interpolation */
+    
+    switch( data_type ) {
+    case UNSIGNED_BYTE:  
+      
+      byte_ptr = data->data;
+      
+      ++x; ++y; ++z; 
+      
+      for_inclusive(c,1,len) {
+	
+	/*  fast tri-linear interplation */
+	
+	v0 = (Real) ( *x++ + dx );
+	v1 = (Real) ( *y++ + dy );
+	v2 = (Real) ( *z++ + dz );
+	
+	ind0 = (int)v0;
+	ind1 = (int)v1;
+	ind2 = (int)v2;
+	
+	if (ind0>=0 && ind0<(xs-1) &&
+	    ind1>=0 && ind1<(ys-1) &&
+	    ind2>=0 && ind2<(zs-1)) {
+	  
+	  /* get the data */
+	  v000 = (Real)(byte_ptr[ind0  ][ind1  ][ind2  ]);
+	  v001 = (Real)(byte_ptr[ind0  ][ind1  ][ind2+1]);
+	  v010 = (Real)(byte_ptr[ind0  ][ind1+1][ind2  ]);
+	  v011 = (Real)(byte_ptr[ind0  ][ind1+1][ind2+1]);
+	  v100 = (Real)(byte_ptr[ind0+1][ind1  ][ind2  ]);
+	  v101 = (Real)(byte_ptr[ind0+1][ind1  ][ind2+1]);
+	  v110 = (Real)(byte_ptr[ind0+1][ind1+1][ind2  ]);
+	  v111 = (Real)(byte_ptr[ind0+1][ind1+1][ind2+1]);
+	  
+	  /* Get the fraction parts */
+	  f0 = v0 - ind0;
+	  f1 = v1 - ind1;
+	  f2 = v2 - ind2;
+	  r0 = 1.0 - f0;
+	  r1 = 1.0 - f1;
+	  r2 = 1.0 - f2;
+	  
+	  /* Do the interpolation */
+	  r1r2 = r1 * r2;
+	  r1f2 = r1 * f2;
+	  f1r2 = f1 * r2;
+	  f1f2 = f1 * f2;
+	  
+	  sample   = 
+	    r0 *  (r1r2 * v000 +
+		   r1f2 * v001 +
+		   f1r2 * v010 +
+		   f1f2 * v011);
+	  sample  +=
+	    f0 *  (r1r2 * v100 +
+		   r1f2 * v101 +
+		   f1r2 * v110 +
+		   f1f2 * v111);
+	  
+	  sample = sample * f_scale + f_trans;
+	  
+	}
+	else
+	  sample = 0.0;
+	
+	
+#include "switch_obj_func.c"
 
+      }
+      break;
+    case SIGNED_SHORT:  
+      
+      sshort_ptr = data->data;
+      
+      ++x; ++y; ++z; 
+      
+      for_inclusive(c,1,len) {
+	
+	/*  fast tri-linear interplation */
+	
+	v0 = (Real) ( *x++ + dx );
+	v1 = (Real) ( *y++ + dy );
+	v2 = (Real) ( *z++ + dz );
+	
+	ind0 = (int)v0;
+	ind1 = (int)v1;
+	ind2 = (int)v2;
+	
+	if (ind0>=0 && ind0<(xs-1) &&
+	    ind1>=0 && ind1<(ys-1) &&
+	    ind2>=0 && ind2<(zs-1)) {
+	  
+	  /* get the data */
+	  v000 = (Real)(sshort_ptr[ind0  ][ind1  ][ind2  ]);
+	  v001 = (Real)(sshort_ptr[ind0  ][ind1  ][ind2+1]);
+	  v010 = (Real)(sshort_ptr[ind0  ][ind1+1][ind2  ]);
+	  v011 = (Real)(sshort_ptr[ind0  ][ind1+1][ind2+1]);
+	  v100 = (Real)(sshort_ptr[ind0+1][ind1  ][ind2  ]);
+	  v101 = (Real)(sshort_ptr[ind0+1][ind1  ][ind2+1]);
+	  v110 = (Real)(sshort_ptr[ind0+1][ind1+1][ind2  ]);
+	  v111 = (Real)(sshort_ptr[ind0+1][ind1+1][ind2+1]);
+	  
+	  /* Get the fraction parts */
+	  f0 = v0 - ind0;
+	  f1 = v1 - ind1;
+	  f2 = v2 - ind2;
+	  r0 = 1.0 - f0;
+	  r1 = 1.0 - f1;
+	  r2 = 1.0 - f2;
+	  
+	  /* Do the interpolation */
+	  r1r2 = r1 * r2;
+	  r1f2 = r1 * f2;
+	  f1r2 = f1 * r2;
+	  f1f2 = f1 * f2;
+	  
+	  sample   = 
+	    r0 *  (r1r2 * v000 +
+		   r1f2 * v001 +
+		   f1r2 * v010 +
+		   f1f2 * v011);
+	  sample  +=
+	    f0 *  (r1r2 * v100 +
+		   r1f2 * v101 +
+		   f1r2 * v110 +
+		   f1f2 * v111);
+	  
+	  sample = sample * f_scale + f_trans;
+	  
+	}
+	else
+	  sample = 0.0;
+	
+#include "switch_obj_func.c"
+	
+      }
+      break;
+    case UNSIGNED_SHORT:  
+      
+      ushort_ptr = data->data;
+      
+      ++x; ++y; ++z; 
+      
+      for_inclusive(c,1,len) {
+	
+	/*  fast tri-linear interplation */
+	
+	v0 = (Real) ( *x++ + dx );
+	v1 = (Real) ( *y++ + dy );
+	v2 = (Real) ( *z++ + dz );
+	
+	ind0 = (int)v0;
+	ind1 = (int)v1;
+	ind2 = (int)v2;
+	
+	if (ind0>=0 && ind0<(xs-1) &&
+	    ind1>=0 && ind1<(ys-1) &&
+	    ind2>=0 && ind2<(zs-1)) {
+	  
+	  /* get the data */
+	  v000 = (Real)(ushort_ptr[ind0  ][ind1  ][ind2  ]);
+	  v001 = (Real)(ushort_ptr[ind0  ][ind1  ][ind2+1]);
+	  v010 = (Real)(ushort_ptr[ind0  ][ind1+1][ind2  ]);
+	  v011 = (Real)(ushort_ptr[ind0  ][ind1+1][ind2+1]);
+	  v100 = (Real)(ushort_ptr[ind0+1][ind1  ][ind2  ]);
+	  v101 = (Real)(ushort_ptr[ind0+1][ind1  ][ind2+1]);
+	  v110 = (Real)(ushort_ptr[ind0+1][ind1+1][ind2  ]);
+	  v111 = (Real)(ushort_ptr[ind0+1][ind1+1][ind2+1]);
+	  
+	  /* Get the fraction parts */
+	  f0 = v0 - ind0;
+	  f1 = v1 - ind1;
+	  f2 = v2 - ind2;
+	  r0 = 1.0 - f0;
+	  r1 = 1.0 - f1;
+	  r2 = 1.0 - f2;
+	  
+	  /* Do the interpolation */
+	  r1r2 = r1 * r2;
+	  r1f2 = r1 * f2;
+	  f1r2 = f1 * r2;
+	  f1f2 = f1 * f2;
+	  
+	  sample   = 
+	    r0 *  (r1r2 * v000 +
+		   r1f2 * v001 +
+		   f1r2 * v010 +
+		   f1f2 * v011);
+	  sample  +=
+	    f0 *  (r1r2 * v100 +
+		   r1f2 * v101 +
+		   f1r2 * v110 +
+		   f1f2 * v111);
+	  
+	  sample = sample * f_scale + f_trans;
+	  
+	}
+	else
+	  sample = 0.0;
+	
+#include "switch_obj_func.c"
 
-
+      }
+      break;
+    default:
+      print_error_and_line_num("Data type not supported in go_get_samples_with_offset (only signed_byte, signed_short, unsigned_short allowed)",__FILE__, __LINE__);
+    }
+    
+  }
+    
+  
+				/* do the last bits of the similarity function
+				   calculation here: */
   r = 0.0;
   switch (obj_func) {
   case NONLIN_XCORR:
@@ -1490,7 +1738,6 @@ public float go_get_samples_with_offset(Volume data,
   }
   
   
-
   return(r);
 }
 
