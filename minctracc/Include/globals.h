@@ -16,8 +16,11 @@ Volume  data_dz    = NULL;
 Volume  data_dxyz  = NULL;
 
 
-double  ftol         =  0.005;
-double  simplex_size = 20.0;
+double  ftol                     =  0.005;
+int     iteration_limit          = 20;
+double  iteration_weight         = 0.3;
+double  similarity_cost_ratio    = 0.5;
+double  simplex_size             = 20.0;
 
 int  invert_mapping_flag = FALSE;
 int clobber_flag = FALSE;
@@ -72,6 +75,8 @@ static ArgvInfo argTable[] = {
   {"-nonlinear", ARGV_CONSTANT, (char *) TRANS_NONLIN, (char *) &main_args.trans_info.transform_type,
      "recover nonlinear deformation field."}, 
 
+  {"-use_magnitude", ARGV_CONSTANT, (char *) TRUE, (char *) &main_args.trans_info.use_magnitude,
+     "use the 1st derivative to calculate the non-lin fit."},
   {"-forward", ARGV_CONSTANT, (char *) FALSE,
      (char *) &main_args.trans_info.invert_mapping_flag,
      "Recover forward transformation (source -> model, default).\n"},
@@ -129,6 +134,15 @@ static ArgvInfo argTable[] = {
   {"-tol", ARGV_FLOAT, (char *) 0, 
      (char *) &ftol,
      "Stopping criteria tolerance"},
+  {"-iterations", ARGV_INT, (char *) 0, 
+     (char *) &iteration_limit,
+     "Number of iterations for non-linear optimization"},
+  {"-weight", ARGV_FLOAT, (char *) 0, 
+     (char *) &iteration_weight,
+     "Weighting factor for each iteration in nl optimization"},
+  {"-similarity_cost_ratio", ARGV_FLOAT, (char *) 0, 
+     (char *) &similarity_cost_ratio,
+     "Weighting factor for  r=similarity*w + cost(1*w)"},
   {"-simplex", ARGV_FLOAT, (char *) 0, 
      (char *) &simplex_size,
      "Radius of simplex volume."},
