@@ -1,0 +1,12 @@
+exec > nonlinear-5.log 2>&1
+
+minctracc -debug -clobber -nonlinear -identity -est_center -step 8 8 8 \
+	ellipse0_dxyz.mnc ellipse4_dxyz.mnc output.xfm   || exit 1
+
+mincresample -clobber -transformation output.xfm -like ellipse4.mnc \
+	ellipse0.mnc output.mnc || exit 2
+
+echo Correlation = `xcorr_vol output.mnc ellipse4.mnc`
+
+expr `xcorr_vol output.mnc ellipse4.mnc` \> 0.99
+
