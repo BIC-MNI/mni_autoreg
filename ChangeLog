@@ -1,3 +1,15 @@
+2000-02-24  Steve Robbins  <stever@bic.mni.mcgill.ca>
+
+	* Makefile.am (bin_SCRIPTS): add make_model.
+
+	* make_model: new.  Generates requisite model files by blurring
+	and subsampling a given volume.
+
+	* configure.in (MNI_CPPFLAGS, MNI_LDFLAGS): maintain $prefix
+	before /usr/local.  Remove the checks for -lc, and -lsun, since no
+	code is using the function xdr_long.  Remove checks for -lc_s and
+	-lucb; these libraries also seem superfluous.
+
 2000-02-24  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* acinclude.m4: new version; concatenation of smr.m4 and

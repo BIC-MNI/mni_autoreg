@@ -4,10 +4,11 @@
 
   which is not shipped currently with mni_autoreg_model
 
-
 * should change model package to install to $(pkgdatadir)
 
 * Coalition or Consortium?
+
+* use ICBM150 data as default model?
 
 
 

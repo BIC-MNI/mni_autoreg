@@ -155,9 +155,9 @@ AC_CHECK_FUNCS(strtod strtol vprintf,
 # - xdr_long, for instance is not used in any code here
 # - using libucb is often just asking for trouble
 #
-AC_CHECK_LIB(c, xdr_long,:,AC_CHECK_LIB(sun, xdr_long))
-AC_CHECK_LIB(c_s, main)
-AC_CHECK_LIB(ucb, random)
+dnl AC_CHECK_LIB(c, xdr_long,:,AC_CHECK_LIB(sun, xdr_long))
+dnl AC_CHECK_LIB(c_s, main)
+dnl AC_CHECK_LIB(ucb, random)
 
 # We'll need to look for a slew of third-party libraries: NetCDF,
 # and MNI libraries minc, and volume_io.
@@ -177,9 +177,9 @@ if test x$prefix != xNONE -a x$prefix != x/usr/local; then
 fi
 
 for d in $mni_dirs; do
-    test -d $d/include && MNI_CPPFLAGS="-I$d/include $MNI_CPPFLAGS"
-    test -d $d/include/volume_io && MNI_CPPFLAGS="-I$d/include/volume_io $MNI_CPPFLAGS"
-    test -d $d/lib && MNI_LDFLAGS="-L$d/lib $MNI_LDFLAGS"
+    test -d $d/include && MNI_CPPFLAGS="$MNI_CPPFLAGS -I$d/include"
+    test -d $d/include/volume_io && MNI_CPPFLAGS="$MNI_CPPFLAGS -I$d/include/volume_io"
+    test -d $d/lib && MNI_LDFLAGS="$MNI_LDFLAGS -L$d/lib"
 done
 
 smr_CHECK_LIB(netcdf,, [NetCDF library], ncopen, netcdf.h, 
