@@ -14,7 +14,10 @@
 
 @CREATED    : Tue Jun 15 08:57:23 EST 1993 LC
 @MODIFIED   :  $Log: volume_functions.c,v $
-@MODIFIED   :  Revision 96.4  2000-05-16 15:50:01  louis
+@MODIFIED   :  Revision 96.5  2000-05-16 19:48:09  louis
+@MODIFIED   :  adjusting code for optical flow
+@MODIFIED   :
+@MODIFIED   :  Revision 96.4  2000/05/16 15:50:01  louis
 @MODIFIED   :  Now calls set_feature_value_threshold to set default values before calling
 @MODIFIED   :  volume intensity normalization.
 @MODIFIED   :  Also fixed qsort for vol int normlization
@@ -61,7 +64,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/volume_functions.c,v 96.4 2000-05-16 15:50:01 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/volume_functions.c,v 96.5 2000-05-16 19:48:09 louis Exp $";
 #endif
 
 #include <config.h>
@@ -374,12 +377,8 @@ void qs_list(float *item2, int left, int right)
 }
 
 
-public void normalize_data_to_match_target(Volume d1,
-					   Volume m1,
-					   Real   *threshold_data, 
-					   Volume d2,
-					   Volume m2, 
-					   Real   *threshold_target,
+public void normalize_data_to_match_target(Volume d1, Volume m1, Real thresh1,
+					   Volume d2, Volume m2, Real thresh2,
 					   Arg_Data *globals)
 {
 
@@ -406,6 +405,7 @@ public void normalize_data_to_match_target(Volume d1,
     value1, value2;
   
   Real
+    t1,t2,			/* temporary threshold values     */
     s1,s2,s3;                   /* to store the sums for f1,f2,f3 */
   float 
     *ratios,
@@ -421,15 +421,12 @@ public void normalize_data_to_match_target(Volume d1,
 
 
 
-  set_feature_value_threshold(globals->features.data[0], 
-			      globals->features.model[0],
-			      &(globals->threshold[0]), 
-			      &(globals->threshold[1]),
-			      threshold_data,
-			      threshold_target);			      
+  set_feature_value_threshold(d1,d2, 
+			      &thresh1, &thresh2,
+			      &t1,      &t2);			      
 
   if (globals->flags.debug) {
-    print ("In normalize_data_to_match_target, thresh = %10.3f %10.3f\n",*threshold_data,*threshold_target) ;
+    print ("In normalize_data_to_match_target, thresh = %10.3f %10.3f\n",t1,t2) ;
   }
 
   ratios_size = globals->count[ROW_IND] * globals->count[COL_IND] * globals->count[SLICE_IND];
@@ -462,7 +459,7 @@ public void normalize_data_to_match_target(Volume d1,
 
 	  value1 = get_value_of_point_in_volume( Point_x(col), Point_y(col), Point_z(col), d1);
 
-	  if ( value1 > *threshold_data ) {
+	  if ( value1 > t1 ) {
 
 	    count1++;
 
@@ -476,7 +473,7 @@ public void normalize_data_to_match_target(Volume d1,
 
 	      value2 = get_value_of_point_in_volume( Point_x(pos2), Point_y(pos2), Point_z(pos2), d2);
 
-	      if ( (value2 > *threshold_target)  && 
+	      if ( (value2 > t2)  && 
 		   ((value2 < -1e-15) || (value2 > 1e-15)) ) {
 		  
 		ratios[count2++] = value1 / value2 ;
@@ -505,20 +502,10 @@ public void normalize_data_to_match_target(Volume d1,
 
     qs_list (ratios,0,count2);
 
-    if (globals->flags.debug) {
-
-      (void)print ("Done.\n");
-
-      for_less(i, count2/2 - count2/200, count2/2 + count2/200) {
-	print ("%5d %8.3f",i,ratios[i]);
-	if (i==count2/2)
-	  print (" <==\n");
-	else
-	  print ("\n");
-      }
-    }
+    if (globals->flags.debug) (void)print ("Done.\n");
 
     result = ratios[ (int)(count2/2) ];	/* the median value */
+
     if (globals->flags.debug) (void)print ("Normalization: %7d %7d -> %10.8f\n",count1,count2,result);
 
     if ( ABS(result) < 1e-15) {
@@ -532,7 +519,6 @@ public void normalize_data_to_match_target(Volume d1,
       min_range /= result;
       max_range /= result;
       set_volume_real_range(vol, min_range, max_range);
-      set_volume_real_range(d1, min_range, max_range);
       get_volume_sizes(d1, sizes);
       
       initialize_progress_report(&progress, FALSE, sizes[0]*sizes[1]*sizes[2] + 1,
@@ -556,14 +542,10 @@ public void normalize_data_to_match_target(Volume d1,
 
       terminate_progress_report( &progress );
       
-      /* reset threshold value for the data volume */
-      
-      *threshold_data /= result;
-
-      get_volume_real_range(d1, &min_range, &max_range);
+      set_volume_real_range(d1, min_range, max_range);
 
       if (globals->flags.debug) (void)print ("After normalization min,max, thresh = %f %f %f\n",
-					     min_range, max_range, *threshold_data);
+					     min_range, max_range, t1/result);
 
     }
   }

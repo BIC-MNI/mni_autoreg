@@ -16,7 +16,10 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 96.10  2000-05-15 16:10:29  louis
+@MODIFIED   : Revision 96.11  2000-05-16 19:48:03  louis
+@MODIFIED   : adjusting code for optical flow
+@MODIFIED   :
+@MODIFIED   : Revision 96.10  2000/05/15 16:10:29  louis
 @MODIFIED   : Changed Min_deriv constant from 0.02 to 0.06, since .02 was too low,
 @MODIFIED   : permitting estimation of deformation vectors based on noise.
 @MODIFIED   :
@@ -274,7 +277,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.10 2000-05-15 16:10:29 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.11 2000-05-16 19:48:03 louis Exp $";
 #endif
 
 #include <config.h>		/* MAXtype and MIN defs                      */
@@ -785,6 +788,9 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 
   Gcost_radius = 8*Gsimplex_size*Gsimplex_size*Gsimplex_size;
 
+
+print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],globals->threshold[1]);
+
   set_feature_value_threshold(Gglobals->features.data[0], 
 			      Gglobals->features.model[0],
 			      &(globals->threshold[0]), 
@@ -1125,7 +1131,7 @@ public Status do_non_linear_optimization(Arg_Data *globals)
       } /* forless on Y index */
       timer2 = time(NULL);
 
-      if (globals->flags.debug) 
+      if (globals->flags.debug && globals->flags.verbose>1) 
 	print ("xslice: (%3d:%3d) = %d sec -- nodes=%d av funks %f\n",
 	       index[ xyzv[X] ] +1-start[X], 
 	       end[X]-start[X], 
@@ -1267,188 +1273,37 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 
     }
     
-
-    /* 
-       clamp the data so that the 1st derivative of the deformation
-       field does not exceed 1.0*step in magnitude
-
-       clamp_warp_deriv(current->dx, current->dy, current->dz); 
-    */
-
     
-/*    if (FALSE && iters<iteration_limit-1) {  !!! */
-
-    if (FALSE) { /* !!! */
-				/* reset additional warp to zero */
-      init_the_volume_to_zero(additional_vol);
-
-      for_less(i,0,MAX_DIMENSIONS) index[i]=0;
-
-      for_less( index[ xyzv[X] ] , start[ X ], end[ X ]) {
-
-	for_less( index[ xyzv[Y] ] , start[ Y ], end[ Y ]) {
-
-	  for_less( index[ xyzv[Z] ] , start[ Z ], end[ Z ]) {
-
-	    
-	    mag = get_volume_real_value(additional_mag,
-					index[xyzv[X]],index[xyzv[Y]],index[xyzv[Z]],0,0);
-
-	    if (mag >= (mean_disp_mag+std)) {
-	      
-				/* get the lattice coordinate 
-				   of the current index node  */
-	      for_less(i,0,MAX_DIMENSIONS) voxel[i]=index[i];
-	      convert_voxel_to_world(current_vol, 
-				     voxel,
-				     &(target_node[X]), &(target_node[Y]), &(target_node[Z]));
-
-				/* get the warp that needs to be added 
-				   to get the target world coordinate
-				   position */
-
-	      for_less( index[ xyzv[Z+1] ], start[ Z+1 ], end[ Z+1 ]) 
-		current_def_vector[ index[ xyzv[Z+1] ] ] = 
-		  get_volume_real_value(current_vol,
-					index[0],index[1],index[2],index[3],index[4]);
-	
-				/* add the warp to get the target 
-				   lattice position in world coords */
-
-	      wx = target_node[X] + current_def_vector[X]; 
-	      wy = target_node[Y] + current_def_vector[Y]; 
-	      wz = target_node[Z] + current_def_vector[Z];
-      
-	      if ( point_not_masked(Gglobals->features.model_mask[0], wx, wy, wz)) {
-		
-				/* now get the mean warped position of 
-				   the target's neighbours */
-
-		index[ xyzv[Z+1] ] = 0;
-
-		if (get_average_warp_of_neighbours(current_warp,
-					       index, mean_target)) {
-
-				/* what is the offset to the mean_target? */
-
-		  for_inclusive(i,X,Z)
-		    mean_vector[i] = mean_target[i] - target_node[i];
-
-				/* get the targets homolog in the
-				   world coord system of the source
-				   data volume                      */
-
-		  general_inverse_transform_point(Glinear_transform,
-			     target_node[X], target_node[Y], target_node[Z],
-			     &(source_node[X]),&(source_node[Y]),&(source_node[Z]));
-		
-				/* find the best deformation for
-				   this node                        */
-
-
-		  result = get_deformation_vector_for_node(steps[xyzv[X]],
-							   threshold1,
-							   source_node,
-							   mean_target,
-							   def_vector,
-							   voxel_displacement,
-							   iters, iteration_limit, 
-							   &nfunks,
-							   number_dimensions,
-							   sub_lattice_needed);
-
-		  if (result>=0) {
-
-		    if (Gglobals->trans_info.use_local_smoothing) {
-
-		      eig1 = return_locally_smoothed_def(
-				Gglobals->trans_info.use_local_isotropic,
-				number_dimensions,
-				smoothing_weight,
-				iteration_weight,
-				result_def_vector,
-				current_def_vector,
-				mean_vector,
-				def_vector,
-				another_vector,
-				voxel_displacement);
-
-		      /* 
-			 Remember that I can't modify current_vol just yet, so I
-			 have to set additional_vol to a value, that when added to
-			 current_vol (below) I will have the correct result!
-  		      */
-
-		      for_inclusive(i,X,Z) {
-			result_def_vector[ i ] -= current_def_vector[ i ];
-
-/*			current_def_vector[i] =((1.0 - smoothing_weight)*
-		                                (current_def_vector[i] + def_vector[i])) + 
-					       (smoothing_weight * mean_vector[i])       -
-					       current_def_vector[i];
-*/
-		      }
-		      for_less( index[ xyzv[Z+1] ], start[ Z+1 ], end[ Z+1 ]) 
-			set_volume_real_value(additional_vol,
-					      index[0],index[1],index[2],
-					      index[3],index[4],
-					      result_def_vector[ index[ xyzv[Z+1] ] ]);
-
-		    }
-		    else {
-		      for_less( index[ xyzv[Z+1] ], start[ Z+1 ], end[ Z+1 ]) 
-			set_volume_real_value(additional_vol,
-					      index[0],index[1],index[2],
-					      index[3],index[4],
-					      def_vector[ index[ xyzv[Z+1] ] ]);
-		    }
-		  } /* if (result>=0) */
-		} /* if  get_average_warp_of_neighbours */
-	      } /* if point not masked */
-	      
-	    } /* if mag > mead + std */
-
-	  } /* forless on z index */
-	} /* forless on y index */
-      } /* forless on x index */
-      
-
-      if (Gglobals->trans_info.use_local_smoothing) {
-				/* current = current + additional */
-
-	add_additional_warp_to_current(current_warp,
-				       additional_warp,
-				       1.0);
-
-      }
-      else {
-				/* additional = additional + current */
-
-	add_additional_warp_to_current(additional_warp,
-				       current_warp,
-				       iteration_weight);
-	
-				/* current = smooth(additional) */
-	smooth_the_warp(current_warp,
-			additional_warp,
-			additional_mag, (Real)(mean_disp_mag+std));
-      }
-    } /* if (iters< iteration_limit-1) */
-    /* if (FALSE) ends here */
-
-
 				/* reset the next iteration's warp. */
-
 
     init_the_volume_to_zero(additional_vol);
     init_the_volume_to_zero(additional_mag);
 
+				/* save this iterations warp, if requested. */
     if (globals->flags.debug && 
-	globals->flags.verbose == 3) /* Why the FALSE? */
+	globals->flags.verbose == 3) 
       save_data(globals->filenames.output_trans, 
 		iters+1, iteration_limit, 
 		globals->trans_info.transformation);
-    
+
+				/* re-apply intensity normalization if doing
+				   optical flow fitting. */
+
+    if (iters+1 < iteration_limit) {
+      for_less(i,0, globals->features.number_of_features) {
+	
+	if (globals->features.obj_func[i] == NONLIN_OPTICALFLOW ) {
+	  normalize_data_to_match_target(globals->features.data[i],
+					 globals->features.data_mask[i],
+					 globals->features.thresh_data[i],
+					 globals->features.model[i],
+					 globals->features.model_mask[i],
+					 globals->features.thresh_model[i],
+					 globals);
+	}
+      }
+    }
+
     if (globals->flags.debug) {
 
 
@@ -1878,7 +1733,7 @@ outputs:
 Based on Horn and Schunck Artificial Intell 17 (1981) 185-203
 */
 
-#define Min_deriv  0.06
+#define Min_deriv  0.02
 
 private Real get_optical_flow_vector(Real threshold1, 
 				     Real source_coord[],
@@ -1895,6 +1750,7 @@ private Real get_optical_flow_vector(Real threshold1,
     min,max,thresh,             /* volume real min, max and estimate on smallest
 				   derivative */
     xp, yp, zp,			/* temp storage for coordinate position */
+    mag,
     dx[MAX_DIMENSIONS],	        /* derivative in X (world-coord)        */
     dy[MAX_DIMENSIONS],	        /*     "         Y                      */
     dz[MAX_DIMENSIONS],	        /*     "         Z                      */
@@ -1929,6 +1785,9 @@ private Real get_optical_flow_vector(Real threshold1,
 
     get_volume_real_range(model, &min, &max);
     thresh = Min_deriv * (max - min);
+
+    mag = sqrt (dx[0]*dx[0] + dy[0]*dy[0] + dz[0]*dz[0]);
+      
 
     if (ABS(dx[0]) > thresh)   /* fastest (X) */
       def_vector[0] = ((Gproj_d1 - Gproj_d2) /  dx[0]);
