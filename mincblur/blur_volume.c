@@ -20,9 +20,9 @@
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 #include <volume_io.h>
-#include <blur_support.h>
-#include <recipes.h>
+#include "blur_support.h"
 #include <limits.h>
+#include <recipes.h>
 
 extern int debug;
 

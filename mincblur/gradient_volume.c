@@ -19,11 +19,12 @@
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 #include <volume_io.h>
-#include <blur_support.h>
+#include "blur_support.h"
 #include <recipes.h>
 #include <limits.h>
 
 extern int debug;
+
 
 public Status gradient3D_volume(FILE *ifd, 
 				Volume data, 
@@ -432,8 +433,8 @@ public Status gradient3D_volume(FILE *ifd,
     
   }  /* if ndim */
   else {
-    max_val = 0.0;
-    min_val = 0.0;
+    max_val = 0.00001;
+    min_val = 0.00000;
     
     for (col = 0; col < sizes[X]; col++) {      /* for each column */
       for (row = 0; row < sizes[Y]; row++) {           /* for each row   */

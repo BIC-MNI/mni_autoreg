@@ -1224,7 +1224,7 @@ public void make_curvature_volumes(MincVolume *in_vol1,
 @METHOD     : 
 @GLOBALS    : 
 @CALLS      : 
-@CREATED    : Tue Jun 29 10:46:01 EST 1993 (louis collins)
+@CREATED    : Tue Jun 29 10:46:01 EST 1993 (louis louis)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 public void get_mag_slice(Slice_Data *result,

@@ -42,7 +42,7 @@
 		 int  verbose    - prints out running info
 
    @CALLS      : 
-   @CREATED    : January 25, 1992 louis collins (Original using .iff files)
+   @CREATED    : January 25, 1992 louis louis (Original using .iff files)
    @MODIFIED   : Wed Jun 23 09:04:34 EST 1993 Louis Collins
         rewrite using mnc files and David Macdonald's libmni.a
    ---------------------------------------------------------------------------- */
@@ -50,8 +50,8 @@
 #include <volume_io.h>
 #include <ParseArgv.h>
 #include <minc.h>
-#include <kernel.h>
-#include <mincblur.h>
+#include "kernel.h"
+#include "mincblur.h"
 #include <time_stamp.h>
 #include <print_error.h>
 #include <limits.h>
@@ -195,13 +195,6 @@ main (int argc, char *argv[] )
 			     outfilename,
 			     dimensions,kernel_type,history);
       
-      if (status==OK) {
-	status = close_file(ifd);
-	if (status!=OK)
-	  print_error("Error closing <%s>.",__FILE__, __LINE__, infilename);
-      }
-      else
-	print_error("Problems blurring <%s>.",__FILE__, __LINE__, infilename);
     }
 
   }    
