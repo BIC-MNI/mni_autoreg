@@ -1,7 +1,3 @@
-#include <volume_io.h>
-
-
-
 
 #include <volume_io.h>
 #include <recipes.h>
@@ -219,7 +215,7 @@ BOOLEAN get_cog(char *file, double *c1)
 
   if ( vol_to_cov(vol, NULL, cog, cov, step ) ) {
     c1[0] = cog[1];
-    c1[1] = cog[1];
+    c1[1] = cog[2];
     c1[2] = cog[3];
     return(TRUE);
   }
