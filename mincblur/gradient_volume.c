@@ -132,7 +132,7 @@ public Status gradient3D_volume(FILE *ifd,
   
   /*    1st calculate kern array for FT of 1st derivitive */
   
-  make_kernel_FT(kern,array_size_pow2, steps[X]);
+  make_kernel_FT(kern,array_size_pow2, ABS(steps[X]));
 
   if (curvature_flg)		/* 2nd derivative kernel */
     muli_vects(kern,kern,kern,array_size_pow2);
@@ -254,7 +254,7 @@ public Status gradient3D_volume(FILE *ifd,
   
   /*    1st calculate kern array for FT of 1st derivitive */
   
-  make_kernel_FT(kern,array_size_pow2, steps[Y]);
+  make_kernel_FT(kern,array_size_pow2, ABS(steps[Y]));
   
   if (curvature_flg)		/* 2nd derivative kernel */
     muli_vects(kern,kern,kern,array_size_pow2);
@@ -378,7 +378,7 @@ public Status gradient3D_volume(FILE *ifd,
     
     /*    1st calculate kern array for FT of 1st derivitive */
     
-    make_kernel_FT(kern,array_size_pow2, steps[Z]);
+    make_kernel_FT(kern,array_size_pow2, ABS(steps[Z]));
 
     if (curvature_flg)		/* 2nd derivative kernel */
       muli_vects(kern,kern,kern,array_size_pow2);

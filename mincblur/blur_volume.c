@@ -30,7 +30,7 @@ int ms_volume_reals_flag;
 
 
 public Status blur3D_volume(Volume data,
-			    float fwhm, 
+			    double fwhmx, double fwhmy, double fwhmz, 
 			    char *infile,
 			    char *outfile, 
 			    int ndim, int kernel_type, char *history)
@@ -136,7 +136,7 @@ if (debug) print("before blur min/max = %f %f\n", min_val, max_val);
   /*             determine   size of data structures needed                      */
   
   vector_size_data = sizes[X]; 
-  kernel_size_data = (int)(((4*fwhm)/steps[X]) + 0.5);
+  kernel_size_data = (int)(((4*fwhmx)/ABS(steps[X])) + 0.5);
   
   if (kernel_size_data > MAX(vector_size_data,256))
     kernel_size_data =  MAX(vector_size_data,256);
@@ -163,7 +163,7 @@ if (debug) print("before blur min/max = %f %f\n", min_val, max_val);
   
   /*    1st calculate kern array for gaussian kernel*/
   
-  make_kernel(kern,(float)steps[X],fwhm,array_size_pow2,kernel_type);
+  make_kernel(kern,(float)(ABS(steps[X])),fwhmx,array_size_pow2,kernel_type);
   four1(kern,array_size_pow2,1);
   
   /*    calculate offset for original data to be placed in vector            */
@@ -227,7 +227,7 @@ if (debug) print("before blur min/max = %f %f\n", min_val, max_val);
   f_ptr = fdata;
   
   vector_size_data = sizes[Y];
-  kernel_size_data = (int)(((4*fwhm)/steps[Y]) + 0.5);
+  kernel_size_data = (int)(((4*fwhmy)/(ABS(steps[Y]))) + 0.5);
   
   if (kernel_size_data > MAX(vector_size_data,256))
     kernel_size_data =  MAX(vector_size_data,256);
@@ -244,7 +244,7 @@ if (debug) print("before blur min/max = %f %f\n", min_val, max_val);
   
   /*    1st calculate kern array for gaussian kernel*/
   
-  make_kernel(kern,(float)steps[Y],fwhm,array_size_pow2,kernel_type);
+  make_kernel(kern,(float)(ABS(steps[Y])),fwhmy,array_size_pow2,kernel_type);
   four1(kern,array_size_pow2,1);
   
   /*    calculate offset for original data to be placed in vector            */
@@ -315,7 +315,7 @@ if (debug) print("before blur min/max = %f %f\n", min_val, max_val);
   f_ptr = fdata;
   
   vector_size_data = sizes[Z];
-  kernel_size_data = (int)(((4*fwhm)/steps[Z]) + 0.5);
+  kernel_size_data = (int)(((4*fwhmz)/(ABS(steps[Z]))) + 0.5);
   
   if (kernel_size_data > MAX(vector_size_data,256))
     kernel_size_data =  MAX(vector_size_data,256);
@@ -336,7 +336,7 @@ if (debug) print("before blur min/max = %f %f\n", min_val, max_val);
     
     /*    1st calculate kern array for gaussian kernel*/
     
-    make_kernel(kern,(float)steps[Z],fwhm,array_size_pow2,kernel_type);
+    make_kernel(kern,(float)(ABS(steps[Z])),fwhmz,array_size_pow2,kernel_type);
     four1(kern,array_size_pow2,1);
     
     /*    calculate offset for original data to be placed in vector            */

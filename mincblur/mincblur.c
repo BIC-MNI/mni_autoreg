@@ -54,6 +54,7 @@
 #include <mincblur.h>
 #include <time_stamp.h>
 #include <print_error.h>
+#include <limits.h>
 
 static char *default_dim_names[N_DIMENSIONS] = { MIzspace, MIyspace, MIxspace };
  
@@ -79,6 +80,7 @@ main (int argc, char *argv[] )
     min_value, max_value,
     step[3];
   int
+    i,
     sizes[3];
   char *history;
   char *tname;
@@ -88,6 +90,7 @@ main (int argc, char *argv[] )
   prog_name = argv[0];
   gradonlyflg = curveonlyflg = curvatureflg = bluronlyflg = FALSE;
   fwhm = standard = 0.0;
+  for_less(i,0,3) fwhm_3D[i] = -DBL_MAX;
   infilename =  outfilename = NULL;
   ifd = ofd = NULL;
   dimensions = 3;
@@ -107,10 +110,17 @@ main (int argc, char *argv[] )
     exit(EXIT_FAILURE);
   }
 
-  if (standard==0.0 && fwhm==0.0) {
-    print_error ("Must specify either -fwhm or -standard on command line.", 
+  if (standard==0.0 && fwhm==0.0 && 
+      fwhm_3D[0]==-DBL_MAX && fwhm_3D[1]==-DBL_MAX && fwhm_3D[2]==-DBL_MAX ) {
+    print_error ("Must specify either -fwhm, -3D_fwhm or -standard on command line.", 
 		 __FILE__, __LINE__);
   }
+
+  if (fwhm==0.0) fwhm=standard;
+  
+  if (fwhm !=0.0 ) {
+    for_less(i,0,3) fwhm_3D[i] = fwhm;
+  };				/* else 3D_fwhm has the values from the command line */
 
   infilename  = argv[1];	/* set up necessary file names */
   outfilename = argv[2]; 
@@ -173,14 +183,14 @@ main (int argc, char *argv[] )
     
     if (apodize_data_flg) {
       if (debug) print ("Apodizing data at %f\n",fwhm);
-      apodize_data(data, fwhm, fwhm, fwhm, fwhm, fwhm, fwhm );
+      apodize_data(data, fwhm_3D[0], fwhm_3D[0], fwhm_3D[1], fwhm_3D[1], fwhm_3D[2], fwhm_3D[2] );
     }
     
 
     if (bluronlyflg || !gradonlyflg || curvatureflg) {
       
       status = blur3D_volume(data,
-			     fwhm,
+			     fwhm_3D[0],fwhm_3D[1],fwhm_3D[2],
 			     infilename,
 			     outfilename,
 			     dimensions,kernel_type,history);

@@ -6,7 +6,7 @@
 ---------------------------------------------------------------------------- */
 
 public Status blur3D_volume(Volume data,
-			    float kernel1, 
+			    double  kernel1, double  kernel2, double  kernel3, 
 			    char *infile, 
 			    char *outfile, 
 			    int ndim, int kernel_type, char *history);
@@ -47,7 +47,8 @@ int
   curveonlyflg,
   gradonlyflg,
   bluronlyflg;
-double   
+double
+  fwhm_3D[3],
   fwhm,
   standard;
 int clobber_flag = FALSE;
@@ -60,6 +61,8 @@ static ArgvInfo argTable[] = {
      "Full-width-half-maximum of gaussian kernel"},
   {"-standarddev", ARGV_FLOAT, (char *) 0, (char *) &standard,
      "Standard deviation of gaussian kernel"},
+  {"-3dfwhm", ARGV_FLOAT, (char *) 3, (char *) fwhm_3D, 
+     "Full-width-half-maximum of gaussian kernel"},
   {"-dimensions", ARGV_INT, (char *) 0, (char *) &dimensions,
      "Number of dimensions to blur (either 1,2 or 3)."},
   {NULL, ARGV_HELP, NULL, NULL,
