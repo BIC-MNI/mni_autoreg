@@ -16,10 +16,42 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 1.24  1996-03-07 13:25:19  louis
-@MODIFIED   : small reorganisation of procedures and working version of non-isotropic
-@MODIFIED   : smoothing.
+@MODIFIED   : Revision 1.25  1996-03-25 10:33:15  louis
+@MODIFIED   : removed jiggle in do_nonlinear.c - The jiggle was causing multiple
+@MODIFIED   : local minima in the local objective function.  This in turn was the
+@MODIFIED   : MAJOR  CAUSE of errors in the estimation of the deformation field when
+@MODIFIED   : using simplex optimization (and in fact was caused error for quad fit
+@MODIFIED   : as well).
 @MODIFIED   :
+@MODIFIED   : ----
+@MODIFIED   : go_get_samples_in_source called with -1 for inter_type (before
+@MODIFIED   : the value for inter_type was ignored).
+@MODIFIED   :
+@MODIFIED   : ----
+@MODIFIED   : completed non-isotropic smoothing in return_locally_smoothed_def()
+@MODIFIED   : that is based on the eigen vectors of the hessian matrix (that is
+@MODIFIED   : derived from the differential geometry of the shape of the local
+@MODIFIED   : objective function).  The estimated deformation vectors are modulated
+@MODIFIED   : by a confidence function (see next para) such that the vectors are
+@MODIFIED   : smoothed less in the direction where the obj function has greater
+@MODIFIED   : curvature.
+@MODIFIED   :
+@MODIFIED   : ----
+@MODIFIED   : confidence_function has been implemented to give a confidence of
+@MODIFIED   :      -> 1.0 to eigen values >= the mean largest eigen_val (eval'd over
+@MODIFIED   :         the previous iteration)
+@MODIFIED   :      -> 0.0 to eigen values <= the mean smallest eigen_val
+@MODIFIED   :      -> [0.0 .. 0.5] to eigen_vals between smallest and middle mean
+@MODIFIED   :         eigen val
+@MODIFIED   :      -> [0.5 .. 1.0] to eigen_vals between middle and largest mean
+@MODIFIED   :         eigen val
+@MODIFIED   : This confidence_function is used to weight the amount of the additional
+@MODIFIED   : deformation vector added to the current def in return_locally_smoothed_def().
+@MODIFIED   :
+ * Revision 1.24  1996/03/07  13:25:19  louis
+ * small reorganisation of procedures and working version of non-isotropic
+ * smoothing.
+ *
  * Revision 1.23  1995/10/13  11:16:55  louis
  * added comments for local fitting process.
  *
@@ -184,7 +216,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 1.24 1996-03-07 13:25:19 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 1.25 1996-03-25 10:33:15 louis Exp $";
 #endif
 
 #include <limits.h>		/* MAXtype and MIN defs                      */
@@ -205,6 +237,15 @@ time_t time(time_t *tloc);
 
 #include <stats.h>
 
+
+int FLAG_HAHA = FALSE;
+
+int stat_quad_total;
+int stat_quad_zero;
+int stat_quad_two;
+int stat_quad_plus;
+int stat_quad_minus;
+int stat_quad_semi;
 
          /* these Globals are used to communicate to the correlation */
          /* functions over top the SIMPLEX optimization  routine     */ 
@@ -262,7 +303,8 @@ extern double     similarity_cost_ratio; /* obj fn = sim * s+c+r -
 extern int        iteration_limit;       /* total number of iterations       */
 extern int        number_dimensions;     /* ==2 or ==3                       */
 extern double     ftol;		         /* stopping tolerence for simplex   */
-extern Real       initial_corr;	         /* value of correlation before
+extern Real       initial_corr, final_corr;
+				         /* value of correlation before/after
 					    optimization                     */
 
 				/* absolute maximum range for deformation
@@ -290,7 +332,7 @@ static Real
         /* prototypes function definitions */
 
 
-public  BOOLEAN  perform_amoeba(amoeba_struct  *amoeba );
+public  BOOLEAN  perform_amoeba(amoeba_struct  *amoeba, int *num_funks );
 public  void  initialize_amoeba(amoeba_struct     *amoeba,
 				int               n_parameters,
 				Real              initial_parameters[],
@@ -405,6 +447,10 @@ public void get_volume_XYZV_indices(Volume data, int xyzv[]);
 public int point_not_masked(Volume volume, 
 			    Real wx, Real wy, Real wz);
 
+
+
+public int nearest_neighbour_interpolant(Volume volume, 
+                                 PointR *coord, double *result);
 
 
 
@@ -707,14 +753,19 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 
     if (Gglobals->trans_info.use_local_smoothing) {
       if ( Gglobals->trans_info.use_local_isotropic) 
-	print ("and local isotroptic smoothing\n");
+	print ("and local isotroptic smoothing.\n");
       else
-	print ("and local non-isotroptic smoothing\n");
+	print ("and local non-isotroptic smoothing.\n");
     }
     else {
-      print ("and global smoothing\n");
+      print ("and global smoothing.\n");
     }
+    if (Gglobals->interpolant==nearest_neighbour_interpolant) 
+      print ("The similarity function will be evaluated using NN interpolation.\n");
+    else
+      print ("The similarity function will be evaluated using tri-linear interpolation.\n");
     
+
     print("loop: (%d %d) (%d %d) (%d %d)\n",
 	  start[0],end[0],start[1],end[1],start[2],end[2]);
 
@@ -776,6 +827,13 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 
 
 				/* for various stats on this iteration*/
+    stat_quad_total = 0;
+    stat_quad_zero = 0;
+    stat_quad_two  = 0;
+    stat_quad_plus = 0;
+    stat_quad_minus= 0;
+    stat_quad_semi = 0;
+
     nodes_done  = 0; 
     nodes_tried = 0; 
     nodes_seen  = 0; 
@@ -800,6 +858,14 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 			       "Estimating deformations" );
 
     for_less(i,0,MAX_DIMENSIONS) index[i]=0;
+
+    /* FLAG_HAHA stuff: 
+
+       start[X] = 7;  end[X] = start[X]+1;
+       start[Y] = 13; end[Y] = start[Y]+1;
+       start[Z] = 15; end[Z] = start[Z]+1;
+    */
+
 
     /* step index[] through all the nodes in the deformation field. */
 
@@ -863,6 +929,10 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 
 				/* find the best deformation for
 				   this node                        */
+
+
+/*	      FLAG_HAHA = (index[xyzv[X]] == 7 && index[xyzv[Y]] == 13 && index[xyzv[Z]] == 15);
+*/
 
 	      result = get_deformation_vector_for_node(steps[xyzv[X]], 
 						       threshold1,
@@ -983,7 +1053,7 @@ public Status do_non_linear_optimization(Arg_Data *globals)
       report_stats(&stat_num_funks);
       report_stats(&stat_def_mag);
       if (Gglobals->trans_info.use_local_smoothing && 
-	  Gglobals->trans_info.use_local_isotropic) {
+	  !Gglobals->trans_info.use_local_isotropic) {
 	report_stats(&stat_eigval0);
 	report_stats(&stat_eigval1);
 	report_stats(&stat_eigval2);
@@ -991,6 +1061,15 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 	report_stats(&stat_conf1);
 	report_stats(&stat_conf2);
 
+      }
+      if (!Gglobals->trans_info.use_simplex) {
+	print ("quad fit stats: tot + ~ 0 2 -: %5d %5d %5d %5d %5d %5d\n",
+	       stat_quad_total,
+	       stat_quad_plus,
+	       stat_quad_semi,
+	       stat_quad_zero,
+	       stat_quad_two,
+	       stat_quad_minus);
       }
 
       print ("Nodes seen = %d, tried = %d, done = %d, over = %d\n",
@@ -1018,7 +1097,7 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 
 
     if (Gglobals->trans_info.use_local_smoothing && 
-	  Gglobals->trans_info.use_local_isotropic) {
+	!Gglobals->trans_info.use_local_isotropic) {
       previous_mean_eig_val[0] = stat_get_mean(&stat_eigval0);
       previous_mean_eig_val[1] = stat_get_mean(&stat_eigval1);
       previous_mean_eig_val[2] = stat_get_mean(&stat_eigval2);
@@ -1096,7 +1175,7 @@ public Status do_non_linear_optimization(Arg_Data *globals)
     clamp_warp_deriv(current->dx, current->dy, current->dz); */
 
     
-    if (iters<iteration_limit-1) {
+    if (FALSE && iters<iteration_limit-1) {
 
 				/* reset additional warp to zero */
       init_the_volume_to_zero(additional_vol);
@@ -1164,6 +1243,7 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 				/* find the best deformation for
 				   this node                        */
 
+
 		  result = get_deformation_vector_for_node(steps[xyzv[X]],
 							   threshold1,
 							   source_node,
@@ -1175,6 +1255,7 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 							   number_dimensions);
 
 		  if (result>=0) {
+
 		    if (Gglobals->trans_info.use_local_smoothing) {
 
 		      eig1 = return_locally_smoothed_def(
@@ -1272,13 +1353,21 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 	     time_total_string, 
 	     iteration_end_time-iteration_start_time);
 
+      final_corr = xcorr_objective(Gglobals->features.data[0], Gglobals->features.model[0],
+				   Gglobals->features.data_mask[0], Gglobals->features.model_mask[0],
+				   globals );
       print("initial corr %f ->  this step %f\n",
-	    initial_corr,xcorr_objective(Gglobals->features.data[0], Gglobals->features.model[0],
-					 Gglobals->features.data_mask[0], Gglobals->features.model_mask[0],
-					 globals ) );
+	    initial_corr,final_corr);
+
     }
   }
     
+  if (!globals->flags.debug)
+    final_corr = xcorr_objective(Gglobals->features.data[0], Gglobals->features.model[0],
+				 Gglobals->features.data_mask[0], Gglobals->features.model_mask[0],
+				 globals );
+
+
     /* free up allocated temporary deformation volumes */
 
   if (globals->trans_info.use_super>0) {
@@ -1405,6 +1494,7 @@ private double return_locally_smoothed_def(int isotropic_smoothing,
 {
 
   Real
+    mean_vector[3],
     local_corr3D[3][3][3],
     mag_eig_vals,
     conf[3],			/* confidence values                    */
@@ -1423,17 +1513,37 @@ private double return_locally_smoothed_def(int isotropic_smoothing,
   eps = 0.0001; /* SMALL_EPSILON_VALUE*/
   eig_vals[0] = 0.0;
 
+				/* let the mean be the average of the 
+				   previous_def and the previous neighbour_mean */
+  for_inclusive(i,X,Z) 
+    mean_vector[i] =  (previous_def[i] + neighbour_mean[i]) / 2.0;
+
 				/* calc the diff vec = estimated - mean */
   for_inclusive(i,X,Z) {
     diff[i] = previous_def[i] + iteration_wght*additional_def[i] - 
-              neighbour_mean[i];
+              mean_vector[i];
   }
 
   mag_eig_vals = 0.0;
 
   if (isotropic_smoothing) {
+
+    /* use the user-defined (command-line option -stiff)
+       smoothing-weight to smooth the estimated deformation vector.
+       Higher stiffness means more smoothing: 
+         smoothing_weight = 1.0
+             -> no estimates ever returned, since they are eliminated in the
+	        (1.0 -smoothing_weight) term.  
+         smoothing_weight = 0.5
+	     -> the vector returned is the average of the estimated
+                deformation vector and the neighbourhood mean def
+         smoothing_weight = 0.0
+	     -> no smoothing at all.  the vector returned is simply the
+	        estimated deformation vector. */
+
     for_inclusive(i,X,Z) 
-      smoothed_result[i] = neighbour_mean[i] + (1.0 - smoothing_wght)*diff[i]; 
+      smoothed_result[i] = mean_vector[i] + (1.0 - smoothing_wght)*diff[i]; 
+
   }
   else {
 
@@ -1523,7 +1633,7 @@ private double return_locally_smoothed_def(int isotropic_smoothing,
                                    as a weighting factor: 
 				   see eq. above for def(n+1) */
       for_inclusive(i,X,Z) {
-	smoothed_result[i] = neighbour_mean[i] + 
+	smoothed_result[i] = mean_vector[i] + 
 	                     conf[2] * len[2] * eig_vecs[2][i] +
 			     conf[1] * len[1] * eig_vecs[1][i] +
 			     conf[0] * len[0] * eig_vecs[0][i];
@@ -1531,21 +1641,17 @@ private double return_locally_smoothed_def(int isotropic_smoothing,
 
 				/* for debugging volume... */
 
-/*
-      another_vector[X] = 10.0 *eig_vecs[0][X];
-      another_vector[Y] = 10.0 *eig_vecs[0][Y];
-      another_vector[Z] = 10.0 *eig_vecs[0][Z];
-*/
       another_vector[X] = eig_vals[0];
       another_vector[Y] = eig_vals[1];
       another_vector[Z] = eig_vals[2];
 
 
     }
-    else {			/* do isotropic smoothing if no eigen vals
-				   found... */
+    else {			/* return the neighbourhood mean
+				   vector, since no local data can
+				   give any info... */
       for_inclusive(i,X,Z) 
-	smoothed_result[i] = neighbour_mean[i] + (1.0 - smoothing_wght)*diff[i];
+	smoothed_result[i] = mean_vector[i]+(1.0 - smoothing_wght)*diff[i];
 
       for_inclusive(i,X,Z)	/* debugging volume */
 	another_vector[i] = 0.0;
@@ -1606,12 +1712,14 @@ private BOOLEAN get_best_start_from_neighbours(
     def[X] = nx - target[X];
     def[Y] = ny - target[Y];
     def[Z] = nz - target[Z];
+
+
 				/* reset the target location to be
 				   halfway to the mean position of its
 				   neighbours */
 
     target[X] = nx; target[Y] = ny; target[Z] = nz;
-  
+
     return(TRUE);
   }  
 }
@@ -1619,9 +1727,40 @@ private BOOLEAN get_best_start_from_neighbours(
 
 
 
-/***********************************************************/
-/* note that the value of the spacing coming in is FWHM/2 for the data
-   used to do the correlation. */
+/**********************************************************
+
+  get_deformation_vector_for_node will return the magnitude of the
+  deformation, if one can be estimated by either simplex or quadratic
+  fitting.  Otherwise, the procedure will return -DBL_MAX.
+
+  The procedure begins by calling calling build_source_lattice() to
+  define the local neighbourhood with a sub-lattice defined on the
+  source volume.  The coordinates of the source lattice are mapped
+  into the target space for eventual use when the objective function
+  must be evaluated for different possible offsets.
+
+  Either "Nelder Mead Simplex" or "Quadratic Obj Func Fitting" will be
+  used to determine the best deformation vector (additional offset)
+  that maximises local neighboughood correlation between source and
+  target volumes.
+
+  If Quadratic: then the objective function is evaluated on a 3x3x3
+  neighbourhood and a quadratic function is fit to the data. The
+  minimum of the 3D obj function is found directly in
+  return_3D_disp_from_min_quad_fit().
+
+  If Simplex: the objective function is evaluated on the 4 vertices of
+  a 3D simplex. perform_amoeba() is called repreatedly until the
+  volume of the ameoba has been reduced below a pre-selected
+  tolerence.
+
+  The necessary additional offset is returned in def_vector[].
+
+  note that the value of the spacing coming in is FWHM/2 for the data
+  used to do the correlation.
+
+
+*/
 
 private Real get_deformation_vector_for_node(Real spacing, 
 					     Real threshold1, 
@@ -1655,6 +1794,7 @@ private Real get_deformation_vector_for_node(Real spacing,
     the_amoeba;
   Real
     *parameters;
+  FILE *tmp_fp;
 
 
 
@@ -1668,7 +1808,9 @@ private Real get_deformation_vector_for_node(Real spacing,
 
      otherwise
 
-     calculate a target position that is equal to the vector average of 
+     bias the initial starting search position for the local
+     deformation vector by calculating a target position that is equal
+     to the vector average of 
      (current_transformation(source) + average_position(source in target)
 
      */
@@ -1676,10 +1818,10 @@ private Real get_deformation_vector_for_node(Real spacing,
 
   if (!get_best_start_from_neighbours(Gglobals->features.thresh_data[0], 
 				      source_coord, mean_target, target_coord,
-				      def_vector)
-      ) {
+				      def_vector)) {
 
-    result = -DBL_MAX;		/* set result to a flag value used above */
+    result = -DBL_MAX;		/* set result to a flag value used
+				   above when looping through all nodes */
 
   }
   else {   
@@ -1718,7 +1860,10 @@ private Real get_deformation_vector_for_node(Real spacing,
     if (Gglobals->trans_info.use_magnitude) {
 
       /* build a spherical sub-lattice of Glen points in the source
-         volume, note: sub-lattice diameter= 1.5*fwhm */
+         volume, note: sub-lattice diameter= 1.5*fwhm 
+	 (here specified as 3*spacing = 2*(fwhm/2) to specify radius 
+	  in build_source_lattice) 
+      */
 
       build_source_lattice(xp, yp, zp, 
 			   SX, SY, SZ,
@@ -1787,28 +1932,9 @@ private Real get_deformation_vector_for_node(Real spacing,
       convert_3D_world_to_voxel(Gglobals->features.model[0], 
 				(Real)TX[i],(Real)TY[i],(Real)TZ[i], 
 				&pos[0], &pos[1], &pos[2]);
-
-      if (Gglobals->trans_info.use_magnitude) {
-
-	/* jiggle the voxel coordinates of the sub-lattice off center
-	   so that nearest-neighbour interpolation can be used */
-
-	if (ndim>2)		
-	  TX[i] = pos[0] - 0.5 + drand48(); 
-	else
-	  TX[i] = pos[0];
-	TY[i] = pos[1] - 0.5 + drand48();
-	TZ[i] = pos[2] - 0.5 + drand48();
-      }
-      else {
-
-	/* otherwise, store only the voxel position of the center of
-           target lattice, used below to get the projections */
-
-	TX[i] = pos[0];
-	TY[i] = pos[1];
-	TZ[i] = pos[2];
-      }
+      TX[i] = pos[0];
+      TY[i] = pos[1];
+      TZ[i] = pos[2];
     }
 
     /* -------------------------------------------------------------- */
@@ -1833,7 +1959,9 @@ private Real get_deformation_vector_for_node(Real spacing,
     if (Gglobals->trans_info.use_magnitude) {
       for_less(i,0, Gglobals->features.number_of_features) {
 	go_get_samples_in_source(Gglobals->features.data[i], 
-				 SX,SY,SZ, Ga1_features[i], Glen, 1);
+				 SX,SY,SZ, Ga1_features[i], Glen, 
+				 (Gglobals->interpolant==nearest_neighbour_interpolant ? -1 : 0)
+				 );
       }
     }
     else {			
@@ -1971,14 +2099,28 @@ private Real get_deformation_vector_for_node(Real spacing,
 			simplex_size, amoeba_obj_function, 
 			NULL, (Real)ftol);
       
-				/* do the actual SIMPLEX optimization */
-      nfunk = 0;
-      while (nfunk < 400 && perform_amoeba(&the_amoeba) )
-	nfunk++;
+      /*                do the actual SIMPLEX optimization        */
+
+      nfunk = 4;		/* since 4 eval's needed to init
+				   the amoeba                     */
+
+				/*  nfunk is incremented inside 
+				    perform_amoeba  */
+      while (nfunk < 400 && 
+	     perform_amoeba(&the_amoeba, &nfunk) );
     
       if (nfunk<400) {
 
 	get_amoeba_parameters(&the_amoeba,parameters);
+	
+	if (FLAG_HAHA) {
+	  for_less( i, 0, the_amoeba.n_parameters+1 )  {
+	    print ("%2d: %10.8f ",i,the_amoeba.values[i]);
+	    for_less( j, 0, the_amoeba.n_parameters )
+	      print ("%8.6f ",the_amoeba.parameters[i][j]);
+	    print ("\n");
+	  }
+	}
 
 	*num_functions = nfunk;
     
@@ -2001,7 +2143,7 @@ private Real get_deformation_vector_for_node(Real spacing,
 	voxel_displacement[0] = 0.0;
 	voxel_displacement[1] = 0.0;
 	voxel_displacement[2] = 0.0;
-	result                = 0.0;
+	result                = -DBL_MAX;
 	*num_functions        = 0;
 
       } /*  if perform_amoeba */
@@ -2065,6 +2207,70 @@ private Real get_deformation_vector_for_node(Real spacing,
       print ("Gsimplex_size = %f\n",Gsimplex_size);
     }
 
+
+    /* build output file x,y & z to look at neighbourhood correlation data */
+
+    if (FLAG_HAHA==TRUE) {
+      print ("Flag_haha in get def for node\n");
+      print ("def found was: %f %f %f -> %f %f %f\n", 
+	     voxel_displacement[0], voxel_displacement[1], voxel_displacement[2],
+	     def_vector[X], def_vector[Y], def_vector[Z]);
+      
+      pos_vector[3] = 0.0;
+      pos_vector[2] = 0.0;
+      pos_vector[1] = 0.0;
+      print ("At 0,0,0 obj_fn        = %f\n",xcorr_fitting_function(pos_vector)); 
+      pos_vector[3] = voxel_displacement[0];
+      pos_vector[2] = voxel_displacement[1];
+      pos_vector[1] = voxel_displacement[2];
+      print ("At returned def obj_fn = %f\n",xcorr_fitting_function(pos_vector)); 
+      if (open_file("x", WRITE_FILE, ASCII_FORMAT, &tmp_fp) != OK) {
+	print_error_and_line_num("Can't open 'x' file\n",
+				 __FILE__, __LINE__);
+      }
+      else {
+	i = j = k = 0;
+	for_inclusive(i,-200,200) {
+	  pos_vector[1] = ((float)i/100.0) * Gsimplex_size/4.0;
+	  pos_vector[2] = ((float)j/100.0) * Gsimplex_size/4.0;
+	  pos_vector[3] = ((float)k/100.0) * Gsimplex_size/4.0;
+	  fprintf (tmp_fp, "%f %f\n",(float)i/400.0,xcorr_fitting_function(pos_vector)); 
+	}
+	close_file(tmp_fp);
+      }
+      
+      if (open_file("y", WRITE_FILE, ASCII_FORMAT, &tmp_fp) != OK) {
+	print_error_and_line_num("Can't open 'y' file\n",
+				 __FILE__, __LINE__);
+      }
+      else {
+	i = j = k = 0;
+	for_inclusive(j,-200,200) {
+	  pos_vector[1] = ((float)i/100.0) * Gsimplex_size/4.0;
+	  pos_vector[2] = ((float)j/100.0) * Gsimplex_size/4.0;
+	  pos_vector[3] = ((float)k/100.0) * Gsimplex_size/4.0;
+	  fprintf (tmp_fp, "%f %f\n",(float)j/400.0,xcorr_fitting_function(pos_vector)); 
+	}
+	close_file(tmp_fp);
+      }
+      
+      if (open_file("z", WRITE_FILE, ASCII_FORMAT, &tmp_fp) != OK) {
+	print_error_and_line_num("Can't open 'z' file\n",
+				 __FILE__, __LINE__);
+      }
+      else {
+	i = j = k = 0;
+	for_inclusive(k,-200,200) {
+	  pos_vector[1] = ((float)i/100.0) * Gsimplex_size/4.0;
+	  pos_vector[2] = ((float)j/100.0) * Gsimplex_size/4.0;
+	  pos_vector[3] = ((float)k/100.0) * Gsimplex_size/4.0;
+	  fprintf (tmp_fp, "%f %f\n",(float)k/400.0,xcorr_fitting_function(pos_vector)); 
+	}
+	close_file(tmp_fp);
+      }
+    }
+
+    
 
   } /*  if (!get_best_start_from_neighbours()) */
   
@@ -2231,7 +2437,9 @@ private Real similarity_fn(float *d)
 					 d[3], d[2], d[1],
 					 Gglobals->features.obj_func[i],
 					 Glen, 
-					 Gsqrt_features[i], Ga1_features[i]);
+					 Gsqrt_features[i], Ga1_features[i],
+					 Gglobals->interpolant==nearest_neighbour_interpolant);
+
     }
 
     if (norm != 0.0) 
@@ -2291,11 +2499,18 @@ private Real amoeba_obj_function(void * dummy, float d[])
 {
   int i;
   float p[4];
-  
+  Real obj_func_val;
+
+
   for_less(i,0,number_dimensions)
     p[i+1] = d[i];
-  
-  return ( (Real)xcorr_fitting_function(p) );
+  obj_func_val =  xcorr_fitting_function(p);
+
+  if (FLAG_HAHA) {
+    print ("\n%15.12f: %12.8f  %12.8f  %12.8f: ", obj_func_val, d[0], d[1], d[2]);
+  }
+
+  return ( obj_func_val );
   
 }
 
