@@ -16,11 +16,15 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 1.12  1994-06-21 10:58:32  louis
-@MODIFIED   : working optimized version of program.  when compiled with -O, this
-@MODIFIED   : code is approximately 60% faster than the previous version.
+@MODIFIED   : Revision 1.13  1994-06-23 09:18:04  louis
+@MODIFIED   : working version before testing of increased cpu time when calculating
+@MODIFIED   : deformations on a particular slice.
 @MODIFIED   :
-@MODIFIED   :
+ * Revision 1.12  94/06/21  10:58:32  louis
+ * working optimized version of program.  when compiled with -O, this
+ * code is approximately 60% faster than the previous version.
+ * 
+ * 
  * Revision 1.11  94/06/19  15:43:50  louis
  * clean working version of 3D local deformation with simplex optimization
  * (by default) on magnitude data (default).  No more FFT stuff.
@@ -102,7 +106,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 1.12 1994-06-21 10:58:32 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 1.13 1994-06-23 09:18:04 louis Exp $";
 #endif
 
 
@@ -162,6 +166,7 @@ extern double iteration_weight;
 extern double similarity_cost_ratio;
 extern int    iteration_limit;
 extern int    number_dimensions;
+extern double ftol;
 
 /* prototypes */
 
@@ -183,7 +188,7 @@ public void    build_source_lattice(Real x, Real y, Real z,
 				    float PX[], float PY[], float PZ[],
 				    Real fwhm_x, Real fwhm_y, Real fwhm_z, 
 				    int nx, int ny, int nz,
-				    int ndim);
+				    int ndim, int *length);
 
 public void    build_target_lattice1(float px[], float py[], float pz[],
 				    float tx[], float ty[], float tz[],
@@ -341,6 +346,9 @@ public Status do_non_linear_optimization(Volume d1,
     i,j,k,
     nodes_done, nodes_tried, nodes_seen, matching_type, over,
     nfunks,
+
+    nfunk1, nodes1,
+
     sizes[3];
   Real 
     min, max, sum, sum2, mag, mean_disp_mag, std, var, 
@@ -515,9 +523,13 @@ public Status do_non_linear_optimization(Volume d1,
     }
   }
 
-
+/*
   loop_start[0] += 12;
-  loop_end[0] -= 12;
+loop_start[0]=30;
+loop_end[0]=34;
+  loop_end[0] = 10;
+*/
+
 
 
   if (globals->flags.debug) {
@@ -532,6 +544,7 @@ public Status do_non_linear_optimization(Volume d1,
     interpolate_super_sampled_data(current->dx, current->dy, current->dz,
 				   Gsuper_dx,  Gsuper_dy,  Gsuper_dz,
 				   number_dimensions);
+
     
     print("Iteration %2d of %2d\n",iters+1, iteration_limit);
 
@@ -558,6 +571,7 @@ public Status do_non_linear_optimization(Volume d1,
     for_less(i,loop_start[0],loop_end[0]) {
 
       timer1 = time(NULL);
+      nfunk1 = 0; nodes1 = 0;
 
       for_less(j,loop_start[1],loop_end[1]) {
 	for_less(k,loop_start[2],loop_end[2]){
@@ -610,6 +624,11 @@ public Status do_non_linear_optimization(Volume d1,
 							       &def_x, &def_y, &def_z, 
 							       matching_type);
 	    
+/*
+if (nfunks>0)
+  printf ("%d %d %d -> %d %f\n",i,j,k,nfunks, result);
+*/
+
 	    if (result == -40.0) {
 	      nodes_tried++;
 	      result = 0.0;
@@ -627,6 +646,9 @@ public Status do_non_linear_optimization(Volume d1,
 	      if (ABS(result)<min) min = ABS(result);
 
 	      nfunk_total += nfunks;
+
+	      nfunk1 += nfunks; nodes1++;
+
 	    }
 	    
 	  }
@@ -650,8 +672,10 @@ public Status do_non_linear_optimization(Volume d1,
       timer2 = time(NULL);
 
       if (globals->flags.debug) 
-	print ("slice: (%d : %d) = %d seconds\n",i+1, 
-	       loop_end[0]-loop_start[0]+1, timer2-timer1);
+	print ("slice: (%d : %d) = %d sec -- nodes=%d av funks %f\n",
+	       i+1-loop_start[0], loop_end[0]-loop_start[0]+1, timer2-timer1, 
+	       nodes1,
+	       nodes1==0? 0.0:(float)nfunk1/(float)nodes1);
 
     }
     terminate_progress_report( &progress );
@@ -1410,7 +1434,7 @@ private Real optimize_3D_deformation_for_single_node(Real spacing,
     xp,yp,zp, 
     d1x_dir, d1y_dir, d1z_dir;
   float 
-    ftol, *y, **p;
+     *y, **p;
     
     
   int 
@@ -1454,7 +1478,6 @@ private Real optimize_3D_deformation_for_single_node(Real spacing,
       len *= (numsteps+1);
     }
 
-    Glen = len;
     
     Ga1xyz = vector(1,len);
     Ga2xyz = vector(1,len);
@@ -1478,16 +1501,16 @@ private Real optimize_3D_deformation_for_single_node(Real spacing,
 			 SX,    SY,    SZ,
 			 spacing*3, spacing*3, spacing*3, /* lattice size= 1.5*fwhm */
 			 numsteps+1,  numsteps+1,  numsteps+1,
-			 ndim);
+			 ndim, &Glen);
     
 				/* map this lattice forward into the target space,
 				   using the current transformation, in order to 
 				   build a deformed lattice */
     build_target_lattice2(SX,SY,SZ,
 			  TX,TY,TZ,
-			  len);
+			  Glen);
 
-    for_inclusive(i,1,len) {
+    for_inclusive(i,1,Glen) {
       convert_3D_world_to_voxel(Gd2_dxyz, 
 				(Real)TX[i],(Real)TY[i],(Real)TZ[i], 
 				&pos[0], &pos[1], &pos[2]);
@@ -1502,12 +1525,13 @@ private Real optimize_3D_deformation_for_single_node(Real spacing,
 
 				/* build the source lattice (without local neighbour warp),
 				   that will be used in the optimization below */
-    build_source_lattice(src_x, src_y, src_z,
-			 SX,    SY,    SZ,
-			 spacing*3, spacing*3, spacing*3, /* lattice size= 1.5*fwhm */
-			 numsteps+1,  numsteps+1,  numsteps+1,
-			 ndim);
-    go_get_samples_in_source(Gd1_dxyz, SX,SY,SZ, Ga1xyz, len, 1);
+    for_inclusive(i,1,Glen) {
+      SX[i] += src_x - xp;
+      SY[i] += src_y - yp;
+      SZ[i] += src_z - zp;
+    }
+    
+    go_get_samples_in_source(Gd1_dxyz, SX,SY,SZ, Ga1xyz, Glen, 1);
 
     Gsqrt_s1 = 0.0;
     for_inclusive(i,1,len)
@@ -1516,8 +1540,6 @@ private Real optimize_3D_deformation_for_single_node(Real spacing,
     Gsqrt_s1 = fsqrt(Gsqrt_s1);
 
 				/* set up SIMPLEX OPTIMIZATION */
-
-    ftol  = MAX(0.004,spacing/3000);
 
     nfunk = 0;
     p = matrix(1,ndim+1,1,ndim);	/* simplex */
@@ -1550,10 +1572,11 @@ private Real optimize_3D_deformation_for_single_node(Real spacing,
       y[i] = xcorr_fitting_function(p[i]);
     }
 
-/* print ("corr: %12.9f %12.9f %12.9f  \n",y[1], y[2], y[3]); */
-    
+
+/*print ("corr: %12.9f %12.9f %12.9f %12.9f  \n",y[1], y[2], y[3], y[4]); */
+
     if (amoeba2(p,y,ndim,ftol,xcorr_fitting_function,&nfunk)) {    /* do optimization */
-    
+
     
       if ( y[1] < y[2] + 0.00001 )
 	i=1;
@@ -1570,6 +1593,8 @@ private Real optimize_3D_deformation_for_single_node(Real spacing,
       
 
       convert_3D_world_to_voxel(Gd2_dxyz, tx,ty,tz, &voxel[0], &voxel[1], &voxel[2]);
+
+/* print ("corr: %12.9f %12.9f %12.9f  \n",p[i][3],p[i][2],p[i][1]); */
 
       if (ndim>2)
 	convert_3D_voxel_to_world(Gd2_dxyz, 
@@ -1625,28 +1650,47 @@ public void    build_source_lattice(Real x, Real y, Real z,
 				    float PX[], float PY[], float PZ[],
 				    Real width_x, Real width_y, Real width_z, 
 				    int nx, int ny, int nz,
-				    int ndim)
+				    int ndim, int *length)
 {
-  int c, i,j,k;
+  int 
+    c, 
+    i,j,k;
+  float 
+    radius_squared,
+    tx,ty,tz;
 
+  *length = 0; 
   c = 1;
+  radius_squared = 0.55 * 0.55;
+  
   if (ndim==2) {
     for_less(i,0,nx)
       for_less(j,0,ny) {
-	PX[c] = (float)(x + width_x * (-0.5 + (float)(i)/(float)(nx-1)));
-	PY[c] = (float)(y + width_y * (-0.5 + (float)(j)/(float)(ny-1)));
-        PZ[c] = (float)z;
-	c++;
+	tx = -0.5 + (float)(i)/(float)(nx-1);
+	ty = -0.5 + (float)(j)/(float)(ny-1);
+	if ((tx*tx + ty*ty) <= radius_squared) {
+	  PX[c] = (float)(x + width_x * tx);
+	  PY[c] = (float)(y + width_y * ty);
+	  PZ[c] = (float)z;
+	  c++;
+	  (*length)++;
+	}
       }
   }
   else {
     for_less(i,0,nx)
       for_less(j,0,ny)
 	for_less(k,0,nz) {
-	  PX[c] = (float)(x + width_x * (-0.5 + (float)(i)/(float)(nx-1)));
-	  PY[c] = (float)(y + width_y * (-0.5 + (float)(j)/(float)(ny-1)));
-	  PZ[c] = (float)(z + width_z * (-0.5 + (float)(k)/(float)(nz-1)));
-	  c++;
+	  tx = -0.5 + (float)(i)/(float)(nx-1);
+	  ty = -0.5 + (float)(j)/(float)(ny-1);
+	  tz = -0.5 + (float)(k)/(float)(nz-1);
+	  if ((tx*tx + ty*ty + tz*tz) <= radius_squared) {
+	    PX[c] = (float)(x + width_x * tx);
+	    PY[c] = (float)(y + width_y * ty);
+	    PZ[c] = (float)(z + width_z * tz);
+	    c++;
+	    (*length)++;
+	  }
 	}
   }
 }
