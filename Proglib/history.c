@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #include "time_stamp.h"
+#include "print_error.h"
 
 char* history_string( int ac, char* av[] )
 {

@@ -1,4 +1,4 @@
-INCLUDES = -I$(srcdir)/../Include -I$(top_srcdir)/Proglib @INCLUDEDIRS@
+INCLUDES = -I$(srcdir)/../Include -I$(top_srcdir)/Proglib @MNI_INCLUDES@
 
 noinst_LIBRARIES = libminctracc_numerical.a
 libminctracc_numerical_a_SOURCES = \

@@ -1,3 +1,9 @@
+2000-02-20  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* */Makefile.am: 
+	* configure.in: remove INCLUDEDIRS and LIBDIRS in favour of
+	MNI_LIBS and MNI_INCLUDES.
+
 2000-02-19  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* Testing/Makefile.am (CLEANFILES): clean the log files.

@@ -1,4 +1,4 @@
-INCLUDES = -I$(srcdir)/../Include -I$(top_srcdir)/Proglib @INCLUDEDIRS@
+INCLUDES = -I$(srcdir)/../Include -I$(top_srcdir)/Proglib @MNI_INCLUDES@
 
 noinst_LIBRARIES = libminctracc_optimize.a
 libminctracc_optimize_a_SOURCES = \

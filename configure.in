@@ -43,23 +43,23 @@ AC_PROG_RANLIB
 AC_PATH_PROGS(PERL, [perl5 perl], no)
 
 if test "$PERL" = no; then
-  AC_MSG_WARN(The mritotal script will not run since Perl 5 is not found. 
-   You must install Perl 5 before installing MNI AutoReg.)
-  PERL=
-else
-  AC_MSG_CHECKING(Perl version)
-
-  # The perl command will exit with status zero if
-  #  (i) $PERL is found, and executable, and
-  # (ii) the perl version is NOT < 5.002
-  #
-  if $PERL -e 'exit ($] < 5.002)'; then
-    AC_MSG_RESULT(5.002 or later--good)
-  else
-    AC_MSG_RESULT(unacceptable)
-    AC_MSG_WARN(Perl 5.002 (or greater) is required--you will not be able to run mritotal)
+    AC_MSG_WARN(The mritotal script will not run since Perl 5 is not found.
+                You must install Perl 5 before installing MNI AutoReg.)
     PERL=
-  fi
+else
+    AC_MSG_CHECKING(Perl version)
+
+    # The perl command will exit with status zero if
+    #  (i) $PERL is found, and executable, and
+    # (ii) the perl version is NOT < 5.002
+    #
+    if $PERL -e 'exit ($] < 5.002)'; then
+	AC_MSG_RESULT(5.002 or later--good)
+    else
+	AC_MSG_RESULT(unacceptable)
+	AC_MSG_WARN(Perl 5.002 (or greater) is required--you will not be able to run mritotal)
+	PERL=
+    fi
 fi
 
 AM_CONDITIONAL(PERLGOOD, test x$PERL != x)
@@ -101,14 +101,14 @@ CC_ANSI=$autoreg_cv_cc_ansi
 AC_MSG_RESULT($CC_ANSI)
  
 if test $CC_ANSI = no; then
-  AC_MSG_CHECKING(for alternative C compiler)
-  AC_CHECK_PROGS(ALTCC, acc gcc, none)
-  if test $ALTCC = none; then
-    AC_MSG_ERROR(An ANSI-compliant C compiler is required to build the 
-                 MNI AutoReg package)
-  else
-    CC=$ALTCC
-  fi
+    AC_MSG_CHECKING(for alternative C compiler)
+    AC_CHECK_PROGS(ALTCC, acc gcc, none)
+    if test $ALTCC = none; then
+	AC_MSG_ERROR(An ANSI-compliant C compiler is required to build the 
+		     MNI AutoReg package)
+    else
+	CC=$ALTCC
+    fi
 fi
 
 #------------------------------------------------------------------------
@@ -206,13 +206,8 @@ fi
 MNI_LIBS="$MNI_LDFLAGS $volumeio_LIBS $MNI_LIBS"
 MNI_INCLUDES="$volumeio_CFLAGS $MNI_INCLUDES $MNI_CPPFLAGS"
 
-# These two names are historical; they are not simple
-# directories at all, but preprocessor and linker flags.
-INCLUDEDIRS=$MNI_INCLUDES
-LIBDIRS=$MNI_LIBS
-
-AC_SUBST(INCLUDEDIRS)
-AC_SUBST(LIBDIRS)
+AC_SUBST(MNI_LIBS)
+AC_SUBST(MNI_INCLUDES)
 
 #------------------------------------------------------------------------
 # Check some oddities of the volume IO library.

@@ -19,7 +19,7 @@
 #include "mincchamfer.h"
 #include "chamfer.h"
 
-main ( int argc, char* argv[] )
+int main ( int argc, char* argv[] )
 {   
    static char *default_dim_names[N_DIMENSIONS] = { MIzspace, MIyspace, MIxspace };
 
@@ -38,8 +38,6 @@ main ( int argc, char* argv[] )
 
    char* history = history_string( argc, argv );
 
-   int
-      i;
    /* set globals */
    debug = FALSE;
    verbose = TRUE;

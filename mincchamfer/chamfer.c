@@ -186,7 +186,7 @@ private void build_mask(Volume vol,
    int i,j,k;
    Real 
       steps[MAX_DIMENSIONS],
-      d1, d2;
+      d1;
 
    get_volume_separations(vol, steps);
 
