@@ -1,0 +1,40 @@
+
+
+	                     MNI_AutoReg:
+  Montreal Neurological Institute Automated Linear Registration Package
+
+  Copyright (C) 1993-1997 Louis Collins and Greg Ward, McConnell Brain
+  Imaging Centre, Montreal Neurological Institute, McGill University.
+  Permission to use, copy, modify, and distribute this software and
+  its documentation for any purpose and without fee is hereby granted,
+  provided that the above copyright notice appear in all copies.  The
+  authors and McGill University make no representations about the
+  suitability of this software for any purpose.  It is provided "as
+  is" without express or implied warranty.  The authors are not
+  responsible for any data loss, equipment damage, property loss, or
+  injury to subjects or patients resulting from the use or misuse of
+  this software package. The results of any MNI_AutoReg registration
+  should always be carefully checked by visual inspection in all three
+  spatial dimensions. MNI_AutoReg registrations should never be used in
+  a setting where an incorrect result could injure a patient or
+  subject or lead to an incorrect diagnosis. This package is provided
+  for research use only.
+
+  We make no warranty that this package is free of conceptual or
+  programming errors. The fact that this package has been provided to
+  you does not imply or assure any additional support beyond what is
+  provided in this document. Likewise, it does not guarantee that you
+  will be notified of any programming errors that are discovered or
+  that you will be provided with future updated versions of the
+  software. The authors disclaim all liability for direct or indirect
+  damages resulting from your use of Montreal Neurological Institute
+  Automated Linear Registration Package.
+
+  We would appreciate that at least the following article be
+  referenced to describe the registration method in all publications
+  of data analyzed using the MNI_AutoReg package:
+
+      DL Collins, P Neelin, TM Peters and AC Evans,
+      Automatic 3D Inter-Subject Registration of MR Volumetric 
+      Data in Standardized Talairach Space,
+      Journal of Computer Assisted Tomography, 18(2) p192-205, 1994

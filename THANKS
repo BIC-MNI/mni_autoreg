@@ -1,0 +1,19 @@
+
+The program minctracc was developed by Louis Collins under the direction of
+Dr. Alan Evans and Dr. Terry Peters at the NeuroImaging Laboratory at the
+Montreal Neurological Institute.  All Perl scripts were developed by Greg
+Ward; mritotal is an all-new version of Louis Collins' mritotal script,
+emboding pretty much the same algorithm, but rewritten almost entirely from
+scratch.  The MINC library was developed by Peter Neelin.  The Volume_io
+library was developed by David MacDonald.
+
+Thanks to the following beta testers, who have contributed bug reports,
+fixes, good suggestions, descriptions of use, and other kinds of useful
+support:
+
+Cambridge University: Nick Herrod (njh12@hslmc.cam.ac.uk)
+Vanderbilt University: Benoit Dawant (dawant@vuse.vanderbilt.edu),
+                       Tong Li (tongli@vuse.vanderbilt.edu)
+Institute of Neurology (London): Liqun Wang (liqun@nmr.ion.bpmf.ac.uk)
+National Institutes of Health: Bob Coghill (coghill@yoda.nidr.nih.gov)
+Bowman Gray School of Medicine: Cathy Eades (cathy@pet.bgsm.edu)

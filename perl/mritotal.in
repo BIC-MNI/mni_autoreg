@@ -1,0 +1,1544 @@
+#!@PERL@ -w
+
+#
+# mritotal (new and improved)
+# 
+# All-new version of Louis Collins' mritotal script.  Embodies pretty
+# much the same algorithm, but rewritten almost entirely from scratch
+# by Greg Ward, August 1995.  The changes to the algorithm are:
+#   * volume is subsampled before any blurring takes place (old version
+#     blurred to 2mm, then subsampled, then blurred to 8mm and 16mm --
+#     this is more correct, but very memory intensive)
+#   * volume may be cropped at the same time as it's subsampled
+#     (this is very data-specific -- for ICBM data, we crop off 25%
+#     of the data at the low z, ie. at the bottom of the head
+#   * volume is zero-padded before blurring instead of cropped after
+#     blurring
+#   * COG of source volume is computed only once (by a separate program,
+#     volume_cog) rather than by a PAT on every fitting step; in fact,
+#     the PAT is only used once, to estimate the translations of the first
+#     fit step
+#
+# The changes to the user interface are extensive.  Most importantly,
+# you can specify which preprocessing steps to take using either
+# a protocol file or with command-line overrides.  See the man
+# page for full details.
+#
+# Here is Louis' original copyright notice
+# (with a slight revision ;-):
+#
+
+# --------------------------------------------------------------------
+# Copyright (c) 1993-97 Louis Collins and Greg Ward, McConnell Brain
+# Imaging Centre, Montreal Neurological Institute, McGill University.
+# Permission to use, copy, modify, and distribute this software and
+# its documentation for any purpose and without fee is hereby granted,
+# provided that the above copyright notice appear in all copies.  The
+# author and McGill University make no representations about the
+# suitability of this software for any purpose.  It is provided "as
+# is" without express or implied warranty.
+#
+# Developed by Louis Collins under the direction of Dr. Alan Evans and
+# Dr. Terry Peters at the NeuroImaging Laboratory at the Montreal
+# Neurological Institute.
+#
+# Note that the programs mincinfo and mincresample are written &
+# copyrighted by Peter Neelin, McConnell Brain Imaging Centre, with
+# the same copyright as above.
+# --------------------------------------------------------------------
+
+# $Id: mritotal.in,v 1.1 2000-01-19 14:10:31 louis Exp $
+
+require 5.001;
+
+use Startup;
+use Getopt::Tabular qw(GetOptions SpoofGetOptions);
+use JobControl qw(AddProgramOptions Spawn);
+
+require "file_utilities.pl";
+require "path_utilities.pl";
+require "numeric_utilities.pl";
+require "minc_utilities.pl";
+require "volume_heuristics.pl";
+
+# This "use vars" statement is useful for checking the strictness of the
+# initialization functions -- normally, they live under a "no strict"
+# pragma, and hence no global variable checking is done in them.  To check
+# them, un-comment this "use vars", change the "no strict" to a "use
+# strict", and try to compile the script.  The reason that we keep the "use
+# vars" commented out most of the time is because it's dangerous -- a "use
+# vars" appplies to the entire file, and it can't be countermanded.  Thus,
+# we would be able to refer accidentally to any of these global variables
+# in the latter part of the script, which always lives under "use strict",
+# with no globals at all allowed.  This lets us keep a lid on the
+# proliferation of global variables in the initialization subroutines
+# without completely disallowing them (this would be hard, given the way
+# the script was originally written).  Unfortunately, it means we
+# periodically have to go through the change-this-bit-and-recompile
+# silliness.  Sigh.
+
+# use vars qw($ModelDir $Model $Protocol
+#             $GuessSubsample @Subsample $GuessCrop @Crop $Objective $FirstObj
+#             $InputXfm @Blurs $Blur $OldPad
+#             $Help $Usage $Version $LongVersion
+#             @ConfigPath $ProtocolTbl $SourceVol $FinalXfm
+#             $Clamp $ClampFactor
+#             $VolumeCOG $SourceBase @Fit);
+
+no strict;                              # for badly-behaved main program
+                                        # and initialization code
+
+# ----------------------------------------------------------------------
+# BEGIN main program
+
+&Startup;			# from Startup module - general startup stuff
+&Initialize;			# sets globals, parses command line args
+
+# Quit now if the output transform exists and $Clobber is false
+
+if (-e $FinalXfm && ! $Clobber)
+{
+   &Fatal ("$FinalXfm exists -- use -clobber to compute it anyways");
+}
+
+# Subsample/crop, pad, blur, and unpad the input volume.
+
+$VolumeCOG = &Preprocess 
+   ($SourceVol, $SourceBase,
+    $GuessSubsample, \@Subsample, $GuessCrop, \@Crop,
+    $Blur, \@Blurs, $OldPad, $InputXfm);
+
+
+# Initialize the big array (@Fit) of fit profiles - this requires that
+# lots of global variables (@Blurs, $VolumeCOG, $InputXfm, $FinalXfm)
+# already be set.
+
+@Fit = &SetupFits (\@Blurs, $Blur, $VolumeCOG,
+                   $FinalXfm, $InputXfm,
+                   $Objective, $FirstObj);
+
+
+# And do the actual fitting - we only pass in the base of the source
+# filename, because &PerformFits depends on &GradientBlur having
+# put the blur files in $TmpDir according to specific naming conventions
+# (see &GradientBlur).
+
+&PerformFits (\@Fit, $SourceBase, $Model);
+
+&Cleanup (1);
+
+# END main program
+# ----------------------------------------------------------------------
+
+
+# ------------------------------ MNI Header ----------------------------------
+#@NAME       : &CreateInfoText
+#@INPUT      : none
+#@OUTPUT     : none
+#@RETURNS    : nothing
+#@DESCRIPTION: Sets the $Help, $Usage, $Version, and $LongVersion globals,
+#              and registers the first two with ParseArgs so that user gets
+#              useful error and help messages.
+#@METHOD     : 
+#@GLOBALS    : $Help, $Usage, $Version, $LongVersion
+#@CALLS      : 
+#@CREATED    : 95/08/25, Greg Ward (from code formerly in &ParseArgs)
+#@MODIFIED   : 
+#-----------------------------------------------------------------------------
+sub CreateInfoText
+{
+   $Version = "@VERSION@";
+   $LongVersion = "@LONG_VERSION@";
+
+   $Usage = <<USAGE;
+$ProgramName, version $Version
+
+Usage: $ProgramName [options] input_volume output_transform
+       $ProgramName -help
+USAGE
+
+   $Help = <<HELP;
+$ProgramName registers a single T1-weighted MRI volume to Talairach
+space by fitting successively less-blurred versions of the input
+volume to similarly blurred versions of a pre-existing model.  (The
+default model is the MNI 305 average brain.)  Currently, the sequence
+of resamplings, blurs, crops and fits carried out by $ProgramName is
+hard-coded, so you'll have to edit the source if you don't like it.
+Also, $ProgramName currently only does linear fits, although nonlinear
+fitting will be added in the near future.
+
+You can specify an input transformation (using the -transformation
+option) to start off with; if you do this, then $ProgramName will skip
+the first couple of fits and use your initial guess in place of them.
+(In particular, it starts at a 9-parameter, gradient fit of $Blurs[0]
+mm blurred data; normally, it starts with a 7-parameter intensity fit
+of $Blurs[1] mm blurred data.)
+HELP
+
+   &Getopt::Tabular::SetHelp ($Help, $Usage);
+}
+
+# ------------------------------ MNI Header ----------------------------------
+#@NAME       : &SetupArgTables
+#@INPUT      : none
+#@OUTPUT     : none
+#@RETURNS    : References to the four option tables:
+#                @site_args
+#                @pref_args
+#                @protocol_args
+#                @other_args
+#@DESCRIPTION: Defines the tables of command line (and config file) 
+#              options that we pass to ParseArgs.  There are four
+#              separate groups of options, because not all of them
+#              are valid in all places.  See comments in the routine
+#              for details.
+#@METHOD     : 
+#@GLOBALS    : makes references to many globals (almost all of 'em in fact)
+#              even though most of them won't have been defined when
+#              this is called
+#@CALLS      : 
+#@CREATED    : 95/08/23, Greg Ward
+#@MODIFIED   : 
+#-----------------------------------------------------------------------------
+sub SetupArgTables
+{
+   my (@default_args, @pref_args, @site_args, @protocol_args, @other_args);
+
+   sub print_version
+   {
+      print "Program $ProgramName, built from:\n$LongVersion\n";
+      exit;
+   }
+
+   # Default args -- the defaults from Startup.pm, plus "-version"
+
+   @default_args =
+      (@DefaultArgs,
+       ["-version", "call", undef, \&print_version,
+        "print version and quit"]);
+
+   # Site-specific options -- these may be given in the configuration file
+   # or the command line
+
+   @site_args = 
+      (["Site-specific options (location of models, preprocessing protocol)",
+        "section"],
+       ["-modeldir", "string", 1, \$ModelDir,
+	"set the default directory to search for model files"],
+       ["-model", "string", 1, \$Model,
+	"set the base name of the fit model files"],
+       ["-protocol", "call", 1, \&ReadProtocol,
+	"set the protocol, which controls the preprocessing options " .
+	"via a protocol file"]);
+
+
+   # Protocol (data-specific) options -- these may be given in the 
+   # protocol file or on the command line
+
+   sub set_pp_option
+   {
+      my ($option, $arglist, $status, $list, $guess) = @_;
+
+      if ($status eq "none")
+      {
+         @$list = (0);
+         $$guess = 0;
+      }
+      elsif ($status eq "guess")
+      {
+         @$list = (0);
+         $$guess = 1;
+      }
+      else
+      {
+         warn "set_pp_option: unknown status $status\n";
+         return 0;
+      }
+      return 1;
+   }
+
+   @protocol_args = 
+      (["Preprocessing steps and fitting options", "section"],
+       ["-guess_subsample", "call",
+        ["guess", \@Subsample, \$GuessSubsample], \&set_pp_option,
+	"make an educated guess about step sizes for subsampling [default]"],
+       ["-subsample", "float", 3, \@Subsample,
+	"voxel step sizes (x,y,z) to use when subsampling volume"],
+       ["-isosubsample", "float", 1, \$Subsample[0],
+	"voxel step size (applied isotropically) to use when " .
+	"subsampling volume"],
+       ["-nosubsample", "call", 
+        ["none", \@Subsample, \$GuessSubsample], \&set_pp_option,
+	"disable volume subsampling"],
+
+       ["-guess_crop", "call", ["guess", \@Crop, \$GuessCrop], \&set_pp_option,
+	"\@main::Crop = (0); \$main::GuessCrop = 1;",
+	"make an educated guess about how to crop the volume [default]"],
+       ["-crop", "string", 3, \@Crop,
+	"specify crop amounts for the three spatial dimensions"],
+       ["-isocrop", "string", 1, \$Crop[0],
+	"specify a single crop amount (applied equally to all three spatial " .
+	"dimensions)"],
+       ["-nocrop", "call", ["none", \@Crop, \$GuessCrop], \&set_pp_option,
+	"disable cropping"],
+
+       ["-clamp", "boolean", 0, \$Clamp,
+        "clamp data to remove excessively bright voxels [default: -noclamp]"],
+       ["-clampfactor", "float", 1, \$ClampFactor,
+        "how far above (number of sd's) volume median to clamp data"],
+
+       ["-blur", "boolean", 0, \$Blur,
+        "blur the data before fitting [default; opposite is -noblur]"],
+       ["-oldpad|-newpad", "boolean", 0, \$OldPad,
+        "unpad data in the old (incorrect) way, i.e. don't encroach " .
+        "original volume [default: false]"],
+
+       ["-objective", "string", 1, \$Objective,
+	"objective function to use for fitting"],
+       ["-firstobj", "string", 1, \$FirstObj,
+        "objective function to use for first fit only"]);
+
+   # Other options -- these may *only* be given on the command line
+
+   @other_args = 
+      (["Other options", "section"],
+       ["-transformation", "string", 1, \$InputXfm,
+	"specify the starting transformation to use"]);
+
+   &Getopt::Tabular::SetSpoofCodes 
+      (-version         => \&print_version,
+       -protocol        => sub { &ReadProtocol (@_, 1); },
+       -guess_subsample => sub { 1 },
+       -nosubsample     => sub { 1 },
+       -guess_crop      => sub { 1 },
+       -nocrop          => sub { 1 });
+
+   (\@default_args, \@site_args, \@protocol_args, \@other_args);
+}
+
+
+
+# ------------------------------ MNI Header ----------------------------------
+#@NAME       : &CheckClampOptions
+#@INPUT      : $where - description of what argument source we've just parsed
+#@OUTPUT     : 
+#@RETURNS    : 
+#@DESCRIPTION: Checks to see if $Clamp or $ClampFactor are defined (ie.
+#              if any of the clamping options were present in a config
+#              or protocol file or on the command line), and warns of 
+#              their obsolescense if so.  Also undef's the two variables
+#              so that further argument parsing is checked independently.
+#@METHOD     : 
+#@GLOBALS    : $Clamp, $ClampFactor
+#@CALLS      : 
+#@CREATED    : 1997/01/18, GPW
+#@MODIFIED   : 
+#@COMMENTS   : this should eventually disappear, along with the vestigial
+#              clamping options it warns about
+#-----------------------------------------------------------------------------
+sub CheckClampOptions
+{
+   my ($where) = @_;
+
+   if (defined $Clamp || defined $ClampFactor)
+   {
+      warn "warning from $where: -clamp, -noclamp, and -clampfactor options are obsolete and ignored\n";
+      undef $Clamp;
+      undef $ClampFactor;
+   }
+}
+
+
+
+# ------------------------------ MNI Header ----------------------------------
+#@NAME       : &ReadConfigFile
+#@INPUT      : $path - reference to list of directories to search
+#              $file - name of file to search for
+#@OUTPUT     : 
+#@RETURNS    : $file - full path to $file as found in one of the directories
+#                      in $path
+#              @args - the list of words found in the file, after removing 
+#                      comments and blank lines and applying shell quoting
+#                      rules
+#@DESCRIPTION: Reads a configuration file according to the following rules:
+#                * anything from # to newline is ignored
+#                * blank lines are ignored
+#                * lines are split into words according to shell
+#                  quoting conventions
+#              Returns an array of the entire file split into words.
+#@METHOD     : 
+#@GLOBALS    : 
+#@CALLS      : 
+#@CREATED    : 95/08/23, Greg Ward
+#@MODIFIED   : 
+#-----------------------------------------------------------------------------
+sub ReadConfigFile 
+{
+   use strict;                          # at least we have one well-behaved
+                                        # init function... ;-)
+   my ($path, $file) = @_;
+   my ($dir, $args, @args);
+   require "shellwords.pl";
+
+   $dir = &SearchDirectories ($file, @$path)
+      || &Fatal ("Couldn't find configuration file $file anywhere in " .
+		 join (":", @$path));
+   $file = $dir . $file;
+
+   open (FILE, $file) || die "Unable to read file $file: $!\n";
+   while (<FILE>)
+   {
+      s/\#.*$//;		# strip comments
+      next if /^\s*$/;		# skip blank lines
+      push (@args, &shellwords ($_));
+   }
+   close (FILE);
+   ($file, @args);
+}
+
+
+# ------------------------------ MNI Header ----------------------------------
+#@NAME       : &ReadProtocol
+#@INPUT      : $option - the command-line option that triggered this call
+#              $args   - reference to list of all arguments on command line
+#                        following (*not* including) $option
+#              $spoof  - set to true to not actually read the file
+#                        (ie. no side effects)
+#@OUTPUT     : 
+#@RETURNS    : 0 if any error in protocol file; 1 otherwise
+#@DESCRIPTION: Reads a protocol file based on the -protocol command
+#              line option (this routine is a callback from 
+#              &ParseArgs -- see the entry for "-protocol" in the 
+#              argument table above).
+#@METHOD     : 
+#@GLOBALS    : sets $Protocol
+#              reads @ConfigPath, $ProtocolTbl
+#@CALLS      : 
+#@CREATED    : 95/08/25, Greg Ward
+#@MODIFIED   : 
+#-----------------------------------------------------------------------------
+sub ReadProtocol
+{
+   my ($option, $args, $spoof) = @_;
+   my ($protocol_file, @protocol_args);
+   $Protocol = shift @$args;
+
+   unless ($Protocol)
+   {
+      warn "$option option must be followed by a protocol name\n";
+      return 0;
+   }
+
+   return 1 if $spoof;
+
+   # Load the protocol file
+
+   $protocol_file = "mritotal.${Protocol}.cfg";
+   ($protocol_file, @protocol_args) = 
+      &ReadConfigFile (\@ConfigPath, $protocol_file);
+   &verbose ("Loading protocol $Protocol (protocol file = $protocol_file)");
+
+   unless (&GetOptions ($ProtocolTbl, \@protocol_args))
+   {
+      warn "Error in protocol file $protocol_file\n";
+      return 0;
+   }
+
+   &CheckClampOptions ("protocol file $protocol_file");
+
+   if (@protocol_args)
+   {
+      warn "Found leftover arguments in protocol file $protocol_file\n";
+      return 0;
+   }
+   1;
+}
+
+
+
+# ------------------------------ MNI Header ----------------------------------
+#@NAME       : &Initialize
+#@INPUT      : 
+#@OUTPUT     : 
+#@RETURNS    : 
+#@DESCRIPTION: Sets global variables from configuration file, parses 
+#              command line, parses protocol file for more global variables,
+#              finds required programs, and sets their options.  Dies on
+#              any error.
+#@METHOD     : 
+#@GLOBALS    : site-specific: $ModelDir, $Model, $Protocol
+#              preferences: $Verbose, $Execute, $Clobber, $Debug, $KeepTmp
+#              protocol (data-specific preprocessing): @Subsample, @Crop,
+#                 $Objective, @Blurs, $Blur
+#              $ProtocolArgs
+#@CALLS      : &JobControl::SetOptions
+#              &JobControl::AddProgramOptions      
+#              &SetupArgTables
+#              &ReadConfigFile
+#              &GetOptions
+#              &ReadProtocol (indirectly through ParseArgs)
+#              
+#@CREATED    : 
+#@MODIFIED   : incessantly
+#-----------------------------------------------------------------------------
+sub Initialize
+{
+   my ($config_file, @config_args, $protocol_file);
+   my ($site_tbl, $pref_tbl, $protocol_tbl, $other_tbl);
+   my (@all_args, @newARGV);
+
+   $, = ' ';     # set output field separator
+
+   # First, announce ourselves to stdout (for ease in later dissection
+   # of log files) -- unless STDOUT is a tty.
+
+   &SelfAnnounce ("STDOUT") if $Verbose && ! -t "STDOUT";
+
+   # Set defaults for the global variables.  These can be overridden by 
+   # the configuration file or the command line.
+
+   $ModelDir     = "@MODELDIR@";
+   $Model        = "average_305";
+   $Protocol     = "default";
+
+   $Verbose      = 1;
+   $Execute      = 1;
+   $Clobber      = 0;
+   $Debug        = 0;
+   $KeepTmp      = 0;
+
+   # Specify the default pre-processing sequence -- these can be
+   # overridden by the protocol file or the command line.  (The
+   # protocol can in turn be specified either in the configuration
+   # file or the on the command line.)
+
+   $GuessSubsample = 1;		# take a guess about subsample step size
+   @Subsample    = (0);
+   $GuessCrop    = 1;		# and take a guess about cropping too
+   @Crop         = (0);
+   $Objective    = "xcorr";	# use cross-correlation objective function
+   $FirstObj     = "";          # use default objective for first fit
+
+   $InputXfm     = "";
+
+   @Blurs = (8, 16);
+   $Blur = 1;
+   $OldPad = 0;
+
+   &CreateInfoText;
+
+   @ConfigPath = ($ENV{"HOME"}, "@CONFIGDIR@");
+   ($pref_tbl, $site_tbl, $protocol_tbl, $other_tbl) = &SetupArgTables;
+   @all_args = (@$pref_tbl, @$site_tbl, @$protocol_tbl, @$other_tbl);
+   $ProtocolTbl = $protocol_tbl; # global so &ReadProtocol can see it
+
+
+   # Make a first pass over the command line -- this doesn't actually do
+   # anything; it just checks for correctness.  That way, if the user asks
+   # for help or makes a silly mistake, they don't have to wait for the
+   # config and protocol files to all be loaded and parsed before getting
+   # help text or an error message.  (Also, it ensures that errors
+   # resulting from the config or protocol files will be reported *after*
+   # command line errors, which I deem to be a good thing.)
+
+   &SpoofGetOptions (\@all_args, \@ARGV, \@newARGV)
+      || exit 1;
+   if (@newARGV != 2)
+   {
+      warn $Usage;
+      die "Incorrect number of arguments\n";
+   }
+   &CheckClampOptions ("command line");
+
+
+   # Load the configuration file that sets site-specific options and
+   # preferences.  Note that since $Protocol is a site-specific
+   # option, it will be found in the config file, which will cause the
+   # protocol file to be immediately read.  Then, if the user selects
+   # another protocol on the command line, *that* protocol file will
+   # be read to override the settings from the default protocol file.
+   # Finally, the user can override specific data-specific options on
+   # the command line as long as he does so *after* any -protocol
+   # option.
+
+   $config_file = "mritotal.cfg";
+   ($config_file, @config_args) = 
+      &ReadConfigFile (\@ConfigPath, $config_file);
+   &verbose ("Loading configuration file $config_file");
+   &GetOptions ([@$site_tbl, @$pref_tbl], \@config_args)
+      || &Fatal ("Error in configuration file $config_file");
+   &Fatal ("Found leftover arguments in config file $config_file\n")
+      if (@config_args);
+   &CheckClampOptions ("configuration file $config_file");
+
+
+   # Now parse the actual command-line options (as opposed to options
+   # in the configuration or protocol file).  Again, note that if the
+   # user specifies a -protocol option here then that protocol file
+   # will be *immediately* loaded (via &ReadProtocol, which is a
+   # callback from &GetOptions).  Then, other data-specific
+   # options (-subsample, -crop, etc.) can be used to override the
+   # settings in that protocol file.
+
+   &GetOptions (\@all_args, \@ARGV, \@newARGV) || 
+      die "Unexpected error in second pass over command line arguments";
+   die "Expected only two leftover args after second pass over " .
+       "command line arguments"
+          unless @newARGV == 2;
+   ($SourceVol, $FinalXfm) = @newARGV;
+
+
+   # Find all the required subprograms -- everything should be on
+   # the $PATH already, else we're in for a hard time portability-wise
+
+   my @programs = qw/mincresample
+                     mincblur
+                     volume_cog
+                     minctracc
+                     check_scale
+                     autocrop/;
+
+   &JobControl::SetOptions (ErrorAction => 'fatal',
+                            Verbose     => $Verbose,
+                            Execute     => $Execute,
+                            Strict      => 1);
+   &JobControl::FindPrograms (\@programs) || exit 1;
+
+
+   # Add -debug, -quiet, -clobber to subprogram command lines 
+   # as appropriate
+   
+   AddProgramOptions ([qw(mincblur minctracc mincresample autocrop)],
+                      ["-quiet"])
+      unless $Verbose;
+   AddProgramOptions ([qw(mincblur minctracc mincresample autocrop)],
+                      ["-clobber"])
+      if $Clobber;
+   AddProgramOptions ([qw(mincblur minctracc)], ["-debug"])
+      if $Debug;
+
+
+   # Turn off GuessSubsample/GuessCrop if any subsample/crop
+   # array other than (0) is specified -- this is what lets
+   # us override guessing by simply specifying "-subsample ..."
+   # on the command line.
+   
+   $GuessSubsample = 0 unless (@Subsample == 1 && $Subsample[0] == 0);
+   $GuessCrop = 0 unless (@Crop == 1 && $Crop[0] == 0);
+
+
+   &check_output_dirs ($TmpDir) if $Execute;
+
+   # Make sure that $Model has path + basename (by appending $ModelDir
+   # if necessary), and then check for the existence of the required
+   # model files.
+
+   $ModelDir .= "/" if ($ModelDir ne "" && $ModelDir !~ m|/$|);
+   $Model = $ModelDir . $Model unless $Model =~ m|^/|;
+
+   my (@model_files) = ('16_blur', '8_blur', '8_dxyz', 'mask');
+   @model_files = map { "${Model}_${_}.mnc" } @model_files;
+      
+   &check_files ($SourceVol, @model_files) || &Fatal;
+   $SourceBase = (&split_path ($SourceVol))[1];
+
+
+   # Now dump out a summary of the options
+
+   &verbose("   source = $SourceVol");
+   &verbose("    model = $Model");
+   &verbose("transform = $FinalXfm");
+
+   my (%obj_desc) = ("xcorr"  => "cross-correlation",
+		     "zscore" => "normalized difference",
+		     "ssc"    => "stochastic sign change",
+		     "vr"     => "variance of ratios",
+		     "mi"     => "mutual information");
+
+   &verbose(" protocol = $Protocol:");
+   my ($subsample_desc) = 
+      ($Subsample[0]
+       ? "subsample to " . join(",", @Subsample) . "mm"
+       : ($GuessSubsample ? "subsample heuristically" : "do not subsample"));
+   my ($crop_desc) = 
+      ($Crop[0]
+       ? "crop according to @Crop"
+       : ($GuessCrop ? "crop heuristically" : "do not crop"));
+   my ($blur_desc) = 
+      ($Blur
+       ? "blur with $Blurs[1] and $Blurs[0] mm FHWM kernels"
+       : "do not blur");
+   my ($pad_desc) = 
+      ($OldPad
+       ? "pad/unpad the old way (don't encroach on original volume)"
+       : "pad/unpad correctly (encroach on original volume)");
+   my (@protocol_desc) = 
+      ($subsample_desc,
+       $crop_desc,
+       $blur_desc,
+       $pad_desc,
+       ("default objective function = " . 
+        ($obj_desc{$Objective} || "UNKNOWN")));
+   push (@protocol_desc, 
+         "objective function for first fit = " .
+         ($obj_desc{$FirstObj} || "UNKNOWN")) 
+      if $FirstObj;
+   &verbose("    " . join ("\n    ", @protocol_desc));
+}
+
+# ======================================================================
+# END INITIALIZATION CODE
+# ======================================================================
+
+# ----------------------------------------------------------------------
+# Now we begin the actual processing code.  Apart from the obvious
+# difference in purpose, note that the initialization routines above
+# are ruthlessly non-strict -- they read and write a wide variety of
+# global variables without a care in the world.  From this point on,
+# though, the code is much better behaved.
+# ----------------------------------------------------------------------
+
+use strict;
+
+# ------------------------------ MNI Header ----------------------------------
+#@NAME       : &Preprocess
+#@INPUT      : $volume - full name of input volume
+#              $base   - base name (no directory) of input volume
+#@OUTPUT     : 
+#@RETURNS    : 
+#@DESCRIPTION: Subsamples, finds the volume centroid, and blurs.
+#@METHOD     : 
+#@GLOBALS    : $Subsample (read)
+#              @Crop
+#              $VolumeCOG (set)
+#              @Blurs (read)
+#@CALLS      : 
+#@CREATED    : 95/08/04, Greg Ward (from code in main program)
+#@MODIFIED   : 
+#-----------------------------------------------------------------------------
+sub Preprocess
+{
+   die "&Preprocess: incorrect number of arguments" unless @_ == 10;
+   my ($volume, $base,
+       $guess_subsample, $subsample, $guess_crop, $crop,
+       $blur, $blur_fwhm, $old_pad, $input_xfm) = @_;
+
+   my ($reduced, $padded, @starts, @steps, @lengths);
+   my ($volume_cog);                    # return value!
+   
+   # If the user asked us to guess_ the subsample step sizes and
+   # crop amounts, guess away and ignore whatever's in @$subsample
+   # and @$crop.
+
+   &volume_params ($volume, \@starts, \@steps, \@lengths);
+   if ($guess_subsample || $guess_crop)
+   {
+      @$subsample = &GuessSubsample (\@steps)
+	 if ($guess_subsample);
+      @$crop = &GuessCrop (\@steps,\@lengths)
+	 if ($guess_crop);
+   }
+
+
+   # Reduce the input volume to save time and memory; the reduction
+   # consists of sub-sampling to a given step size (@$subsample),
+   # and chopping off chunks of the volume (as specified by the elements
+   # of the @$crop array - these are autocrop-style extension pairs,
+   # and there should be either one (to crop isotropically) or three
+   # (to crop the three dimensions separately) of them.
+
+   $reduced = &ReduceVolume ($volume, $base, "crop", $subsample, $crop);
+
+
+   # Find the COG of the input volume -- well, of the input volume after
+   # reduction.  We do it before padding because padding doesn't affect the
+   # COG but would make volume_cog take a little longer, and before
+   # blurring because blurring definitely does affect the COG.  (Hopefully
+   # subsampling doesn't affect it too much!)
+
+   $volume_cog = &volume_cog ($reduced);
+   &verbose ("Centroid of input volume: $volume_cog");
+
+   # If blurring is to be done, then zero-pad and do it.  Otherwise, make
+   # the reduced volume a symlink to just "base.mnc" -- and note that, in
+   # &SetupFits, we make appropriate modifications to the fit profiles to
+   # look for "base.mnc" instead of "base_nn_{blur,dxyz}.mnc"!
+
+   if ($blur)
+   {
+      my ($pad, @roundto, @pad, $padded);
+
+      # Now zero-pad the volume (by 3 * sigma, where sigma is the SD of the
+      # largest gaussian blurring kernel that mincblur will use) to avoid
+      # edge effects in the FFT.  We round $pad up to the next factor of
+      # the resampling step size (in all three dimensions -- hence $pad
+      # becomes @pad) to avoid interpolation errors when we resample.
+
+      $pad = max (@$blur_fwhm) * 3 / (sqrt (8 * log(2)));
+      @roundto = (@$subsample && $subsample->[0]) ? (@$subsample) : (@steps);
+      @pad = map { round ($pad, $_, +1) } @roundto;
+      $padded = &PadVolume ($reduced, $base, "pad", \@pad);
+
+
+      # Figure out how much to "unpad" (crop off) after blurring -- this
+      # will be the pad amount plus 3*sigma for each size of blurring
+      # kernel.  The extra 3*sigma encroaches on the original volume, so we
+      # don't want to blindly cut off the same amount for each blurring
+      # size (like we can get away with when padding).
+
+      my (@unpad, $i);
+      for $i (0,1)
+      {
+         if ($old_pad)
+         {
+            $unpad[0] = $unpad[1] = [map (-$_, @pad)]; # compatability
+         }
+         else
+         {
+            my $encroachment = $blur_fwhm->[$i] * 3 / (sqrt (8 * log(2)));
+            $unpad[$i] = 
+               [map (- $pad[$_] - round ($encroachment, $roundto[$_], +1), 
+                     0..2 )];
+         }
+      }
+
+      # my (@unpad) = ("-$pad[0]", "-$pad[1]", "-$pad[2]");    # old code
+
+      # Create the blurred volumes (16mm and 8mm FWHM) from the reduced volume
+
+      &IntensityBlur ($padded, $base, $blur_fwhm->[1], $unpad[1])
+         unless $input_xfm;
+      &GradientBlur ($padded, $base, $blur_fwhm->[0], $unpad[0]);
+   }
+   else
+   {
+      # This is done by an external program instead of Perl's symlink
+      # so that it will show up clearly in log files.  Also note that
+      # we strip the directory from the `source' file because the link
+      # will be in the same directory, and "ln -s" doesn't work *quite* 
+      # the same as "cp" in this respect... *sigh*...
+
+      &verbose ("\nSkipping blurring step");
+      my $reduced_nodir = &replace_dir ("", $reduced);
+      &Spawn ("/bin/ln -s ${reduced_nodir} ${TmpDir}/${base}.mnc");
+   }
+
+   return $volume_cog;
+}
+
+
+# ----------------------------------------------------------------------------
+#    Routines called by &Preprocess:
+#       &ReduceVolume
+#       &IntensityBlur
+#       &GradientBlur
+# ----------------------------------------------------------------------------
+
+
+# ------------------------------ MNI Header ----------------------------------
+#@NAME       : &ReduceVolume
+#@INPUT      : $input - name of input volume
+#              $base  - basename of input volume, without directory
+#              $label - string to tack on after basename in output filenames
+#              $step  - reference to array of subsample step sizes
+#                       (if array has one element, we will subsample
+#                       isotropically)
+#              $extend- reference to array of extension pairs.  Extension
+#                       pairs themselves must be given as comma-delimited
+#                       strings (we'll let autocrop parse those).  There
+#                       can be either one or three extension pairs; if 
+#                       one, it is passed to autocrop with -isoextend;
+#                       if three, it is passed with -extend.
+#@OUTPUT     : 
+#@RETURNS    : Name of output (subsampled and cropped) volume, or name
+#              of input volume if data reduction skipped
+#@DESCRIPTION: Subsamples and crops the input volume to a given step size 
+#              and with a given extension.  The extension is specified
+#              autocrop-style, ie. as pairs of extensions given for
+#              low and high end of each axis.  If $step is false, the
+#              volume is cropped but not subsampled.  If $extend is
+#              false, the volume is subsampled but not cropped.  If
+#              both are false, &ReduceVolume doesn't do anything.
+#@METHOD     : 
+#@GLOBALS    : 
+#@CALLS      : 
+#@CREATED    : 95/08/02, Greg Ward
+#@MODIFIED   : 95/08/21, GW: dropped the $pad option and added $extend
+#-----------------------------------------------------------------------------
+sub ReduceVolume
+{
+   die "&ReduceVolume: wrong number of arguments" 
+      unless (@_ >= 3 && @_ <= 5);
+   my ($input, $base, $label, $step, $extend) = @_;
+   my (@step, @extend, $reduced);
+
+   return $input unless $step || $extend;
+   $reduced = "${TmpDir}/${base}_${label}.mnc";
+
+   if ($step && $step->[0])
+   {
+      if (@$step == 1)
+      {
+	 @step = ("-isostep", $step->[0]);
+      }
+      elsif (@$step == 3)
+      {
+	 @step = ("-step", @$step);
+      }
+      else
+      {
+	 &Fatal ("\&ReduceVolume: \@\$step must have 1 or 3 elements");
+      }
+   }
+   else
+   {
+      @step = ();
+   }
+
+
+   # If the user supplied a crop specification (which must be a 1- or 
+   # 3-element array pointed to by $extend), then use it; if not, or
+   # if $extend points to an empty array, then don't try to crop.
+
+   if ($extend && $extend->[0])
+   {
+      if (@$extend == 1)
+      {
+	 @extend = ("-isoextend", $extend->[0]);
+      }
+      elsif (@$extend == 3)
+      {
+	 @extend = ("-extend", @$extend);
+      }
+      else
+      {
+	 &Fatal ("\&ReduceVolume: \@\$extend must have 1 or 3 elements");
+      }
+   }
+   else
+   {
+      @extend = ();
+   }
+
+   unless ($step || $extend)
+   {
+      &verbose ("Skipping reduction step");
+      return $input;
+   }
+   
+   if (-e $reduced)
+   {
+      &verbose ("$reduced already exists");
+   }
+   else
+   {
+      &verbose ("\nSubsampling/cropping data:");
+      &Spawn (["autocrop", $input, $reduced, @step, @extend]);
+   }
+
+   $reduced;
+}
+
+
+# ------------------------------ MNI Header ----------------------------------
+#@NAME       : &PadVolume
+#@INPUT      : $input - name of input volume
+#              $base  - basename of input volume, without directory
+#              $label - string to tack on after basename in output filenames
+#              $padding - amount of padding to add to volume (must be
+#                         a reference to a list of 3 strings: autocrop-
+#                         style "extension" specifications for the x, y,
+#                         and z axes)
+#@OUTPUT     : 
+#@RETURNS    : Name of output (padded) volume, or name of input volume
+#              if padding skipped
+#@DESCRIPTION: Isotropically zero pads a volume by a given amount.
+#@METHOD     : 
+#@GLOBALS    : 
+#@CALLS      : 
+#@CREATED    : 95/08/22, Greg Ward
+#@MODIFIED   : 
+#-----------------------------------------------------------------------------
+sub PadVolume
+{
+   die "&PadVolume: wrong number of arguments" unless (@_ == 4);
+   my ($input, $base, $label, $padding) = @_;
+   my ($pad);
+
+   unless ($padding && @$padding)
+   {
+      &verbose ("Skipping zero-padding step");
+      return ($input);
+   }
+
+   $pad = "${TmpDir}/${base}_${label}.mnc";
+   if (-e $pad)
+   {
+      &verbose ("$pad exists already");
+   }
+   else
+   {
+      &verbose ("\nZero-padding data:");
+      &Spawn (["autocrop", $input, $pad, "-expand", @$padding]);
+   }
+   return ($pad);
+}
+
+
+
+# ------------------------------ MNI Header ----------------------------------
+#@NAME       : &IntensityBlur
+#@INPUT      : $input - full name of input volume
+#              $base  - basename of input volume
+#              $blur  - FWHM of blurring kernel - will also be used to
+#                       generate the output filename
+#@OUTPUT     : 
+#@RETURNS    : Full name of the output file.
+#@DESCRIPTION: Blurs a volume to the specified FWHM. The output file 
+#              will be named according to the specified base filename,
+#              with "_xx_blur.mnc", where xx is the FWHM ($blur).
+#@METHOD     : 
+#@GLOBALS    : 
+#@CALLS      : 
+#@CREATED    : Louis Collins (long, long ago)
+#@MODIFIED   : 95/08/03, Greg Ward - rearranged to my own liking
+#-----------------------------------------------------------------------------
+sub IntensityBlur
+{
+   die "IntensityBlur: wrong number of arguments" unless @_ == 4;
+   my($input, $base, $blur, $crop) = @_;
+   
+   my($blurbase) = "${TmpDir}/${base}_${blur}";
+   
+   &verbose("\nIntensity blurring data:");
+   if(-e "${blurbase}_blur.mnc") 
+   {
+      &verbose("${blurbase}_blur.mnc exists");
+   }
+   else
+   {
+      my ($tmp_blur) = "${TmpDir}/tmp_${blur}";
+
+      if (-e "${tmp_blur}_blur.mnc")
+      {
+	 &verbose ("${tmp_blur}_blur.mnc exists");
+      }
+      else
+      {
+	 &Spawn (["mincblur", $input, $tmp_blur, "-fwhm", $blur]);
+      }
+      &Spawn (["autocrop", "${tmp_blur}_blur.mnc", "${blurbase}_blur.mnc",
+               "-expand", @$crop]);
+      unlink "${TmpDir}/${tmp_blur}_blur.mnc";
+   }
+   "${blurbase}_blur.mnc";
+}
+
+
+# ------------------------------ MNI Header ----------------------------------
+#@NAME       : &GradientBlur
+#@INPUT      : $input - full name of input volume
+#              $base  - basename of input volume
+#              $blur  - FWHM of blurring kernel - will also be used to
+#                       generate the output filename
+#@OUTPUT     : 
+#@RETURNS    : Full names of the output files (intensity then gradient blur)
+#@DESCRIPTION: Blurs a volume to the specified FWHM to get a gradient
+#              volume.  The output file will be named according to
+#              the specified base filename, with "_xx_blur.mnc" and 
+#              "_xx_dxyz.mnc" appended, where xx is the FWHM ($blur).
+#              
+#              
+#@METHOD     : 
+#@GLOBALS    : 
+#@CALLS      : 
+#@CREATED    : Louis Collins (long, long ago)
+#@MODIFIED   : 95/07/28, Greg Ward - rearranged to my own liking
+#-----------------------------------------------------------------------------
+sub GradientBlur
+{
+   die "&GradientBlur: wrong number of arguments" unless (@_ == 4);
+   my($input, $base, $blur, $crop) = @_;
+   
+   my($blurbase) = "${TmpDir}/${base}_${blur}";
+
+   &verbose("\nGradient blurring data:");
+   if (-e "${blurbase}_blur.mnc" && -e "${blurbase}_dxyz.mnc")
+   {
+      &verbose("${blurbase}_dxyz.mnc and ${blurbase}_blur.mnc exist");
+   }
+   else
+   {
+      my ($tmp_blur) = "${TmpDir}/tmp_${blur}";
+      
+      unlink ("${blurbase}_blur.mnc", "${blurbase}_dxyz.mnc");
+
+      if (-e "${tmp_blur}_blur.mnc" && -e "${tmp_blur}_dxyz.mnc")
+      {
+	 &verbose("${tmp_blur}_blur.mnc and ${tmp_blur}_dxyz.mnc exist");
+      }
+      else
+      {
+	 unlink ("${tmp_blur}_blur.mnc", "${tmp_blur}_dxyz.mnc");
+	 &Spawn (["mincblur", $input, $tmp_blur, "-fwhm", $blur, "-gradient"]);
+      }
+
+      &Spawn (["autocrop", "${tmp_blur}_blur.mnc", "${blurbase}_blur.mnc",
+              "-expand", @$crop]);
+      &Spawn (["autocrop", "${tmp_blur}_dxyz.mnc", "${blurbase}_dxyz.mnc",
+               "-expand", @$crop]);
+
+      unlink ("${tmp_blur}_blur.mnc", 
+	      "${tmp_blur}_dxyz.mnc");
+   }
+   ("${blurbase}_blur.mnc", "${blurbase}_dxyz.mnc");
+}
+
+
+# ------------------------------ MNI Header ----------------------------------
+#@NAME       : &SetupFits
+#@INPUT      : 
+#@OUTPUT     : 
+#@RETURNS    : 
+#@DESCRIPTION: Sets the global array of hashes that controls the fits.  
+#              This way, the fitting procedure itself is quite
+#              mechanistic -- everything is set here.  (Note that this
+#              must be called after lots of other things have been
+#              set, including @Blurs, $VolumeCOG, $FinalXfm, and
+#              $InputXfm.)
+#@METHOD     : 
+#@GLOBALS    : @Fit
+#@CALLS      : 
+#@CREATED    : 95/07/28, Greg Ward - a distillation of Louis'
+#                        original &GradientFit
+#@MODIFIED   : 95/07/31, GW: rewrote it to make an array of hashes
+#                            instead of a bunch of arrays (sigh)
+#-----------------------------------------------------------------------------
+sub SetupFits
+{
+   die "SetupFits: wrong number of arguments" unless @_ == 7;
+   my ($blurs, $blur, $volume_cog, $final_xfm, $input_xfm, 
+       $default_obj, $first_obj) = @_;
+   my (@fit);
+
+   # And here's where we control the fitting... currently, the fitting
+   # steps are as follows:
+   #
+   #   0) lsq7 16mm intensity blur, unmasked
+   #   1) lsq7  8mm intensity blur, unmasked
+   #   2) lsq7  8mm gradient blur, masked
+   #   3) lsq9  8mm gradient blur, masked
+   #   4) check z-scale
+   #   5) lsq9  8mm gradient blur, masked
+   #   6) lsq9  8mm gradient blur, masked
+
+   # The fields used here are:
+   #   program    - the program that actually does something at this
+   #                step.  This is a bit deceitful, as only minctracc
+   #                actually does any fitting; however, since step 4
+   #                is "check_scale", we include that as a member of
+   #                the list of fits.  In the future (eg. for nonlinear
+   #                stuff), this could also be used as a keyword to 
+   #                signify more complicated inter-processing that must
+   #                be done between two fits, eg. "prepdata" to prepare
+   #                for the 4mm level nonlinear fit.  If empty,
+   #                minctracc is assumed.
+   #   volume     - this is really the tail end of the names of *both*
+   #                volumes (source and target); it will be combined
+   #                with the appropriate directories and filename bases
+   #                to make two whole filenames.  (This means that you
+   #                *must* match similarly-suffixed files, eg. 
+   #                "foo_8_dxyz" to "bar_8_dxyz" -- but you cannot do
+   #                (eg) "foo_8_blur" to "bar_8_dxyz".)
+   #   inputxfm   - the filename tail of the transform file passed to
+   #                minctracc as the starting point.  Note that this
+   #                is basically a copy of the transforms listed under
+   #                `outputxfm', shifted down by one element.  
+   #   outputxfm  - the filename tail for the output transform for
+   #                each fit
+   #   type       - what kind of fit minctracc is to do (eg. "lsq7")
+   #   objective  - objective function to use
+   #   sourcemask - file to apply as source mask (-source_mask argument
+   #                to minctracc)
+   #   targetmask - file to apply as target mask (-model_mask argument
+   #                to minctracc)
+   #   center     - how to instruct minctracc what to use for the COG
+   #                of the source volume (eg. "-est_center" or
+   #                "-center 1 2 3")
+   #   steps      - number of steps to take in x,y,z (will be preceded
+   #                by -step argument to minctracc)
+   #   tolerance  - fitting tolerance (will be preceded by -tolerance)
+   #   simplex    - radius of simplex search volume (will be preceded by
+   #                -simplex)
+   #
+   # Note: some fields (volume, inputxfm, outputxfm, sourcemask,
+   # targetmask) are usually (but not always!) filename tails.  For
+   # those values, you must include the string "BASE" somewhere
+   # (presumably near the beginning!); it will be replaced with the
+   # actual filename base.  For the 'volume' field, this may be
+   # replaced by both the source and target base.
+   
+   @fit = ({'description' => "$blurs->[1]mm lsq7 intensity fit, no masks",
+            'program'     => "",                         # fit 0
+	    'volume'      => "BASE_$blurs->[1]_blur.mnc",
+	    'inputxfm'    => "-est_translations",
+	    'outputxfm'   => "BASE_$blurs->[1].xfm",
+	    'type'        => "lsq7",
+            'objective'   => $default_obj,
+	    'sourcemask'  => "",
+	    'targetmask'  => "",
+	    'center'      => "-center $volume_cog",
+	    'steps'       => [qw/4 4 4/],
+	    'tolerance'   => 0.01,
+	    'simplex'     => 20},
+
+	   {'description' => "$blurs->[0]mm lsq7 intensity fit, no masks",
+            'program'     => "",                         # fit 1
+	    'volume'      => "BASE_$blurs->[0]_blur.mnc",
+	    'inputxfm'    => "-transformation BASE_$blurs->[1].xfm",
+	    'outputxfm'   => "BASE_$blurs->[0]tmp1a.xfm",
+	    'type'        => "lsq7",
+            'objective'   => $default_obj,
+	    'sourcemask'  => "",
+	    'targetmask'  => "",
+	    'center'      => "-center $volume_cog",
+	    'steps'       => [qw/4 4 4/],
+	    'tolerance'   => 0.004,
+	    'simplex'     => 5},
+	   
+	   {'description' => "$blurs->[0]mm lsq7 gradient fit, target masked",
+            'program'     => "",                         # fit 2
+	    'volume'      => "BASE_$blurs->[0]_dxyz.mnc",
+	    'inputxfm'    => "-transformation BASE_$blurs->[0]tmp1a.xfm",
+	    'outputxfm'   => "BASE_$blurs->[0]tmp1b.xfm",
+            'type'        => "lsq7",
+            'objective'   => $default_obj,
+	    'sourcemask'  => "",
+	    'targetmask'  => "BASE_mask.mnc",
+	    'center'      => "-center $volume_cog",
+	    'steps'       => [qw/4 4 4/],
+	    'tolerance'   => 0.004,
+	    'simplex'     => 2},
+
+	   {'description' => "$blurs->[0]mm lsq9 gradient fit, target masked",
+            'program'     => "",                         # fit 3
+	    'volume'      => "BASE_$blurs->[0]_dxyz.mnc",
+	    'inputxfm'    => "-transformation BASE_$blurs->[0]tmp1b.xfm",
+	    'outputxfm'   => "BASE_$blurs->[0]tmp2a.xfm",
+	    'type'        => "lsq9",
+            'objective'   => $default_obj,
+	    'sourcemask'  => "",
+	    'targetmask'  => "BASE_mask.mnc",
+	    'center'      => "-center $volume_cog",
+	    'steps'       => [qw/4 4 4/],
+	    'tolerance'   => 0.004,
+	    'simplex'     => 2},
+
+	   {'description' => "checking z-scale",
+            'program'     => "check_scale",              # "fit" 4
+	    'inputxfm'    => "BASE_$blurs->[0]tmp2a.xfm",
+	    'outputxfm'   => "BASE_$blurs->[0]tmp2b.xfm"},
+
+	   {'description' => "$blurs->[0]mm lsq9 gradient fit, target masked",
+            'program'     => "",                         # fit 5
+	    'volume'      => "BASE_$blurs->[0]_dxyz.mnc",
+	    'inputxfm'    => "-transformation BASE_$blurs->[0]tmp2b.xfm",
+	    'outputxfm'   => "BASE_$blurs->[0]tmp2c.xfm",
+	    'type'        => "lsq9",
+            'objective'   => $default_obj,
+	    'sourcemask'  => "",
+	    'targetmask'  => "BASE_mask.mnc",
+	    'center'      => "-center $volume_cog",
+	    'steps'       => [qw/4 4 4/],
+	    'tolerance'   => 0.004,
+	    'simplex'     => 2},
+
+	   {'description' => "Final fit: $blurs->[0]mm lsq9 gradient fit, target masked",
+            'program'     => "",                         # fit 6
+	    'volume'      => "BASE_$blurs->[0]_dxyz.mnc",
+	    'inputxfm'    => "-transformation BASE_$blurs->[0]tmp2c.xfm",
+	    'outputxfm'   => "$final_xfm",
+	    'type'        => "lsq9",
+            'objective'   => $default_obj,
+	    'sourcemask'  => "",
+	    'targetmask'  => "BASE_mask.mnc",
+	    'center'      => "-center $volume_cog",
+	    'steps'       => [qw/4 4 4/],
+	    'tolerance'   => 0.004,
+	    'simplex'     => 2});
+
+
+   # If the user supplied an initial transformation on the command line,
+   # then cut out the lsq7 fits and replace the `inputxfm' parameter for
+   # the new first fit to use the user's input xfm.  Note: in the main
+   # program, we also look to see if $input_xfm is defined, and if so skip
+   # the "coarser" blurring step ($blurs->[1]).
+
+   if ($input_xfm)
+   {
+      splice (@fit, 0, 3);	# remove the first three fit profiles
+      $fit[0]->{'inputxfm'} = "-transformation $input_xfm";
+   }
+
+   # If the user specified a different objective function for the
+   # first fit only, replace the 'objective' field in the first fit
+   # profile
+
+   if ($first_obj)
+   {
+      $fit[0]->{'objective'} = $first_obj;
+   }
+
+   # If no blurring is to be done, then remove any mention of blurred
+   # data from the description lines and from the volume names 
+   # in all fit profiles.  We leave the name of transform files alone,
+   # though, just to keep things consistent with runs that use blurring.
+
+   unless ($blur)
+   {
+      my $fit;
+      for $fit (@fit)
+      {
+         $fit->{'description'} =~ s/^\d+mm\s+//;
+         $fit->{'volume'} = "BASE.mnc";
+      }
+   }
+
+   return @fit;
+}
+
+
+# ----------------------------------------------------------------------
+#    &PerformFits and associated routines (in increasing order of importance):
+#       &get_full_filename
+#       &check_scale
+#       &minctracc
+#       &perform_fit
+# ----------------------------------------------------------------------
+
+# ------------------------------ MNI Header ----------------------------------
+#@NAME       : &get_full_filename
+#@INPUT      : $fit  - fit profile from which we extract the filename tail
+#              $key  - field of the profile to extract
+#              $base - base filename (with directory!) to put in place
+#                      of "BASE" in the filename tail
+#@OUTPUT     : 
+#@RETURNS    : 
+#@DESCRIPTION: Turns one field from a fit profile (presumably a
+#              filename tail) into a full filename by substituting the
+#              basename (with directory) in place of "BASE" in the
+#              tail.
+#@METHOD     : 
+#@GLOBALS    : 
+#@CALLS      : 
+#@CREATED    : 95/08/01, Greg Ward
+#@MODIFIED   : 
+#-----------------------------------------------------------------------------
+sub get_full_filename
+{
+   my ($fit, $key, $base) = @_;
+   my ($filename);
+
+   ($filename = $fit->{$key}) =~ s/BASE/$base/;
+   $filename;
+}
+
+
+# ------------------------------ MNI Header ----------------------------------
+#@NAME       : &check_scale
+#@INPUT      : $in_xfm  - transform file to feed into check_scale
+#@OUTPUT     : $out_xfm - transform file that will be output by check_scale
+#                         (same as $in_xfm, possibly with z-scale adjusted)
+#@RETURNS    : 
+#@DESCRIPTION: Calls check_scale on a transform file to make sure the 
+#              z-scale factor hasn't gotten out of whack.  (The criteroin
+#              is that z-scale must be no more than 15% greater than the
+#              average of x-scale and y-scale.  If it is, then it is set
+#              to that average.)
+#@METHOD     : 
+#@GLOBALS    : 
+#@CALLS      : 
+#@CREATED    : 95/08/01, Greg Ward
+#@MODIFIED   : 
+#-----------------------------------------------------------------------------
+sub check_scale
+{
+   my ($in_xfm, $out_xfm) = @_;
+   
+   &Spawn (["check_scale", $in_xfm, $out_xfm]);
+}
+
+
+# ------------------------------ MNI Header ----------------------------------
+#@NAME       : &minctracc
+#@INPUT      : $source  - base filename (with directory) for source files
+#              $model   - base filename (with directory) for model files
+#              $fit     - reference to the fit profile used to control
+#                         this invocation of minctracc
+#              $in_xfm  - full name of input transformation file
+#@OUTPUT     : $out_xfm - full name of output transformation file
+#@RETURNS    : 
+#@DESCRIPTION: Runs minctracc for one volume->volume fit, with several
+#              required and optional parameters taken from the fit
+#              profile referenced by $fit.  The required parameters are
+#              `volume', `inputxfm', `outputxfm', and `type'.  The 
+#              optional parameters are `center', `steps', `tolerance', 
+#              and `simplex'.
+#@METHOD     : 
+#@GLOBALS    : 
+#@CALLS      : &get_full_filename
+#@CREATED    : 95/08/01, Greg Ward
+#@MODIFIED   : 
+#-----------------------------------------------------------------------------
+sub minctracc
+{
+   my ($source, $model, $fit, $in_xfm, $out_xfm) = @_;
+   my ($svol, $tvol, $type);
+   my ($sourcemask, $targetmask);
+
+   &Fatal ("fit profile is missing some required field")
+      unless ($fit->{'volume'} && 
+	      $fit->{'inputxfm'} && 
+	      $fit->{'outputxfm'} &&
+	      $fit->{'type'});
+
+   # Pull out the required variables and do any pre-processing needed
+
+   $svol = &get_full_filename ($fit, 'volume', $source);
+   $tvol = &get_full_filename ($fit, 'volume', $model);
+   $type = $fit->{'type'};
+   $sourcemask = &get_full_filename ($fit, 'sourcemask', $source);
+   $targetmask = &get_full_filename ($fit, 'targetmask', $model);
+
+   # Pull out the optional variables from the hash (just because I'm
+   # a lazy typist)
+
+   my ($objective, $center, $steps, $tolerance, $simplex) =
+      @{$fit}{'objective', 'center', 'steps', 'tolerance', 'simplex'};
+
+   # As long as the output xfm file doesn't already exist (or if it
+   # does exist, but we're allowed to clobber it), do the fit
+
+   if (-e $out_xfm && !$Clobber)
+   {
+      &verbose ("$out_xfm exists already");
+   }
+   else
+   {
+      my (@options, @steps, @in_xfm, @center);
+
+      @in_xfm = split (/\s+/, $in_xfm);
+      @center = split (/\s+/, $center) if $center;
+
+      push (@options, "-$objective");
+      push (@options, "-source_mask", $sourcemask) if $sourcemask;
+      push (@options, "-model_mask", $targetmask) if $targetmask;
+      push (@options, @center) if @center;
+      push (@options, "-step", @$steps) if $steps;
+      push (@options, "-tol", $tolerance) if $tolerance;
+      push (@options, "-simplex", $simplex) if $simplex;
+
+      &Spawn (["minctracc", $svol, $tvol, $out_xfm, @in_xfm, "-$type",
+               @options]);
+   }
+}   
+
+
+
+# ------------------------------ MNI Header ----------------------------------
+#@NAME       : &perform_fit
+#@INPUT      : $source - base filename (with directory!) of source volume
+#                        (used to find blurred volumes)
+#              $model  - base filename (with directory!) of target volume
+#              $fit    - reference to the fit profile (hash) for this step
+#@OUTPUT     : 
+#@RETURNS    : 
+#@DESCRIPTION: Performs one step of the overall fitting scheme.  Currently,
+#              this can be either a run of minctracc or check_scale.
+#              Important fit parameters are taken from the fit profile
+#              referenced by $fit; which of these parameters are required
+#              depends on the exact activity performed here.
+#@METHOD     : 
+#@GLOBALS    : 
+#@CALLS      : 
+#@CREATED    : 95/08/01, Greg Ward
+#@MODIFIED   : 
+#-----------------------------------------------------------------------------
+sub perform_fit
+{
+   my ($source, $model, $fit) = @_;
+   my ($program, $in_xfm, $out_xfm, $desc);
+
+   # Get the program name, default to minctracc if none supplied
+   $program = ($fit->{'program'} || "minctracc");
+   $in_xfm = &get_full_filename ($fit, 'inputxfm', $source);
+   $out_xfm = &get_full_filename ($fit, 'outputxfm', $source);
+   $desc = $fit->{'description'};
+   $desc .= ": making " . $out_xfm
+      if ($desc && $out_xfm);
+
+   &verbose ("\n" . $desc);
+
+   if ($program eq "check_scale")
+   {
+      &check_scale ($in_xfm, $out_xfm);
+   }
+   elsif ($program eq "minctracc")
+   {
+      &minctracc ($source, $model, $fit, $in_xfm, $out_xfm);
+   }
+   else
+   {
+      die "perform_fit: unknown program $program";
+   }
+}
+
+
+
+# ------------------------------ MNI Header ----------------------------------
+#@NAME       : &PerformFits
+#@INPUT      : $source_base - base name (no directory) of source volume
+#              $model - base name (with directory!) of target volumes
+#@OUTPUT     : 
+#@RETURNS    : 
+#@DESCRIPTION: Runs the whole fitting procedure, by calling &perform_fit
+#              once for each element in the Grand High List Of Fit
+#              Profiles (the global @Fit).
+#@METHOD     : 
+#@GLOBALS    : @Fit
+#@CALLS      : 
+#@CREATED    : 95/08/01, Greg Ward
+#@MODIFIED   : 
+#-----------------------------------------------------------------------------
+sub PerformFits 
+{
+   my ($fits, $source_base, $model) = @_;
+   my ($source, $fit);
+
+   # Base name/directory for blurred files and temporary xfm's
+
+   $source = "${TmpDir}/${source_base}";
+
+   for $fit (@$fits)
+   {
+      &perform_fit ($source, $model, $fit);
+   }
+}
+
+
+# ------------------------------ MNI Header ----------------------------------
+#@NAME       : &verbose
+#@INPUT      : $str - message to print
+#@OUTPUT     : 
+#@RETURNS    : 
+#@DESCRIPTION: prints message, as long as global $Verbose flag is true
+#@METHOD     : 
+#@GLOBALS    : 
+#@CALLS      : 
+#@CREATED    : Louis Collins
+#@MODIFIED   : 
+#-----------------------------------------------------------------------------
+sub verbose
+{
+   print "@_\n" if $Verbose;
+}

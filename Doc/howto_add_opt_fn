@@ -1,0 +1,52 @@
+Quick note on how to add an additional optimization functions for
+linear registration:
+
+Simplex is the only optimization algorithm provided.  It is simple,
+robust and it works!  Better optimization procedures are available,
+but unfortunately, I did not have time to install them.
+
+files affected:
+	Optimize/optimize.c
+	Include/constants.h
+
+--------
+
+Optimize/optimize.c
+	
+A new optimization procedure should be called from
+optimize_linear_transformation() within the case statement near the
+bottom of the routine.  
+
+The actual optimization routine should minimize the function the value
+'fit_function', which takes an array of floats params[].  fit_function
+uses the values of params[], and the number of degrees of freedom to
+produce a transformation matrix 'mat'.  Any parameters that are not
+free are taken from the transformation parameters stored
+'main_args.trans_info' structure.
+
+If you want to deal directly, you will have to build a transformation
+matrix given the parameters to be optimized, store this transform in
+the linear part of main_args.trans_info.transformation, and call
+something like:
+
+r = (main_args.obj_function)(Gdata1,Gdata2,Gmask1,Gmask2,&main_args)
+
+to get the value of the user-requested objective function. 
+
+--------
+
+Include/constants.h
+
+You will have to define your optimization type in Include/constants.h.
+
+--------
+
+finally, extra procedures... 
+
+If you need to define extra procedures for the creation, deletion,
+manipulation of data structures for your particular optimization
+function, then create a new source file and header file. The header
+files should be placed in Include/ and the source file in Optimize/ .
+Don't forget to update the Makefile.
+
+Good luck.

@@ -1,0 +1,99 @@
+# mritotal.default.cfg
+#
+# This is the default protocol file for mritotal, which specifies all
+# the data-specific preprocessing steps to take.  Note that you don't
+# have any control over the order of the preprocessing steps -- you
+# can only specify what is done, and how it is done.  The order of
+# steps taken is as follows:
+#
+#    * reduce data (subsample and crop)
+#    * zero-pad data (necessary to ensure that blurring is correct)
+#    * blur data
+#
+
+# Default protocol by Greg Ward 95/08/23 - this instructs mritotal to
+# use some simple heuristics to subsample and crop the data, and
+# should work with T1-weighted MRI data of *normal* human brains where
+# the top of the head is pretty close to the top of the scanning
+# volume.  You can also explicitly set the subsampling and cropping
+# parameters if you know that your scanning protocol is quite
+# consistent and would prefer not to have mritotal take a guess every
+# time it runs; see mritotal.icbm.cfg for an example of how this is
+# done for the ICBM protocol.
+
+
+
+# The data is first subsampled, mainly to save memory and time.  There
+# are four possible actions here:
+#   * -nosubsample: mritotal will not subsample your data
+#   * -subsample xstep ystep zstep: you specify separate step sizes
+#     (sampling frequencies) for each of the three spatial dimensions
+#   * -isosubsample step: you specify a single step for all three 
+#     dimensions
+#   * -guess_subsample: mritotal will compute the step sizes based
+#     on your data.  The step sizes for the three dimensions
+#     are calculated independently; if your input step is < 1.5mm, 
+#     then the subsampling step will be twice your input step;
+#     otherwise, that dimension is not subsampled.
+
+-guess_subsample
+
+# At the same time that the data is subsampled, it is cropped.  This
+# is more important than subsampling, as the fit may fail if there is
+# too much data (eg. if the scanning volume extends down into the
+# neck, as is often the case with coronal or sagittal acquisitions).
+# You have the same four options for cropping as for subsampling
+# (-nocrop, -crop, -isocrop, and -guess_crop), except that "-crop" and
+# "-isocrop" take rather more complicated arguments.
+#
+# In particular, they expect pairs of numbers (-crop expects three,
+# -isocrop only one) that specify the amount to chop off each end of
+# an axis.  (Actually, these numbers specify how much to *extend* the
+# axis by, so you must give negative numbers to chop data off.)  The
+# first number specifies how much to chop off the low end of the axis,
+# and the second specifies how much to chop off the high end.  Note
+# that these are "low" and "high" in the sense implied by the MINC
+# standard, ie. the low end of the x axis is the patient's left, low y
+# is patient posterior, and low z is patient inferior -- independent
+# of the order or orientation of your data.  Finally, the numbers can
+# be specified in voxels, millimetres, or as a percentage of the
+# original dimension extent.
+#
+# In this default protocol, we use mritotal's simple heuristic for
+# cropping, which is: leave the x and y dimensions alone, but chop off
+# anything more than 190mm below the top of the volume.  As long as
+# the top of the subject's head is pretty close to the top of the
+# volume, this does a reasonable job of chopping out excess data
+# (ie. below the bottom of the cerebellum).
+# 
+# As a slightly fancier example, the crop specification for the ICBM
+# protocol is "-crop 0,0 0,0 -25%,0". This illustrates how to chop off
+# 25% of the data at the bottom of the scan (low z) while leaving the
+# x and y axes alone.  (Since ICBM scans have a z extent of 256 mm,
+# this has the effect of removing all but the top 192mm of the scan,
+# which is almost identical to mritotal's cropping heuristic.)  You
+# can also specify crop amounts as mm (millimetres) or v (voxels);
+# eg. to remove 10 voxels at both ends of the x axis and 20mm at the
+# top of the head (high z), you would use "-crop -10v,-10v 0,0
+# 0,-20mm".  You can mix and match the three units at will; for
+# instance, you could chop 25% at the bottom, and 10 voxels at the
+# top, of the z axis with "-crop 0,0 0,0 -25%,-10v".  If no unit is
+# specified, mm is assumed.
+
+-guess_crop
+
+# Specify the objective function used for fitting.  You can use
+# any of the objective functions supported by minctracc (do 
+# "minctracc -help" for an up-to-date list); currently, these
+# are:
+# 
+#    xcorr   cross-correlation
+#    mi      mutual information [Collignon]
+#    vr      variance of ratios [Woods]
+#    zscore  normalized difference
+#    ssc     stochasic sign change
+#
+# Only xcorr has been thoroughly tested and routinely used for
+# fitting MRI data to Talairach space.
+
+-objective xcorr

@@ -1,0 +1,430 @@
+                 MNI Automated Linear Registration Package
+                     Version 0.98f (sixth beta release)
+                            March 12, 1999
+
+DESCRIPTION
+-----------
+
+In both diagnostic and research applications, the interpretation of
+magnetic resonance (MR) images of the human brain is facilitated when
+different data sets can be compared by visual inspection of equivalent
+anatomical planes.  Quantitative analysis with pre-defined atlas
+templates often requires the initial alignment of atlas and image
+planes.  Unfortunately, the axial planes acquired during separate
+scanning sessions are often different in their relative position and
+orientation, and these slices are not coplanar with those in the
+atlas.
+ 
+A completely automatic method has been developed, based on
+multi-scale, three dimensional (3D) cross-correlation, to register a
+given volumetric data set to an average MRI brain (n > 300) aligned
+with the Talairach stereotaxic coordinate system.  Once the data set
+is resampled by the transformation recovered by the algorithm, atlas
+slices can be directly super-imposed on the corresponding slices of
+the resampled volume (see below).  The use of such a standardized
+space also allows the direct comparison, voxel-to-voxel, of two or
+more data sets brought into stereotaxic space.
+
+A Perl script (mritotal) implements the multi-resolution fitting
+strategy that has been used to map more than 500 brains into
+stereotaxic space at the Montreal Neurological Institute.  At the
+heart of this procedure is minctracc, the program that automatically
+finds the best linear transformation to map one volumetric data set
+(stored in MINC format, see below) on to another.  The program uses
+optimization over a user selectable number of parameters to identify
+the best (according to a user-selected objective function)
+transformation mapping voxel values of the first data set into the
+second.
+
+A paper describing the automatic linear stereotaxic registration
+procedure has appeared in:
+
+   D.  L.  Collins, P.  Neelin, T.  M.  Peters and A.  C.  Evans,
+   Automatic 3D Inter-Subject Registration of MR Volumetric Data 
+	in Standardized Talairach Space,
+   Journal of Computer Assisted Tomography, 18(2) p192-205, 1994
+
+
+GETTING MNI_AUTOREG
+-------------------
+
+You can obtain a copy of the latest version of the MNI_AutoReg
+software using anonymous FTP from:
+
+   ftp://ftp.bic.mni.mcgill.ca/pub/mni_autoreg/
+
+Look for a file named mni_autoreg-x.yy.tar.gz (where x.yy is the release
+number).
+ 
+MNI_AutoReg requires that both the MINC and netCDF packages be built and
+installed first.  The MINC file format is a highly flexible medical
+image file format built on top of the netCDF generalized data format.
+You should be able to get them both from 
+
+   ftp://ftp.bic.mni.mcgill.ca/pub/minc
+
+If you prefer, you can get netCDF from its home site, the Unidata Program
+Centre at the University Corporation for Atmospheric Research:
+
+   ftp://unidata.ucar.edu/pub/netcdf
+
+You will also need a recent version of Perl 5; Perl 5.002 or later is
+required.
+
+For easy "one-stop shopping", you can find Perl 5.004_02 (the latest
+version at this writing) at
+
+   ftp://ftp.bic.mni.mcgill.ca/pub/perl
+
+Alternately, you can always find the latest version of Perl at at any
+mirror of the Comprehensive Perl Archive Network (CPAN), in src/5.0/.  The
+easiest way is to go to:
+
+   http://www.perl.com/CPAN/src/5.0/
+
+which will magically connect you to a nearby CPAN site.
+
+If you prefer the old-fashioned way, here is a random selection of CPAN
+sites:
+
+   * ftp://ftp.metronet.com/pub/perl
+   * ftp://uiarchive.cso.uiuc.edu/pub/lang/perl/CPAN
+   * ftp://ftp.funet.fi/pub/languages/perl/CPAN
+   * ftp://ftp.demon.co.uk/pub/mirrors/perl/CPAN
+   * ftp://ftp.mame.mu.oz.au/pub/perl/CPAN
+
+In addition to Perl itself, you will need the Getopt::Tabular module.
+This is also available at
+
+   ftp://ftp.bic.mni.mcgill.ca/pub/perl
+
+or it can be found on any CPAN site, in authors/id/GWARD.  To install
+Getopt::Tabular, just unpack the archive and run the following (you'll
+need write permission on the directories where Perl was installed):
+
+   perl ./Makefile.PL
+   make install
+
+(If you can't write to the Perl installation directories (eg. if Perl was
+installed by the super-user, and you don't have root privileges) you can
+install the module to your home directory like this:
+
+   perl ./Makefile.PL PREFIX=~
+   make install
+
+but then you'll also need to add ~/lib/perl5/site_perl (or wherever the
+module was actually installed) to your PERLLIB environment variable.)
+
+The model used for stereotaxic registration is based on the 305 brain
+average MRI volume created at the Montreal Neurological Institute.
+Because of its size, this model is *not* included with the MNI_AutoReg
+package.  But, it too is available from
+
+   ftp://ftp.bic.mni.mcgill.ca/pub/mni_autoreg/mni_autoreg_model-1.01.tar.gz
+
+Note that this archive only contains the files needed to build the
+full model; you will need to follow the instructions in the README
+file there to have the full set of model files.  (See step 6 in the
+detailed instructions below.)
+
+There are also two example MRI volumes available that you can use to test
+the package once you have everything built and installed.  They are also
+both available from ftp://ftp.bic.mni.mcgill.ca/pub/mni_autoreg; the first
+(mni_autoreg_big_example_mri.mnc.gz) is a full-head, full-resolution ICBM
+T1-weighted scan.  This file is about 23 MB uncompressed, so you may wish
+to consider using mni_autoreg_small_example_mri.mnc (1.1 MB uncompressed),
+which is the same data but with the first preprocessing step (subsampling
+and cropping) performed on it.  In order to check your results, you should
+also get mni_autoreg_example_results-0.98.tar.gz, which contains the output
+from running mritotal (the main user-level fitting program) on the two
+example volumes under various architectures.
+
+
+INSTALLATION
+------------
+
+In order to make the MNI registration utilities:
+ 
+   0) You will need an ANSI-compliant C compiler; if your system is
+      lacking in one (Sun workstations commonly are), we recommend
+      the GNU C Compiler (gcc), available from
+
+          ftp://prep.ai.mit.edu/pub/gnu/gcc-x.y.z.tar.gz
+
+      or any GNU mirror site.
+
+   1) You may have to build and install the netCDF library.
+   2) You may have to build and install the MINC library.
+   3) You may have to build and install Perl 5.
+   4) You may have to install the Getopt::Tabular module for Perl.
+   5) We have used the GNU autoconf program to create a `configure'
+      script that will automatically determine various system-
+      dependent values and generate Makefiles needed to
+      build the package.
+
+      In the directory where you unpacked the MNI_AutoReg tar file,
+      type
+
+         ./configure
+
+      `configure' works by poking around your system to determine all
+      the system-specific values needed to build and install
+      MNI_AutoReg.  Once it has done that, it creates Makefile.include,
+      which is the granddaddy Makefile used by all the programs in the
+      package.  If `configure' runs successfully, skip to step 5 below.
+
+      If `configure' complains about not being able to find certain
+      things, though, you may have to give it some hints.  In
+      particular, this be necessary if you have installed netCDF, MINC,
+      Volume_IO, or Perl 5 in weird places.  The easiest way to do that
+      is with the --prefix option; for instance, at the MNI, we keep
+      home-grown software under /usr/local/mni, so here we run
+      `configure' like this:
+
+         ./configure --prefix=/usr/local/mni
+
+      and the MINC and Volume_IO files will be found in various
+      directories under /usr/local/mni.  (netCDF is *not* home-grown, so
+      we keep it under /usr/local.  Luckily, `configure' is smart enough
+      to look there if all else fails.)
+
+      If you simply can't get `configure' to find some files, you can set
+      various environment variables, e.g. NETCDF_INCLUDE to specify the
+      directory where netcdf.h lives. For instance, if you installed netCDF
+      to /tmp, its include file would be in /tmp/include, and you could
+      say:
+ 
+         env NETCDF_INCLUDE=/tmp/include ./configure
+
+      Here are all the environment variables you might want to set to
+      help configure find things:
+
+         NETCDF_INCLUDE    where to find netCDF header (netcdf.h)
+         NETCDF_LIB        where to find netCDF library (libnetcdf.a
+                           on most Unix-like systems)
+         MINC_INCLUDE      where to find MINC header (minc.h)
+         MINC_LIB          where to find MINC library (libminc.a)
+         VOLUMEIO_INCLUDE  where to find Volume_io headers (volume_io.h,
+                           volumes.h, etc.)
+         VOLUMEIO_LIB      where to find Volume_io library (libvolume_io.a)
+         PERL              where to find Perl binary (must be Perl 5.001 or
+                           later)
+
+      Note that these are all *inputs* required to build MNI_AutoReg.
+      There are also a number of output directories that determine where
+      various files get installed; these are explained below.
+
+      If you have built shared-library versions of netCDF, MINC, or
+      Volume_io, configure should be able to find these.  It looks for
+      libraries first with a ".a" extension, then with ".so"; this
+      appears to be a quite common convention under various Unices, and
+      is known to work under IRIX and Linux.  If your system has a
+      different scheme for naming shared libraries, you might need to
+      set the LIBEXT variable; e.g. to look only for ".so" files, 
+
+         env LIBEXT=".so" ./configure
+
+      (LIBEXT is just a space-separated list of extensions, including
+      the dot on each one.)
+
+   6) You might also want to set various site-specific installation
+      directories when running `configure'.  MNI_AutoReg installs many
+      files in various directories, and expects to find other files in
+      certain directories, so it's important to know where you want
+      stuff to go.  By default, it all gets put under /usr/local, unless
+      you specify a different base directory with `--prefix').  In
+      particular:
+
+         binary executables:      /usr/local/bin
+         scripts:                 /usr/local/bin
+         Perl libraries:          (see "Important point #2", below)
+         configuration files:     /usr/local/etc/mni_autoreg
+         man pages:               /usr/local/man/man1
+         stereotaxic brain model: /usr/local/lib/model
+
+      (Binaries and scripts are distinguished in case you have a
+      multi-platform environment and want to share scripts between
+      machines, e.g. using /usr/local/share.)  All of these
+      directories can be customized, either by setting an environment
+      variable before running `configure' or by editing
+      Makefile.include after `configure' has run.  If you wish to use
+      environment variables, set them as follows:
+
+         BINDIR         directory for binary executables
+         SCRIPTDIR      directory for scripts (machine-independent executables)
+         PERLLIBDIR     Perl library files
+         CONFIGDIR      configuration files
+         MAN1DIR        man pages
+         MODELDIR       stereotaxic brain model files
+
+      Note that if you feel like setting ALL of these (e.g., to install
+      MNI_AutoReg to /tmp or your home directory), you're probably
+      better off to use `--prefix'.  If you want to impose a more
+      centralized structure (eg. with all MNI_AutoReg-related files
+      under /usr/local/lib/mni_autoreg), you'll have to override most of
+      the defaults with environment variables.
+
+      If you prefer to edit Makefile.include, just read the instructions
+      there -- but be warned that any changes you make will be lost if
+      you re-reun `configure'!
+
+      Important point #1: MNI_AutoReg doesn't actually install anything
+      to MODELDIR; that is done by another package, the MNI Average
+      Brain Stereotaxic Registration Model (which you should have
+      downloaded as mni_autoreg_model-1.0.tar.gz).  However, MNI_AutoReg
+      produces a custom version of the mritotal program (the main driver
+      for stereotaxic registration) with MODELDIR hard-coded into it.
+      Be sure to use the same MODELDIR when configuring and installing
+      the two packages, or you will always need to use mritotal's
+      `-modeldir' option to override the (incorrect) built-in default.
+
+      Important point #2: the directory where Perl library files are
+      installed is determined, logically enough, by asking Perl.  (In
+      particular, the "installsitelib" configuration variable is checked.)
+      For Perl 5.002 and later, this is enough; if Perl was installed using
+      all the default directories, the Perl library files will end up in
+      /usr/local/lib/perl5/site_perl.
+      
+      However, if you're still running Perl 5.001, "installsitelib" is
+      not set.  In this case, `configure' will use a default directory
+      of lib/perl5/site_perl under your prefix directory, which (if
+      prefix is /usr/local), will be the same as you would have got
+      using Perl 5.002's default installation directories.  In this
+      case, though, the directory is most likely not on Perl's default
+      search path.  You will be warned if this is the case when you do
+      "make install"; if you get this warning, you should set the
+      PERLLIBDIR environment variable, e.g. with:
+
+         setenv PERLLIBDIR /usr/local/lib/perl5/site_perl
+
+      (assuming you use a csh-variant) in your ~/.cshrc or the global
+      /etc/cshrc file.  (Or, if you're a Bourne-shell, ksh, zsh, or bash
+      type of person, put
+
+         PERLLIBDIR=/usr/local/lib/perl5/site_perl ; export PERLLIBDIR
+
+      in ~/.profile or /etc/profile.)
+
+      Just remember: when you upgrade to Perl 5.002 or later, this
+      setting of PERLLIBDIR might be redundant, so you'll probably want
+      to remove it at that time.
+
+   7) Type:
+
+        make build
+      
+        make test
+
+        make install
+
+        make installman
+
+      and you're ready to build the model files needed to perform
+      full-blown MRI->Talairach fitting with mritotal.
+
+   8) Unpack mni_autoreg_model-1.0.tar.gz somewhere, and follow the
+      instructions in the README there.  When editing the Makefile, be
+      *sure* to set MODELDIR to the directory used for MODELDIR above!
+      When you have done "make build" and "make install", then the
+      model will be ready to go; and, as long as you set MODELDIR
+      correctly in both packages, mritotal will be ready to run with
+      that model.
+
+   9) Now, you're ready to test mritotal on real data.  Please see the 
+      file TESTING, included with this distribution, for more information.
+
+
+PORTABILITY
+-----------
+
+We have gone to great lengths to ensure that MNI AutoReg compiles and
+runs correctly on a variety of Unix and Unix-like systems.  However, we
+only have ready access to Linux, IRIX, and SunOS systems; successful use
+of the package on other systems is not necessarily assured.  (For that
+matter, its successful use anywhere is not assured -- you get what you
+pay for!  See the COPYRIGHT file.)
+
+That said, if you have trouble building and/or testing the package, we'd
+like to hear about it.  But just telling us "it didn't build" or "a test
+failed" is not enough -- ideally, you would provide us with a detailed
+breakdown of your system configuration (architecture, operating system
+and OS version, compiler and compiler version, C library -- including
+header files -- and its version), and a comprehensive explanation of
+what went wrong and how we can fix it without interfering with
+portability to any *other* system.  We don't expect that every bug
+report will have this amount of information, but keep in mind that
+that's the ideal to strive for.
+
+Please do not complain of portability problems unless you have first
+made sure that your C compiler and library (including header files!) are
+ANSI compliant.
+
+
+CONFIGURATION AND PROTOCOL FILES
+--------------------------------
+
+mritotal requires two external files to run.  These are the
+configuration file (mritotal.cfg) and protocol file (default is
+mritotal.default.cfg, but you can specify others using the -protocol
+option).  If you follow all the above instructions, then these files
+will be correctly customized and installed for your site.  If things
+go wrong, though, you should know the following:
+
+   * The directory where the configuration and protocol file(s) are
+     installed defaults to /usr/local/etc/mni_autoreg.  If you change this
+     (ie. move the files after installing them) *without* changing
+     Makefile.include and doing "make build" in the "perl/"
+     subdirectory, then mritotal will not be able to find them.
+     That's because "make build" modifies mritotal so that it points
+     to the directory for config files.
+ 
+   * The location of the model files is specified in the configuration
+     file.  You should check that the directory where you installed
+     the model files (which is specified in the Makefile for the
+     mni_autoreg_model package) is the same as the directory 
+     given in mritotal.cfg (using the -modeldir option).  For
+     instance, if mni_autoreg_model/Makefile has the line:
+
+        MODELDIR    = /data/avgbrain1/brain/images/model
+
+     then mni_autoreg-0.98/perl/mritotal.cfg should have the line:
+
+        -modeldir /data/avgbrain1/brain/images/model
+
+     and, if you want to be really complete, 
+     mni_autoreg-0.98/Makefile.include should have the line
+
+        MODELDIR = /data/avgbrain1/brain/images/model
+
+   * If you find it necessary to make a new protocol for your site's
+     data (for instance, if your MRI data consistently covers
+     considerably more than the brain, but the heuristic used by the
+     default protocol doesn't work -- see the mritotal man page for
+     more information), then you should copy and change the default
+     protocol file.  For instance, you might want to call the protocol
+     "mysite" -- in that case, copy mritotal.default.cfg to
+     mritotal.mysite.cfg, and be *sure* to edit mritotal.cfg so that
+     it uses the new protocol by default.  That is, make sure it has
+     "-protocol mysite" instead of "-protocol default".
+
+     That said, please notify Greg Ward <greg@bic.mni.mcgill.ca> if
+     the heuristics used by the default protocol don't work for your
+     data.
+
+Good luck!  Please let us know if anything goes wrong with the
+installation or testing:
+
+Greg Ward
+McConnell Brain Imaging Center   e-mail: greg@bic.mni.mcgill.ca
+Montreal Neurological Institute  tel:    (514) 398-4965
+McGill University                fax:    (514) 398-8948
+3801 University St.
+Montreal, Qc, Canada H3A 2B4
+
+Louis Collins                 
+McConnell Brain Imaging Center   e-mail: louis@bic.mni.mcgill.ca
+NeuroImaging Laboratory		 tel:(514)-398-1726,1996 
+Montreal Neurological Institute  Fax:(514)-398-8948  
+3801 University St.
+Montreal, Quebec.  H3A 2B4	  
+

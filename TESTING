@@ -1,0 +1,206 @@
+Testing the MNI AutoReg Package
+-------------------------------
+
+There are two phases to testing the package: the first is after you have
+compiled everything, and run "make test".  This does a series of
+low-level tests to make sure that the basic programs for blurring and
+fitting image volumes (mincblur and minctracc), along with a host of
+related utilities, work properly.  Browsing through the output of "make
+test" might be useful if you want to be sure that things are on track.
+
+To test how the package performs in the real world, though, it's best to
+get your hands on some real data and run mritotal, the high-level script
+that does a complete stereotaxic registration.  To keep things
+consistent, we have made available one complete T1-weighted MRI scan and
+the results obtained with mritotal on three different machines at the
+MNI.
+
+The example MRI data is available in two forms: "big" and "small".  The
+big form (about 23 MB uncompressed) is 256x256x180 16-bit data, exactly
+as it comes out of our scanner and as is normally fed into mritotal.
+Given the realities of transferring data by FTP, though, we have also
+made a cropped, subsampled, 8-bit version of this file available -- this
+is the "small" form (about 2.2 MB uncompressed).  Since the very first
+step normally performed by mritotal is to crop and subsample the data
+down to manageable form, working with the small and big data files
+should give exactly the same results.
+
+First, you need to have built the MNI_AutoReg package in its entirety,
+as explained in the README file.  Next, you need to have built the model
+for fitting; this consists of the MNI "average brain" in various stages
+of blurriness.  Because of the size of the complete model, we only
+distribute a "skeleton", from which you build the full model using a
+script included with the skeleton model.  If you don't already have it,
+get the model package from
+
+    ftp://ftp.bic.mni.mcgill.ca/pub/mni_autoreg/mni_autoreg_model-x.y.tar.gz
+
+(where x.y is the release number of the model) and follow the README
+file included there to build the full model.
+
+Note: it is important that you install the fitting model to the same
+directory as mritotal expects to find it in.  This is controlled by the
+MODELDIR variable in the makefiles for each package (Makefile.include
+for MNI_AutoReg, Makefile for the model package); as long as they are
+the same and you have installed the model (with "make install"),
+mritotal should run just fine.
+
+Next, you should download one of the example MRI files.  They're
+available at
+
+    ftp://ftp.bic.mni.mcgill.ca/pub/mni_autoreg
+
+as mni_autoreg_small_example_mri.mnc.gz and
+mni_autoreg_big_example_mri.mnc.gz.  (If you want to work with the big
+example but are unable to download it in one session -- a common problem
+when FTPing large files -- it is also available split up into
+half-megabyte chunks in /pub/mni_autoreg/examples_split.  You can put
+the chunks back together again with the Unix `cat' program.)
+
+Another note: you might wish to install everything to temporary
+directories for testing before doing a final installation.  This is easy
+to do, but you'll have to set a few environment variables so various
+programs can find all their files.  As an example, let's say you want
+MNI_AutoReg to be installed under /tmp, with binaries and scripts going
+to /tmp/bin, Perl library files to /tmp/lib/perl5, configuration files
+to /tmp/config, and the fitting model in /tmp/model.  You would
+configure MNI_AutoReg like this:
+
+    ./configure --prefix=/tmp
+    <edit Makefile.include to customize directories>
+
+and then run "make build" and "make install".  (Even if you have already
+compiled all the C programs, it's important to rerun "make build" after
+customizing the directories in Makefile.include.  This is because custom
+versions of mritotal and its configuration files are created with the
+new directories hard-coded in them as defaults.  It won't take long to
+run "make build", though, since none of the C programs will need to be
+recompiled.)
+
+Then, before running mritotal, you need to tell Perl where to find all
+the library files required for mritotal (I'm assuming csh or descendants
+here; sh/ksh/bash/zsh users will have to translate on the fly):
+
+   setenv PERLLIB /tmp/lib/perl5
+
+and you'll need to tell the shell where to find all the programs:
+
+   set path=(/tmp/bin $path)
+
+If, at the end of the day, you're happy enough with MNI_AutoReg to do a
+real installation, you'll need to regenerate those custom versions of
+mritotal and its config files.  All you have to is edit Makefile.include
+(yes, again!) to reflect your desired final installation directories,
+run "make build" (again, none of the C programs will be recompiled), and
+then "make install".  To install the fit model, you don't really need to
+run "make install" for it -- you can just copy the files from /tmp/model
+(or whatever) to their final destination.
+
+Anyways, whether you're working with a temporary or permanent
+installation, I'll assume that you can successfully run "mritotal
+-help".  (If this works, chances are everything's properly installed.)
+To perform a complete stereotaxic registration, the basic command is
+just
+
+    mritotal input.mnc output.xfm
+
+which creates an .xfm (transform) file containing a 9-parameter
+homogeneous transformation matrix, which can then be applied to the
+input volume to create a registered image file using mincresample.
+
+For both the official example files, things will be a tad more
+elaborate.  First of all, we use the preprocessing protocol for ICBM
+(International Coalition for Brain Mapping) data, since this data was
+acquired for that project.  Thus, to register the "big" version:
+
+    mritotal -protocol icbm \
+       mni_autoreg_big_example_mri.mnc big_example_mrital.xfm \
+       > big_example_mrital.log
+
+To register the small version, we want to suppress the initial
+crop/subsample step (since it has already been done):
+
+    mritotal -protocol icbm -nocrop \
+       mni_autoreg_small_example_mri.mnc small_example_mrital.xfm \
+       > small_example_mrital.log
+
+(Note that using the ICBM protocol is largely gratuitous; by default,
+mritotal figures out on its own how to crop and subsample the data in a
+way that is almost identical to the method explicitly specified in the
+ICBM protocol file.  It's there mainly for illustrative purposes, to be
+consistent with the way we did the "real" registration for this data,
+and to ensure that ICBM data is always processed the same way, even if
+the heuristics in mritotal for guessing reasonable crop/subsample
+parameters change.  See the mritotal man page for more information on
+protocol files.)
+
+Once the test registration finishes (you might want to go for coffee --
+it takes 15 minutes on our fastest machine, and two hours on our
+slowest), you can compare the results to what we got when running
+mritotal here at the MNI.  These results are available from
+
+    ftp://ftp.bic.mni.mcgill.ca/pub/mni_autoreg/
+
+in the file mni_autoreg_example_results-0.98.tar.gz.  (Note that in the
+future we intend to have example results for each release of
+MNI_AutoReg.  In principle, any change to the code could cause
+differences in the transformations computed by mritotal; hopefully,
+these differences will be minute.)
+
+In this file you'll find results for three processor types: MIPS, i86,
+and SPARC.  The following table summarizes the machines used, and gives
+some of the results obtained:
+
+            CPU details      OS           time (min)      xcorr
+  MIPS      150 MHz R4400    IRIX 5.3         40       0.06237819
+  i86       200 MHz PPro     Linux 2.0.21     15       0.06235128
+  SPARC     40 MHz sun4      SunOS 4.1.3     120       0.06236142
+
+The "time" column gives CPU time (user + system) for the big example
+file.  (The "xcorr" column will be explained below.)
+
+We ran mritotal twice on each machine: once on the big file and once on
+the small.  For each run, you'll find a log file and a transform file.
+The contents of the transform file are best interpreted using the
+xfm2param utility, which is built with minctracc and installed along
+with all the other binaries.  For best results, you need to tell
+xfm2param the centre of rotations and scales; this can be found in
+either the .log or .xfm file (just look for "-center").
+
+For example, the spatial transformation parameters computed on our SGI
+system (the MIPS processor) can be shown with the following command:
+
+   xfm2param -center -1.629092 34.135612 11.759122 \
+             big_example_mrital_mips.xfm
+
+giving the following results:
+
+    -center        -1.62909   34.13561   11.75912
+    -translation    1.19913  -48.69207  -16.96439
+    -rotation      -2.96346   -1.73629   -2.79333
+    -scale          1.04943    1.03191    1.13949
+    -shear          0.00000    0.00000    0.00000
+
+As expected, we got the exact same results with the "small" data file.
+
+In addition to the actual transformation in the .xfm file, we're
+interested in the cross-correlation value obtained on the final fit;
+this can be extracted from the log files like this:
+
+   grep '^Final' big_example_mrital_mips.log | tail -1
+
+This is where the "xcorr" column in the above column came from.  Again,
+we obtained identical results for the "big" and "small" test sets on all
+three architectures (but there were, obviously, differences *between*
+architectures!)
+
+If you now run xfm2param on the transform file computed on your machine,
+it should be pretty close to any of the ones we computed.  If you happen
+to be running on a MIPS-, i86-, or SPARC-based machine, your results
+should be *very* close (if not identical, possibly depending on the
+compiler, operating system, and version of the MINC library) to what we
+obtained on that processor type.
+
+Thanks for your interest in the MNI AutoReg package.  If you have any
+problems or questions, please send email to Greg Ward
+<greg@bic.mni.mcgill.ca>.

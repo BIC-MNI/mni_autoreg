@@ -1,0 +1,65 @@
+Quick note on how to add an additional objective function for linear
+registration:
+
+files affected:
+	Optimize/objectives.c
+	Optimize/optimize.c
+	Include/objectives.h
+	Include/globals.h
+
+---------
+in Optimize/objectives.c, copy the code from stub_objective() to
+create your_function_name_objective().  By examening the other
+objective functions, it should be clear how to use the loop to
+calculate your objective function value.
+
+---------
+in Include/objectives.h
+
+add your_function_name_objective() prototype
+
+---------
+in Include/globals.h
+
+add your_function_name_objective in the ArgvInfo table so that the
+option is available to the user.
+
+---------
+in Optimize/optimize.c, find the function
+optimize_linear_transformation().  You will have to add code near the
+beginning of the routine in the switch (globals->obj_function) {}
+just before the final default case.  You will need to add
+
+if (globals->obj_function == your_function_name_objective)
+  {
+    with code here that it required for the initialization
+    of your particular objective function.
+
+  } else
+
+near the end of optimize_linear_transformation, your may have to add
+code to clean up after your objective function, since the the
+optimization of the linear transformation is now completed in the
+switch(globals->optimize_type) just above.
+
+finally, add any new function prototypes needed, to the top of
+optimize.c.
+
+thats all for Optimize/optimize.c, unless....
+
+if you want to use the -measure option, then you will have to 
+make the same change to measure_fit() as were made for
+optimize_linear_transformation().
+
+--------
+
+finally, extra procedures... 
+
+If you need to define extra procedures for the creation, deletion,
+manipulation of data structures for your particular objective
+function, then create a new source file (follow the example of
+segment_table.c) and header file (like segment_table.h).  The header
+files should be placed in Include/ and the source file in Optimize/ .
+Don't forget to update the Makefile.
+
+Good luck.

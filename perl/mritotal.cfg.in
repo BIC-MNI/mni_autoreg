@@ -1,0 +1,39 @@
+#
+# Configuration file for mritotal.  These are just mritotal
+# command-line options, with lots of comments and blank lines.
+#
+# There are three broad classes of configuration variables:
+# site-specific (location of model, default protocol), data specific
+# (preprocessing steps to take), and preferences (everything else).
+# Site-specific options and preferences are found in this file;
+# data-specific options are found in the protocol file, which is just
+# called mritotal.foo.cfg, where "foo" is the protocol.  Thus a site
+# (or user) can specify any number of protocols, either here or on the
+# command line, and the last one given takes precedence.  (The command
+# line is processed after this file!)
+#
+# Note that all of these can be overridden on the command line.
+#
+
+# ---------------------------------------------------------------
+# Site-specific options -- if you edited Makefile.include to
+# correctly reflect where the "average_305" stereotaxic model
+# is installed on your system, these should be fine.
+# ---------------------------------------------------------------
+
+-modeldir @MODELDIR@
+-model average_305
+-protocol default
+
+
+# ---------------------------------------------------------------
+# Other stuff - these are just personal preferences that don't
+# affect the fit.  (Except -execute, which would completely
+# disable fitting if you used -noexecute.)
+# ---------------------------------------------------------------
+
+-verbose			# print commands and status info
+-execute			# actually execute commands
+-noclobber			# do not blithely overwrite output files
+-nodebug			# do not make minctracc and mincblur very noisy
+-nokeeptmp			# do delete all temp files

@@ -1,0 +1,45 @@
+#
+#    this stuff goes at the bottom of a typical make file.
+#
+# $Id: Makefile.bottom,v 1.1 2000-01-19 14:10:30 louis Exp $
+# $Log: Makefile.bottom,v $
+# Revision 1.1  2000-01-19 14:10:30  louis
+# Initial revision
+#
+# Revision 1.2  1995/08/29  13:04:03  collins
+# modified to have a separate 'installman' target
+#
+# Revision 1.1  1995/08/29  11:18:51  collins
+# Initial revision
+#
+
+
+build: $(ALL_PROGS) man
+
+man: $(MANPAGES)
+
+all: $(ALL_PROGS) $(ALL_LINTS)
+
+install: $(ALL_PROGS) 
+	if test ! -d $(BINDIR) ; then mkdir -p $(BINDIR) ; fi
+	cp -p $(ALL_PROGS) $(BINDIR)
+
+installman: $(MANPAGES)
+	if test ! -d $(MAN1DIR) ; then mkdir -p $(MAN1DIR) ; fi
+	cp -p $(MANPAGES) $(MAN1DIR)
+
+rcs:
+	ci -l $(RCS_LIST)
+
+clean:
+	\rm -f *.o */*.o *.ln */*.ln \
+	   $(ALL_PROGS) $(ALL_LINTS) $(MANPAGES) $(TMPFILES)
+
+clean_o:
+	\rm -f *.o */*.o
+
+clean_ln:
+	\rm -f *.ln */*.ln
+
+default:
+	@echo "Specify what you want to make"

@@ -1,0 +1,119 @@
+#
+# Makefile.include
+#
+# common definitions for all programs in the MNI AutoReg package
+#
+
+#
+#  You may wish to change some of the following paths:
+#
+#   target directories:
+#       BINDIR       destination for installation of programs
+#       SCRIPTDIR    destination for installation of scripts
+#       PERLLIBDIR   destination for installation of Perl library files
+#                    (this must be on your Perl include path)
+#       CONFIGDIR    destination for installation of configuration
+#                    and protocol files for mritotal.
+#       MAN1DIR      destination for the man pages
+#
+#   input directories:
+#       MODELDIR     is the full pathname to the directory containing
+#	             the stereotaxic model
+#       PERL         is the full pathname to the Perl 5 executable
+#                    (5.001 or greater)
+
+      BINDIR = @BINDIR@
+   SCRIPTDIR = @SCRIPTDIR@
+  PERLLIBDIR = @PERLLIBDIR@
+   CONFIGDIR = @CONFIGDIR@
+     MAN1DIR = @MAN1DIR@
+    MODELDIR = @MODELDIR@
+        PERL = @PERL@
+
+#
+# MACHINE SPECIFIC INFORMATION
+#
+
+# we have found the following machine library specifications
+# to be useful; hopefully the configure script will get them right
+# for various architectures
+#   for SGI: -lmalloc -lsun -lm -lc_s
+#   for SUN under Solaris 2.3: -lmmalloc -lm  -lposix4 /usr/ucblib/libucb.a
+
+  MACHINE_LIB = @LIBS@ -lm
+
+
+# Compiler options
+CC            = @CC@
+OPT           = -O2
+OPTS          = $(OPT)
+CFLAGS        = $(OPTS) $(INCLUDES) $(CDEFINES)
+
+# Linking options
+LDFLAGS       = 
+LDOPT         = $(LDFLAGS) $(LIB_DIRS) $(PROGRAM_LIBS) $(MACHINE_LIB)
+
+# Other commands and their options
+RM            = rm
+RM_FLAGS      = -f
+AR            = ar
+AR_FLAGS      = r
+RANLIB        = @RANLIB@
+SHELL         = /bin/sh
+CP            = cp
+CP_FLAGS      = 
+CHMOD         = chmod
+CHMOD_XFLAGS  = 755
+CHMOD_FLAGS   = 644
+NROFF         = @NROFF@
+NROFF_FLAGS   = @NROFF_FLAGS@
+CD            = cd
+LINT          = lint
+LINT_LIBOPTS  = -m -x -u
+LINT_PROGOPTS = -m -x -u
+
+
+#
+# =================================================================
+#   You shouldn't have to change anything below this line.
+# =================================================================
+#
+
+.SUFFIXES: .c .o .ln .1 .man1 .3 .man3
+
+    MANPAGES =# This must be an empty string -- NO spaces!!
+
+        HOME = ..
+PROG_LIB_DIR = $(HOME)/Proglib
+    PROG_LIB = mincprog
+
+# most of LIB_DIRS (all except the first one) comes from configure; it is
+# the list of directories we need to search for
+# lib{netcdf,minc,volume_io}.a
+
+    LIB_DIRS = -L$(PROG_LIB_DIR) @LIBDIRS@
+PROGRAM_LIBS = -lmincprog -lvolume_io -lminc -lnetcdf
+
+# most of INCLUDES (all except the first three) comes from configure; it is
+# the list of directories we need to search for {netcdf,minc,volume_io}.h
+
+    INCLUDES = -I@TOPDIR@ -IInclude -I$(PROG_LIB_DIR) @INCLUDEDIRS@
+    CDEFINES = -Dpublic= -Dprivate=static @DEFS@
+   LINTFLAGS = $(INCLUDES) 
+
+
+# standard rules
+
+.c.ln:
+	lint $(LINTFLAGS) -c $< -o $@    
+
+.c.o: 
+	$(CC) $(CFLAGS) -c $< -o $@  
+
+.c.i:
+	$(CC) -P $(CFLAGS) -c $< -o $@
+
+# how to make man pages
+.man1.1:
+	$(NROFF) $(NROFF_FLAGS) $< > $@
+

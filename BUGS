@@ -1,0 +1,13 @@
+* On DEC Alpha systems (at least those running OSF), "make test" fails
+  due to a floating point exception in mincblur.  This is actually
+  a problem in the Volume_io library that underlies all of the C programs
+  in the package, but the exception just happens to occur when writing
+  out the blurred version of the particular data used in the test suite.
+  The problem code has been isolated and will soon be fixed, but this
+  will require upgrading Volume_io (or MINC, which packages a copy of
+  Volume_io) rather than MNI_AutoReg.
+
+* There may be other floating point exceptions lurking in the code
+  that will only be found on systems less forgiving than IRIX and
+  Solaris (our development and test platforms).  Users of such systems
+  are kindly asked to report any exceptions to us!

@@ -1,0 +1,746 @@
+#!@PERL@ -w
+
+# ------------------------------ MNI Header ----------------------------------
+#@NAME       : mritoself
+#@INPUT      : 
+#@OUTPUT     : 
+#@RETURNS    : 
+#@DESCRIPTION: register MRI data within modality, within subject 
+#@METHOD     : 
+#@GLOBALS    : 
+#@CALLS      : 
+#@CREATED    : originally: April 1995, Greg Ward
+#              rewrite #1: July 1995, GW
+#              rewrite #2: December 1995-February 1996, GW
+#@MODIFIED   : April-May 1996, Louis Collins: modifications to make an
+#                              official mritoself for ICBM and AI data
+#@VERSION    : $Id: mritoself.in,v 1.1 2000-01-19 14:10:31 louis Exp $
+#@COMMENTS   : 
+#  possible additions:
+#    figure out the thresholding stuff
+#    add the dilation code back in (add to findprogram list, and
+#      change default from 0 to 1 or 2.
+#    figure out how to have automatically defined step sizes that
+#      do not align with either volume voxel sizes.
+#-----------------------------------------------------------------------------
+
+
+# usage: mritoself [options] source_vol target_vol transform
+
+use Startup;
+use JobControl qw(AddProgramOptions Spawn);
+use Getopt::Tabular;                    # import only GetOptions
+
+require "file_utilities.pl";
+require "path_utilities.pl";
+require "minc_utilities.pl";
+require "numeric_utilities.pl";
+require "volume_heuristics.pl";
+
+&Startup;
+
+&Initialize;
+
+# variables local to the main program
+
+my ($source_cropped, $source_crop, $source_subsample);
+my ($target_cropped, $target_crop, $target_subsample);
+my ($source_mask, $target_mask);
+my ($source_blur, $target_blur, $fit_source, $fit_target);
+my ($source_threshold, $target_threshold);
+
+# Quit now if final xfm already exists (and -clobber wasn't set)
+
+if (-e $FinalXfm && !$Clobber)
+{
+   warn "$FinalXfm already exists (use -clobber to overwrite it)\n";
+   exit 0;
+}
+
+&SelfAnnounce () unless -t "STDOUT";
+
+# Get the working filenames (uncompressed), and their base names
+
+($Source, $Target) = &uncompress ($TmpDir, $Source, $Target);
+
+$SourceBase = (&split_path ($Source, "last"))[1];
+$TargetBase = (&split_path ($Target, "last"))[1];
+
+# Possibly crop/subsample both volumes
+
+($source_cropped, $source_crop, $source_subsample)=
+   &Crop ($SourceBase, $Source, "crop", 
+	  $GuessCrop, $GuessSubsample, \@Subsample, \@Crop);
+($target_cropped, $target_crop, $target_subsample) =
+   &Crop ($TargetBase, $Target, "crop",
+	  $GuessCrop, $GuessSubsample, \@Subsample, \@Crop);
+
+
+# Possible create masks for each volume (possibly different, depending
+# on the files named in @TalXfm)
+
+($source_mask, $target_mask) = 
+   &MakeMasks ($source_cropped, $target_cropped, \@TalXfm, $Mask, $DilateMask);
+
+
+# Possibly create blurred versions of each
+
+($source_blur, $target_blur) = 
+   $Blur ? &Blur ($source_cropped, $target_cropped, $Blur)
+         :       ($source_cropped, $target_cropped);
+
+
+($fit_source, $fit_target) = ($source_blur, $target_blur);
+
+
+# Compute threshold values (if necessary).  These are computed as real
+# voxel values here, just the way minctracc likes 'em
+
+if ($Threshold)
+{
+   ($source_threshold, $target_threshold) = 
+      &GetThresholds ($fit_source, $fit_target);
+
+   &verbose ("threshold on source volume = $source_threshold\n");
+   &verbose ("threshold on target volume = $target_threshold\n");
+}
+
+
+# Perform the fit.
+
+&Fit ($fit_source, $fit_target,
+      $source_threshold, $target_threshold,
+      $source_mask, $target_mask,
+      $source_subsample, $target_subsample,
+      $InputXfm, $FinalXfm);
+
+&Resample ($Source, $Resample, $FinalXfm, $target_cropped)
+   if ($Resample);
+
+&Shutdown (1);
+
+
+sub verbose
+{
+   print @_ if $Verbose;
+}
+
+
+sub set_fit_params
+{
+   my ($arg, $arglist) = @_;
+   
+   if ($arg eq "-close")
+   {
+      $Simplex = 3;
+      $InitialGuess = "-identity -est_center";
+   }
+   elsif ($arg eq "-far")
+   {
+      $Simplex = 10;
+      $InitialGuess = "-est_center -est_translations";
+   }
+   else
+   {
+      die "Bad fit param option: $arg\n";
+   }
+}
+
+
+sub Initialize
+{
+   $Verbose = 1;
+   $Execute = 1;
+   $Clobber = 0;
+   $Debug = 0;
+
+   $KeepTmp = 0;
+   &JobControl::SetOptions ("ErrorAction", "fatal");
+
+#  $Fitter = "tracc";           # N.B. this is ignored...
+   $GuessSubsample = 0;         # don't subsample
+   @Subsample = ();
+   $GuessCrop = 1;
+   @Crop = (0);                 # so heuristic cropping is the default
+   $Blur = 0;			# don't blur
+   $Mask = "none";              # don't mask
+   $MaskLabel = "mask";         # which mask volume to use
+   $DilateMask = 0;		# number of dilation steps
+   $UseGradient = 1;
+   $Threshold = 1;		# 
+   $AutoThreshold = 1;		# only has meaning if $Threshold == 1
+   @Thresholds = ();		# only has meaning if $Threshold == 1 and
+				# !$AutoThreshold
+
+   $Model = "average_305";
+   $ModelDir = "@MODELDIR@";
+
+   $Simplex = 3;
+   $Groups = 256;
+   $InvertOutputTransform = 0;
+   $InvertInputTransform = 0;
+
+   &set_fit_params ('-close');
+
+   my $usage = <<USAGE;
+Usage: $ProgramName [options] source_vol target_vol transform
+       $ProgramName -help for details
+USAGE
+
+   my $help = <<HELP;
+
+$ProgramName estimates the linear transformation required to register
+two volumetric data sets from the same subject (intra-subject
+registration).  The procedure was designed to register two MRI volumes
+together, although other modalities can be registered as well (but
+this has not yet been tested).
+
+$ProgramName estimates the registration transformation in multiple
+steps, each successive step refining the previous fit.  Currently, the
+sequence of resamplings, crops, blurs and fits are hard-coded, although
+there are a number of options to force specific fitting strategies for
+certain types of data.
+
+HELP
+
+   @ArgInfo =
+      (@DefaultArgs,
+       ["Fitting program, objective function, type of fit", "section"],
+       ["-xcorr", "copy", undef, \$Objective,
+	"use cross-correlation objective fn for fitting with minctracc"],
+       ["-vr", "copy", undef, \$Objective,
+	"use variance-of-ratios objective fn for fitting with minctracc"],
+       ["-mi", "copy", undef, \$Objective,
+	"use mutual information objective fn for fitting with minctracc [default]"],
+       ["-lsq6", "copy", undef, \$FitType,
+	"do 6-parameter fit [default]"],
+       ["-lsq7", "copy", undef, \$FitType,
+	"do 7-parameter fit [not recommended - only for dire need]"],
+       ["-lsq9", "copy", undef, \$FitType,
+	"do 9-parameter fit [not recommended - only for dire need]"],
+       ["-groups", "integer", 1, \$Groups,
+	"number of groups for -vr or -mi fitting [default: 256]"],
+       ["-simplex", "float", 1, \$Simplex,
+	"set the simplex radius for fitting with minctracc"],
+
+       ["Thresholding options", "section"],
+       ["-threshold", "float", 2, \@Thresholds,
+	"set thresholds (as fraction of volume max) for the two volumes " .
+	"[default: -autothreshold]"],
+       ["-nothreshold", "copy", 0, \$Threshold,
+	"disable thresholding [default: -autothreshold]"],
+       ["-autothreshold", "boolean", 0, \$AutoThreshold,
+	"automatically determine the background thresholds [default]"],
+
+       ["Initial transformation options", "section"],
+       ["-transform", "string", 1, \$InputXfm,
+	"set the initial transform file"],
+       ["-initial", "string", 1, \$InitialGuess,
+	"set the minctracc parameters to use in lieu of -transform " .
+	"[default: \"$InitialGuess\"; overridden by -transform]"],
+       ["-close", "call", 0, \&set_fit_params,
+	"use when registering scans from the same session; synonymous with " .
+	"\"-simplex 3 -initial \'-identity\'\" [default]"],
+       ["-veryclose", "boolean", undef, \$VeryClose,
+	"only do last fitting step (to refine good input xfm)"],
+       ["-far", "call", 0, \&set_fit_params,
+	"use when registering scans from different sessions; synonymous " .
+	"with \"-simplex 10 -initial \'-est_center -est_translations\'\""],
+       ["-invert_input", "boolean", 0, \$InvertInputTransform,
+        "invert final transform before using it [default: -noinvert_input]"],
+
+       ["Preprocessing options, part 1: subsampling", "section"],
+       ["-subsample", "float", 3, \@Subsample,
+	"(x,y,z) step size (in mm) to subsample both volumes to " .
+	"[default: -guess_subsample]"],
+       ["-guess_subsample", "eval", 0, 
+	"\@main::Subsample = (0); \$main::GuessSubsample = 1;",
+	"make an educated guess about step sizes for subsampling"],
+       ["-nosubsample", "eval", 0, "\@main::Subsample = ()",
+	"disable subsampling [default]"],
+
+       ["Preprocessing options, part 2: cropping", "section"],
+       ["-crop", "string", 3, \@Crop,
+	"specify the amount of data to remove before doing anything else " .
+	"(takes the form of \`extent\' specifications -- one per spatial " .
+	"dimension, in (x,y,z) order -- passed directly to autocrop) " .
+	"[default: -guesscrop]"],
+       ["-guess_crop", "eval", 0, 
+	"\@main::Crop = (0); \$main::GuessCrop = 1;",
+	"make an educated guess about how to crop the volume [default]"],
+       ["-nocrop", "copy", 0, \$Crop,
+	"don't remove any data"],
+
+       ["Preprocessing options, part 3: blurring", "section"],
+       ["-blur", "float", 1, \$Blur,
+	"set size of blurring kernel (in mm) to use " .
+	"[default is -noblur]"],
+       ["-noblur", "copy", 0, \$Blur,
+	"disable blurring [default]"],
+       ["-gradient|-intensity", "boolean", 0, \$UseGradient,
+	"use the gradient blur images for fitting " .
+	"[default; opposite is -intensity]"],
+
+       ["Preprocessing options, part 4: masking", "section"],
+       ["-mask", "string", 1, \$Mask,
+	"use the transformation to stereotaxic space, along with the " .
+	"stereotaxic model files, to mask one or both volumes (eg. " .
+	"\"-mask source\", \"-mask target\", or \"-mask both\") " .
+	"[default: none]"],
+       ["-dilatemask", "integer", 1, \$DilateMask,
+	"number of dilation steps to apply to mask(s) [default: $DilateMask]"],
+       ["-nomask", "const", 0, \$Mask,
+	"disable masking (equivalent to \"-mask none\" [default]"],
+       ["-masklabel", "string", 1, \$MaskLabel,
+	"set the name of the mask volume to use (eg. \"mask\" for brain " .
+	"mask, \"headmask\" for head mask)"],
+
+       ["Postprocessing", "section"],
+       ["-resample", "string", 1, \$Resample,
+	"set the name of the file to resample the source volume to " .
+	"[default: -noresample]"],
+       ["-noresample", "copy", 0, \$Resample,
+	"disable resampling the source volume"],
+       ["-invert_output", "boolean", 0, \$InvertOutputTransform,
+        "invert final transform before saving it [default: -noinvert_output]"],
+
+       ["Stereotaxic transform files", "section"],
+       ["-talxfm", "string", 1, \$TalXfm,
+	"set the transformation to stereotaxic space (same for source and " .
+	"target) " .
+	"(to use for cropping, masking, etc.)"],
+       ["-source_talxfm", "string", 1, \$TalXfm[0],
+	"set the transformation to stereotaxic space for the source volume"],
+       ["-target_talxfm", "string", 1, \$TalXfm[1],
+	"set the transformation to stereotaxic space for the target volume"],
+
+       ["Location and basename of stereotaxic model files", "section"],
+       ["-model", "string", 1, \$Model,
+	"set the base filename for stereotaxic model files (if given as " .
+	"relative path, the directory specified by -modeldir will be used) " .
+	"[default: $Model]"],
+       ["-modeldir", "string", 1, \$ModelDir,
+	"set the directory where stereotaxic model files live " .
+	"[default: $ModelDir]"]);
+
+   &Getopt::Tabular::SetHelp ($help, $usage);
+
+   my @argv;
+   &GetOptions (\@ArgInfo, \@ARGV, \@argv) || exit 1;
+
+   if (@argv != 3)
+   {
+      warn $usage;
+      die "Incorrect number of arguments\n";
+   }
+
+   if ($VeryClose && !defined $InputXfm )
+   {
+      die <<END
+You must specify an input transformation (with -transform) when you
+use the -veryclose option.
+END
+   }	
+
+   $Objective = "-mi" unless defined $Objective;
+
+   $FitType = "-lsq6" unless defined $FitType;
+
+   $Mask = 0 if $Mask eq "none";
+
+   # make sure the required model directory and model mask file exist
+
+   if ($Mask)
+   {
+      &check_input_dirs ($ModelDir) || exit 1;
+      &check_files ("${ModelDir}/${Model}_${MaskLabel}.mnc") || exit 1;
+   }
+
+   # if user only supplied a default stereotaxic xfm, use it to fill
+   # in whichever is missing for the source/target stereotaxic xfm's
+
+   $TalXfm[0] = $TalXfm if ($TalXfm && !$TalXfm[0]);
+   $TalXfm[1] = $TalXfm if ($TalXfm && !$TalXfm[1]);
+   undef $TalXfm;
+
+   # make sure we have stereotaxic xfm's if we need them
+
+   if ($Mask && (!@TalXfm || !($TalXfm[0] || $TalXfm[1])))
+   {
+      die "Must supply stereotaxic transforms (with -talxfm or " .
+	  "-source_talxfm or -target_talxfm options) to do masking\n";
+   }
+
+   # if user supplied explicit threshold values, they should
+   # override -autothreshold (just because it is the default)
+
+   if ($AutoThreshold && @Thresholds)
+   {
+      warn "$ProgramName: warning: " .
+	 "-threshold settings override the -autothreshold option\n";
+      $AutoThreshold = 0;
+   }
+
+   if (@Thresholds && 
+       ($Thresholds[0] < 0 || $Thresholds[0] >= 1 || 
+        $Thresholds[1] < 0 || $Thresholds[1] >= 1))
+   {
+      warn "$ProgramName: warning: " .
+           "thresholds should be between 0 and 1 (fraction of volume range)\n";
+   }
+
+   # Turn off GuessSubsample/GuessCrop if any subsample/crop
+   # array other than (0) is specified -- this is what lets
+   # us override guessing by simply specifying "-subsample ..."
+   # on the command line.
+
+   $GuessSubsample = 0 unless (@Subsample == 1 && $Subsample[0] == 0);
+   $GuessCrop = 0      unless (@Crop == 1 && $Crop[0] == 0);
+
+   # Look for required programs
+
+   my @programs = qw(autocrop
+                     xfminvert
+                     mincinfo
+                     volume_cog
+                     mincresample
+                     mincblur
+                     minctracc);
+   push (@programs, 'dilate_volume') if $DilateMask;
+   push (@programs, 'volume_stats') if $AutoThreshold;
+
+   JobControl::FindPrograms (\@programs) || exit 1;
+
+
+   # Add options for various programs according to $Debug, $Verbose,
+   # $Clobber flags
+
+   AddProgramOptions
+      ([qw(mincblur minctracc mincresample autocrop)], ["-quiet"])
+         unless $Verbose;
+   AddProgramOptions
+      ([qw(mincblur minctracc mincresample autocrop)], ["-clobber"])
+         if $Clobber;
+   AddProgramOptions ([qw(mincblur minctracc)], ["-debug"])
+      if $Debug;
+
+   ($Source, $Target, $FinalXfm) = @argv;
+   &check_output_dirs ($TmpDir) || exit 1;
+}
+
+
+sub Blur
+{
+   my ($source, $target, $fwhm) = @_;
+   my (@opts, $source_blur, $target_blur);
+   my ($source_output, $target_output);
+
+   $source_blur = "${TmpDir}/${SourceBase}_${fwhm}";
+   $target_blur = "${TmpDir}/${TargetBase}_${fwhm}";
+
+   if ($UseGradient)
+   {
+      @opts = ('-gradient', '-fwhm', $fwhm);
+      $source_output = "${source_blur}_dxyz.mnc";
+      $target_output = "${target_blur}_dxyz.mnc";
+      unlink ("${source_blur}_blur.mnc", "${target_blur}_blur.mnc");
+   }
+   else
+   {
+      @opts = ('-fwhm', $fwhm);
+      $source_output = "${source_blur}_blur.mnc";
+      $target_output = "${target_blur}_blur.mnc";
+   }
+
+   &Spawn (['mincblur', $source, $source_blur, @opts])
+      unless (-e $source_output && !$Clobber);
+
+   &Spawn (['mincblur', $target, $target_blur, @opts])
+      unless (-e $target_output && !$Clobber);
+
+   ($source_output, $target_output);
+}
+
+
+sub Crop
+{
+   my ($base, $input, $label, 
+       $guess_crop, $guess_subsample,
+       $subsample, $crop) = @_;
+   my ($cropped, @opts);
+   my (@start, @step, @length);
+   my (@crop, @subsample);
+
+   &volume_params ($input, \@start, \@step, \@length);
+   @crop = $guess_crop ? &GuessCrop (\@step, \@length) : @$crop;
+   @subsample = $guess_subsample ? &GuessSubsample (\@step) : @$subsample;
+
+   @subsample = @step unless @subsample;
+
+   $cropped = "${TmpDir}/${base}_${label}.mnc";
+   return ($cropped, \@crop, \@subsample) if (-e $cropped);
+
+   @opts = ();
+   push (@opts, '-step', @subsample) if @subsample;
+   push (@opts, '-extend', @crop)    if @crop;
+   push (@opts, '-byte')             if $Objective eq "-mi";
+   &Spawn (['autocrop', $input, $cropped, @opts])
+      unless (-e $cropped && !$Clobber);
+
+   ($cropped, \@crop, \@subsample);
+}
+
+
+sub make_mask
+{
+   my ($modelmask, $modelxfm, $target, $mask, $dilation) = @_;
+   my ($tempmask);
+
+   $tempmask = ($dilation) ? ($mask . ".undilated") : ($mask);
+#   $tempxfm = "${TmpDir}/" . (&SplitPath($modelxfm))[1] . "_inv.xfm";
+#   &Spawn (['xfminvert', $modelxfm, $tempxfm])
+#      unless -e $tempxfm && !$Clobber;
+   &Spawn (['mincresample', $modelmask, $tempmask,
+            '-transform', $modelxfm, '-invert_transform',
+            '-like', $target, '-nearest_neighbour'])
+      unless -e $tempmask && !$Clobber;
+
+   if ($dilation)
+   {
+      &Spawn (['dilate_volume', $tempmask, $mask, 255, 26, $dilation])
+	 unless -e $mask && !$Clobber;
+   }
+}
+
+
+sub MakeMasks
+{
+   my ($source, $target, $tal_xfm, $which, $dilation) = @_;
+   my ($model_mask, $mask);
+   my ($source_mask, $target_mask) = ("", "");
+
+   $model_mask = "${ModelDir}/${Model}_${MaskLabel}.mnc";
+
+   if ($which eq "both" || $which eq "source")
+   {
+      $source_mask = "${TmpDir}/${SourceBase}_${MaskLabel}.mnc";
+      &make_mask($model_mask, $tal_xfm->[0], $source, $source_mask, $dilation);
+   }
+   if ($which eq "both" || $which eq "target")
+   {
+      $target_mask = "${TmpDir}/${TargetBase}_${MaskLabel}.mnc";
+      if (defined $tal_xfm->[0] && 
+          $tal_xfm->[0] eq $tal_xfm->[1] &&
+          -e $source_mask)
+      {
+	 link ($source_mask, $target_mask);
+      }
+      else
+      {
+	 &make_mask ($model_mask, $tal_xfm->[1], 
+		     $target, $target_mask, $dilation);
+      }
+   }      
+   ($source_mask, $target_mask);
+}
+
+
+sub apply_mask
+{
+   my ($input, $mask, $output) = @_;
+
+   &Spawn (['mincmask', $input, $mask, $output])
+      unless (-e $output && !$Clobber);
+}
+
+
+sub ApplyMasks
+{
+   my ($source, $target, $source_mask, $target_mask) = @_;
+   my ($source_masked, $target_masked) = ($source, $target);
+
+   if ($source_mask)
+   {
+      $source_masked = "${TmpDir}/${SourceBase}_masked.mnc";
+      &apply_mask ($source, $source_mask, $source_masked);
+   }
+
+   if ($target_mask)
+   {
+      $target_masked = "${TmpDir}/${TargetBase}_masked.mnc";
+      &apply_mask ($target, $target_mask, $target_masked);
+   }
+
+   ($source_masked, $target_masked);
+}
+
+
+
+sub GetThresholds
+{
+   my ($source, $target) = @_;
+   my ($source_threshold, $target_threshold);
+   my ($source_min, $source_max, $target_min, $target_max);
+
+   if ($Objective eq "-mi")
+   {
+      warn "warning: mutual information used as objective function -- " .
+           "target threshold forced to volume min\n";
+      $target_threshold = &volume_min ($target);
+   }
+   
+   if ($AutoThreshold)
+   {
+      $source_threshold = round (&auto_threshold ($source));
+
+      if ($Objective ne "-mi")
+      {
+         $target_threshold = round (&auto_threshold ($target));
+      }
+   }
+   elsif (@Thresholds)
+   {
+      Fatal ("\@Thresholds must have exactly two elements")
+	 unless (@Thresholds == 2);
+      
+      ($source_min, $source_max) = &volume_minmax ($source);
+      $source_threshold = round
+         (&volume_threshold ($source_min, $source_max, $Thresholds[0]));
+
+      if ($Objective ne "-mi")
+      {
+         ($target_min, $target_max) = &volume_minmax ($target);
+         $target_threshold = round
+            (&volume_threshold ($target_min, $target_max, $Thresholds[1]));
+      }
+   }
+
+   ($source_threshold, $target_threshold);
+}
+
+
+sub Fit
+{
+   my ($source, $target, 
+       $source_threshold, $target_threshold,
+       $source_mask, $target_mask,
+       $source_steps, $target_steps,
+       $in_xfm, $out_xfm) = @_;
+
+   my (@inxfm_opts, @threshold_opts, @mask_opts);
+
+#   my ($steps, $mask);
+#   my ($source_min, $source_max, $target_min, $target_max);
+#   my ($threshold);
+
+
+   # Determine what to do about the initial guess.  We either estimate
+   # translations only, *or* just use the user-supplied xfm (after tacking
+   # on "-est_center -transformation").
+
+   if ($in_xfm)
+   {
+       if ($InvertInputTransform) 
+       {
+          my $temp_in_xfm = $TmpDir . "/" . (&split_path ($in_xfm))[1] . "_inv.xfm";
+          &Spawn (['xfminvert', $in_xfm, $temp_in_xfm]);
+          @inxfm_opts = ('-est_center', '-transformation', $temp_in_xfm);
+       }
+       else
+       {
+          @inxfm_opts = ('-est_center', '-transformation', $in_xfm);
+       }
+   }
+   else
+   {
+      @inxfm_opts = split (" ", $InitialGuess);
+   }
+
+   # Use the volume thresholds to determine some more command-line args.
+
+   if (defined $source_threshold && defined $target_threshold)
+   {
+      @threshold_opts = ('-threshold', $source_threshold, $target_threshold);
+   }
+   else 
+   {
+      @threshold_opts = ();
+   }
+
+   # Add the mask volumes to the command line if necessary or applicable
+
+   @mask_opts = ();
+   push (@mask_opts, '-source_mask', $source_mask) if $source_mask;
+   push (@mask_opts, '-model_mask', $target_mask) if $target_mask;
+
+   # Now the real fit, using minctracc (xcorr, vr, or mi) 
+
+   my $outbase = $TmpDir . "/" . (&split_path ($out_xfm))[1];
+   my $temp1_xfm =  $outbase . "_tmp1.xfm";
+
+   if ($VeryClose)                      # skip first fit -- use user-supplied
+   {                                    # input transformation
+      $temp1_xfm = $in_xfm;
+   }
+   else                                 # do first fit as usual
+   {
+      unless (-e $temp1_xfm && !$Clobber)
+      {
+         &verbose ("Starting first fit...\n") if $verbose;
+         my @fitsteps = (7.3, 7.3, 7.3);
+         @step_opts = ('-step', @fitsteps);
+         @objective_opts = ($Objective);
+         push (@objective_opts, '-groups', $Groups)
+            if ($Objective =~ /^-(vr|mi)$/);
+         @simplex_opts = ('-simplex', $Simplex);
+         
+         &Spawn (['minctracc', $source, $target, $temp1_xfm, 
+                  @inxfm_opts, $FitType, @objective_opts,
+                  @threshold_opts, @mask_opts, @step_opts, @simplex_opts])
+       }
+   } 
+
+   $temp2_xfm = ($InvertOutputTransform) 
+      ? ($outbase . "_tmp2.xfm") 
+      : ($out_xfm);
+   unless (-e $temp2_xfm && !$Clobber)
+   {
+      &verbose ("Starting second fit...\n") if $verbose;
+      my @inxfm_tmp1_opts = ('-est_center', '-transformation', $temp1_xfm);
+      @fitsteps = (4.3, 4.3, 4.3);
+      @step_opts = ('-step', @fitsteps);
+      @objective_opts = ($Objective);
+      push (@objective_opts, '-groups', $Groups)
+         if ($Objective =~ /^-(vr|mi)$/);
+      @simplex_opts = ('-simplex', 1.5);
+      &Spawn (['minctracc', $source, $target, $temp2_xfm,
+               @inxfm_tmp1_opts, $FitType, @objective_opts,
+               @threshold_opts, @mask_opts, @step_opts, @simplex_opts])
+         unless (-e $temp2_xfm && !$Clobber);
+   } 
+
+   if ($InvertOutputTransform)
+   {
+      &Spawn (['xfminvert', $temp2_xfm, $out_xfm]) 
+         unless (-e $out_xfm && !$Clobber);
+   }
+
+}				
+
+
+sub Resample
+{
+   my ($input, $output, $xfm, $like) = @_;
+
+   if (-e $output && !$Clobber)
+   {
+      &verbose ("resampled volume \"$output\" already exists");
+   }
+   else
+   {
+      &Spawn(['mincresample', $input, $output, '-byte', 
+              '-transform', $xfm, '-like', $like]);
+   }
+
+}
+

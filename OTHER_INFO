@@ -1,0 +1,10 @@
+Files included in this distribution are: 
+
+   mincblur:  a program for volumetric convolution with a Gaussian 
+              blurring kernel
+
+   minctracc: a program to estimate linear transformation required 
+              for registration
+
+   mritotal:  the script that calls mincblur and minctracc to achieve
+              stereotaxic registration

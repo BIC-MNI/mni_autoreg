@@ -1,0 +1,665 @@
+.rn '' }`
+''' $RCSfile: autocrop.man1,v $$Revision: 1.1 $$Date: 2000-01-19 14:10:31 $
+'''
+''' $Log: autocrop.man1,v $
+''' Revision 1.1  2000-01-19 14:10:31  louis
+''' Initial revision
+'''
+'''
+.de Sh
+.br
+.if t .Sp
+.ne 5
+.PP
+\fB\\$1\fR
+.PP
+..
+.de Sp
+.if t .sp .5v
+.if n .sp
+..
+.de Ip
+.br
+.ie \\n(.$>=3 .ne \\$3
+.el .ne 3
+.IP "\\$1" \\$2
+..
+.de Vb
+.ft CW
+.nf
+.ne \\$1
+..
+.de Ve
+.ft R
+
+.fi
+..
+'''
+'''
+'''     Set up \*(-- to give an unbreakable dash;
+'''     string Tr holds user defined translation string.
+'''     Bell System Logo is used as a dummy character.
+'''
+.tr \(*W-|\(bv\*(Tr
+.ie n \{\
+.ds -- \(*W-
+.ds PI pi
+.if (\n(.H=4u)&(1m=24u) .ds -- \(*W\h'-12u'\(*W\h'-12u'-\" diablo 10 pitch
+.if (\n(.H=4u)&(1m=20u) .ds -- \(*W\h'-12u'\(*W\h'-8u'-\" diablo 12 pitch
+.ds L" ""
+.ds R" ""
+'''   \*(M", \*(S", \*(N" and \*(T" are the equivalent of
+'''   \*(L" and \*(R", except that they are used on ".xx" lines,
+'''   such as .IP and .SH, which do another additional levels of
+'''   double-quote interpretation
+.ds M" """
+.ds S" """
+.ds N" """""
+.ds T" """""
+.ds L' '
+.ds R' '
+.ds M' '
+.ds S' '
+.ds N' '
+.ds T' '
+'br\}
+.el\{\
+.ds -- \(em\|
+.tr \*(Tr
+.ds L" ``
+.ds R" ''
+.ds M" ``
+.ds S" ''
+.ds N" ``
+.ds T" ''
+.ds L' `
+.ds R' '
+.ds M' `
+.ds S' '
+.ds N' `
+.ds T' '
+.ds PI \(*p
+'br\}
+.\"	If the F register is turned on, we'll generate
+.\"	index entries out stderr for the following things:
+.\"		TH	Title 
+.\"		SH	Header
+.\"		Sh	Subsection 
+.\"		Ip	Item
+.\"		X<>	Xref  (embedded
+.\"	Of course, you have to process the output yourself
+.\"	in some meaninful fashion.
+.if \nF \{
+.de IX
+.tm Index:\\$1\t\\n%\t"\\$2"
+..
+.nr % 0
+.rr F
+.\}
+.TH AUTOCROP 1 "MNI AutoReg 0.98" "10/Sep/97" "MNI AutoReg 0.98"
+.IX Title "AUTOCROP 1"
+.UC
+.IX Name "autocrop - tool for extracting and manipulating bounds of a MINC file"
+.if n .hy 0
+.if n .na
+.ds C+ C\v'-.1v'\h'-1p'\s-2+\h'-1p'+\s0\v'.1v'\h'-1p'
+.de CQ          \" put $1 in typewriter font
+.ft CW
+'if n "\c
+'if t \\&\\$1\c
+'if n \\&\\$1\c
+'if n \&"
+\\&\\$2 \\$3 \\$4 \\$5 \\$6 \\$7
+'.ft R
+..
+.\" @(#)ms.acc 1.5 88/02/08 SMI; from UCB 4.2
+.	\" AM - accent mark definitions
+.bd B 3
+.	\" fudge factors for nroff and troff
+.if n \{\
+.	ds #H 0
+.	ds #V .8m
+.	ds #F .3m
+.	ds #[ \f1
+.	ds #] \fP
+.\}
+.if t \{\
+.	ds #H ((1u-(\\\\n(.fu%2u))*.13m)
+.	ds #V .6m
+.	ds #F 0
+.	ds #[ \&
+.	ds #] \&
+.\}
+.	\" simple accents for nroff and troff
+.if n \{\
+.	ds ' \&
+.	ds ` \&
+.	ds ^ \&
+.	ds , \&
+.	ds ~ ~
+.	ds ? ?
+.	ds ! !
+.	ds /
+.	ds q
+.\}
+.if t \{\
+.	ds ' \\k:\h'-(\\n(.wu*8/10-\*(#H)'\'\h"|\\n:u"
+.	ds ` \\k:\h'-(\\n(.wu*8/10-\*(#H)'\`\h'|\\n:u'
+.	ds ^ \\k:\h'-(\\n(.wu*10/11-\*(#H)'^\h'|\\n:u'
+.	ds , \\k:\h'-(\\n(.wu*8/10)',\h'|\\n:u'
+.	ds ~ \\k:\h'-(\\n(.wu-\*(#H-.1m)'~\h'|\\n:u'
+.	ds ? \s-2c\h'-\w'c'u*7/10'\u\h'\*(#H'\zi\d\s+2\h'\w'c'u*8/10'
+.	ds ! \s-2\(or\s+2\h'-\w'\(or'u'\v'-.8m'.\v'.8m'
+.	ds / \\k:\h'-(\\n(.wu*8/10-\*(#H)'\z\(sl\h'|\\n:u'
+.	ds q o\h'-\w'o'u*8/10'\s-4\v'.4m'\z\(*i\v'-.4m'\s+4\h'\w'o'u*8/10'
+.\}
+.	\" troff and (daisy-wheel) nroff accents
+.ds : \\k:\h'-(\\n(.wu*8/10-\*(#H+.1m+\*(#F)'\v'-\*(#V'\z.\h'.2m+\*(#F'.\h'|\\n:u'\v'\*(#V'
+.ds 8 \h'\*(#H'\(*b\h'-\*(#H'
+.ds v \\k:\h'-(\\n(.wu*9/10-\*(#H)'\v'-\*(#V'\*(#[\s-4v\s0\v'\*(#V'\h'|\\n:u'\*(#]
+.ds _ \\k:\h'-(\\n(.wu*9/10-\*(#H+(\*(#F*2/3))'\v'-.4m'\z\(hy\v'.4m'\h'|\\n:u'
+.ds . \\k:\h'-(\\n(.wu*8/10)'\v'\*(#V*4/10'\z.\v'-\*(#V*4/10'\h'|\\n:u'
+.ds 3 \*(#[\v'.2m'\s-2\&3\s0\v'-.2m'\*(#]
+.ds o \\k:\h'-(\\n(.wu+\w'\(de'u-\*(#H)/2u'\v'-.3n'\*(#[\z\(de\v'.3n'\h'|\\n:u'\*(#]
+.ds d- \h'\*(#H'\(pd\h'-\w'~'u'\v'-.25m'\f2\(hy\fP\v'.25m'\h'-\*(#H'
+.ds D- D\\k:\h'-\w'D'u'\v'-.11m'\z\(hy\v'.11m'\h'|\\n:u'
+.ds th \*(#[\v'.3m'\s+1I\s-1\v'-.3m'\h'-(\w'I'u*2/3)'\s-1o\s+1\*(#]
+.ds Th \*(#[\s+2I\s-2\h'-\w'I'u*3/5'\v'-.3m'o\v'.3m'\*(#]
+.ds ae a\h'-(\w'a'u*4/10)'e
+.ds Ae A\h'-(\w'A'u*4/10)'E
+.ds oe o\h'-(\w'o'u*4/10)'e
+.ds Oe O\h'-(\w'O'u*4/10)'E
+.	\" corrections for vroff
+.if v .ds ~ \\k:\h'-(\\n(.wu*9/10-\*(#H)'\s-2\u~\d\s+2\h'|\\n:u'
+.if v .ds ^ \\k:\h'-(\\n(.wu*10/11-\*(#H)'\v'-.4m'^\v'.4m'\h'|\\n:u'
+.	\" for low resolution devices (crt and lpr)
+.if \n(.H>23 .if \n(.V>19 \
+\{\
+.	ds : e
+.	ds 8 ss
+.	ds v \h'-1'\o'\(aa\(ga'
+.	ds _ \h'-1'^
+.	ds . \h'-1'.
+.	ds 3 3
+.	ds o a
+.	ds d- d\h'-1'\(ga
+.	ds D- D\h'-1'\(hy
+.	ds th \o'bp'
+.	ds Th \o'LP'
+.	ds ae ae
+.	ds Ae AE
+.	ds oe oe
+.	ds Oe OE
+.\}
+.rm #[ #] #H #V #F C
+.SH "NAME"
+.IX Header "NAME"
+autocrop \- tool for extracting and manipulating bounds of a MINC file
+.SH "SYNOPSIS"
+.IX Header "SYNOPSIS"
+\fBautocrop\fR [options] in_volume out_volume
+.PP
+\fBautocrop\fR [options] in_volume
+.PP
+(The first form applies by default, or if \fIoptions\fR includes an explicit
+\fB\-resample\fR or \fB\-reshape\fR.  The second form only applies if \fIoptions\fR
+includes \fB\-noresample\fR or \fB\-noreshape\fR.)
+.SH "DESCRIPTION"
+.IX Header "DESCRIPTION"
+\fBautocrop\fR is a tool for specifying and manipulating the bounds of a
+MINC file, where the \fIbounds\fR are defined as the \fIstart\fR and \fIextent\fR
+of the volume in each dimension.  Start and extent are both always
+defined in world coordinates, and given in millimetres.  The bounds of a
+volume can be extracted from any MINC file, or from a
+specially-formatted tag file, or from the already-known volume covered
+by the brain in Talairach space.  Operations that can be performed on
+these bounds include spatial transformations and various ways of
+increasing/decreasing the extent of the sampling volume in the three
+spatial dimensions.
+.PP
+\fBautocrop\fR uses either of \fBmincresample\fR or \fBmincreshape\fR for the
+actual processing of data.  You can force it to use one or the other, or
+let it pick the appropriate one.  (It will always pick mincreshape,
+unless you have asked for a different step size in your output volume.
+Also, if you attempt to force use of mincreshape and have asked for
+different steps, autocrop will complain and die.)  Also, you can make
+autocrop simply print out command line options for one of the two
+utilities, and apply them later at your leisure.
+.SH "OPTIONS"
+.IX Header "OPTIONS"
+This section is provided for quick reference once you know the rest of this
+man page cold.  You'll probably want to skip it on a first reading.  (Also,
+you can always get an up-to-date version of this option summary with the
+command \f(CWautocrop -help\fR.)
+.Sh "Basic behaviour options"
+.IX Subsection "Basic behaviour options"
+.PP
+.Vb 9
+\&   -verbose     print status information and command lines of subprograms
+\&                [default; opposite is -quiet]
+\&   -execute     actually execute planned commands [default]
+\&   -clobber     blithely overwrite files (and make subprograms do as well)
+\&                [default: -noclobber]
+\&   -debug       spew lots of debugging info (and make subprograms do so as well)
+\&                [default: -nodebug]
+\&   -tmpdir      set the temporary working directory
+\&   -keeptmp     don't delete temporary files when finished [default: -nokeeptmp]
+.Ve
+.Sh "Action-to-take options"
+.IX Subsection "Action-to-take options"
+.PP
+.Vb 10
+\&   -resample    force autocrop to use mincresample, and also ensure that
+\&                resampling is actually performed
+\&   -noresample  don't actually do anything, but compute parameters for
+\&                mincresample
+\&   -reshape     force autocrop to use mincreshape if possible, and also ensure
+\&                that reshaping is actually performed
+\&   -noreshape   don't actually do anything, but compute parameters for
+\&                mincreshape
+\&   -params      print out parameters to run mincresample/mincreshape [default:
+\&                on if not running them, -noparams otherwise]
+.Ve
+.Sh "Bounds specification options"
+.IX Subsection "Bounds specification options"
+.PP
+.Vb 8
+\&   -from <file> take the bounds from <file> (either a tag or MINC file)
+\&                [default: input volume]
+\&   -bbox <file> compute the bounding box of the data in <file>, and use that
+\&                for the bounds
+\&   -bbox_threshold  
+\&                threshold value to use when running mincbbox [default: 0]
+\&   -talairach   take the bounds from the (approximate) extent of the brain in
+\&                Talairach space
+.Ve
+.Sh "Bounds transformation options"
+.IX Subsection "Bounds transformation options"
+.PP
+.Vb 4
+\&   -transform <xfm>
+\&                apply <xfm> to the bounds to get them into the space of the
+\&                input volume
+\&   -invert      invert the <xfm> supplied with -transform before applying it
+.Ve
+.Sh "Bounds modification options"
+.IX Subsection "Bounds modification options"
+.PP
+.Vb 6
+\&   -expand      set the (x,y,z) expansion (increase volume extent symmetrically
+\&                at each end of an axis) parameters
+\&   -isoexpand   set the same expansion parameter for all three axes
+\&   -extend      set the (x,y,z) extension (increase volume extent independently
+\&                at each end of an axis) parameters
+\&   -isoextend   set the same extension parameter for all three axes
+.Ve
+.Sh "Resampling options"
+.IX Subsection "Resampling options"
+.PP
+.Vb 4
+\&   -step <xstep> <ystep> <zstep>
+\&                set the x, y, and z step (voxel size) for the output sampling
+\&   -isostep     set the step (same in all three dimensions) for the output
+\&                sampling
+.Ve
+.SH "ACTION TAKEN"
+.IX Header "ACTION TAKEN"
+With no options, \fBautocrop\fR is simply a front-end to \fBmincreshape\fR;
+the two commands
+.PP
+.Vb 2
+\&    autocrop foo.mnc bar.mnc
+\&    mincreshape foo.mnc bar.mnc
+.Ve
+are equivalent.  However, you can force \fBautocrop\fR to use
+\fBmincresample\fR with the \fB\-resample\fR option:
+.PP
+.Vb 1
+\&    autocrop -resample foo.mnc bar.mnc
+.Ve
+Or, you can tell it to merely think about using mincreshape or
+mincresample with the \fB\-noreshape\fR and \fB\-noresample\fR options.  Each of
+these has several side effects: they tell \fBautocrop\fR to not actually
+perform the desired crop, but merely to print out the arguments for
+whichever program is implied by the option.  For instance, 
+.PP
+.Vb 1
+\&    autocrop -noresample foo.mnc
+.Ve
+would print out the part of a \fBmincresample\fR command-line that
+specifies the same sampling grid as found in \fIfoo.mnc\fR.  (Of course,
+the whole point of \fBautocrop\fR is to change that sampling grid in some
+way.  That bit comes later.)  For example, a typical PET volume at the
+MNI has 128x128x15 (x,y,z) voxels, with steps of 2mm, 2mm, and 6.5mm.
+For concreteness, assume the start coordinates for a given volume are
+(0,0,\-7.9).  Then the extent of this volume is (256mm,256mm,97.5mm), and
+the command 
+.PP
+.Vb 1
+\&    autocrop -noresample foo.mnc
+.Ve
+would print out
+.PP
+.Vb 1
+\&    -start 0 0 -7.9 -step 2 2 6.5 -nelements 128 128 15
+.Ve
+while
+.PP
+.Vb 1
+\&    autocrop -noreshape foo.mnc
+.Ve
+would give you 
+.PP
+.Vb 1
+\&    -start 0,0,0 -count 15,128,128
+.Ve
+Note that the parameters are specified to \fBmincresample\fR in canonical
+x,y,z order; for \fBmincreshape\fR, though, the parameters are reordered
+according to the volume at hand.  In this case, the volume is
+transverse, so the dimensions are z,y,x.
+.PP
+Another minor point about the \fB\-noresample\fR and \fB\-noreshape\fR options:
+if you want to use their output in another program, you'll most likely
+either redirect \fBautocrop\fR's output to a file, or open a pipe to read
+its output.  In either case, \fBautocrop\fR does not print a newline at the
+end of the mincresample/mincreshape arguments, like it does when output
+is to a terminal.  This is often convenient.
+.PP
+One important option that deserves mention here (because I couldn't
+think of where else to put it) is \fB\-step\fR.  Although the step size
+isn't strictly part of the volume bounds, it is certainly relevant when
+resampling data, and can be relevant when reshaping data.  (For
+instance, if any step is changed by more than a sign, you can't use
+mincreshape!)
+.PP
+As a simple example, let's say you want to change the direction of
+sampling in the \fIz\fR axis.  In this case, you simply supply \fB\-step\fR
+with the desired new steps:
+.PP
+.Vb 1
+\&    autocrop foo.mnc foo_negative_z.mnc -step 2 2 -6.5
+.Ve
+(Yes, you have to know the old steps in order to supply the new ones in
+this case.)  In this case, \fBautocrop\fR is smart enough to use
+mincreshape for the reordering.  
+.PP
+Another possibility is that you might want to resample a volume to have
+isotropic voxel sizes---say, 2x2x2mm.  This can be done as follows:
+.PP
+.Vb 1
+\&    autocrop foo.mnc foo_cubic.mnc -step 2 2 2
+.Ve
+In this case, of course, \fBautocrop\fR must use mincresample.  A handy
+shortcut option exists for the case of isotropic sampling: \fB\-isostep\fR.
+You can save a few keystrokes on the above command with this:
+.PP
+.Vb 1
+\&    autocrop foo.mnc foo_cubic.mnc -isostep 2
+.Ve
+.SH "BOUNDS SPECIFICATION"
+.IX Header "BOUNDS SPECIFICATION"
+Six numbers are necessary to specify the bounds of a three-dimensional
+volume (unfortunately, \fBautocrop\fR is rather prejudiced towards working
+with 3-D data): the start and extent in each of the \fIx\fR, \fIy\fR, and \fIz\fR
+dimensions.  The \*(L"start\*(R" parameters are just what you think from previous
+MINC experience: (start_x,start_y,start_z) is the real-world coordinate
+for the first voxel in the volume.  The \*(L"extent\*(R" of a dimension is
+simply the step (voxel size) multiplied by the \*(L"length\*(R" or \*(L"count\*(R"
+(number of voxels).
+.PP
+Note that both the start and extent are sensitive to the sign of the
+step: for instance, if data is sampled left-to-right, then the \fIx\fR step
+and extent will both be positive, and the start will be the \fBsmallest\fR
+\fIx\fR\-coordinate.  However, if data is sampled right-to-left, the \fIx\fR
+step and extent will be negative, and the start will be the largest
+\fIx\fR\-coordinate.  Similarly, posterior-to-anterior (back-to-front, for
+the Latin-challenged) sampling implies positive \fIy\fR step and extent,
+and inferior-to-superior (bottom-to-top) sampling implies positive \fIz\fR
+step.  This doesn't really concern you when specifying the bounds of a
+volume, but it's handy to keep in mind.
+.PP
+Obviously, it's easy to extract the bounds of a volume straight from a
+MINC file.  In fact, \fBautocrop\fR's default mode is to take the start and
+extent straight from the input volume, which makes perfect sense most of
+the time.  However, you can also take the bounds from another MINC file,
+from the data in another MINC file, or from a tag file that follows a
+convention explained below.
+.PP
+First, consider a possible scenario in which you would want the bounds
+from one volume to apply to another.  One example is a label volume that
+covers only a fraction of the brain, where you want to extract only the
+MRI image data that corresponds to the labels.  Let's say the image data
+is in \fIsmith_john_mri.mnc\fR, and structure \fBfoobar\fR has been painted
+with the labels saved in \fIsmith_john_foobar.mnc\fR.  (This label volume
+should be tightly cropped to encompass only the structure of interest.
+Recent versions of \fBDisplay\fR do this automatically.) Then you could
+crop the image data down to the size of the structure like this:
+.PP
+.Vb 2
+\&    autocrop smith_john_mri.mnc smith_john_crop.mnc \e
+\&      -from smith_john_foobar.mnc
+.Ve
+Too easy, eh?  If that's not good enough, you can even tell \fBautocrop\fR
+to do things like add five voxels at one end of the \fIx\fR dimension, or
+increase the volume by 5% all the way around.  (But that's covered
+later, when we get to bounds modifiers.)
+.PP
+Now, what if the label volume is \fInot\fR tightly cropped to the structure
+of interest?  In that case, you don't want \fBautocrop\fR to take the
+sampling limits of the whole volume; rather, you're interested in the
+limits of the data.  This can be done with the \fB\-bbox\fR option; for
+instance:
+.PP
+.Vb 2
+\&    autocrop smith_john_mri.mnc smith_john_crop.mnc \e
+\&      -bbox smith_john_foobar.mnc
+.Ve
+would compute the bounding box of the data in \fIsmith_john_foobar.mnc\fR,
+and use that to crop the input MRI file.  If you want to compute the
+bounding box of a non-label volume (i.e. something with a noise floor),
+you can use \fB\-bbox_threshold\fR to specify an absolute (real-world) voxel
+value to use as the cut-off for considering a voxel as \*(L"interesting
+data\*(R".
+.PP
+Another possibility is that you don't have the bounds you want encoded
+in a handy MINC file; you want to set the start and extent explicitly
+for each dimension.  This can be done by supplying a tag file to the
+\-from option, e.g.
+.PP
+.Vb 2
+\&    autocrop smith_john_mri.mnc smith_john_crop.mnc \e
+\&      -from mybounds.tag
+.Ve
+(Note that \fBautocrop\fR distinguishes between MINC and tag files solely
+by their filename, so you are advised to stick to the standard file
+naming conventions!)  The tag file must have eight points, each of which
+is one corner of the volume's bounding box.  You might think it would be
+easier and more sensible to specify just six points, such as the extrema
+of each axis within the volume.  However, doing that leads to problems
+when the bounds are transformed with large rotations -- corners of the
+volume tend to get chopped off. 
+.PP
+As an example, a typical PET file from the MNI has spatial parameters
+like this (courtesy of mincinfo):
+.PP
+.Vb 5
+\&    dimension name         length         step        start
+\&    --------------         ------         ----        -----
+\&    zspace                     15          6.5         -7.9
+\&    yspace                    128            2            0
+\&    xspace                    128            2            0
+.Ve
+The bounds of this volume could be described as three ordered pairs
+(start and extent in x,y,z order): (0,256) (0,256) (\-7.9,97.5).  A tag
+file describing these bounds would look like this:
+.PP
+.Vb 11
+\&    MNI Tag Point File
+\&    Volumes = 1;
+\&    Points =
+\&        0    0   -7.9 ""
+\&        0  256   -7.9 ""
+\&        0    0   89.6 ""
+\&        0  256   89.6 ""
+\&      256    0   -7.9 ""
+\&      256  256   -7.9 ""
+\&      256    0   89.6 ""
+\&      256  256   89.6 "";
+.Ve
+It should be pretty clear that these eight points describe the
+rectangular volume taken from the MINC file.  (If not, draw it!)
+.PP
+There's one final way to specify the bounds of a volume: \fB\-talairach\fR.
+As the name implies, this option uses a set of hard-coded points in
+Talairach space that define the volume encompassing the brain and scalp.
+This volume is from \fIx\fR=\-80..+80, \fIy\fR=\-120..+90, and \fIz\fR=\-80..+95,
+and was selected by someone (your humble narrator) who has zero formal
+knowledge of neuroanatomy.  (Just so you know.)  This option is often
+useful in conjunction with bounds transformations, which are illuminated
+below.
+.SH "BOUNDS TRANSFORMATION"
+.IX Header "BOUNDS TRANSFORMATION"
+Now that you have a bounding box for your data, presumably you want to
+change it in some way.  The first is with a spatial transformation---for
+instance, your bounds might be in Talairach space, but you wish to apply
+them to data in native space.  (For the historically minded, this was in
+fact the original impetus for \fBautocrop\fR, before it became the
+feature-laden behemoth you now find before you.)
+.PP
+As a concrete example, let's say we have an MRI volume in
+\fIsmith_john_mri.mnc\fR, the transformation to get it into Talairach space
+in \fIsmith_john_mrital.xfm\fR, and a tightly-cropped mask of the brain in
+Talairach space in \fIaverage_305_mask.mnc\fR.  We wish to crop the native
+MRI volume using the extent of the brain, but first we need to transform
+the information about that extent back to native space.  This can be
+done using \fBautocrop\fR's \fB\-transform\fR option, along with the \fB\-invert\fR
+flag (because we're supplying the native-to-Talairach transform, not
+Talairach-to-native):
+.PP
+.Vb 3
+\&    autocrop smith_john_mri.mnc smith_john_crop.mnc \e
+\&      -from average_305_mask.mnc \e
+\&      -transform smith_john_mrital.xfm -invert
+.Ve
+(If you happen to have the Talairach-to-native transform handy, you can
+drop the \fB\-invert\fR flag.)  
+.PP
+As an aside, this is a great place to use the \fB\-talairach\fR flag instead
+of supplying an explicit label volume from which to extract the bounding
+box.  The advantages of \fB\-talairach\fR are that you get the same bounds
+every time, those bounds are symmetric about \fIx\fR and easily
+reproducible, you don't need a tightly-cropped label volume, and you
+don't have to type as much.  The disadvantage is that you're implicitly
+trusting one particular guess (mine) at the spatial extent of the
+brain+scalp in Talairach space.
+.SH "BOUNDS MODIFICATION"
+.IX Header "BOUNDS MODIFICATION"
+Once you have your bounds in the desired space (either through a spatial
+transformation, or through not doing anything at all), you'll probably
+want to tweak them a little bit.  Let's return to the example of cropping
+an MRI volume according to the bounds of a labelled structure.  If you
+just do this:
+.PP
+.Vb 2
+\&    autocrop smith_john_mri.mnc smith_john_crop.mnc \e
+\&      -from smith_john_foobar.mnc
+.Ve
+then you've thrown away all MRI data outside the bounding box of the
+labelled structure.  If this is a small volume, then you've probably
+cropped way too much and lost any useful anatomical context.  In this
+case, you probably want to expand the bounds by a little bit all the way
+around, say 10%.  This is easily done with the \fB\-expand\fR option (or
+rather, its shortcut \fB\-isoexpand\fR):
+.PP
+.Vb 2
+\&    autocrop smith_john_mri.mnc smith_john_crop.mnc \e
+\&      -from smith_john_foobar.mnc -isoexpand 10%
+.Ve
+(Not surprisingly, \f(CW-isoexpand 10%\fR is a shortcut for \f(CW-expand 10% 10%
+10%\fR.)  \fIExpanding\fR a dimension increases the amount of space covered
+by an equal amount at either end of the dimension.  For instance, if the
+\fIx\fR dimension covers 200mm from \fIx\fR=0..+200, then expanding it by
+10% will decrease the start by 20mm (10% of 200mm), and increase the
+extent by 40mm (20mm to actually extend the dimension, and 20mm to make
+up for the decrease in the start coordinate.)
+.PP
+Note that asking for a 10% expansion results in the dimension's extent
+actually being increased by 20%.  This is a feature---it's just because
+\*(L"expand by \fIx\fR\*(R" means \*(L"expand by \fIx\fR at each end of the dimension\*(R".
+.PP
+Expansion factors can be also specified in millimetres or voxels; just
+append \*(L"mm\*(R" or \*(L"v\*(R" in place of \*(L"%\*(R".  If no unit is specifed, millimetres
+are used.  Note that a percentage is always a percentage of the
+dimension's extent in \fIworld\fR coordinates, not of the number of samples
+in that dimension.  Also, expansion factors may be negative; this will
+cause the dimension to be reduced by the given amount at both ends.
+.PP
+Now, let's say you want to change the amount of space covered by a
+dimension differently at the two ends.  This is called, for want of a
+better word, dimension extension.  Extension factors look a lot like
+expansion factors, except there have to be two of them for each
+dimension: the first covers the \*(L"low\*(R" end of an axis, and the second
+covers the \*(L"high\*(R" end.  Low and high here are in the world coordinate
+sense, so \*(L"low x\*(R" is patient left, \*(L"low y\*(R" is patient posterior, and
+\*(L"low z\*(R" is patient superior, independent of the sampling direction.
+.PP
+A very real world example is the need to chop off the bottom of a volume
+before registration.  This is common with MRI data that is acquired
+coronally or sagitally; typically, the \fIz\fR extent in these cases is 256mm,
+which extends well into the neck.  If this data is not removed,
+automatic registration to a model brain can be very dodgy indeed.  Also,
+removing a chunk of unneeded data is a big win for processing time and
+space.  For example, to remove 25% of the data at the low end of the \fIz\fR
+axis:
+.PP
+.Vb 2
+\&    autocrop smith_john_mri.mnc smith_john_crop.mnc \e
+\&      -extend 0,0 0,0 -25%,0
+.Ve
+Note that we have supplied separate extension pairs for each dimension,
+but that the extensions to \fIx\fR and \fIy\fR don't do anything.  For \fIz\fR,
+the negative extension factor means to remove data---25% of it, to be
+specific.  At the high end of the \fIz\fR axis, we do nothing.  (If your
+MRI data consistently has >5mm of empty space, you might save a little
+more time and space by shaving this off with \f(CW-extend 0,0 0,0
+-25%,-5mm\fR.  Note the nifty mixing of units in one extension pair; this
+is perfectly legal and conceivably useful.)
+.SH "MORE EXAMPLES"
+.IX Header "MORE EXAMPLES"
+(Nothing yet.)
+.SH "SEE ALSO"
+.IX Header "SEE ALSO"
+mincresample, mincreshape
+.SH "AUTHOR"
+.IX Header "AUTHOR"
+Greg Ward, <greg@bic.mni.mcgill.ca>; inspired by the needs of
+fully-automated MRI\-PET and MRI\-Talairach registration.  (Hence see also
+\fBmritotal\fR and \fBmritopet\fR (which doesn't actually have a man page
+yet).)
+.SH "AVAILABILITY"
+.IX Header "AVAILABILITY"
+Currently part of the MNI AutoReg package, available from 
+.PP
+.Vb 1
+\&    ftp://ftp.bic.mni.mcgill.ca/pub/mni_autoreg
+.Ve
+Will eventually become part of the MINC package, available from
+.PP
+.Vb 1
+\&    ftp://ftp.bic.mni.mcgill.ca/pub/minc
+.Ve
+.SH "COPYRIGHT"
+.IX Header "COPYRIGHT"
+Copyright (c) 1994-96 Greg Ward, McConnell Brain Imaging Centre,
+Montreal Neurological Institute, McGill University.  Permission to use,
+copy, modify, and distribute this software and its documentation for any
+purpose and without fee is hereby granted, provided that the above
+copyright notice appear in all copies.  The author and McGill University
+make no representations about the suitability of this software for any
+purpose.  It is provided \*(L"as is\*(R" without express or implied warranty.
+.PP
+Note that the programs mincreshape and mincresample are written and
+copyrighted by Peter Neelin, McConnell Brain Imaging Centre, with the
+same terms as above.
+
+.rn }` ''

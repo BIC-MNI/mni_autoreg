@@ -1,0 +1,169 @@
+                     Frequently Asked Questions
+  Montreal Neurological Institute Automated Linear Registration Package
+
+This is a list of frequently asked questions regarding the MNI_AutoReg
+package.
+
+Questions:
+	1- How do I get my data into MINC format?
+        2- How do I view the results of the registration?
+	3- How do I customize objective functions used for fitting?
+	4- How do I customize the optimization procedure used?
+	5- How do I build a new target model for registration?
+	6- How do I report bugs?
+
+1- HOW DO I GET MY DATA INTO MINC FORMAT?
+
+   The simplest way is with rawtominc, one of the utilities
+   distributed with the MINC package.  If you can extract just the raw
+   images from some data file (e.g. your scanner's native format),
+   then rawtominc can turn it into a MINC file.  Note that you must
+   know at *least* the volume size, orientation (transverse, coronal,
+   or sagittal) and voxel size in all three dimensions to create a
+   MINC file that can be used for registration or display purposes.
+   See the rawtominc man page for more details.
+
+   Alternatively, there is (or soon will be) a collection of tools and
+   Perl scripts useful for converting various medical imaging formats
+   to MINC.  Since many of these formats are proprietary, we
+   unfortunately can't distribute a useful set of tools with
+   MNI_AutoReg.  Contact Peter Neelin <neelin@bic.mni.mcgill.ca> for
+   more information on conversion tools.  Two common formats that are
+   easily converted by these tools are those used by recent (?) GE
+   MRI scanners and ANALYZE.
+
+2- HOW DO I VIEW THE RESULTS OF THE REGISTRATION?
+
+   When you run mritotal, the result is not a new image volume
+   containing the input MRI in Talairach space.  Rather, mritotal
+   outputs a "transform file", which simply contains a homogeneous
+   transformation matrix that transforms points in native (MRI) space
+   to Talairach space.  Note that these points and transforms are
+   specified as world coordinates, so are invariant across simple
+   operations done on the volumes (such as resampling, reshaping,
+   zero-padding, or removing data).  If you wish to see the registered
+   data, you need to first apply the coordinate transform to the
+   native MRI data.  This is done with mincresample, one of the core
+   programs of the MINC package.  In this case, mincresample requires
+   that you specify both a transform file (as output by mritotal) and
+   a sampling grid.  For example, say you have just registered the MRI
+   volume smith_john_mri.mnc with the command
+
+      mritotal smith_john_mri.mnc smith_john_mrital.xfm
+
+   creating the transform file smith_john_mrital.xfm.  You now need to
+   apply the transform file *and* specify the sampling grid.  The
+   transform file is specified with mincresample's "-transformation"
+   option.  There are a variety of ways to specify the sampling grid,
+   but the easiest way to specify the sampling grid is with the
+   "-like" option, which simply tells mincresample to reuse the
+   sampling grid of another MINC volume.  (You can also explicitly
+   specify all the start coordinates, voxel step sizes, dimension
+   lengths, and direction cosines of the sampling axes.)  For example,
+   if you have installed the MNI_AutoReg model files in
+   /data/avgbrain/models, you could use the average_305.mnc file there
+   as a resampling model with the following command:
+
+      mincresample smith_john_mri.mnc smith_john_mrital.mnc \
+         -transform smith_john_mrital.xfm \
+         -like /data/avgbrain/models/average_305.mnc
+
+   This works by taking every voxel in average_305.mnc, transforming
+   it's (x,y,z) coordinates *back* to native space using the inverse
+   of the specified transformation, and sampling the native MRI data
+   there (using trilinear interpolation).  For more information, see
+   the mincresample man page.
+
+   Next, you'll want to look at the resampled MRI data, preferably
+   alongside the registration model (average_305.mnc).  If you have a
+   Silicon Graphics workstation, you can use Register, which was also
+   developed at the MNI.  This program allows the interactive browsing
+   of two 3-D volumes, along with a merged view of them.  You can
+   obtain Register (in precompiled form) from ftp.mni.mcgill.ca, in
+   /pub/register/MNI_Register-irix5.3.tar.Z.  When you have Register
+   installed on your system, try the following command (assuming you
+   have already done the above resampling):
+
+      register /data/avgbrain/models/average_305.mnc smith_john_mrital.mnc
+
+   If you don't have an SGI, try mincview -- another of the programs
+   in the MINC toolkit.
+
+2- HOW DO I CUSTOMIZE OBJECTIVE FUNCTIONS USED FOR FITTING?
+3- HOW DO I CUSTOMIZE THE OPTIMIZATION PROCEDURE USED?
+
+   Customization of the fitting program is possible by modifying the source
+   files for minctracc.  Notes for adding new objective functions or new
+   optimization procedures can be found in Doc/howto_add_obj_fn and
+   Doc/howto_add_opt_fn, repectively.
+
+4- HOW DO I BUILD A NEW TARGET MODEL FOR REGISTRATION?
+
+   The default model used with the MNI AutoReg package is is based on
+   the 305 brain average MRI volume created at the Montreal Neurological
+   Institute.  (This model is *not* included with the MNI AutoReg
+   package, but is available at
+
+      ftp://ftp.bic.mni.mcgill.ca/pub/mni_autoreg/
+
+   Look for mni_autoreg_model-1.01.tar.gz, or possibly a more recent
+   version.  There are four steps to use a new model file: you have to
+   build the features volumes, construct a brain mask, install the
+   model, and tell mritotal to use the new model.
+
+   1 - Building the feature volumes:
+
+   In the mni_autoreg_model package there is a script `make_model' that
+   contains the commands required to build the feature volumes for the
+   stereotaxic model.  Your input volume must be in Talairach space, and
+   should have a simple name that will identify the model: for example,
+   the input volume supplied with the model package is
+   "average_305.mnc".  Run make_model with the *base* name of your input
+   volume, eg. "make_model average_305".  This will then perform the
+   necessary processing to make a set of feature volumes (16mm intensity
+   blur, 8mm intensity and gradient blurs) needed for fitting with
+   mritotal.
+
+   2 - Mask creation:
+
+   It is also necessary to have a mask of all voxels in the brain, such as
+   the file average_305_mask.mnc included with the model package.  This
+   particular mask was created semi-automatically using the interactive
+   program Display; presumably, other 3-D volume display/manipulation
+   programs have similar capabilities.  (Display is also available from the
+   MNI, but currently for SGI workstations only.  Contact the author, David
+   MacDonald <david@bic.mni.mcgill.ca>, for more information.)
+
+   3 - Installation:
+
+   You should then install the input volume (<base>.mnc), feature volumes
+   (<base>_16_blur.mnc, <base>_8_blur.mnc, <base>_8_dxyz.mnc), and mask
+   volume (<base>_mask.mnc) in your system model directory.  If you
+   correctly edited the definition of MODELDIR in the model package's
+   Makefile, all you have to do is:
+
+      make BASE=<base> install
+
+   in the model package directory.
+
+
+   4 - mritotal:
+
+   There are two ways to use the new model.  The first is to run 
+
+	mritotal -model /foo/bar/baz/<base> subject.mnc subject.xfm
+
+   where /foo/bar/baz is the directory specified by MODELDIR, to which the
+   new model files were installed.
+
+   The second is to make a copy of mritotal.cfg in your home directory and
+   replace the -model option with the directory and name of your model.
+   mritotal will read your personal mritotal.cfg, and use the new model by
+   default.
+ 
+5- HOW DO I REPORT BUGS?
+
+   Your bug reports play an essential role in making MNI AutoReg
+   reliable by making the next version of MNI AutoReg work better.  Any
+   unexpected, anomalous, weird, or just plain wrong behaviour should be
+   reported to Greg Ward <greg@bic.mni.mcgill.ca>.

@@ -1,0 +1,72 @@
+.\" Copyright 1995 Louis Collins, McConnell Brain Imaging Centre,
+.\" Montreal Neurological Institute, McGill University.
+.\" Permission to use, copy, modify, and distribute this
+.\" software and its documentation for any purpose and without
+.\" fee is hereby granted, provided that the above copyright
+.\" notice appear in all copies.  The author and McGill University
+.\" make no representations about the suitability of this
+.\" software for any purpose.  It is provided "as is" without
+.\" express or implied warranty.
+.\"
+.\" $Header: /private-cvsroot/registration/mni_autoreg/perl/Attic/mritoself.man1,v 1.1 2000-01-19 14:10:31 louis Exp $
+.\"
+.TH MRITOSELF 1
+
+.SH NAME
+mritoself - intra-subject registration of two volumetric data sets
+
+.SH SYNOPSIS
+.B mritoself [<options>] <source.mnc> <target.mnc> <xform.xfm>
+
+.SH DESCRIPTION
+.I Mritoself
+estimates the linear transformation required to register two
+volumetric data sets from the same subject (intra-subject
+registration).  The procedure was designed and tested on MRI data
+although other modalities can be registered as well (but this has not
+yet been tested).
+.P
+.I Mritoself
+estimates the registration transformation in multiple
+steps, each successive step refining the previous fit.  Currently, the
+sequence of resamplings, crops, blurs and fits are hard-coded, although
+there are a number of options to force specific fitting strategies for
+certain types of data. 
+.SH Fitting Data
+By default, 
+.I Mritoself
+uses a mutual information objective function evaluated on the original
+(unblurred) data volumes.  Optionally, the data can be blurred before
+fitting with the '-blur' option.  If the '-gradient' option is
+specified, then the gradient magnitude of the blurred images is used
+in the fitting process.
+
+.SH Fitting Strategy
+A two step fitting process is then applied to calculate the
+registration transformation.  The first begins with an identity
+transformation, 7.3mm steps, and a medium-small (3mm) simplex to find
+an reasonable initial transformation.  The second (and last) fit is
+estimated with 4.3mm steps and a small simplex (1.5mm).
+.P
+If an initial transformation is available, it can be used with the
+'-transform' option.  This will overide the '-identity' transform used
+in the first fit described above.
+
+.P
+.I option
+<val>: description of option
+.SH Generic options
+.P
+.I -help:
+Print summary of command-line options and abort.
+
+.SH EXAMPLES
+
+.SH KNOWN BUGS
+
+.SH AUTHOR
+Greg Ward and Louis Collins
+
+.SH COPYRIGHT
+Copyright (c) 1996 by Greg Ward and Louis Collins
+

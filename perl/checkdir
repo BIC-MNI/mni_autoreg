@@ -1,0 +1,10 @@
+($dir) = @ARGV;
+unless (grep (/^$dir$/, @INC))
+{
+   warn "WARNING: the directory where I installed Perl library files is not\n".
+	"in your Perl library search path.  You should either reinstall the\n".
+	"package (with a corrected PERLLIBDIR), or add $dir to your\n".
+	"Perl search path, using a command like\n".
+	"   setenv PERLLIB $dir\n".
+	"in the /etc/cshrc (or a user\'s .cshrc) file.\n";
+}

@@ -1,0 +1,69 @@
+CHANGES to the MNI_AutoReg package...
+
+
+Release 0.98f
+-------------
+
+* version 0.98e did not give the same registration results as 0.98d when
+  using masks due to an oversight in the voxel coordinate manipulation
+  in the mask volumes - an important problem for using mritotal.  
+  This has been corrected in 0.98f.
+
+Release 0.98e
+-------------
+
+* feature volumes are supported to be able to register sets (like T1, T2 and
+  classified data) of volumes from a source data set to match corresponding
+  features of a target.
+* the minctracc registration engine is approximately 2.5 times faster for
+  resampling data during evaluation of the optimization function.  This
+  results in an overall reduction in execution time by a factor of 2.
+
+Release 0.98
+------------
+* added mritoself to list of programs to install (in perl/Makefile)
+* slight tweak to test of compiler's ANSIness in configure script
+* fixed some subtle but important bugs in mritotal, autocrop, and mritoself
+* more enhancements to the Perl libraries
+* removed an unused option (-Lvv) from mincblur's argument table
+* removed ParseArgs module from the distribution -- Getopt::Tabular 
+  (available separately) is now required
+* changed mritotal's algorithm for trimming volumes after blurring
+* added '-bbox' feature to autocrop
+bug fixes:
+release 0.98b, 0.98c: fixed two bugs in mritoself
+
+
+Release 0.97
+------------
+* fixed those bugs in mritotal
+* enhanced configure script for portability and flexibility
+* added the TESTING document to explain testing the package in detail
+
+
+Release 0.96
+------------
+* inexplicable jump of four micro-versions instead of one
+* introduced some buggy features in mritotal
+
+
+Release 0.92
+------------
+* the implementation of the mutual information objective function in
+  minctracc has been greatly improved
+* many portability problems have been fixed
+* some real bugs (particularly in mincblur) have been fixed
+* most of the Perl libraries have been greatly updated to take
+  better advantage of Perl 5
+* added -blur/-noblur and -firstobj options to mritotal (experimental --
+  not used by any of the standard fitting procedures)
+
+
+Release 0.91
+------------
+lost in the mists of time...
+
+
+Release 0.9
+-----------
+First public release.

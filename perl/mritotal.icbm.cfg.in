@@ -1,0 +1,34 @@
+# mritotal.icbm.cfg
+#
+# This is an example protocol file for mritotal.  It works quite well
+# with data acquired at the MNI according to the ICBM protocol, and is
+# provided as an alternative example.  See mritotal.default.cfg for
+# full instructions.
+
+# protocol for ICBM data by Greg Ward 95/08/23
+
+
+# The data is first subsampled to a regular grid, specified here as
+# the voxel step size for all three spatial dimensions in mm.  ICBM
+# data is acquired on a 1mm isotropic grid, so we just double the step
+# size to save memory and time.
+
+-isosubsample 2
+
+# The data is cropped according to the three pairs of numbers supplied
+# here.  Each pair specifies what to do to the data along one axis (x,
+# y, z).  The two numbers tell how to extend the volume at,
+# respectively, the low and high end of the axis.  Here, "low" and
+# "high" refer to the real-world coordinate system specified by the
+# MINC standard, ie. the low end of the x axis is the patient's left,
+# low y is patient posterior, and low z is patient inferior.  In this
+# case, we leave the x and y axes alone, and chop off 25% of the data
+# at the bottom of the scan.  This is because ICBM MRI data extends
+# well down into the neck, and we need to discard this excess data
+# because we're only interested in fitting brains.
+
+-crop 0,0 0,0 -25%,0
+
+# Specify the objective function used for fitting.  
+
+-objective xcorr

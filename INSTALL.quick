@@ -1,0 +1,43 @@
+This is the short form of the installation instructions for MNI AutoReg--
+more details (especially if anything goes wrong, and for testing the
+package) can be found in the README and TESTING files.
+ 
+   0) You need an ANSI-compliant C compiler, such as gcc.
+   1) You may have to build and install the netCDF library
+         (available from unidata.ucar.edu, see README)
+   2) You may have to build and install the MINC library
+	 (available from ftp.mni.mcgill.ca, see README)
+   3) You may have to build and install Perl 5 (version 5.002 or 
+      later is recommended) (see README) and the Getopt::Tabular
+      module
+   4) type 
+	./configure 
+
+      to determine various system-dependent values and generate
+      Makefile.include.  If you have problems running `configure', see
+      the detailed explanation in README.
+
+      Look in Makefile.include to make sure the installation
+      directories are suitable; you might want to change some or all
+      of BINDIR, SCRIPTDIR, PERLLIBDIR, CONFIGDIR, and MAN1DIR.  See
+      README for full details.
+
+   5) Type:
+
+        make build
+      
+        make test
+
+        make install
+
+        make installman
+
+   6) You will have to build and install the stereotaxic model before
+      you can do actual fitting of MRI data to Talairach space.  This
+      is available as a separate package from ftp.bic.mni.mcgill.ca; see
+      the README file for more information.
+
+   7) Finally, you should test the package on real data -- one example
+      is available from ftp.mni.mcgill.ca, in
+      /pub/mni_autoreg/mni_autoreg_small_example_mri.mnc.  See the
+      TESTING file for details.
