@@ -16,12 +16,16 @@
 
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   :  $Log: objectives.c,v $
-@MODIFIED   :  Revision 1.9  1995-09-07 10:05:11  louis
-@MODIFIED   :  All references to numerical recipes routines are being removed.  At this
-@MODIFIED   :  stage, any num rec routine should be local in the file.  All memory
-@MODIFIED   :  allocation calls to vector(), matrix(), free_vector() etc... have been
-@MODIFIED   :  replaced with ALLOC and FREE from the volume_io library of routines.
+@MODIFIED   :  Revision 1.10  1996-03-07 13:25:19  louis
+@MODIFIED   :  small reorganisation of procedures and working version of non-isotropic
+@MODIFIED   :  smoothing.
 @MODIFIED   :
+ * Revision 1.9  1995/09/07  10:05:11  louis
+ * All references to numerical recipes routines are being removed.  At this
+ * stage, any num rec routine should be local in the file.  All memory
+ * allocation calls to vector(), matrix(), free_vector() etc... have been
+ * replaced with ALLOC and FREE from the volume_io library of routines.
+ *
  * Revision 1.8  1995/02/22  08:56:06  louis
  * Montreal Neurological Institute version.
  * compiled and working on SGI.  this is before any changes for SPARC/
@@ -41,7 +45,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/objectives.c,v 1.9 1995-09-07 10:05:11 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/objectives.c,v 1.10 1996-03-07 13:25:19 louis Exp $";
 #endif
 
 #include <volume_io.h>
@@ -56,9 +60,9 @@ extern Arg_Data main_args;
 
 extern Segment_Table *segment_table;
 
-extern int            **prob_hash_table; /* for mutual information */
-extern int            *prob_fn1;         /*     for vol 1 */
-extern int            *prob_fn2;         /*     for vol 2 */
+extern Real            **prob_hash_table; /* for mutual information */
+extern Real            *prob_fn1;         /*     for vol 1 */
+extern Real            *prob_fn2;         /*     for vol 2 */
 
 public int point_not_masked(Volume volume, 
 			    Real wx, Real wy, Real wz);
@@ -855,12 +859,16 @@ public float mutual_information_objective(Volume d1,
   int
     r,c,s;
   Real
+    min_range1, max_range1, range1,
+    min_range2, max_range2, range2,
+
     value1, value2,
     voxel_value2,
     voxel_value1;
   float 
     result;				/* the result */
   int 
+    index1, index2,
     i,j,count1,count2;		/* number of nodes in first vol, second vol */
 
 
@@ -870,13 +878,19 @@ public float mutual_information_objective(Volume d1,
   result = 0.0;
 
   for_less(i,0,globals->groups) {
-    prob_fn1[i] = 0;
-    prob_fn2[i] = 0;
+    prob_fn1[i] = 0.0;
+    prob_fn2[i] = 0.0;
   }
 
   for_less(i,0,globals->groups) 
     for_less(j,0,globals->groups) 
-      prob_hash_table[i][j] = 0;
+      prob_hash_table[i][j] = 0.0;
+
+  get_volume_real_range(d1, &min_range1, &max_range1);
+  get_volume_real_range(d2, &min_range2, &max_range2);
+
+  range1 = max_range1 - min_range1;
+  range2 = max_range2 - min_range2;
 
 				/* build world lattice info */
 
@@ -933,17 +947,17 @@ public float mutual_information_objective(Volume d1,
 		  
 		  if (voxel_value2 > 0) { /* is the voxel defined? */
 
-		    value1 = (Real)globals->groups * (value1 + 5.0)/10.0001;
-		    value2 = (Real)globals->groups * (value2 + 5.0)/10.0001;
+		    index1 = (int)((Real)globals->groups * (value1 - min_range1)/range1);
+		    index2 = (int)((Real)globals->groups * (value2 - min_range2)/range2);
 		    
-		    if ((int)value1>=0 && (int)value1<globals->groups &&
-			(int)value2>=0 && (int)value2<globals->groups) {
+		    if (index1>=0 && index1<globals->groups &&
+			index2>=0 && index2<globals->groups) {
 
 		      count2++;
 		    
-		      prob_fn1[(int)value1]++;
-		      prob_fn2[(int)value2]++;
-		      prob_hash_table[(int)value1][(int)value2]++;
+		      prob_fn1[index1]++;
+		      prob_fn2[index2]++;
+		      prob_hash_table[index1][index2]++;
 
 		    }
 		  } /* if voxel_value2>0 */
@@ -964,20 +978,33 @@ public float mutual_information_objective(Volume d1,
      placing the final objective function value in  'result' */
 
 
+
+      
   result = 0.0;
   if (count2>0) {
+
+				/* normalize to count2  */
+    for_less(i,0,globals->groups) {
+      prob_fn1[i] /= count2;
+      prob_fn2[i] /= count2;
+    }
+    
+    for_less(i,0,globals->groups) 
+      for_less(j,0,globals->groups) 
+	prob_hash_table[i][j] /= count2;
+    
+
     for_less(i,1,globals->groups) 
       for_less(j,1,globals->groups) {
 	
-	if ( prob_fn1[i] > 0 &&  prob_fn2[j] > 0 && prob_hash_table[i][j]>0)
-	  result += (Real)prob_hash_table[i][j] * 
-            	    (Real)prob_hash_table[i][j] * 
-		      log( (Real)prob_hash_table[i][j] / 
-			  ((Real)prob_fn1[i] * (Real)prob_fn2[j])
-			  );
+	if ( prob_fn1[i] > 0.0 &&  prob_fn2[j] > 0.0 && prob_hash_table[i][j]>0.0)
+
+	  result += prob_hash_table[i][j] * 
+	         log( prob_hash_table[i][j] / (prob_fn1[i] * prob_fn2[j])
+		    );
       }
     
-    result *= (-1.0/(Real)count2) * log ( 1.0/(Real)count2 );
+    result *= -1.0;
   }
 
   if (globals->flags.debug) (void)print ("%7d %7d -> %f\n",count1,count2,result);

@@ -8,7 +8,7 @@ public void interpolate_deformation_slice(Volume volume,
 					  Real wx,Real wy,Real wz,
 					  Real def[]);
 
-public  void  louis_grid_transform_point(
+public  void  grid_transform_point_in_trans_plane(
     General_transform   *transform,
     Real                x,
     Real                y,
@@ -17,7 +17,7 @@ public  void  louis_grid_transform_point(
     Real                *y_transformed,
     Real                *z_transformed );
 
-public  void  louis_grid_inverse_transform_point(
+public  void  grid_inverse_transform_point_in_trans_plane(
     General_transform   *transform,
     Real                x,
     Real                y,
@@ -26,7 +26,7 @@ public  void  louis_grid_inverse_transform_point(
     Real                *y_transformed,
     Real                *z_transformed );
 
-private void louis_transform_or_inverse_point(General_transform *transform,
+private void transform_or_inverse_point_in_trans_plane(General_transform *transform,
 					  BOOLEAN           inverse_flag,
 					  Real              x, 
 					  Real              y, 
@@ -35,7 +35,7 @@ private void louis_transform_or_inverse_point(General_transform *transform,
 					  Real              *y_transformed,  
 					  Real              *z_transformed);
 
-public  void  louis_general_transform_point(
+public  void  general_transform_point_in_trans_plane(
     General_transform   *transform,
     Real                x,
     Real                y,
@@ -44,7 +44,7 @@ public  void  louis_general_transform_point(
     Real                *y_transformed,
     Real                *z_transformed );
 
-public  void  louis_general_inverse_transform_point(
+public  void  general_inverse_transform_point_in_trans_plane(
     General_transform   *transform,
     Real                x,
     Real                y,
@@ -63,7 +63,7 @@ public  void  louis_general_inverse_transform_point(
   this routine will use interpolation on the 2D deformation
   field to calculate the inverse position */
 
-private void louis_transform_or_inverse_point(General_transform *transform,
+private void transform_or_inverse_point_in_trans_plane(General_transform *transform,
 					  BOOLEAN           inverse_flag,
 					  Real              x, 
 					  Real              y, 
@@ -113,14 +113,14 @@ private void louis_transform_or_inverse_point(General_transform *transform,
     case GRID_TRANSFORM:
       if( inverse_flag )
         {
-	  louis_grid_inverse_transform_point( transform,
+	  grid_inverse_transform_point_in_trans_plane( transform,
 					  x, y, z,
 					  x_transformed, y_transformed,
 					  z_transformed );
         }
       else
         {
-	  louis_grid_transform_point( transform,
+	  grid_transform_point_in_trans_plane( transform,
 				  x, y, z,
 				  x_transformed, y_transformed,
 				  z_transformed );
@@ -154,7 +154,7 @@ private void louis_transform_or_inverse_point(General_transform *transform,
         {
 	  for( trans = transform->n_transforms-1;  trans >= 0;  --trans )
             {
-	      louis_general_inverse_transform_point(&transform->transforms[trans],
+	      general_inverse_transform_point_in_trans_plane(&transform->transforms[trans],
 		  *x_transformed, *y_transformed, *z_transformed,
 		  x_transformed, y_transformed, z_transformed );
             }
@@ -163,7 +163,7 @@ private void louis_transform_or_inverse_point(General_transform *transform,
         {
 	  for_less( trans, 0, transform->n_transforms )
             {
-	      louis_general_transform_point( &transform->transforms[trans],
+	      general_transform_point_in_trans_plane( &transform->transforms[trans],
 		  *x_transformed, *y_transformed, *z_transformed,
 		  x_transformed, y_transformed, z_transformed );
             }
@@ -176,7 +176,7 @@ private void louis_transform_or_inverse_point(General_transform *transform,
     }
 }
 
-public  void  louis_general_transform_point(
+public  void  general_transform_point_in_trans_plane(
     General_transform   *transform,
     Real                x,
     Real                y,
@@ -186,7 +186,7 @@ public  void  louis_general_transform_point(
     Real                *z_transformed )
 {
 
-    louis_transform_or_inverse_point( transform, transform->inverse_flag, 
+    transform_or_inverse_point_in_trans_plane( transform, transform->inverse_flag, 
 				       x, y, z,
 				       x_transformed, 
 				       y_transformed, 
@@ -211,7 +211,7 @@ public  void  louis_general_transform_point(
 @MODIFIED   : 1995 louis
 ---------------------------------------------------------------------------- */
 
-public  void  louis_general_inverse_transform_point(
+public  void  general_inverse_transform_point_in_trans_plane(
     General_transform   *transform,
     Real                x,
     Real                y,
@@ -221,7 +221,7 @@ public  void  louis_general_inverse_transform_point(
     Real                *z_transformed )
 {
 
-    louis_transform_or_inverse_point( transform, !transform->inverse_flag, 
+    transform_or_inverse_point_in_trans_plane( transform, !transform->inverse_flag, 
 				       x, y, z,
 				       x_transformed, 
 				       y_transformed, 
@@ -230,7 +230,7 @@ public  void  louis_general_inverse_transform_point(
 
 
 
-public  void  louis_grid_transform_point(
+public  void  grid_transform_point_in_trans_plane(
     General_transform   *transform,
     Real                x,
     Real                y,
@@ -258,7 +258,7 @@ public  void  louis_grid_transform_point(
 
 #define  NUMBER_TRIES  10
 
-public  void  louis_grid_inverse_transform_point(
+public  void  grid_inverse_transform_point_in_trans_plane(
     General_transform   *transform,
     Real                x,
     Real                y,
@@ -276,13 +276,13 @@ public  void  louis_grid_inverse_transform_point(
 
     ftol = 0.05;
 
-    louis_grid_transform_point( transform, x, y, z, &tx, &ty, &tz );
+    grid_transform_point_in_trans_plane( transform, x, y, z, &tx, &ty, &tz );
 
     tx = x - (tx - x);
     ty = y - (ty - y);
     tz = z - (tz - z);
 
-    louis_grid_transform_point( transform, tx, ty, tz, &gx, &gy, &gz );
+    grid_transform_point_in_trans_plane( transform, tx, ty, tz, &gx, &gy, &gz );
 
     error_x = x - gx;
     error_y = y - gy;
@@ -302,7 +302,7 @@ public  void  louis_grid_inverse_transform_point(
         ty += 0.67 * error_y;
         tz += 0.67 * error_z;
 
-        louis_grid_transform_point( transform, tx, ty, tz, &gx, &gy, &gz );
+        grid_transform_point_in_trans_plane( transform, tx, ty, tz, &gx, &gy, &gz );
 
         error_x = x - gx;
         error_y = y - gy;

@@ -14,14 +14,18 @@
               express or implied warranty.
 
 @MODIFIED   : $Log: optimize.c,v $
-@MODIFIED   : Revision 1.13  1995-10-06 09:25:02  louis
-@MODIFIED   : removed all the volume parameters from do_non_linear_optimization() and
-@MODIFIED   : optimize_non_linear_transformation() since they are all represented in
-@MODIFIED   : globals->features struc.
+@MODIFIED   : Revision 1.14  1996-03-07 13:25:19  louis
+@MODIFIED   : small reorganisation of procedures and working version of non-isotropic
+@MODIFIED   : smoothing.
 @MODIFIED   :
-@MODIFIED   : made the necesary changes to access globals->features instead of previous
-@MODIFIED   : ly used volumes in input parameters.
-@MODIFIED   :
+ * Revision 1.13  1995/10/06  09:25:02  louis
+ * removed all the volume parameters from do_non_linear_optimization() and
+ * optimize_non_linear_transformation() since they are all represented in
+ * globals->features struc.
+ *
+ * made the necesary changes to access globals->features instead of previous
+ * ly used volumes in input parameters.
+ *
  * Revision 1.12  1995/09/07  13:02:13  louis
  * removed numerical recipes call to amoeba, the simplex optimization
  * procedure.  It has been replaced with Davids version of the simplex
@@ -64,7 +68,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 1.13 1995-10-06 09:25:02 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 1.14 1996-03-07 13:25:19 louis Exp $";
 #endif
 
 #include <volume_io.h>
@@ -88,9 +92,9 @@ extern   Real     initial_corr;
 
          Segment_Table  *segment_table;	/* for variance of ratios */
 
-         int            **prob_hash_table;   /* for mutual information */
-         int            *prob_fn1;      /*     for vol 1 */
-         int            *prob_fn2;      /*     for vol 2 */
+         Real            **prob_hash_table;   /* for mutual information */
+         Real            *prob_fn1;      /*     for vol 1 */
+         Real            *prob_fn2;      /*     for vol 2 */
 
 
 /* external calls: */
@@ -114,7 +118,7 @@ public  void  terminate_amoeba(
 
 
 public void make_zscore_volume(Volume d1, Volume m1, 
-			       float threshold); 
+			       Real *threshold); 
 
 public void add_speckle_to_volume(Volume d1, 
 				  float speckle,
@@ -339,7 +343,7 @@ public BOOLEAN optimize_simplex(Volume d1,
     iteration_number,
     max_iters,
     i,j, 
-    ndim, nfunk;
+    ndim;
 
   Transform
     *mat;
@@ -527,8 +531,8 @@ public BOOLEAN optimize_linear_transformation(Volume d1,
     { 
       /* replace volume d1 and d2 by zscore volume  */
 
-      make_zscore_volume(d1,m1,(float)globals->threshold[0]);
-      make_zscore_volume(d2,m2,(float)globals->threshold[1]);
+      make_zscore_volume(d1,m1,&globals->threshold[0]);
+      make_zscore_volume(d2,m2,&globals->threshold[1]);
     } else
   if (globals->obj_function == ssc_objective)
 				/* Stocastic sign change (or zero-crossings) */
@@ -536,8 +540,8 @@ public BOOLEAN optimize_linear_transformation(Volume d1,
       /* add speckle to the data set, after making both data sets
          comparable in mean and sd...                             */
 
-      make_zscore_volume(d1,m1,(float)globals->threshold[0]); 
-      make_zscore_volume(d2,m2,(float)globals->threshold[1]); 
+      make_zscore_volume(d1,m1,&globals->threshold[0]); 
+      make_zscore_volume(d2,m2,&globals->threshold[1]); 
 
       if (globals->smallest_vol == 1)
 	add_speckle_to_volume(d1, 
@@ -582,15 +586,6 @@ public BOOLEAN optimize_linear_transformation(Volume d1,
       ALLOC(   prob_fn2,   globals->groups);
       ALLOC2D( prob_hash_table, globals->groups, globals->groups);
 
-				/* this will normalize each volume
-				   to -5 to +5 standard deviations
-				   in intensity, so the volume range
-				   is now only -5.0 to +5.0 */
-
-      make_zscore_volume(d1,m1,(float)globals->threshold[0]); 
-      make_zscore_volume(d2,m2,(float)globals->threshold[1]); 
-      set_volume_real_range(d1, -5.0, 5.0);
-      set_volume_real_range(d2, -5.0, 5.0);
     } else
   if (globals->obj_function == xcorr_objective) {
 				/*EMPTY*/
@@ -745,13 +740,13 @@ public float measure_fit(Volume d1,
 
   
   if (globals->obj_function == zscore_objective) { /* replace volume d1 and d2 by zscore volume  */
-    make_zscore_volume(d1,m1,(float)globals->threshold[0]);
-    make_zscore_volume(d2,m2,(float)globals->threshold[1]);
+    make_zscore_volume(d1,m1,&globals->threshold[0]);
+    make_zscore_volume(d2,m2,&globals->threshold[1]);
   } 
   else  if (globals->obj_function == ssc_objective) {	/* add speckle to the data set */
 
-    make_zscore_volume(d1,m1,(float)globals->threshold[0]); /* need to make data sets comparable */
-    make_zscore_volume(d2,m2,(float)globals->threshold[1]); /* in mean and sd...                 */
+    make_zscore_volume(d1,m1,&globals->threshold[0]); /* need to make data sets comparable */
+    make_zscore_volume(d2,m2,&globals->threshold[1]); /* in mean and sd...                 */
 
     if (globals->smallest_vol == 1)
       add_speckle_to_volume(d1, 
@@ -838,6 +833,8 @@ public float measure_fit(Volume d1,
 
 				/* set GLOBALS to communicate with the
 				   function to be fitted!              */
+  y = -1e10; 
+
   if (stat) {
     Gndim = ndim;
     if (globals->smallest_vol == 1) {
@@ -854,11 +851,6 @@ public float measure_fit(Volume d1,
       Gmask2 = m1;
       Ginverse_mapping_flag = TRUE;
     }
-  }
-
-
-
-  if (stat) {
 
     ALLOC2D(p,ndim+1+1,ndim+1); /* simplex */
     
@@ -878,13 +870,13 @@ public float measure_fit(Volume d1,
           /* ----------------finish up parameter/matrix manipulations ------*/
 
   if (globals->obj_function == vr_objective) {
-    stat = free_segment_table(segment_table);
+    if (!free_segment_table(segment_table)) {
+      (void)fprintf(stderr, "Can't free segment table.\n");
+      (void)fprintf(stderr, "Error in line %d, file %s\n",__LINE__, __FILE__);
+    }
   }
 
-  if (stat)
-    return(y);
-  else
-    return(-1e10);
+  return(y);
 }
 
 
@@ -940,20 +932,20 @@ public BOOLEAN optimize_non_linear_transformation(Arg_Data *globals)
 
     make_zscore_volume(globals->features.data[0],
 		       globals->features.data_mask[0],
-		       (float)globals->threshold[0]);
+		       &globals->threshold[0]);
     make_zscore_volume(globals->features.model[0],
 		       globals->features.model_mask[0],
-		       (float)globals->threshold[1]);
+		       &globals->threshold[1]);
 
   } 
   else  if (globals->obj_function == ssc_objective) {	/* add speckle to the data set */
 
     make_zscore_volume(globals->features.data[0],        /* need to make data sets comparable */
 		       globals->features.data_mask[0],   /* in mean and sd...                 */
-		       (float)globals->threshold[0]); 
+		       &globals->threshold[0]); 
     make_zscore_volume(globals->features.model[0],
 		       globals->features.model_mask[0],
-		       (float)globals->threshold[1]); 
+		       &globals->threshold[1]); 
 
     if (globals->smallest_vol == 1)
       add_speckle_to_volume(globals->features.data[0], 

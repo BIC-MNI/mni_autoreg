@@ -16,17 +16,21 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 1.23  1995-10-13 11:16:55  louis
-@MODIFIED   : added comments for local fitting process.
+@MODIFIED   : Revision 1.24  1996-03-07 13:25:19  louis
+@MODIFIED   : small reorganisation of procedures and working version of non-isotropic
+@MODIFIED   : smoothing.
 @MODIFIED   :
-@MODIFIED   : changed the objective function used in the quadratic fitting routines to
-@MODIFIED   : be the same as that used for simplex, both should (and now do use)
-@MODIFIED   : xcorr_fitting_function() so that both the similarity of the data and the
-@MODIFIED   : cost of the deformation are taken into account.
-@MODIFIED   :
-@MODIFIED   : started to add code for non-isotropic smoothing, but it is not completely
-@MODIFIED   : working in this version.
-@MODIFIED   :
+ * Revision 1.23  1995/10/13  11:16:55  louis
+ * added comments for local fitting process.
+ *
+ * changed the objective function used in the quadratic fitting routines to
+ * be the same as that used for simplex, both should (and now do use)
+ * xcorr_fitting_function() so that both the similarity of the data and the
+ * cost of the deformation are taken into account.
+ *
+ * started to add code for non-isotropic smoothing, but it is not completely
+ * working in this version.
+ *
  * Revision 1.22  1995/10/06  09:25:02  louis
  * working version.  Added multiple feature support.  The extra features
  * can included in the global similarity function with user-selectable
@@ -180,7 +184,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 1.23 1995-10-13 11:16:55 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 1.24 1996-03-07 13:25:19 louis Exp $";
 #endif
 
 #include <limits.h>		/* MAXtype and MIN defs                      */
@@ -199,6 +203,8 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #include <time.h>
 time_t time(time_t *tloc);
 
+#include <stats.h>
+
 
          /* these Globals are used to communicate to the correlation */
          /* functions over top the SIMPLEX optimization  routine     */ 
@@ -210,6 +216,16 @@ static float
 static int 
   Glen;				/* # of samples in sub-lattice               */
  
+static stats_struct
+   stat_def_mag,
+   stat_num_funks,
+   stat_conf0,
+   stat_conf1,
+   stat_conf2,
+   stat_eigval0,
+   stat_eigval1,
+   stat_eigval2;
+
 
          /* these Globals are used to communicate the projection */
          /* values over top the SIMPLEX optimization  routine    */ 
@@ -218,7 +234,7 @@ static Real
   Gproj_d1,  Gproj_d1x,  Gproj_d1y,  Gproj_d1z, 
   Gproj_d2,  Gproj_d2x,  Gproj_d2y,  Gproj_d2z;
 
-	/* Globals used for lcoal simplex Optimization  */
+	/* Globals used for local simplex Optimization  */
 static Real     Gsimplex_size;	/* the radius of the local simplex           */
 static Real     Gcost_radius;	/* constant used in the cost function        */
 
@@ -260,30 +276,16 @@ extern Real       initial_corr;	         /* value of correlation before
                   (DIAMETER_OF_LOCAL_LATTICE+1)*\
                   (DIAMETER_OF_LOCAL_LATTICE+1)
 
-				/* weighting for 3D quadratic fitting */
-/*
-#define CENTER_WEIGHT        1.00
-#define CENTER_FACE_WEIGHT   0.99
-#define CENTER_EDGE_WEIGHT   0.975
-#define CORNER_WEIGHT        0.90
+#define DEFAULT_MEAN_E0  0.738
+#define DEFAULT_MEAN_E1  0.189
+#define DEFAULT_MEAN_E2  0.073
+#define DEFAULT_STD_E0   0.140
+#define DEFAULT_STD_E1   0.102
+#define DEFAULT_STD_E2   0.053
 
-#define CENTER_WEIGHT        1.00
-#define CENTER_FACE_WEIGHT   0.99
-#define CENTER_EDGE_WEIGHT   0.9875
-#define CORNER_WEIGHT        0.95
-*/
-
-#define CENTER_WEIGHT        1.00
-#define CENTER_FACE_WEIGHT   1.0
-#define CENTER_EDGE_WEIGHT   1.0
-#define CORNER_WEIGHT        1.0
-
-				/* weighting for 2D quadratic fitting */
-#define CENTER_WEIGHT_2D     1.00
-#define EDGE_WEIGHT_2D       0.97
-#define CORNER_WEIGHT_2D     0.89
-
-
+static Real
+   previous_mean_eig_val[3] = {DEFAULT_MEAN_E0,DEFAULT_MEAN_E1,DEFAULT_MEAN_E2},
+   previous_std_eig_val[3]  = {DEFAULT_STD_E0,DEFAULT_STD_E1,DEFAULT_STD_E2};
 
         /* prototypes function definitions */
 
@@ -303,11 +305,6 @@ public  Real  get_amoeba_parameters(amoeba_struct  *amoeba,
 public  void  terminate_amoeba( amoeba_struct  *amoeba );
 
 private Real amoeba_obj_function(void * dummy, float d[]);
-
-private void build_two_perpendicular_vectors(Real orig[], 
-					     Real p1[], 
-					     Real p2[]);
-
 
 public float xcorr_objective(Volume d1,
                              Volume d2,
@@ -340,15 +337,28 @@ private Real get_deformation_vector_for_node(Real spacing, Real threshold1,
 					     int *nfunks,
 					     int ndim);
 
-private void return_locally_smoothed_def(int  isotropic_smoothing,
+private double return_locally_smoothed_def(int  isotropic_smoothing,
 					 int  ndim,
-					 Real smoothing_weight,
-					 Real iteration_weight,
+					 Real smoothing_wght,
+					 Real iteration_wght,
 					 Real smoothed_result[],
 					 Real previous_def[],
 					 Real neighbour_mean[],
 					 Real additional_def[],
+					 Real another_vector[],
 					 Real voxel_displacement[]);
+
+public BOOLEAN return_local_eigen(Real r[3][3][3],
+				  Real dir_1[3],
+				  Real dir_2[3],
+				  Real dir_3[3],
+				  Real val[3]);
+
+public BOOLEAN return_local_eigen_from_hessian(Real r[3][3][3],
+				  Real dir_1[3],
+				  Real dir_2[3],
+				  Real dir_3[3],
+				  Real val[3]);
 
 private BOOLEAN get_best_start_from_neighbours(
 					       Real threshold1, 
@@ -363,11 +373,16 @@ public BOOLEAN return_3D_disp_from_quad_fit(Real r[3][3][3], /* the values used 
 					    Real *dispv, 
 					    Real *dispw);	
 
+public BOOLEAN return_3D_disp_from_min_quad_fit(Real r[3][3][3], /* the values used in the quad fit */
+					    Real *dispu, /* the displacements returned */
+					    Real *dispv, 
+					    Real *dispw);	
+
 public BOOLEAN return_2D_disp_from_quad_fit(Real r[3][3], /* the values used in the quad fit */
 					    Real *dispu, /* the displacements returned */
 					    Real *dispv);	
 
-public  void  louis_general_transform_point(
+public  void  general_transform_point_in_trans_plane(
     General_transform   *transform,
     Real                x,
     Real                y,
@@ -376,7 +391,7 @@ public  void  louis_general_transform_point(
     Real                *y_transformed,
     Real                *z_transformed );
 
-public  void  louis_general_inverse_transform_point(
+public  void  general_inverse_transform_point_in_trans_plane(
     General_transform   *transform,
     Real                x,
     Real                y,
@@ -399,17 +414,21 @@ public Status do_non_linear_optimization(Arg_Data *globals)
   General_transform
     *all_until_last,		/* will contain the first (linear) part of the xform  */
     *additional_warp,		/* storage of estimates of the needed additional warp */
+    *another_warp,		/* storage of estimates of the needed additional warp */
     *current_warp;		/* storage of the current (best) warp so far          */
 
   Volume
     estimated_flag_vol,		/* flags indicating node estimated or not             */
     additional_vol,		/* volume pointer to additional_warp transform        */
+    another_vol,		/* volume pointer to additional_warp transform        */
     current_vol,		/* volume pointer to current_warp transform           */
     additional_mag;		/* volume storing mag of additional_warp vectors      */
   
   long
     iteration_start_time,	/* variables to time each iteration                   */
     iteration_end_time,
+    temp_start_time,
+    temp_end_time,
     timer1,timer2,
     nfunk_total;
   STRING 
@@ -434,13 +453,14 @@ public Status do_non_linear_optimization(Arg_Data *globals)
   Real 
     debug_steps[MAX_DIMENSIONS], 
     voxel[MAX_DIMENSIONS],	/* voxel position used for interpolation         */
+    mag_steps[MAX_DIMENSIONS],
     steps[MAX_DIMENSIONS],	/* voxel size (width,height,length) of def field */
     steps_data[MAX_DIMENSIONS],	/* voxel size of data                            */
 
-    min, max, sum, sum2,	/* variables to calc stats on deformation estim  */
-    mag, mean_disp_mag, std, var, 
-    displace,
+				/* variables to calc stats on deformation estim  */
+    mag, mean_disp_mag, std, 
 
+    another_vector[3],	
     current_def_vector[3],	/* the current deformation vector for a  node    */
     result_def_vector[3],	/* the smoothed deformation vector for a node    */
     def_vector[3],		/* the additional deformation estimated for node,
@@ -457,7 +477,8 @@ public Status do_non_linear_optimization(Arg_Data *globals)
     mean_vector[3],		/* mean deformed vector, determined by neighbors */
     threshold1,			/* intensity thresh for source vol               */
     threshold2,			/* intensity thresh for target vol               */
-    result;			/* magnitude of additional war vector            */
+    result,			/* magnitude of additional warp vector           */
+    eig1;
 
   progress_struct		/* to print out program progress report */
     progress;
@@ -524,14 +545,37 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 				/* reset the additional warp to zero */
   init_the_volume_to_zero(additional_vol);
 
+
+  ALLOC(another_warp,1);	/* build a debugging volume/xform */
+  copy_general_transform(current_warp, another_warp);
+  another_vol = another_warp->displacement_volume;
+  set_volume_real_range(another_vol, -2.0 , 5.0);
+  init_the_volume_to_zero(another_vol);
+
+
+				/* reset the additional warp to zero */
+  init_the_volume_to_zero(additional_vol);
+
+
 				/* build a temporary volume that will
 				   be used to store the magnitude of
 				   the deformation at each iteration */
+
 
   additional_mag = create_volume(3, my_XYZ_dim_names, NC_SHORT, FALSE, 0.0, 0.0);
   for_less(i,0,3)
     mag_count[i] = additional_count[ xyzv[i] ];
   set_volume_sizes(additional_mag, mag_count);
+  get_volume_separations(additional_vol, steps);
+  for_less(i,0,3)
+    mag_steps[i] = steps[ xyzv[i] ];
+  set_volume_separations(additional_mag, mag_steps);
+  for_less(i,0,MAX_DIMENSIONS)
+    voxel[i] = 0.0;
+  convert_voxel_to_world(additional_vol, 
+			 voxel,
+			 &(target_node[X]), &(target_node[Y]), &(target_node[Z]));
+  set_volume_translation(additional_mag, voxel, target_node);
   alloc_volume_data(additional_mag);
   set_volume_real_range(additional_mag, 0.0, ABSOLUTE_MAX_DEFORMATION);
 
@@ -545,8 +589,10 @@ public Status do_non_linear_optimization(Arg_Data *globals)
   for_less(i,0,3)
     mag_count[i] = additional_count[ xyzv[i] ];
   set_volume_sizes(estimated_flag_vol, mag_count);
+  set_volume_separations(estimated_flag_vol, mag_steps);
+  set_volume_translation(estimated_flag_vol, voxel, target_node);
   alloc_volume_data(estimated_flag_vol);
-  set_volume_real_range(estimated_flag_vol, 0.0, 255.0);
+  set_volume_real_range(estimated_flag_vol, 0.0, 1.0);
  
 	 			/* test simplex size against size
 		 		   of data voxels */
@@ -576,22 +622,6 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 
   get_voxel_spatial_loop_limits(additional_vol, 
 				start, end);
-  if (globals->flags.debug) {
-    print("loop: (%d %d) (%d %d) (%d %d)\n",
-	  start[0],end[0],start[1],end[1],start[2],end[2]);
-    if (Gglobals->trans_info.use_local_smoothing)  {
-      print ("This run will use local ");
-      if (Gglobals->trans_info.use_local_isotropic) 
-	print ("isotroptic ");
-      else
-	print ("non-isotroptic ");
-      print ("smoothing\n");
-    }
-    else {
-      print ("This run will use global smoothing\n");
-    }
-  }
-
 
 				/* build a super-sampled version of the
 				   current transformation, if needed     */
@@ -668,6 +698,26 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 	  xyzv[X], xyzv[Y], xyzv[Z], xyzv[Z+1]);
     print("number_dimensions    = %d\n",number_dimensions);
     print("smoothing_weight     = %f\n",smoothing_weight);
+
+
+    if ( Gglobals->trans_info.use_simplex) 
+      print ("This fit will use local simplex optimization\n");
+    else
+      print ("This fit will use local quadratic fitting\n");
+
+    if (Gglobals->trans_info.use_local_smoothing) {
+      if ( Gglobals->trans_info.use_local_isotropic) 
+	print ("and local isotroptic smoothing\n");
+      else
+	print ("and local non-isotroptic smoothing\n");
+    }
+    else {
+      print ("and global smoothing\n");
+    }
+    
+    print("loop: (%d %d) (%d %d) (%d %d)\n",
+	  start[0],end[0],start[1],end[1],start[2],end[2]);
+
   }
 
 
@@ -704,21 +754,44 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 
   for_less(iters,0,iteration_limit) {
 
-    if (globals->trans_info.use_super>0)
+    if (globals->trans_info.use_super>0) {
+
+      temp_start_time = time(NULL);
       interpolate_super_sampled_data(current_warp,
 				     Gsuper_sampled_warp,
 				     number_dimensions);
-  
+      temp_end_time = time(NULL);
+
+      if (globals->flags.debug) {	
+	time_total = (Real)(temp_end_time-temp_start_time);
+	format_time( time_total_string,"%g %s", time_total);
+	print ("\nInterpolating super-sampled data %s (%d seconds)\n", 
+	       time_total_string, 
+	       temp_end_time-temp_start_time);
+      }
+    }  
     init_the_volume_to_zero(estimated_flag_vol);
     
     print("Iteration %2d of %2d\n",iters+1, iteration_limit);
 
-    nodes_done = 0; nodes_tried = 0; nodes_seen=0; 
-    displace = 0.0; over = 0;        nfunk_total = 0;
 
-    sum = sum2 = 0.0;
-    min = DBL_MAX;
-    max = -DBL_MAX;
+				/* for various stats on this iteration*/
+    nodes_done  = 0; 
+    nodes_tried = 0; 
+    nodes_seen  = 0; 
+    over        = 0;        
+    nfunk_total = 0;
+    std = 0.0;
+
+    init_stats(&stat_def_mag,  "def_mag");
+    init_stats(&stat_num_funks,"num_funks");
+    init_stats(&stat_eigval0,  "eigval[0]");
+    init_stats(&stat_eigval1,  "eigval[1]");
+    init_stats(&stat_eigval2,  "eigval[2]");
+    init_stats(&stat_conf0,    "conf[0]");
+    init_stats(&stat_conf1,    "conf[1]");
+    init_stats(&stat_conf2,    "conf[2]");
+
 
     iteration_start_time = time(NULL);
 
@@ -732,7 +805,7 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 
     for_less( index[ xyzv[X] ] , start[ X ], end[ X ]) {
 
-      timer1 = time(NULL);
+      timer1 = time(NULL);	/* for stats on this slice */
       nfunk1 = 0; nodes1 = 0;
 
       for_less( index[ xyzv[Y] ] , start[ Y ], end[ Y ]) {
@@ -807,9 +880,10 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 	      } else {
 				/* store the deformation vector */
 
+		eig1 = 0.0;
 		if (Gglobals->trans_info.use_local_smoothing) {
 
-		  return_locally_smoothed_def(
+		  eig1 = return_locally_smoothed_def(
 				Gglobals->trans_info.use_local_isotropic,
 				number_dimensions,
 				smoothing_weight,
@@ -818,6 +892,7 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 				current_def_vector,
 				mean_vector,
 				def_vector,
+				another_vector,
 				voxel_displacement);
 
 		  /* Remember that I can't modify current_vol just
@@ -828,19 +903,28 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 		  for_inclusive(i,X,Z)
 		    result_def_vector[ i ] -= current_def_vector[ i ];
 
-		  for_less( index[ xyzv[Z+1] ], start[ Z+1 ], end[ Z+1 ]) 
+		  for_less( index[ xyzv[Z+1] ], start[ Z+1 ], end[ Z+1 ])  {
 		    set_volume_real_value(additional_vol,
 					  index[0],index[1],index[2],
 					  index[3],index[4],
 					  result_def_vector[ index[ xyzv[Z+1] ] ]);
+		    set_volume_real_value(another_vol,
+					  index[0],index[1],index[2],
+					  index[3],index[4],
+					  another_vector[ index[ xyzv[Z+1] ] ]);
+		  }
 
 		}
-		else {
+		else {		/* then prepare for global smoothing, (this will
+				   actually be done after all nodes 
+				   have been estimated  */
+
 		  for_less( index[ xyzv[Z+1] ], start[ Z+1 ], end[ Z+1 ]) 
 		    set_volume_real_value(additional_vol,
 					  index[0],index[1],index[2],
 					  index[3],index[4],
 					  def_vector[ index[ xyzv[Z+1] ] ]);
+
 		}
 				/* store the def magnitude */
 
@@ -852,19 +936,16 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 		       index[xyzv[X]],index[xyzv[Y]],index[xyzv[Z]],0,0,
 		       1.0);
 
-				/* calculate statistics  */
+				/* tally up some statistics for this iteration */
 		if (ABS(result) > 0.95*steps[xyzv[X]]) over++;
-		nodes_done++;
-		displace += ABS(result);
-		sum      += ABS(result);
-		sum2     += ABS(result) * ABS(result);
-		
-		if (ABS(result)>max) max = ABS(result);
-		if (ABS(result)<min) min = ABS(result);
 		
 		nfunk_total += nfunks;
 		nfunk1      += nfunks; 
-		nodes1++;	      
+		nodes1++;	
+		nodes_done++;
+
+		tally_stats(&stat_def_mag,   result);
+		tally_stats(&stat_num_funks, nfunks);
 
 	      } /* of else (result<0) */
 
@@ -893,25 +974,31 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 
     terminate_progress_report( &progress );
 
-    iteration_end_time = time(NULL);
 
     if (globals->flags.debug) {
 
-      if (nodes_done>0) {
-	mean_disp_mag = displace/nodes_done;
-	var = ((sum2 * nodes_done) - sum*sum) / 
-	      ((float)nodes_done*(float)(nodes_done-1));
-	std = sqrt(var);
-	nfunks = nfunk_total / nodes_done;
-      }
-      else {
-	mean_disp_mag=0.0; std = 0.0;
-      }
-      print ("Nodes seen = %d, tried = %d, done = %d, avg disp = %f +/- %f\n",
-	     nodes_seen, nodes_tried, nodes_done, mean_disp_mag, std);
-      print ("av nfunks = %d , over = %d, max disp = %f, min disp = %f\n", 
-	     nfunks, over, max, min);
+      (void)output_transform_file("pr_axes2.xfm",NULL,another_warp);
 
+      stat_title();
+      report_stats(&stat_num_funks);
+      report_stats(&stat_def_mag);
+      if (Gglobals->trans_info.use_local_smoothing && 
+	  Gglobals->trans_info.use_local_isotropic) {
+	report_stats(&stat_eigval0);
+	report_stats(&stat_eigval1);
+	report_stats(&stat_eigval2);
+	report_stats(&stat_conf0);
+	report_stats(&stat_conf1);
+	report_stats(&stat_conf2);
+
+      }
+
+      print ("Nodes seen = %d, tried = %d, done = %d, over = %d\n",
+	     nodes_seen, nodes_tried, nodes_done, over);
+
+      mean_disp_mag = stat_get_mean(&stat_def_mag);
+      std           = stat_get_standard_deviation(&stat_def_mag);
+      
       nodes_tried = 0; nodes_seen = 0;
       for_less(i,0,mag_count[0])
 	for_less(j,0,mag_count[1])
@@ -922,16 +1009,23 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 	    if (mag >= (mean_disp_mag+std))
 	      nodes_tried++;
 	  }
-      print ("there are %d of %d over (mean+1std) out of %d.\n", 
-	     nodes_tried, nodes_done, nodes_seen);
 
-      time_total = (Real)(iteration_end_time-iteration_start_time);
-      format_time( time_total_string,"%g %s", time_total);
-      print ("This iteration took %s (%d seconds)\n", 
-	     time_total_string, 
-	     iteration_end_time-iteration_start_time);
+      print ("there are %d of %d over (mean+1std) out of %d estimated.\n", 
+	     nodes_tried, nodes_done, nodes_seen);
+      
+      
     }
 
+
+    if (Gglobals->trans_info.use_local_smoothing && 
+	  Gglobals->trans_info.use_local_isotropic) {
+      previous_mean_eig_val[0] = stat_get_mean(&stat_eigval0);
+      previous_mean_eig_val[1] = stat_get_mean(&stat_eigval1);
+      previous_mean_eig_val[2] = stat_get_mean(&stat_eigval2);
+      previous_std_eig_val[0]  = stat_get_standard_deviation(&stat_eigval0);
+      previous_std_eig_val[1]  = stat_get_standard_deviation(&stat_eigval1);
+      previous_std_eig_val[2]  = stat_get_standard_deviation(&stat_eigval2);
+    }
 
 
 				/* update the current warp, so that the
@@ -959,19 +1053,41 @@ public Status do_non_linear_optimization(Arg_Data *globals)
     else {
 				/* additional = additional + current    */
 
+      temp_start_time = time(NULL);
       add_additional_warp_to_current(additional_warp,
 				     current_warp,
 				     iteration_weight);
-      
+      temp_end_time = time(NULL);
+
+      if (globals->flags.debug) {	
+	time_total = (Real)(temp_end_time-temp_start_time);
+	format_time( time_total_string,"%g %s", time_total);
+	print ("\nAdding additional to current took  %s (%d seconds)\n", 
+	       time_total_string, 
+	       temp_end_time-temp_start_time);
+      }
+       
       
 				/* smooth the warp in additional,
 				   leaving the result in current 
 
 				   current = smooth(additional) */
 
+      temp_start_time = time(NULL);
+
       smooth_the_warp(current_warp,
 		      additional_warp,
 		      additional_mag, -1.0);
+      
+      temp_end_time = time(NULL);
+
+      if (globals->flags.debug) {	
+	time_total = (Real)(temp_end_time-temp_start_time);
+	format_time( time_total_string,"%g %s", time_total);
+	print ("\nSmoothing the current warp took  %s (%d seconds)\n", 
+	       time_total_string, 
+	       temp_end_time-temp_start_time);
+      }
     }
 
     /* clamp the data so that the 1st derivative of the deformation
@@ -1061,27 +1177,38 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 		  if (result>=0) {
 		    if (Gglobals->trans_info.use_local_smoothing) {
 
-		      /* current_def_vector = (1-sw)*(current_def_vector+
-		                                      additional_def_vector) +
-		                              sw*mean_vector;
-		         where sw is smoothing_weight.  
+		      eig1 = return_locally_smoothed_def(
+				Gglobals->trans_info.use_local_isotropic,
+				number_dimensions,
+				smoothing_weight,
+				iteration_weight,
+				result_def_vector,
+				current_def_vector,
+				mean_vector,
+				def_vector,
+				another_vector,
+				voxel_displacement);
 
+		      /* 
 			 Remember that I can't modify current_vol just yet, so I
 			 have to set additional_vol to a value, that when added to
 			 current_vol (below) I will have the correct result!
   		      */
 
 		      for_inclusive(i,X,Z) {
-			current_def_vector[i] =((1.0 - smoothing_weight)*
+			result_def_vector[ i ] -= current_def_vector[ i ];
+
+/*			current_def_vector[i] =((1.0 - smoothing_weight)*
 		                                (current_def_vector[i] + def_vector[i])) + 
 					       (smoothing_weight * mean_vector[i])       -
 					       current_def_vector[i];
+*/
 		      }
 		      for_less( index[ xyzv[Z+1] ], start[ Z+1 ], end[ Z+1 ]) 
 			set_volume_real_value(additional_vol,
 					      index[0],index[1],index[2],
 					      index[3],index[4],
-					      current_def_vector[ index[ xyzv[Z+1] ] ]);
+					      result_def_vector[ index[ xyzv[Z+1] ] ]);
 
 		    }
 		    else {
@@ -1091,7 +1218,7 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 					      index[3],index[4],
 					      def_vector[ index[ xyzv[Z+1] ] ]);
 		    }
-		  }
+		  } /* if (result>=0) */
 		} /* if  get_average_warp_of_neighbours */
 	      } /* if point not masked */
 	      
@@ -1125,6 +1252,8 @@ public Status do_non_linear_optimization(Arg_Data *globals)
     } /* if (iters< iteration_limit-1) */
 
 				/* reset the next iteration's warp. */
+
+
     init_the_volume_to_zero(additional_vol);
     init_the_volume_to_zero(additional_mag);
 
@@ -1134,7 +1263,15 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 		iters+1, iteration_limit, 
 		globals->trans_info.transformation);
     
-    if (globals->flags.debug) { 
+    if (globals->flags.debug) {
+
+      iteration_end_time = time(NULL);
+      time_total = (Real)(iteration_end_time-iteration_start_time);
+      format_time( time_total_string,"%g %s", time_total);
+      print ("\nThis iteration took %s (%d seconds)\n", 
+	     time_total_string, 
+	     iteration_end_time-iteration_start_time);
+
       print("initial corr %f ->  this step %f\n",
 	    initial_corr,xcorr_objective(Gglobals->features.data[0], Gglobals->features.model[0],
 					 Gglobals->features.data_mask[0], Gglobals->features.model_mask[0],
@@ -1197,40 +1334,85 @@ public Status do_non_linear_optimization(Arg_Data *globals)
      note that this is only possible when the principal directions are
      defined.  When ????
 */
-#define K_MEAN  2.0
+#define G_MEAN  0.05
+#define K_MEAN  5.0
 #define A_const K_MEAN
 #define B_const 0.0
 #define C_const 0.0
 
-private void return_locally_smoothed_def(int isotropic_smoothing,
-					 int  ndim,
-					 Real smoothing_weight,
-					 Real iteration_weight,
-					 Real smoothed_result[],
-					 Real previous_def[],
-					 Real neighbour_mean[],
-					 Real additional_def[],
-					 Real voxel_displacement[])
+#define P1_MEAN 0.33
+#define P2_MEAN 0.33
+#define P3_MEAN 0.33
+
+#define CONST_P 0.5
+#define CONST_P_MIN .30
+#define CONST_P_WIDTH 0.07
+
+/*  #define CONF_FN( x ) ( ((x) < 2.0*CONST_P) ? \
+      ( (1.0 + cos( (0.5*PI * (x)/CONST_P)))/2.0 ) : 0.0 )
+
+      c_max = ABS(k1) / (A_const + B_const*Smin  +C_const*ABS(k1));
+      c_min = ABS(k2) / (A_const + B_const*Smin  +C_const*ABS(k2));
+      c_norm= gradient_magnitude / G_MEAN;
+      
+      c_norm= ABS(gradient_magnitude) / (P1_MEAN + B_const*Smin  +C_const*ABS(gradient_magnitude));
+      c_max = ABS(k1) / (P2_MEAN + B_const*Smin  +C_const*ABS(k1));
+      c_min = ABS(k2) / (P3_MEAN + B_const*Smin  +C_const*ABS(k2));
+      
+	 */
+      
+
+
+/* return a value representing confidence, with the value between 0 and 1 */
+
+private double confidence_function(double x) {
+
+  
+  double t;
+
+
+  t = 0.5;
+				/* double linear */
+  if 
+    (x > previous_mean_eig_val[0]) t = 1.0;
+  else { 
+    if  
+      (x < previous_mean_eig_val[2]) t = 0.0;
+    else {
+      if (x > previous_mean_eig_val[1]) /* first linear part */
+	t = 0.5 + 0.5 * (x -  previous_mean_eig_val[1]) / 
+	  (  previous_mean_eig_val[0] - previous_mean_eig_val[1]);
+      else			      /* second linear part */
+	t = 0.5 * (x -  previous_mean_eig_val[2]) / 
+	  (  previous_mean_eig_val[1] - previous_mean_eig_val[2]);
+    }
+  }
+
+  return(t);
+
+}
+
+private double return_locally_smoothed_def(int isotropic_smoothing,
+					   int  ndim,
+					   Real smoothing_wght,
+					   Real iteration_wght,
+					   Real smoothed_result[],
+					   Real previous_def[],
+					   Real neighbour_mean[],
+					   Real additional_def[],
+					   Real another_vector[],
+					   Real voxel_displacement[])
 {
 
   Real
-    gradient_magnitude,
     local_corr3D[3][3][3],
-    local_corr2D[3][3],
-    e1[3],			/* principal direction of max curvature */
-    e2[3],			/* principal direction of min curvature */
-    norm[3],			/* direction normal to the isosurf      */
+    mag_eig_vals,
+    conf[3],			/* confidence values                    */
+    eig_vals[3],		/* eigen values                         */
+    eig_vecs[3][3],		/* eigen vectors (STORED IN ROWS HERE!) */
     diff[3],			/* to represent def - mean_def          */
-    vec[3],			/* arbitrary vector                     */
-    len1,			/* the length of a projection onto e1   */
-    len2,			/* the length of a projection onto e2   */
-    K,				/* Gaussian curvature                   */
-    S,				/* mean curvature                       */
-    k1,				/* maximum curvature                    */
-    k2,				/* minimum curvature                    */
-    Lvv,			
+    len[3],			/* length of projection onto eig_vecs   */
     Smin,			/* best local correlation value         */
-    c_max, c_min,		/* confidence factors                   */
     eps;			/* epsilon value                        */
   int
     flag,i,j,k;
@@ -1238,13 +1420,20 @@ private void return_locally_smoothed_def(int isotropic_smoothing,
   float 
     pos_vector[4];
 
-  eps = 0.00000001; /* SMALL_EPSILON_VALUE*/
+  eps = 0.0001; /* SMALL_EPSILON_VALUE*/
+  eig_vals[0] = 0.0;
+
+				/* calc the diff vec = estimated - mean */
+  for_inclusive(i,X,Z) {
+    diff[i] = previous_def[i] + iteration_wght*additional_def[i] - 
+              neighbour_mean[i];
+  }
+
+  mag_eig_vals = 0.0;
 
   if (isotropic_smoothing) {
     for_inclusive(i,X,Z) 
-      smoothed_result[i] = (1.0 - smoothing_weight)*
-	                   (previous_def[i] + iteration_weight*additional_def[i])
-			   + (smoothing_weight * neighbour_mean[i]);     
+      smoothed_result[i] = neighbour_mean[i] + (1.0 - smoothing_wght)*diff[i]; 
   }
   else {
 
@@ -1261,8 +1450,7 @@ private void return_locally_smoothed_def(int isotropic_smoothing,
 
 		      /* take into account the weighting for this iteration */
     for_inclusive(i,X,Z) {
-      voxel_displacement[i] *= iteration_weight;
-      additional_def[i] *= iteration_weight;
+      voxel_displacement[i] *= iteration_wght;
     }
 		      /* update target lattice position */
     for_less(i,1,Glen) {
@@ -1271,119 +1459,104 @@ private void return_locally_smoothed_def(int isotropic_smoothing,
       TZ[i] += voxel_displacement[0]; /* fastest index */
     }
 
-    if (ndim==3) {
-      /* build up the 3x3x3 matrix of local correlation values,
-         and get the directions */
-      Smin = DBL_MAX;
-      for_inclusive(i,-1,1)
-	for_inclusive(j,-1,1)
-	  for_inclusive(k,-1,1) {
-	    pos_vector[1] = (float) (i * Gsimplex_size/2.0);
-	    pos_vector[2] = (float) (j * Gsimplex_size/2.0);
-	    pos_vector[3] = (float) (k * Gsimplex_size/2.0);
-				/* here I use 1-xcorr_f_f since the quad
-				   fit routines find the MAX, and not the MIN */
-	    local_corr3D[i+1][j+1][k+1] = 1.0 - xcorr_fitting_function(pos_vector); 
-
-	    if ( (1- local_corr3D[i+1][j+1][k+1]) < Smin)
-	      Smin = (1- local_corr3D[i+1][j+1][k+1]);
-
-	  }
-      flag = return_principal_directions(local_corr3D, e1, e2,
-					 &K, &S, &k1, &k2, norm, &Lvv, eps);
-
-    }
-    else {
+    flag = FALSE;
+    if (ndim==2) {
       /* build up the 3x3 matrix of local correlation values,
 	 and get the directions */
       
       print_error_and_line_num("2D non-isotropic smoothing not yet supported\n", 
 			       __FILE__, __LINE__);
-
-      for_inclusive(i,-1,1)
-	for_inclusive(j,-1,1) {
-	  pos_vector[1] = (float) i * Gsimplex_size/2.0;
-	  pos_vector[2] = (float) j * Gsimplex_size/2.0;
-	  pos_vector[3] = 0.0;
-	  local_corr2D[i+1][j+1] = 1.0 - xcorr_fitting_function(pos_vector); 
-	}      
-      flag = return_2D_principal_directions(local_corr2D, norm, e1, &K, eps);      
-    }
-    
-    
-    gradient_magnitude = norm[X]*norm[X] + 
-                         norm[Y]*norm[Y] + 
-			 norm[Z]*norm[Z];
-
-    if ( !flag &&  (gradient_magnitude < eps)) {
-      for_inclusive(i,X,Z)
-	smoothed_result[i] = neighbour_mean[i];
     } else {
 
+      /* build up the 3x3x3 matrix of local correlation values,
+         and get the principal directions */
 
-      if (!flag) {		/* build two direction vectors
-				   perpendicular to norm, and set 
-				   curvatures equal*/
+      Smin = DBL_MAX;
+      for_inclusive(i,-1,1)
+	for_inclusive(j,-1,1)
+	  for_inclusive(k,-1,1) {
+	    pos_vector[1] = (float) (i * Gsimplex_size)/2.0;
+	    pos_vector[2] = (float) (j * Gsimplex_size)/2.0;
+	    pos_vector[3] = (float) (k * Gsimplex_size)/2.0;
 
-	build_two_perpendicular_vectors(norm, e1, e2);
-	k1 = k2 = K_MEAN;
+	    local_corr3D[i+1][j+1][k+1] = xcorr_fitting_function(pos_vector); 
+
+	    if ( local_corr3D[i+1][j+1][k+1] < Smin)
+	      Smin = local_corr3D[i+1][j+1][k+1];
+
+	  }
+
+      flag = return_local_eigen_from_hessian(local_corr3D, 
+					     eig_vecs[0], eig_vecs[1], eig_vecs[2], eig_vals);
+
+    }
+    
+    if ( flag ) {		/* if eigen vectors found, then use them */
+
+      mag_eig_vals = eig_vals[0] + eig_vals[1] + eig_vals[2];
+      if (mag_eig_vals > 0.0) {
+	for_less(i,0,3)
+	  eig_vals[i] = eig_vals[i] / mag_eig_vals;
       }
 
-      c_max = ABS(k1) / (A_const + B_const*Smin  +C_const*ABS(k1));
-      c_min = ABS(k2) / (A_const + B_const*Smin  +C_const*ABS(k2));
-
-      for_inclusive(i,X,Z) {
-	diff[i] = previous_def[i] + additional_def[i] - neighbour_mean[i];
+				/* get associated confidence values */
+      for_less(i,0,3)
+	conf[i] = confidence_function( eig_vals[i] );
+      
+      tally_stats(&stat_eigval0, eig_vals[0]);
+      tally_stats(&stat_eigval1, eig_vals[1]);
+      tally_stats(&stat_eigval2, eig_vals[2]);
+      tally_stats(&stat_conf0, conf[0]);
+      tally_stats(&stat_conf1, conf[1]);
+      tally_stats(&stat_conf2, conf[2]);
+		
+				/* project the diff onto each of the 
+				   eigen vecs [i] */
+      for_less(i,0,3) {
+	len[i] = (diff[X]*eig_vecs[i][X] + 
+		  diff[Y]*eig_vecs[i][Y] + 
+		  diff[Z]*eig_vecs[i][Z]);
       }
-      len1 = diff[0]*e1[X] + diff[Y]*e1[Y] + diff[Z]*e1[Z];
-      len2 = diff[0]*e2[X] + diff[Y]*e2[Y] + diff[Z]*e2[Z];
 
-				/* see eq. above for def(n+1) */
+				/* calculate the non-iso smoothed
+                                   result, using the confidence values
+                                   as a weighting factor: 
+				   see eq. above for def(n+1) */
       for_inclusive(i,X,Z) {
 	smoothed_result[i] = neighbour_mean[i] + 
-	                     (c_max/(c_max+1.0)) * len1 * e1[i] +
-			     (c_min/(c_min+1.0)) * len2 * e2[i];
+	                     conf[2] * len[2] * eig_vecs[2][i] +
+			     conf[1] * len[1] * eig_vecs[1][i] +
+			     conf[0] * len[0] * eig_vecs[0][i];
       }
 
+				/* for debugging volume... */
+
+/*
+      another_vector[X] = 10.0 *eig_vecs[0][X];
+      another_vector[Y] = 10.0 *eig_vecs[0][Y];
+      another_vector[Z] = 10.0 *eig_vecs[0][Z];
+*/
+      another_vector[X] = eig_vals[0];
+      another_vector[Y] = eig_vals[1];
+      another_vector[Z] = eig_vals[2];
+
+
+    }
+    else {			/* do isotropic smoothing if no eigen vals
+				   found... */
+      for_inclusive(i,X,Z) 
+	smoothed_result[i] = neighbour_mean[i] + (1.0 - smoothing_wght)*diff[i];
+
+      for_inclusive(i,X,Z)	/* debugging volume */
+	another_vector[i] = 0.0;
     }
 
     
   } /* else nonisotropic smoothing */
 
+  return(mag_eig_vals);
 }
 
-
-private void build_two_perpendicular_vectors(Real orig[], 
-					     Real p1[], 
-					     Real p2[])
-{
-  Vector
-    v,v1,v2;
-  Real
-    len;
-  fill_Vector(v, orig[X], orig[Y], orig[Z]);
-  create_two_orthogonal_vectors( &v, &v1, &v2);
-
-  len = MAGNITUDE( v1 );
-  if (len>0) {
-    p1[X] = Vector_x(v1) / len;
-    p1[Y] = Vector_y(v1) / len;
-    p1[Z] = Vector_z(v1) / len;
-  }
-  else
-    print_error_and_line_num("Null length for vector normalization\n", 
-		__FILE__, __LINE__);
-
-  len = MAGNITUDE( v2 );
-  if (len>0) {
-    p2[X] = Vector_x(v2) / len;
-    p2[Y] = Vector_y(v2) / len;
-    p2[Z] = Vector_z(v2) / len;
-  }
-  else
-    print_error_and_line_num("Null length for vector normalization\n", 
-		__FILE__, __LINE__);
-}
 
 /*
    get_best_start_from_neighbours: find the 'best' point in the target
@@ -1473,8 +1646,7 @@ private Real get_deformation_vector_for_node(Real spacing,
     target_coord[3],
     xp,yp,zp;
   float 
-    pos_vector[4],
-     *y, **p;
+    pos_vector[4];
   int 
     flag,
     nfunk,
@@ -1534,7 +1706,7 @@ private Real get_deformation_vector_for_node(Real spacing,
 				      target_coord[X],  target_coord[Y],  target_coord[Z],
 				      &xp, &yp, &zp);
     else
-      louis_general_inverse_transform_point(Gglobals->trans_info.transformation, 
+      general_inverse_transform_point_in_trans_plane(Gglobals->trans_info.transformation, 
 					 target_coord[X],  target_coord[Y],  target_coord[Z],
 					 &xp, &yp, &zp);
 
@@ -1590,7 +1762,7 @@ private Real get_deformation_vector_for_node(Real spacing,
 	general_transform_point(Gglobals->trans_info.transformation, 
 				xp,yp,zp,    &xt, &yt, &zt);
       else
-	louis_general_transform_point(Gglobals->trans_info.transformation, 
+	general_transform_point_in_trans_plane(Gglobals->trans_info.transformation, 
 					xp,yp,zp,  &xt, &yt, &zt);
 					
       convert_3D_world_to_voxel(Gglobals->features.model[0], xt, yt, zt,
@@ -1741,10 +1913,10 @@ private Real get_deformation_vector_for_node(Real spacing,
 	      pos_vector[1] = (float) i * Gsimplex_size/2.0;
 	      pos_vector[2] = (float) j * Gsimplex_size/2.0;
 	      pos_vector[3] = (float) k * Gsimplex_size/2.0;
-	      local_corr3D[i+1][j+1][k+1] = 1.0 - xcorr_fitting_function(pos_vector); 
+	      local_corr3D[i+1][j+1][k+1] = xcorr_fitting_function(pos_vector); 
 	    }
 	*num_functions = 27;
-	flag = return_3D_disp_from_quad_fit(local_corr3D, &du, &dv, &dw);
+	flag = return_3D_disp_from_min_quad_fit(local_corr3D, &du, &dv, &dw);
 	
       }
       else {
@@ -1759,23 +1931,6 @@ private Real get_deformation_vector_for_node(Real spacing,
 	  }
 	*num_functions = 9;
 	
-				/* these weights are a hack to ensure
-                                   that the 2D matrix of corr values
-                                   is positive definite */
-
-	local_corr2D[1][1] *= CENTER_WEIGHT_2D;
-
-	local_corr2D[0][1] *= EDGE_WEIGHT_2D;
-	local_corr2D[2][1] *= EDGE_WEIGHT_2D;
-	local_corr2D[1][0] *= EDGE_WEIGHT_2D;
-	local_corr2D[1][2] *= EDGE_WEIGHT_2D;
-
-	local_corr2D[0][0] *= CORNER_WEIGHT_2D;
-	local_corr2D[0][2] *= CORNER_WEIGHT_2D;
-	local_corr2D[2][0] *= CORNER_WEIGHT_2D;
-	local_corr2D[2][2] *= CORNER_WEIGHT_2D;
-	
-
 	flag = return_2D_disp_from_quad_fit(local_corr2D,  &du, &dv);
 	dw = 0.0;
 	
@@ -1893,7 +2048,10 @@ private Real get_deformation_vector_for_node(Real spacing,
 		  (def_vector[Y] * def_vector[Y]) + 
 		  (def_vector[Z] * def_vector[Z])) ;      
     
-    if (result > 50.0) {	/* this is a check, and should never
+    if (result > 50.0 && 
+	voxel_displacement[0]!=-20.0 && 
+	voxel_displacement[1]!=-20.0 && 
+	voxel_displacement[2]!=-20.0   ) {	/* this is a check, and should never
 				   occur when using normal brain data,
 				   unless we are scanning trauma
 				   patients!  */
@@ -1935,7 +2093,7 @@ public void    build_target_lattice(float px[], float py[], float pz[],
 			      (Real)px[i],(Real) py[i], (Real)pz[i], 
 			      &x, &y, &z);
     else
-      louis_general_transform_point(Gglobals->trans_info.transformation, 
+      general_transform_point_in_trans_plane(Gglobals->trans_info.transformation, 
 				 (Real)px[i],(Real) py[i], (Real)pz[i], 
 				 &x, &y, &z);
     
@@ -1972,9 +2130,17 @@ public void    build_target_lattice_using_super_sampled_def(
 
   for_inclusive(i,1,len) {
 
+				/* apply linear part of the transformation */
+
     general_transform_point(Glinear_transform,
 			    (Real)px[i], (Real)py[i], (Real)pz[i], 
 			    &x, &y, &z);
+
+				/* now get the non-linear part, using
+                                   nearest neighbour interpolation in
+                                   the super-sampled deformation
+                                   volume. */
+
     convert_world_to_voxel(Gsuper_sampled_vol, 
 			   x,y,z, voxel);
 

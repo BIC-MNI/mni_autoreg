@@ -20,14 +20,18 @@
 
 @CREATED    : Tue Feb 22 08:37:49 EST 1994
 @MODIFIED   : $Log: deform_support.c,v $
-@MODIFIED   : Revision 1.10  1995-10-06 09:25:02  louis
-@MODIFIED   : removed references to line_data.h since it hos not been used in a while.
+@MODIFIED   : Revision 1.11  1996-03-07 13:25:19  louis
+@MODIFIED   : small reorganisation of procedures and working version of non-isotropic
+@MODIFIED   : smoothing.
 @MODIFIED   :
-@MODIFIED   : included "constants.h" to have access to NONLIN_* similarity func ids.
-@MODIFIED   :
-@MODIFIED   : modified go_get_samples_with_offset to account for different similarity
-@MODIFIED   : functions.
-@MODIFIED   :
+ * Revision 1.10  1995/10/06  09:25:02  louis
+ * removed references to line_data.h since it hos not been used in a while.
+ *
+ * included "constants.h" to have access to NONLIN_* similarity func ids.
+ *
+ * modified go_get_samples_with_offset to account for different similarity
+ * functions.
+ *
  * Revision 1.9  1995/09/07  10:05:11  louis
  * All references to numerical recipes routines are being removed.  At this
  * stage, any num rec routine should be local in the file.  All memory
@@ -82,7 +86,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 1.10 1995-10-06 09:25:02 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 1.11 1996-03-07 13:25:19 louis Exp $";
 #endif
 
 #include <limits.h>
@@ -683,7 +687,7 @@ public void extrapolate_to_unestimated_nodes(General_transform *current,
   initialize_progress_report( &progress, FALSE, 
 			     (end[X]-start[X])*
 			     (end[Y]-start[Y]) + 1,
-			     "Smoothing deformations" );
+			     "Extrapolating estimations" );
 
 
   for_less(index[ xyzv[X] ], start[ X ], end[ X ]) {
@@ -725,8 +729,8 @@ public void extrapolate_to_unestimated_nodes(General_transform *current,
 				   with the current warp vector */
 
 	  if ( get_average_warp_vector_from_neighbours(current,
-						      index, 2 ,
-						      &mx, &my, &mz) ) {
+						       index, 2 ,
+						       &mx, &my, &mz) ) {
 	    
 	    value[X] = smoothing_weight*(mx - value[X]); 
 	    value[Y] = smoothing_weight*(my - value[Y]); 
@@ -776,6 +780,7 @@ public void clamp_warp_deriv(Volume dx, Volume dy, Volume dz)
 			     "Deriv check" );
 
   clamped_once = FALSE;
+  voxel = 0.0;
 
   if (sizes[0]>2)
   for_less(j,0,sizes[1]) {
@@ -1278,9 +1283,10 @@ public void go_get_samples_in_source(Volume data,
    note: the volume is assumed to be in x,y,z order.
 
    actually, the order does not matter, except that dx corresponds to
-   the displacement along the 1st dimension x[], dy corresponds to y[]
-   and dz to z[].  When doing 2D processing, the first dimension (x[])
-   is assumed to be the slowest varying, and the deformation in dx=0.
+   the displacement along the 1st dimension x[], dy corresponds to
+   second dimension y[] and dz to z[], the last.  When doing 2D
+   processing, the first dimension (x[]) is assumed to be the slowest
+   varying, and the deformation in dx=0.
 
 */
 
@@ -1358,7 +1364,7 @@ public float go_get_samples_with_offset(Volume data,
       case NONLIN_LABEL:
 	tmp = *a1++ - sample;
 	if (tmp<0) tmp *= -1.0;
-	if (tmp < 0.01)
+	if (tmp < 0.000001)
 	  s1 += 1.0;
 	break;
       default:
@@ -1454,11 +1460,12 @@ public float go_get_samples_with_offset(Volume data,
     }
     break;
   default:
-    print_error_and_line_num("Data type not supported in go_get_samples_with_offset",__FILE__, __LINE__);
+    print_error_and_line_num("Data type not supported in go_get_samples_with_offset (only signed_byte, signed_short, unsigned_short allowed)",__FILE__, __LINE__);
   }
 
 
 
+  r = 0.0;
   switch (obj_func) {
   case NONLIN_XCORR:
     if ( sqrt_s1 < 0.001 && s3 < 0.00001) {
@@ -1595,4 +1602,36 @@ public void init_the_volume_to_zero(Volume volume)
  
 
 
+
+public void build_two_perpendicular_vectors(Real orig[], 
+					     Real p1[], 
+					     Real p2[])
+{
+  Vector
+    v,v1,v2;
+  Real
+    len;
+  fill_Vector(v, orig[X], orig[Y], orig[Z]);
+  create_two_orthogonal_vectors( &v, &v1, &v2);
+
+  len = MAGNITUDE( v1 );
+  if (len>0) {
+    p1[X] = Vector_x(v1) / len;
+    p1[Y] = Vector_y(v1) / len;
+    p1[Z] = Vector_z(v1) / len;
+  }
+  else
+    print_error_and_line_num("Null length for vector normalization\n", 
+		__FILE__, __LINE__);
+
+  len = MAGNITUDE( v2 );
+  if (len>0) {
+    p2[X] = Vector_x(v2) / len;
+    p2[Y] = Vector_y(v2) / len;
+    p2[Z] = Vector_z(v2) / len;
+  }
+  else
+    print_error_and_line_num("Null length for vector normalization\n", 
+		__FILE__, __LINE__);
+}
 
