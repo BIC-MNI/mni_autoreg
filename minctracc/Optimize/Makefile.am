@@ -4,8 +4,7 @@ noinst_LIBRARIES = libminctracc_optimize.a
 libminctracc_optimize_a_SOURCES = \
 	def_obj_functions.c \
 	extras.c \
-	sub_lattice.c \
-	quaternion.c \
+	sub_lattice.c\
 	amoeba.c \
 	vox_space.c \
 	objectives.c \
