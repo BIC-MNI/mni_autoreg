@@ -31,7 +31,7 @@ main ( argc, argv )
       *outfilename;
    
    Volume 
-      data,chamfer;
+      data;
    
    FILE 
       *ifd,*ofd;
@@ -91,12 +91,10 @@ main ( argc, argv )
    if ( status != OK ) 
       print_error_and_line_num ("Problems reading `%s'.", __FILE__, __LINE__, infilename);
    
-   /* make target volume */
-   chamfer = copy_volume(data);
    
                                 /* call the chamfer estimation */
    
-   status = compute_chamfer(data,chamfer);
+   status = compute_chamfer(data);
    if (status != OK)
       print_error_and_line_num("problems computing chamfer...",__FILE__, __LINE__);
    
@@ -107,14 +105,13 @@ main ( argc, argv )
    if (debug)
       printf ("output file:%s\n",outfilename);
    
-   status = output_modified_volume(outfilename, NC_UNSPECIFIED, FALSE, 0.0, 0.0, chamfer, 
+   status = output_modified_volume(outfilename, NC_UNSPECIFIED, FALSE, 0.0, 0.0, data, 
                                    infilename, NULL, (minc_output_options *)NULL);
    
    if (status != OK)
       print_error_and_line_num("problems writing chamfer...",__FILE__, __LINE__);
    
    
-   delete_volume(chamfer);
    delete_volume(data);
    
 

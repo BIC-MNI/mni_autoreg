@@ -5,4 +5,4 @@
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-public Status compute_chamfer(Volume orig, Volume  chamfer);
+public Status compute_chamfer(Volume  chamfer);
