@@ -16,10 +16,22 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 96.1  1997-11-03 15:06:29  louis
-@MODIFIED   : working version, before creation of mni_animal package, and before inserting
-@MODIFIED   : distance transforms
+@MODIFIED   : Revision 96.2  1997-11-03 20:05:41  louis
+@MODIFIED   : reorganized do_nonlinear.c
+@MODIFIED   :  - added prototypes in header files
+@MODIFIED   :    sub_lattice.h
+@MODIFIED   :    extras.h
+@MODIFIED   :    quad_max_fit.h
+@MODIFIED   :  - moved functions
+@MODIFIED   :    build_target_lattice()
+@MODIFIED   :    build_target_lattice_using_super_sampled_def()
+@MODIFIED   :    build_source_lattice()
+@MODIFIED   :    into sub_lattice.c
 @MODIFIED   :
+ * Revision 96.1  1997/11/03  15:06:29  louis
+ * working version, before creation of mni_animal package, and before inserting
+ * distance transforms
+ *
  * Revision 96.0  1996/08/21  18:22:10  louis
  * Release of MNI_AutoReg version 0.96
  *
@@ -232,7 +244,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.1 1997-11-03 15:06:29 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.2 1997-11-03 20:05:41 louis Exp $";
 #endif
 
 #include <config.h>		/* MAXtype and MIN defs                      */
@@ -251,28 +263,23 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #include <time.h>
 time_t time(time_t *tloc);
 
-#include <stats.h>
-
+#include <stats.h>              /* for local stats computations              */
+#include <sub_lattice.h>        /* prototypes for sub_lattice manipulation   */
+#include <extras.h>             /* prototypes for extra convienience routines*/
+#include <quad_max_fit.h>       /* prototypes for quadratic fitting routines */
 
 int FLAG_HAHA = FALSE;
 
-int stat_quad_total;
-int stat_quad_zero;
-int stat_quad_two;
+int stat_quad_total;            /* these are used as globals to tally stats  */
+int stat_quad_zero;             /* in Numerical/quad_max_stats.c             */
+int stat_quad_two;              /* (mostly for debugging)                    */
 int stat_quad_plus;
 int stat_quad_minus;
 int stat_quad_semi;
 
-         /* these Globals are used to communicate to the correlation */
-         /* functions over top the SIMPLEX optimization  routine     */ 
-static float	
-  *Gsqrt_features,		/* normalization const for correlation       */
-  **Ga1_features,		/* samples in source sub-lattice             */
-  *TX, *TY, *TZ,		/* sample sub-lattice positions in target    */
-  *SX, *SY, *SZ;		/* sample sub-lattice positions in source    */
-static int 
-  Glen;				/* # of samples in sub-lattice               */
- 
+                                /* these globals are used to tally stats over
+                                   do_non_linear_optimization() and 
+                                   return_locally_smoothed_def               */
 static stats_struct
    stat_def_mag,
    stat_num_funks,
@@ -282,6 +289,18 @@ static stats_struct
    stat_eigval0,
    stat_eigval1,
    stat_eigval2;
+
+                                /* these Globals are used to communicate to
+                                   the correlation functions over top the
+                                   SIMPLEX optimization routine */
+static float	
+  *Gsqrt_features,		/* normalization const for correlation       */
+  **Ga1_features,		/* samples in source sub-lattice             */
+  *TX, *TY, *TZ,		/* sample sub-lattice positions in target    */
+  *SX, *SY, *SZ;		/* sample sub-lattice positions in source    */
+
+static int 
+  Glen;				/* # of samples in sub-lattice               */
 
 
          /* these Globals are used to communicate the projection */
@@ -297,10 +316,10 @@ static Real     Gcost_radius;	/* constant used in the cost function        */
 
         /* Globals used to split the input transformation into a
 	   linear part and a super-sampled non-linear part */
-static General_transform 
+General_transform 
                 *Gsuper_sampled_warp,
                 *Glinear_transform;
-static  Volume  Gsuper_sampled_vol;
+Volume  Gsuper_sampled_vol;
 
 	/* Volume order definition for super sampled data */
 static char *my_XYZ_dim_names[] = { MIxspace, MIyspace, MIzspace };
@@ -308,7 +327,7 @@ static char *my_XYZ_dim_names[] = { MIxspace, MIyspace, MIzspace };
 
         /* program Global data used to store all info regarding data
            and transformations  */
-static Arg_Data *Gglobals;
+Arg_Data *Gglobals;
 
 
        /* constants defined on command line to control optimization */
@@ -362,8 +381,6 @@ static Real
 
         /* prototypes function definitions */
 
-private void report_time(long start_time, STRING text);
-
 public  BOOLEAN  perform_amoeba(amoeba_struct  *amoeba, int *num_funks );
 public  void  initialize_amoeba(amoeba_struct     *amoeba,
 				int               n_parameters,
@@ -380,20 +397,7 @@ public  void  terminate_amoeba( amoeba_struct  *amoeba );
 
 private Real amoeba_obj_function(void * dummy, float d[]);
 
-public float xcorr_objective(Volume d1,
-                             Volume d2,
-                             Volume m1,
-                             Volume m2, 
-                             Arg_Data *globals);
 
-public void    build_target_lattice(float px[], float py[], float pz[],
-				    float tx[], float ty[], float tz[],
-				    int len);
-
-public void    build_target_lattice_using_super_sampled_def(
-                                    float px[], float py[], float pz[],
-				    float tx[], float ty[], float tz[],
-				    int len);
 
 private Real cost_fn(float x, float y, float z, Real max_length);
 
@@ -421,17 +425,7 @@ private double return_locally_smoothed_def(int  isotropic_smoothing,
 					 Real another_vector[],
 					 Real voxel_displacement[]);
 
-public BOOLEAN return_local_eigen(Real r[3][3][3],
-				  Real dir_1[3],
-				  Real dir_2[3],
-				  Real dir_3[3],
-				  Real val[3]);
 
-public BOOLEAN return_local_eigen_from_hessian(Real r[3][3][3],
-				  Real dir_1[3],
-				  Real dir_2[3],
-				  Real dir_3[3],
-				  Real val[3]);
 
 private BOOLEAN get_best_start_from_neighbours(
 					       Real threshold1, 
@@ -441,19 +435,6 @@ private BOOLEAN get_best_start_from_neighbours(
 					       Real def[]);
 
   
-public BOOLEAN return_3D_disp_from_quad_fit(Real r[3][3][3], /* the values used in the quad fit */
-					    Real *dispu, /* the displacements returned */
-					    Real *dispv, 
-					    Real *dispw);	
-
-public BOOLEAN return_3D_disp_from_min_quad_fit(Real r[3][3][3], /* the values used in the quad fit */
-					    Real *dispu, /* the displacements returned */
-					    Real *dispv, 
-					    Real *dispw);	
-
-public BOOLEAN return_2D_disp_from_quad_fit(Real r[3][3], /* the values used in the quad fit */
-					    Real *dispu, /* the displacements returned */
-					    Real *dispv);	
 
 public  void  general_transform_point_in_trans_plane(
     General_transform   *transform,
@@ -478,17 +459,9 @@ public void get_volume_XYZV_indices(Volume data, int xyzv[]);
 public int point_not_masked(Volume volume, 
 			    Real wx, Real wy, Real wz);
 
-
-
 public int nearest_neighbour_interpolant(Volume volume, 
                                  PointR *coord, double *result);
 
-
-public float xcorr_objective_with_def(Volume d1,
-                                      Volume d2,
-                                      Volume m1,
-                                      Volume m2, 
-                                      Arg_Data *globals);
 
 /**************************************************************************/
 public Status do_non_linear_optimization(Arg_Data *globals)
@@ -1218,7 +1191,7 @@ public Status do_non_linear_optimization(Arg_Data *globals)
                        additional_mag, -1.0);
       
        if (globals->flags.debug) 
-         report_time(temp_start_time, "nSmoothing the current warp");
+         report_time(temp_start_time, "Smoothing the current warp");
 
     }
     
@@ -1959,9 +1932,9 @@ private Real get_deformation_vector_for_node(Real spacing,
 
       if (Gglobals->trans_info.use_super>0) 
 	build_target_lattice_using_super_sampled_def(
-                             SX,SY,SZ, TX,TY,TZ, Glen);
+                             SX,SY,SZ, TX,TY,TZ, Glen, number_dimensions);
       else 
-	build_target_lattice(SX,SY,SZ, TX,TY,TZ, Glen);
+	build_target_lattice(SX,SY,SZ, TX,TY,TZ, Glen, number_dimensions);
 
     }
     else {
@@ -2004,7 +1977,7 @@ private Real get_deformation_vector_for_node(Real spacing,
 
     /* -------------------------------------------------------------- */
     /* re-build the source lattice (without local neighbour warp),
-       that will be used in the optimization below */
+       that will be used in the optimization below                    */
 
     if (Gglobals->trans_info.use_magnitude) {
       for_inclusive(i,1,Glen) {
@@ -2019,7 +1992,7 @@ private Real get_deformation_vector_for_node(Real spacing,
           actually get the feature data from the source volume
 	  local neighbourhood.  The target volume features are 
 	  retrieved in go_get_samples_with_offset() called
-	  from 1.0 - local_objective_function()                                       */
+	  from 1.0 - local_objective_function()                       */
 
     if (Gglobals->trans_info.use_magnitude) {
       for_less(i,0, Gglobals->features.number_of_features) {
@@ -2343,101 +2316,7 @@ private Real get_deformation_vector_for_node(Real spacing,
 }
 
 
-/* Build the target lattice by transforming the source points through the
-   current non-linear transformation stored in:
 
-        Gglobals->trans_info.transformation                        
-
-*/
-public void    build_target_lattice(float px[], float py[], float pz[],
-				    float tx[], float ty[], float tz[],
-				    int len)
-{
-  int i;
-  Real x,y,z;
-
-
-  for_inclusive(i,1,len) {
-
-    if (number_dimensions==3)
-      general_transform_point(Gglobals->trans_info.transformation, 
-			      (Real)px[i],(Real) py[i], (Real)pz[i], 
-			      &x, &y, &z);
-    else
-      general_transform_point_in_trans_plane(Gglobals->trans_info.transformation, 
-				 (Real)px[i],(Real) py[i], (Real)pz[i], 
-				 &x, &y, &z);
-    
-    tx[i] = (float)x;
-    ty[i] = (float)y;
-    tz[i] = (float)z;
-  }
-}
-
-/* Build the target lattice by transforming the source points through the
-   current non-linear transformation stored in:
-
-        Glinear_transform and Gsuper_d{x,y,z} deformation volumes  
-
-*/
-public void    build_target_lattice_using_super_sampled_def(
-                                     float px[], float py[], float pz[],
-				     float tx[], float ty[], float tz[],
-				     int len)
-{
-  int 
-    i,j,
-    sizes[MAX_DIMENSIONS],
-    xyzv[MAX_DIMENSIONS];
-  Real 
-    def_vector[N_DIMENSIONS],
-    voxel[MAX_DIMENSIONS],
-    x,y,z;
-  long 
-    index[MAX_DIMENSIONS];
-
-  get_volume_sizes(Gsuper_sampled_vol,sizes);
-  get_volume_XYZV_indices(Gsuper_sampled_vol,xyzv);
-
-  for_inclusive(i,1,len) {
-
-				/* apply linear part of the transformation */
-
-    general_transform_point(Glinear_transform,
-			    (Real)px[i], (Real)py[i], (Real)pz[i], 
-			    &x, &y, &z);
-
-				/* now get the non-linear part, using
-                                   nearest neighbour interpolation in
-                                   the super-sampled deformation
-                                   volume. */
-
-    convert_world_to_voxel(Gsuper_sampled_vol, 
-			   x,y,z, voxel);
-
-    if ((voxel[ xyzv[X] ] >= -0.5) && (voxel[ xyzv[X] ] < sizes[xyzv[X]]-0.5) &&
-	(voxel[ xyzv[Y] ] >= -0.5) && (voxel[ xyzv[Y] ] < sizes[xyzv[Y]]-0.5) &&
-	(voxel[ xyzv[Z] ] >= -0.5) && (voxel[ xyzv[Z] ] < sizes[xyzv[Z]]-0.5) ) {
-
-      for_less(j,0,3) index[ xyzv[j] ] = (long) (voxel[ xyzv[j] ]+0.5);
-      
-      for_less(index[ xyzv[Z+1] ],0, sizes[ xyzv[Z+1] ]) 
-	GET_VALUE_4D(def_vector[ index[ xyzv[Z+1] ]  ], \
-		     Gsuper_sampled_vol, \
-		     index[0], index[1], index[2], index[3]);
-
-
-      x += def_vector[X];
-      y += def_vector[Y];
-      z += def_vector[Z];
-    }
-
-    tx[i] = (float)x;
-    ty[i] = (float)y;
-    tz[i] = (float)z;
-
-  }
-}
 
 /* This is the COST FUNCTION TO BE MINIMIZED.
    so that very large displacements are impossible */
@@ -2598,33 +2477,3 @@ private Real local_objective_function(float *d)
 }
 
 
-private void report_time(long start_time, STRING text) 
-{
-
-   Real 
-      time_total;
-   long 
-      present_time;
-   STRING 
-      time_total_string;
-
-   ALLOC(time_total_string,512);
-
-   present_time = time(NULL);
-
-   time_total = (Real)(present_time - start_time);
-
-#ifdef HAVE_RECENT_VOLUME_IO
-   time_total_string = format_time("%g %s", time_total);
-#else
-   format_time( time_total_string,"%g %s", time_total);
-#endif
-   print ("\n%s : %s", text, time_total_string);
-
-   if (time_total > 120)
-      print (" (%d seconds)\n",(int)time_total);
-   else
-      print ("\n");
-
-   FREE(time_total_string);
-}
