@@ -16,7 +16,13 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 96.21  2004-02-12 06:08:20  rotor
+@MODIFIED   : Revision 96.22  2004-05-05 17:21:41  louis
+@MODIFIED   : changed constant min/max real voxel range for the deformation grid to be equal to that
+@MODIFIED   : defined on the command line.
+@MODIFIED   :
+@MODIFIED   : :
+@MODIFIED   :
+@MODIFIED   : Revision 96.21  2004/02/12 06:08:20  rotor
 @MODIFIED   :  * removed public/private defs
 @MODIFIED   :
 @MODIFIED   : Revision 96.20  2004/02/04 20:44:13  lenezet
@@ -319,7 +325,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.21 2004-02-12 06:08:20 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.22 2004-05-05 17:21:41 louis Exp $";
 #endif
 
 #include <config.h>		/* MAXtype and MIN defs                      */
@@ -793,7 +799,10 @@ Status do_non_linear_optimization(Arg_Data *globals)
    ALLOC(another_warp,1);	
    copy_general_transform(current_warp, another_warp);
    another_vol = another_warp->displacement_volume;
-   set_volume_real_range(another_vol, -20.0 , 20.0);
+
+
+   set_volume_real_range(another_vol, -1.0*globals->trans_info.max_def_magnitude, globals->trans_info.max_def_magnitude );
+
    init_the_volume_to_zero(another_vol);
 
    /* build a temporary volume that will be used to store the magnitude of
@@ -813,7 +822,8 @@ Status do_non_linear_optimization(Arg_Data *globals)
                           &(target_node[X]), &(target_node[Y]), &(target_node[Z]));
    set_volume_translation(additional_mag, voxel, target_node);
    alloc_volume_data(additional_mag);
-   set_volume_real_range(additional_mag, 0.0, ABSOLUTE_MAX_DEFORMATION);
+
+   set_volume_real_range(additional_mag, 0.0, globals->trans_info.max_def_magnitude );
 				/* reset additional mag to zero */
    init_the_volume_to_zero(additional_mag);
 
