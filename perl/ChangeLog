@@ -1,3 +1,8 @@
+2003-06-12  Steve ROBBINS  <stever@bic.mni.mcgill.ca>
+
+	* Startup.pm (SelfAnnounce): Remove "defined @argv", it is
+	deprecated construct and perl warns noisily about it.
+
 2001-02-16  Steve ROBBINS  <stever@bic.mni.mcgill.ca>
 
 	* Makefile.am (install-exec-local): Need "install-exec-local" rule

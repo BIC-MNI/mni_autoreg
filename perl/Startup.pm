@@ -66,7 +66,7 @@
 #              96/03/21, GW: rearranged shutdown sequence, added/edited
 #                        tons of comments
 #@COMMENTS   : 
-#@VERSION    : $Id: Startup.pm,v 1.1 2000-01-19 14:10:31 louis Exp $
+#@VERSION    : $Id: Startup.pm,v 1.2 2003-07-04 23:14:36 stever Exp $
 #----------------------------------------------------------------------------
 
 # --------------------------------------------------------------------
@@ -228,7 +228,7 @@ sub SelfAnnounce
 
    $filehandle = \*STDOUT unless defined $filehandle;
    $program = $0 unless defined $program;
-   @args = @ARGV unless defined @args;
+   @args = @ARGV unless @args;
 
    printf $filehandle ("%s %s running:\n", 
                        &userstamp(undef,undef,$StartDir),
