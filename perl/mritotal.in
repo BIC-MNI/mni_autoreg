@@ -46,7 +46,7 @@
 # the same copyright as above.
 # --------------------------------------------------------------------
 
-# $Id: mritotal.in,v 1.9 2000-05-25 13:50:04 louis Exp $
+# $Id: mritotal.in,v 1.10 2000-06-14 12:55:01 louis Exp $
 
 require 5.001;
 
@@ -728,7 +728,7 @@ sub Initialize
    $ModelDir .= "/" if ($ModelDir ne "" && $ModelDir !~ m|/$|);
    $Model = $ModelDir . $Model unless $Model =~ m|^/|;
 
-   my (@model_files) = ('16_blur', '8_blur', '8_dxyz', 'mask', 'headmask');
+   my (@model_files) = ('16_blur', '8_blur', '8_dxyz', '16_mask', '8_mask', 'headmask');
    @model_files = map { "${Model}_${_}.mnc" } @model_files;
       
    &check_files ($SourceVol, @model_files) || &Fatal;
@@ -1519,7 +1519,7 @@ WARN_optic
             type        => "lsq7",
             objective   => $default_obj,
 	    sourcemask  => "",
-	    targetmask  => "BASE_mask.mnc",
+	    targetmask  => "BASE_$blurs->[0]_mask.mnc",
 	    center      => "-center $volume_cog",
 	    steps       => [qw/4 4 4/],
 	    tolerance   => 0.004,
@@ -1539,7 +1539,7 @@ WARN_optic
          type        => "lsq9",
          objective   => $default_obj,
          sourcemask  => "",
-         targetmask  => "BASE_mask.mnc",
+         targetmask  => "BASE_$blurs->[0]_mask.mnc",
          center      => "-center $volume_cog",
          steps       => [qw/4 4 4/],
          tolerance   => 0.004,
@@ -1558,7 +1558,7 @@ WARN_optic
          type        => "lsq9",
          objective   => $default_obj,
          sourcemask  => "",
-         targetmask  => "BASE_mask.mnc",
+         targetmask  => "BASE_$blurs->[0]_mask.mnc",
          center      => "-center $volume_cog",
          steps       => [qw/4 4 4/],
          tolerance   => 0.004,
@@ -1573,7 +1573,7 @@ WARN_optic
          type        => "lsq9",
          objective   => $default_obj,
          sourcemask  => "",
-         targetmask  => "BASE_mask.mnc",
+         targetmask  => "BASE_$blurs->[0]_mask.mnc",
          center      => "-center $volume_cog",
          steps       => [qw/4 4 4/],
          tolerance   => 0.004,
@@ -1733,7 +1733,7 @@ sub SetupNLFits
          type        => 'nonlinear',
          objective   => $default_obj,
          sourcemask  => '',
-         targetmask  => "BASE_mask.mnc",
+         targetmask  => "BASE_$blurs{'4a'}_mask.mnc",
          threshold   => 0.075,
          steps       => [2, 2, 2],
          sub_lattice => 5,
@@ -1753,7 +1753,7 @@ sub SetupNLFits
          type        => 'nonlinear',
          objective   => $default_obj,
          sourcemask  => '',
-         targetmask  => "BASE_mask.mnc",
+         targetmask  => "BASE_$blurs{'4b'}_mask.mnc",
          threshold   => 0.075,
          steps       => [2, 2, 2],
          sub_lattice => 5,
@@ -1773,7 +1773,7 @@ sub SetupNLFits
          type        => 'nonlinear',
          objective   => $default_obj,
          sourcemask  => '',
-         targetmask  => "BASE_mask.mnc",
+         targetmask  => "BASE_$blurs{'2'}_mask.mnc",
          threshold   => 0.075,
          steps       => [1, 1, 1],
          sub_lattice => 5,
