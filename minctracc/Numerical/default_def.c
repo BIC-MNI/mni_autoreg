@@ -35,9 +35,12 @@
       created by removing build_default_deformation_field from 
       transformations.c
 @MODIFIED   : $Log: default_def.c,v $
-@MODIFIED   : Revision 9.6  1996-08-21 18:21:52  louis
-@MODIFIED   : Pre-release
+@MODIFIED   : Revision 96.0  1996-08-21 18:21:58  louis
+@MODIFIED   : Release of MNI_AutoReg version 0.96
 @MODIFIED   :
+ * Revision 9.6  1996/08/21  18:21:52  louis
+ * Pre-release
+ *
  * Revision 9.5  1996/08/12  14:15:50  louis
  * Never released version 0.95
  *

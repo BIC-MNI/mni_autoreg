@@ -17,9 +17,12 @@
 
 @CREATED    : Thu May 20 14:20:21 EST 1993 Louis Collins
 @MODIFIED   : $Log: minctracc.h,v $
-@MODIFIED   : Revision 9.5  1996-08-12 14:15:34  louis
-@MODIFIED   : Release of MNI_AutoReg version 1.0
+@MODIFIED   : Revision 96.0  1996-08-21 18:21:43  louis
+@MODIFIED   : Release of MNI_AutoReg version 0.96
 @MODIFIED   :
+ * Revision 9.5  1996/08/12  14:15:34  louis
+ * Release of MNI_AutoReg version 1.0
+ *
  * Revision 1.15  1996/08/12  14:15:26  louis
  * Pre-release
  *

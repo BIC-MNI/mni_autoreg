@@ -28,9 +28,12 @@
               express or implied warranty.
 
 @MODIFIED   : $Log: gradient_volume.c,v $
-@MODIFIED   : Revision 9.6  1996-08-21 18:22:18  louis
-@MODIFIED   : Pre-release
+@MODIFIED   : Revision 96.0  1996-08-21 18:22:24  louis
+@MODIFIED   : Release of MNI_AutoReg version 0.96
 @MODIFIED   :
+ * Revision 9.6  1996/08/21  18:22:18  louis
+ * Pre-release
+ *
  * Revision 9.5  1996/08/12  14:16:28  louis
  * Never released version 0.95
  *
@@ -45,7 +48,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/gradient_volume.c,v 9.6 1996-08-21 18:22:18 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/gradient_volume.c,v 96.0 1996-08-21 18:22:24 louis Rel $";
 #endif
 
 #include <volume_io.h>

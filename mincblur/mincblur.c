@@ -54,9 +54,12 @@
               express or implied warranty.
    @CREATED    : January 25, 1992 louis collins (Original using .iff files)
    @MODIFIED   : $Log: mincblur.c,v $
-   @MODIFIED   : Revision 9.6  1996-08-21 18:22:20  louis
-   @MODIFIED   : Pre-release
+   @MODIFIED   : Revision 96.0  1996-08-21 18:22:24  louis
+   @MODIFIED   : Release of MNI_AutoReg version 0.96
    @MODIFIED   :
+ * Revision 9.6  1996/08/21  18:22:20  louis
+ * Pre-release
+ *
  * Revision 9.5  1996/08/12  14:16:28  louis
  * Never released version 0.95
  *
@@ -88,7 +91,7 @@
         rewrite using mnc files and David Macdonald's libmni.a
    ---------------------------------------------------------------------------- */
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/mincblur.c,v 9.6 1996-08-21 18:22:20 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/mincblur.c,v 96.0 1996-08-21 18:22:24 louis Rel $";
 #endif
 
 #include <config.h>

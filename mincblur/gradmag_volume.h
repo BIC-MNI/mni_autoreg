@@ -15,9 +15,12 @@
 @CREATED    : Wed Jun 30 13:25:33 EST 1993 Louis Collins
                 copied and modified from mincresample.h from Peter Neelin
 @MODIFIED   : $Log: gradmag_volume.h,v $
-@MODIFIED   : Revision 9.6  1996-08-21 18:22:19  louis
-@MODIFIED   : Pre-release
+@MODIFIED   : Revision 96.0  1996-08-21 18:22:24  louis
+@MODIFIED   : Release of MNI_AutoReg version 0.96
 @MODIFIED   :
+ * Revision 9.6  1996/08/21  18:22:19  louis
+ * Pre-release
+ *
  * Revision 9.5  1996/08/12  14:16:28  louis
  * Never released version 0.95
  *

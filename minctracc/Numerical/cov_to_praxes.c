@@ -29,9 +29,12 @@
                       using numerical recipes routines jacobi() and eigsrt().  
 		      See Hotelling Transform
 @MODIFIED   : $Log: cov_to_praxes.c,v $
-@MODIFIED   : Revision 9.6  1996-08-21 18:21:52  louis
-@MODIFIED   : Pre-release
+@MODIFIED   : Revision 96.0  1996-08-21 18:21:58  louis
+@MODIFIED   : Release of MNI_AutoReg version 0.96
 @MODIFIED   :
+ * Revision 9.6  1996/08/21  18:21:52  louis
+ * Pre-release
+ *
  * Revision 9.5  1996/08/12  14:15:50  louis
  * Never released version 0.95
  *
@@ -53,7 +56,7 @@
 
 ---------------------------------------------------------------------------- */
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/cov_to_praxes.c,v 9.6 1996-08-21 18:21:52 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/cov_to_praxes.c,v 96.0 1996-08-21 18:21:58 louis Rel $";
 #endif
 
 #include <volume_io.h>

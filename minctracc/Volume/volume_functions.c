@@ -14,9 +14,12 @@
 
 @CREATED    : Tue Jun 15 08:57:23 EST 1993 LC
 @MODIFIED   :  $Log: volume_functions.c,v $
-@MODIFIED   :  Revision 9.5  1996-08-12 14:16:15  louis
-@MODIFIED   :  Release of MNI_AutoReg version 1.0
+@MODIFIED   :  Revision 96.0  1996-08-21 18:22:15  louis
+@MODIFIED   :  Release of MNI_AutoReg version 0.96
 @MODIFIED   :
+ * Revision 9.5  1996/08/12  14:16:15  louis
+ * Release of MNI_AutoReg version 1.0
+ *
  * Revision 1.11  1996/08/12  14:16:13  louis
  * Pre-release
  *
@@ -43,7 +46,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/volume_functions.c,v 9.5 1996-08-12 14:16:15 louis Rel $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/volume_functions.c,v 96.0 1996-08-21 18:22:15 louis Rel $";
 #endif
 
 #include <limits.h>

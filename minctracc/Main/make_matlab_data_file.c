@@ -23,9 +23,12 @@
 
 @CREATED    : Mon Oct  4 13:06:17 EST 1993 Louis
 @MODIFIED   : $Log: make_matlab_data_file.c,v $
-@MODIFIED   : Revision 9.6  1996-08-21 18:21:49  louis
-@MODIFIED   : Pre-release
+@MODIFIED   : Revision 96.0  1996-08-21 18:21:51  louis
+@MODIFIED   : Release of MNI_AutoReg version 0.96
 @MODIFIED   :
+ * Revision 9.6  1996/08/21  18:21:49  louis
+ * Pre-release
+ *
  * Revision 9.5  1996/08/12  14:15:42  louis
  * Never released version 0.95
  *
@@ -54,7 +57,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/make_matlab_data_file.c,v 9.6 1996-08-21 18:21:49 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/make_matlab_data_file.c,v 96.0 1996-08-21 18:21:51 louis Rel $";
 #endif
 
 

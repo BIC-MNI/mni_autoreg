@@ -14,9 +14,12 @@
               express or implied warranty.
 @CREATED    : Tue Jun  8 08:44:59 EST 1993 LC
 @MODIFIED   : $Log: make_rots.c,v $
-@MODIFIED   : Revision 9.6  1996-08-21 18:21:53  louis
-@MODIFIED   : Pre-release
+@MODIFIED   : Revision 96.0  1996-08-21 18:21:58  louis
+@MODIFIED   : Release of MNI_AutoReg version 0.96
 @MODIFIED   :
+ * Revision 9.6  1996/08/21  18:21:53  louis
+ * Pre-release
+ *
  * Revision 9.5  1996/08/12  14:15:50  louis
  * Never released version 0.95
  *
@@ -51,7 +54,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/make_rots.c,v 9.6 1996-08-21 18:21:53 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/make_rots.c,v 96.0 1996-08-21 18:21:58 louis Rel $";
 #endif
 
 #include <volume_io.h>
