@@ -1,0 +1,8 @@
+Makefile.in
+check_scale
+param2xfm
+volume_cog
+rand_param
+xcorr_vol
+xfm2param
+zscore_vol
