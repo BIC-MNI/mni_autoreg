@@ -84,6 +84,7 @@ struct Arg_Data_struct {
   Interpolating_Function interpolant;  /* point to interpolation funciton to be used */
   Objective_Function     obj_function; /* pointer to objective function to be used   */
   int                    optimize_type;/* Type of optimization strategy              */
+  int                    force_lattice;/* =0, do not force; =1, force src; =2, frc target */
   double                 step[3];      /* step size for sampling lattice             */
   double                 start[3];     /* starting position for sampling lattice     */
   int                    count[3];     /* number of elements for sampling lattice    */

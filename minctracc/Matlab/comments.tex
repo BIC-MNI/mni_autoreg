@@ -1,0 +1,61 @@
+\documentstyle[12pt]{article}
+
+% [e,d]= do_test(2, 8, 4, 1/(256*256));
+% [e,d]= do_test(2, 8, 4, 1/(256));
+
+\begin{document}
+
+The automatic recovery of the global non-linear warping used to
+register two data sets is based on the estimation of local
+neighbourhood deformations.  The goal is to individually maximize the
+local correlation at each point of the whole volume while maintaining
+spatial continuity of the volumes and the deformation maps. This
+estimation is the result of correlation of a feature derived from each
+image volume: the 2nd derivative along the gradient direction of the
+blurred intensity volume.
+
+There are a number of factors that affect the result of the
+correlation.  First is the estimation of the feature itself. Four
+input volumes are used in the creation of the second derivative
+feature volume (D2).  The first is the blurred intensity volume (3D
+gaussian blurring with a known fwhm) and the three others are the
+blurred intensity derivatives; partial derivatives along each of the
+three axes yielding dx, dy and dz volumes.  The partial derivative
+volumes are used to estimate the direction of the intensity derivative
+$\vec{v}$ at the center of each voxel in the D2 volume.  For each
+voxel point $p$, 4 samples are then taken from the blurred intensity
+volume along a line parallel to $\vec{v}$ passing through $p$, spaced
+at $fwhm/2$ and centered on $p$.  The second derivative for $p$ is
+estimated using cubic interpolation through these four points.
+
+%  for 
+%            I = a1 + a2*xpos + a3*xpos^2 + a4*xpos^3:   
+% 
+% 
+%       a1 =                f2;
+%       a2 =  -1.0*f1/3.0 - f2/2.0 + f3     - f4/6.0;
+%       a3 =       f1/2.0 - f2     + f3/2.0 ;
+%       a4 =  -1.0*f1/6.0 + f2/2.0 - f3/2.0 + f4/6.0;
+%       
+%       xpos = 0.0;
+%       
+%       fp  = a2 + 2*a3*xpos + 3*a4*xpos*xpos; / * first derivative * /
+%       fpp = 2*a3 + 6*a4*xpos;	           / * second derivative * /
+
+Noise in the data will of course affect the estimation of the
+derivatives. When storing the blurred data volume in non-float format
+(i.e.  one byte or one short per voxel), there is a discretization
+error in the intensity value stored at each voxel.  When stored as
+bytes, this error is on the order of $max$/256, and when stored as
+short integers, is $max$/65536.  The derivative is a measure of change
+in intensity over a distance.  Therefore, the voxel size (i.e. spacing
+between voxel centers) also plays a role in the estimation of the
+derivative.   Smaller voxels accentuate the discritization error.
+
+For the voxel sizes used in this study (approximately 1mm$^3$), the
+discretization errors give rise to errors in the first dirivative of
+less than 3\% of maximum for byte data and 2\% of maximum for short
+data.  Errors in the second derivative for byte data are less than 12%
+of maximum value, and are approximately 6% for short data.
+
+\end{document}

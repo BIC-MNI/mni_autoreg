@@ -1,0 +1,62 @@
+function d = op_node(md,mdd ,d,dd, spacing, warps, pos,flag,op_type)
+
+%   check to see if we are too close to the ends
+
+
+
+if ((pos+spacing > max(md(:,2))) | (pos-spacing < min(md(:,2))))
+   d = 0;
+   return
+end
+
+%   get the value of the 1st deriv at the point of interest
+
+md_val = inter_p(md, pos);
+
+%   if the value is not large enough, then ignore it
+
+if abs(md_val) < 0.2*max(md)
+   d = 0;
+   return;
+end
+
+%   get values of model 2nd derivative
+
+vspace = spacing / (md(2,2)-md(2,1));
+
+data = zeros(11,2);
+model= zeros(11,2);
+
+for i=-5:5,
+  p_i = pos + i*spacing/4;
+  model(i+6,1) = inter_p(mdd, p_i);
+  model(i+6,2) = p_i;
+end
+
+
+for i=-5:5,
+   pd = pos + i*spacing/4;
+   p_i = transf(pd, warps);
+   data(i+6,1) = inter_p(dd, p_i);
+   data(i+6,2) = pd;
+end;
+
+
+[d,tmpp] = match(model,data,spacing,op_type);
+
+if (flag>0)
+ figure(5);
+ plot(model(:,2),model(:,1),'x',data(:,2),data(:,1),'o'); hold on
+ plot(model(:,2),model(:,1),data(:,2),data(:,1)); 
+ plot([model(5,2) model(5,2)+d], [model(5,1) model(5,1)],'-w');
+
+ mt = max(abs(tmpp(:,1)));
+ tmpp(:,1) = tmpp(:,1) / mt;
+ tmpp(:,1) = max(abs(model(:,1))) * tmpp(:,1);
+ plot(tmpp(:,2),tmpp(:,1),'r');
+ grid on ; 
+ hold off;
+ title('model (x), data (o)');
+
+ drawnow;
+end;

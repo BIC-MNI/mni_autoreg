@@ -1,0 +1,310 @@
+
+minctracc - a program to automatically find the best linear
+	transformation to map one volumetric data set on to another.  The
+	program uses optimization over a user selctable number of parameters
+	to identify the	best (according to a user identified objective
+	function) transformation mapping voxel 	values of the first data set
+	into the second.
+
+GENERAL DESCRIPTION; INPUTS AND OUTPUTS
+
+You need to specify at least two data volumes on the command line, the
+first is the source volume and second is the target volume.  The third
+item on the command line is the name of the output transformation
+file, specifying where the program will store the results.
+
+Using flags on the command line, you may specify the type of
+transformation to be optimized and saved, mask files to be used with
+the source or target volumes, a transformation file to specify the
+initial starting condition, the type of objective function to be
+minimized, the type of interpolation to use, and the definition of the
+sampling matrix used to measure the objective function.
+
+Internally, the program optimizes the transformation parameters of
+translations, rotations, scaling(s) and possibly shear(s).  These
+parameters are used to create a homogeneous transformation matrix that
+maps the data in the space of the first volume to the space of the
+second volume.  It is this matrix that is saved in the output
+transformation file.
+
+
+
+SLIGHTLY MORE DETAILED DESCRIPTIONS:
+
+----- Initial Starting Position -----
+
+There are two basic methods to get an initial transformation to start
+the optimization process.  The first, by default, uses the principal
+axes transformation (PAT) as the starting transformation.  For the
+second method, the user specifies a .xfm file that contains a linear
+transformation, mapping points of volume one (source) into volume two
+(target).
+
+The program extracts the transformation parameters from either
+transformation matrix (PAT or user input) and optimizes these
+parameters when trying to find the best transformation.
+
+When the PAT is used, the center of rotation and scaling is
+automatically estimated from the center of gravity of the source data
+set.  When the user specifies a transformation matrix, the default
+center is 0,0,0.  The user can can change this in two ways: 1) the
+-center cx cy cz option permits direct input of the center to be used,
+2) the -est_center option tells the program to calculate and use the
+center of gravity of the source volume.  Note that it is a good idea
+to have a reasonable guess for the center of rotation and scaling
+since it makes the parameters more orthogonal to each other (e.g.  a
+small change in rotation will not grossly affect the translations).
+Note that you can use -est_center to have the program estimate the
+center of gravity.
+
+From minctracc -help:
+
+Initial transformation information.
+ -transformation:    Initial world transformation. (Default = identity).
+ -est_center:        use center estimated from Principal axis trans.
+ -est_scales:        use scales estimated from Principal axis trans.
+ -est_rotations:     use rotations estimated from Principal axis trans.
+ -est_translations:  use translations estimated from Principal axis trans.
+ -center:            Force center of rotation and scale.
+		Default value: 0 0 0
+
+One can also use only part of the PAT parameters by specifying
+-est_center, -est_scales, -est_rotations or -est_translations.  Often
+we have found that when the principal axis are difficult to determine
+(as in cases of data sets with few slices) that the center and
+translation are the only reliable information that can be determined.
+So the parameters '-est_center -est_translations' are used to specify
+the initial starting position. 
+
+
+----- Type of transformation to be optimized ----- 
+
+There are a number of different transformations that can be optimized.
+Each one is specified by a flag on the command line.  This information
+is used internally to control the number of the parameters that are
+modified by the optimization algorithm.  (Only the resulting
+transformation matrix is returned in the output .xfm file.) The
+default is the -procrustes transformation.
+
+The choices are:
+
+ -pat       return the matrix determined by the principal axes
+            transformation.
+
+ -lsq6      return the six parameter registration matrix.  the six
+            parameters are translation x,y,z and rotation x,y,z.
+
+ -lsq7      return the seven parameter registration matrix.  the 
+            parameters are translation x,y,z and rotation x,y,z and
+            one global scale.
+
+ -lsq9      return the seven parameter registration matrix.  the 
+            parameters are translation x,y,z and rotation x,y,z and
+            scale x,y,z.
+
+ -lsq12     return full 12 parameter transformation. the  parameters
+            are translation x,y,z; rotation x,y,z; scale x,y,z and
+            shear x,y,z.
+
+ -procrustes    same as -lsq7
+
+
+The user can also specify whether the forward (from source to model)
+or inverse (from model to source) transformation should be recovered.
+These flags are:
+
+ -forward:           Recover forward transformation (source -> model, default).
+ -invert:            Recover inverted transformation (model -> source).
+
+
+----- Sampling information -------
+
+The objective function will be evaluated at points defined on a 3D
+lattice that covers the volumes that have to be fit.  The spacing
+between these lattice points must be specified.
+
+  -step    is the option that specifies the distance between points 
+           in the 3D lattice.  Normally, one should set -step to be
+           equal to less than half the fwhm of the blurring kernel of
+           the data to be fit.
+
+----- Type of objective function to be minimized -----
+
+There are four different objective functions that can be used for
+minimization in the optimization routines.  These functions are
+cross-correlation, normalized intensity difference, stochastic sign
+change and minimization of the variance of the pixel ratios
+(vol1/vol2).  When masks are specified on the command line, only data
+in the masked region participates in the evaluation of the objective
+function.  
+
+from minctracc -help:
+Optimization objective functions. (default = -xcorr)
+ -xcorr:             Use cross correlation.
+ -zscore:            Use normalized difference.
+ -ssc:               Use stocastic sign change.
+ -vr:                Use variance of ratio vol1/vol2
+ -groups:            Number of groups for ratio calculations.
+		Default value: 16
+ -threshold:         Lower limit for voxel threshold
+		Default value: 0 0
+ -speckle:           percent speckle noise to add to source
+		Default value: 5
+
+
+-xcorr:  cross correlation: the value returned has a maximum value of 1 and
+a minimum value of 0.  The correlation value is calculated as:
+
+               r =    f1 / ( sqrt(f2) * sqrt(f3) )
+
+   where:
+            f1 = sum( d1 .* d2)    (point to point multiply)
+            f2 = sum( d1 .^ 2 )    (sum of all points squared)
+            f3 = sum( d2 .^ 2 )    (sum of all points squared)
+
+
+-zscore: normalized intensity.  For both source and target volumes,
+each pixel in the volume is replaced by
+
+                 v' = (v-u)/std
+where
+       v is the old voxel value,
+       u is the mean voxel value (within the mask) for the one volume
+       std is the standard deviation of voxels (in the mask) for the volume.
+
+the objective function is:
+                         __
+                 z = 1/  \   | v'1 - v'2 | ; where the summation is done
+                     /n  /_                  over all voxels.
+
+-ssc: stochastic sign change - see Minoshima
+      -speckle option is used to specify the percent speckle noise
+               to add to the source volume
+
+-vr:  variance of ratio      - see Woods
+      -groups is used to specify the number of classification
+              groups to be used when calculating the variance.
+      -threshold specifies the two threshold values form vol1 and vol2
+  
+
+----- Optimization info ------
+
+Simplex optimization is used to find the best transformation by
+varying the parameters.  There are two user inputs to control the
+optimization:
+
+-tolerance - stopping criteria for fitting.  The routine will end when
+             the (max(f_simplex) - min(f_simplex))
+                 --------------------------------- < tol
+                 (max(f_simplex) + min(f_simplex))
+
+             where f_simplex is the value of the objective function
+             evaluated at each vertex on the simplex.
+
+-simplex   - starting size (diameter) for simplex.  This is measured
+             in mm for spatial axes, degrees for rotation axes and
+             percentage scale for scaling axes.
+
+
+----- Other Stuff -------
+
+Options for mask volumes.
+
+The voxel masks do not have to be voxel-to-voxel matched with the
+data.  The world coordinate system is used to determine if a point
+from is within the masked area or not.
+
+ -model_mask:  Specifies a binary mask file for the target.
+               Voxels of the target model that map to zero valued
+               voxels in the mask are masked OUT of the data (these
+               points will NOT participate in the fit).
+ -source_mask: Specifies a binary mask file for the source.
+
+Interpolation options.
+
+ -trilinear:         Do trilinear interpolation
+ -tricubic:          Do tricubic interpolation
+ -nearest_neighbour: Do nearest neighbour interpolation
+
+
+other flags:
+-verbose - levels of verbose messages, default = 1
+	0=quiet, or maybe:
+	1=show optimization info 
+	2=show objective function info
+	3=show fitting summary (of optimization and objetive fn)
+-debug - show debugging information during the  run.
+
+-----------------------------------------------------------------------
+
+OUTPUT of minctracc -help
+
+Command-specific options:
+---Transformation maps one to volume two---
+Initial transformation information.
+ -no_clobber:        Do not overwrite output file (default).
+ -clobber:           Overwrite output file.
+ -transformation:    Initial world transformation. (Default = identity).
+ -est_center:        use center estimated from Principal axis trans.
+ -est_scales:        use scales estimated from Principal axis trans.
+ -est_rotations:     use rotations estimated from Principal axis trans.
+ -est_translations:  use translations estimated from Principal axis trans.
+ -center:            Force center of rotation and scale.
+		Default value: 0 0 0
+Output transformation type. Default = -procrustes.
+ -pat:               principal axis transformation matrix (input matrix ignored).
+ -lsq6:              6 parameter transformation (3 translation, 3 rotation, scale=1.0).
+ -lsq7:              7 parameter transformation (lsq6 + 1 global scale, same as -procrustes).
+ -lsq9:              9 parameter transformation (lsq6 + 3 scales).
+ -lsq12:             full 12 parameter transformation (lsq9 + 3 shears).
+ -lsq:               full 12 parameter transformation (same as -lsq12).
+ -procrustes:        procrustes transformation (3 trans, 3 rots, 1 scale), same as -lsq7.
+ -forward:           Recover forward transformation (source -> model, default).
+ -invert:            Recover inverted transformation (model -> source).
+
+Options for mask volumes.
+ -model_mask:        Specifies a binary mask file for the target.
+ -source_mask:       Specifies a binary mask file for the source.
+Interpolation options.
+ -trilinear:         Do trilinear interpolation
+ -tricubic:          Do tricubic interpolation
+ -nearest_neighbour: Do nearest neighbour interpolation
+Optimization objective functions. (default = -xcorr)
+ -xcorr:             Use cross correlation.
+ -zscore:            Use normalized difference.
+ -ssc:               Use stocastic sign change.
+ -vr:                Use variance of ratio vol1/vol2
+ -groups:            Number of groups for ratio calculations.
+		Default value: 16
+ -threshold:         Lower limit for voxel threshold
+		Default value: 0 0
+ -speckle:           percent speckle noise to add to source
+		Default value: 5
+Options for optimization.
+ -tol:               Stopping criteria tolerence
+		Default value: 0.005
+ -simplex:           Radius of simplex volume.
+		Default value: 20
+Options for measurement comparison.
+ -matlab:            Output selected objective function value curves.
+ -measure:           Output value of each obj. func. for given x-form.
+Options for 3D lattice (default = target).
+ -step:              Step size along each dimension (X, Y, Z)
+		Default value: 4 4 4
+ -xstep:             Step size along the column dimension
+		Default value: 4
+ -ystep:             Step size along the row dimension
+		Default value: 4
+ -zstep:             Step size along the slice dimension
+		Default value: 4
+Options for logging progress. Default = -verbose 1.
+ -verbose:           Write messages indicating progress
+		Default value: 1
+ -quiet:             Do not write log messages
+ -debug:             Print out debug info.
+Generic options for all commands:
+ -help:              Print summary of command-line options and abort
+
+Usage: minctracc [<options>] <sourcefile> <targetfile> <output transfile>
+       minctracc [-help]
+

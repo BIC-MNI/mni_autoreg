@@ -23,9 +23,12 @@
 
 @CREATED    : Mon Oct  4 13:06:17 EST 1993 Louis
 @MODIFIED   : $Log: make_matlab_data_file.c,v $
-@MODIFIED   : Revision 96.0  1996-08-21 18:21:51  louis
-@MODIFIED   : Release of MNI_AutoReg version 0.96
+@MODIFIED   : Revision 96.1  1999-10-25 19:52:18  louis
+@MODIFIED   : final checkin before switch to CVS
 @MODIFIED   :
+ * Revision 96.0  1996/08/21  18:21:51  louis
+ * Release of MNI_AutoReg version 0.96
+ *
  * Revision 9.6  1996/08/21  18:21:49  louis
  * Pre-release
  *
@@ -57,12 +60,12 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/make_matlab_data_file.c,v 96.0 1996-08-21 18:21:51 louis Rel $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/make_matlab_data_file.c,v 96.1 1999-10-25 19:52:18 louis Exp $";
 #endif
 
 
 #include <config.h>
-#include <volume_io.h>
+#include <internal_volume_io.h>
 
 #include "constants.h"
 #include "arg_data.h"

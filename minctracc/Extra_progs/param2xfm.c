@@ -9,9 +9,12 @@
 @CALLS      : 
 @CREATED    : Mon Nov 29 11:01:47 EST 1993 Louis
 @MODIFIED   : $Log: param2xfm.c,v $
-@MODIFIED   : Revision 96.0  1996-08-21 18:21:36  louis
-@MODIFIED   : Release of MNI_AutoReg version 0.96
+@MODIFIED   : Revision 96.1  1999-10-25 19:52:07  louis
+@MODIFIED   : final checkin before switch to CVS
 @MODIFIED   :
+ * Revision 96.0  1996/08/21  18:21:36  louis
+ * Release of MNI_AutoReg version 0.96
+ *
  * Revision 9.6  1996/08/21  18:21:30  louis
  * Pre-release
  *
@@ -56,7 +59,7 @@ static char rcsid[]="";
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <volume_io.h>
+#include <internal_volume_io.h>
 #include <config.h>
 #include <Proglib.h>
 

@@ -1,0 +1,34 @@
+NEW MATCHING 
+  use a different match criteria - use d^2 instead of abs(d) in
+match.m 
+
+NEW OPTIMIZATION
+  use brute force for the first few iterations, afterwards, NR or
+bisection methods should work reasonably well.  
+
+Note that the objective function is not smooth all the way through the
+domain where is is being estimated now. (However, most of the time is
+is nicely parabolic, and always with a single minima!)  
+
+What is the domain limit that should be used? After the first few
+iterations, the minima seems to be within one half of the current
+scale.
+
+STOPPING CRITERIA:
+  when do I stop iterating - should be when the smallest step
+deformation applied at the current scale is some fraction of the
+current scale ( or of the next scale, since it should be smaller than
+the next scale as the next scale will have an upper limit.).
+
+ITERATION STEP / SMOOTHING?
+  how far along the desired direction should I step? Right now I step
+0.3 of the required amount.  
+
+  How much smoothing should there be between nodes?  There is a trade
+off between a node, brought into position properly by the correlation
+and haveing it pulled off by smoothing from another node that is not
+tied down.
+
+NEW RESAMPLING/FEATURES
+  need to try to run the process using the original data, and use the
+cubic spline fits to estimate the 2nd derivative.

@@ -1,4 +1,4 @@
-#include <volume_io.h>
+#include <internal_volume_io.h>
 
 #include "constants.h"
 #include "matrix_basics.h"
@@ -215,26 +215,20 @@ main(int argc, char *argv[])
   ALLOC2D(cov,4,4);
   ALLOC(cog,4);
 
-  vol_to_cov(vol, NULL, cog, cov, step );
-
-  (void)print ("%f %f %f\n",cog[1],cog[2],cog[3]);
-
+  if (vol_to_cov(vol, NULL, cog, cov, step )) 
+  {
+      (void)print ("%f %f %f\n",cog[1],cog[2],cog[3]);
+      (void)print ("%f %f %f\n",cov[1][1],cov[1][2],cov[1][3]);
+      (void)print ("%f %f %f\n",cov[2][1],cov[2][2],cov[2][3]);
+      (void)print ("%f %f %f\n",cov[3][1],cov[3][2],cov[3][3]);
+  }
+  else 
+  {
+      (void)print ("Error in vol_to_cov\n");
+      
+  }
+  
   FREE2D(cov);
   FREE(cog);
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

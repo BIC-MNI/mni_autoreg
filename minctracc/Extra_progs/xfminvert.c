@@ -9,9 +9,12 @@
 @CALLS      : 
 @CREATED    : August 13, 1993 (Peter Neelin)
 @MODIFIED   : $Log: xfminvert.c,v $
-@MODIFIED   : Revision 96.0  1996-08-21 18:21:36  louis
-@MODIFIED   : Release of MNI_AutoReg version 0.96
+@MODIFIED   : Revision 96.1  1999-10-25 19:52:12  louis
+@MODIFIED   : final checkin before switch to CVS
 @MODIFIED   :
+ * Revision 96.0  1996/08/21  18:21:36  louis
+ * Release of MNI_AutoReg version 0.96
+ *
  * Revision 9.6  1996/08/21  18:21:32  louis
  * Pre-release
  *
@@ -59,13 +62,13 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/xfminvert.c,v 96.0 1996-08-21 18:21:36 louis Rel $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/xfminvert.c,v 96.1 1999-10-25 19:52:12 louis Exp $";
 #endif
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <volume_io.h>
+#include <internal_volume_io.h>
 #include <minc_def.h>
 
 /* Constants */

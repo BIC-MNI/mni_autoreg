@@ -10,9 +10,12 @@
 @CALLS      : 
 @CREATED    : Tue Aug 23 15:32:30 EST 1994 - Louis
 @MODIFIED   : $Log: rand_param.c,v $
-@MODIFIED   : Revision 96.0  1996-08-21 18:21:36  louis
-@MODIFIED   : Release of MNI_AutoReg version 0.96
+@MODIFIED   : Revision 96.1  1999-10-25 19:52:09  louis
+@MODIFIED   : final checkin before switch to CVS
 @MODIFIED   :
+ * Revision 96.0  1996/08/21  18:21:36  louis
+ * Release of MNI_AutoReg version 0.96
+ *
  * Revision 9.6  1996/08/21  18:21:31  louis
  * Pre-release
  *
@@ -35,7 +38,7 @@ static char rcsid[]="";
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <volume_io.h>
+#include <internal_volume_io.h>
 #include <config.h>
 #include <Proglib.h>
 

@@ -1,0 +1,172 @@
+
+minctracc - a program to automatically find the best linear
+	transformation to map one volumetric data set on to another.  The
+	program uses optimization over a user selctable number of parameters
+	to identify the	best (according to a user identified objective
+	function) transformation mapping voxel 	values of the first data set
+	into the second.
+
+INPUTS:
+
+data files:
+- source file name (in minc format) 3D volume only
+- target file name (in minc format) 3D volume only
+- binary mask on target (in minc format) (optional)
+	is a voxel to voxel mask...
+- binary mask on source (in minc format) (optional)
+	is a voxel to voxel mask...
+- initial linear transformation (in .xfm format) (optional, default=identity)
+
+	how should I extract parameters from this matrix?
+	see below in output transform type.
+
+lattice info:
+- specification of sampling grid for 3D lattice
+	- dircos
+	- step sizes
+	- start, stop or start, nelements
+	--> or only decimation on the axis of the target (or source)
+
+output transform type:
+- full_fit    flag (do twelve parameter fit, default)
+- full_9_fit  flag (do nine parameter fit)
+- fixed scale flag (do six parameter fit, scale = 1.0)
+- procrustes  flag (do seven parameter fit, one global scale)
+
+	how should this be done? should I use an internal representation of
+	the transformation parameters? if so how should I get -center?
+
+objective function:
+- zscore flag
+- xcorr flag (use normalized cross correlation as objective function, default)
+- xcorr2 flag (use cross correlation  norm by ln as objective function, default)
+- ssc flag   (use stocastic sign change as objective function)
+- var ratio flag (use variance of ratio vol1/vol2 as obj function)
+    - var_threshold (to eliminate divide by zero)
+    - groups (for PET/MR)
+
+optimization function:
+- tolerance -    threshold for fitting, end when volume of simplex < tol
+- simplex size - starting size for simplex
+
+other flags:
+- invert - invert the fitting, ie fit model to data during
+	optimization (possibly using mask) for speed, however input
+	and output transforms still map source to target.
+- verbose 0,1,2,3,4 - levels of verbose messages, default = 1
+	verbose0=quiet, or maybe:
+	verbose1=show optimization info 
+	verbose2=show objective function info
+	verbose3=show fitting summary (of optimization and objetive fn)
+
+OUTPUTS: 
+
+- transformation file (in .xfm format) of world coordinate mapping
+	source data into target data.
+
+
+
+minctracc [options] source.mnc  target.mnc   output.xfm
+
+-----------------------------------------------------------------------
+
+INITIAL STARTING POSITION:
+
+There are two basic methods to get an initial transformation to start
+the optimization process.  The first, by default, uses the principal
+axes transformation as the starting transformation.  for the second
+method, the user specifies a .xfm file that contains a linear
+transformation, mapping points of volume one (source) into volume two
+(target). 
+
+The program extracts the transformation parameters from either
+transformation matrix (PAT or user input) and optimizes these
+parameters when trying to find the best transformation.  
+
+There are a number of options available to control the optimization.
+The number of parameters that are optimized can be specified by the
+user: 6 = 3 rots + 3 trans; 7 = 3 rots + 3 trans + 1 scale; 9 = 3 rots
++ 3 trans + 3 scales. The optimization of these parameters depends on
+the estimate of the center of rotation and scaling.  A good estimate
+of the center of rotation and scaling will make the parameters more
+orthogonal (ie a small change in rotation will not grossly affect the
+translations).  
+
+When the PAT is used, the center is automatically estimated from the
+center of gravity of the source data set.  When the user specifies a
+transformation matrix, the default center is 0,0,0.  The user can can
+change this in two ways: 1) the -center cx cy cz option permits direct
+input of the center to be used, 2) the -est_center option tells the
+program to calculate and use the center of gravity of the source
+volume.
+
+
+
+TYPES OF TRANSFORMATION:
+
+There are a number of different transformations that can be optimized.
+Each one is specified by a flag on the command line.  This information
+is used internally to control the number of the parameters that are
+modified by the optimization algorithm.  (Only the resulting
+transformation matrix is returned in the output .xfm file.) The
+choices are:
+
+ -pat       return the matrix determined by the principal axes
+            transformation.
+
+ -lsq6      return the six parameter registration matrix.  the six
+            parameters are translation x,y,z and rotation x,y,z.
+
+ -lsq7      return the seven parameter registration matrix.  the 
+            parameters are translation x,y,z and rotation x,y,z and
+            one global scale.
+
+ -lsq9      return the seven parameter registration matrix.  the 
+            parameters are translation x,y,z and rotation x,y,z and
+            scale x,y,z.
+
+ -lsq12     return full 12 parameter transformation. the  parameters
+            are translation x,y,z; rotation x,y,z; scale x,y,z and
+            shear x,y,z.
+
+ -procrustes    same as -lsq7
+
+
+OBJECTIVE FUNCTIONS:
+
+There are four different objective functions that can be used for
+minimization in the optimization routines.  These functions are
+cross-correlation, normalized intensity difference, stochastic sign
+change and minimization of the variance of the pixel ratios
+(vol1/vol2).  When masks are specified on the command line, only data
+in the masked region participates in the evaluation of the objective
+function.  
+
+1- cross correlation: the value returned has a maximum value of 1 and
+a minimum value of 0.  The correlation value is calculated as:
+
+               r =    f1 / ( sqrt(f2) * sqrt(f3) )
+
+   where:
+            f1 = sum( d1 .* d2)    (point to point multiply)
+            f2 = sum( d1 .^ 2 )    (sum of all points squared)
+            f3 = sum( d2 .^ 2 )    (sum of all points squared)
+
+
+2- normalized difference (zscore).  For both source and target volumes,
+each pixel in the volume is replaced by
+
+                 v' = (v-u)/std
+where
+       v is the old voxel value,
+       u is the mean voxel value (within the mask) for the one volume
+       std is the standard deviation of voxels (in the mask) for the volume.
+
+the objective function is:
+                         __
+                 z = 1/  \   | v'1 - v'2 | ; where the summation is done
+                     /n  /_                  over all voxels.
+
+3- stochastic sign change - see Minoshima
+
+4- variance of ratio      - see Woods

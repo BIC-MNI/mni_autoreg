@@ -17,10 +17,13 @@
 
 @CREATED    : Thu May 20 14:20:21 EST 1993 Louis Collins
 @MODIFIED   : $Log: minctracc.h,v $
-@MODIFIED   : Revision 96.1  1997-11-03 19:52:55  louis
-@MODIFIED   : changed the number of default groups from 64 to 256 for -mi.
-@MODIFIED   : added the default pdf blurring size for -mi
+@MODIFIED   : Revision 96.2  1999-10-25 19:52:16  louis
+@MODIFIED   : final checkin before switch to CVS
 @MODIFIED   :
+ * Revision 96.1  1997/11/03  19:52:55  louis
+ * changed the number of default groups from 64 to 256 for -mi.
+ * added the default pdf blurring size for -mi
+ *
  * Revision 96.0  1996/08/21  18:21:43  louis
  * Release of MNI_AutoReg version 0.96
  *
@@ -218,6 +221,7 @@ Arg_Data main_args = {
   trilinear_interpolant,	/* use trilinear interpolation by default */
   xcorr_objective,              /* use cross-correlation by default       */
   OPT_SIMPLEX,                  /* use simplex optimization strategy      */
+  0,                            /* do not force lattice on source or target */
   {4.0,4.0,4.0},		/* default step sizes for lattice         */
   {0.0,0.0,0.0},		/* default start for lattice, reset in init_lattice */
   {0,0,0},                      /* default number of element in lattice, also reset */

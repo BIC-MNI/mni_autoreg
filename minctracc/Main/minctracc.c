@@ -13,9 +13,12 @@
 
    @CREATED    : February 3, 1992 - louis collins
    @MODIFIED   : $Log: minctracc.c,v $
-   @MODIFIED   : Revision 96.0  1996-08-21 18:21:51  louis
-   @MODIFIED   : Release of MNI_AutoReg version 0.96
+   @MODIFIED   : Revision 96.1  1999-10-25 19:52:19  louis
+   @MODIFIED   : final checkin before switch to CVS
    @MODIFIED   :
+ * Revision 96.0  1996/08/21  18:21:51  louis
+ * Release of MNI_AutoReg version 0.96
+ *
  * Revision 9.6  1996/08/21  18:21:49  louis
  * Pre-release
  *
@@ -78,11 +81,11 @@ Wed May 26 13:05:44 EST 1993 lc
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.0 1996-08-21 18:21:51 louis Rel $";
+static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.1 1999-10-25 19:52:19 louis Exp $";
 #endif
 
 #include <config.h>
-#include <volume_io.h>
+#include <internal_volume_io.h>
 #include <minctracc.h>
 #include <globals.h>
 
@@ -134,12 +137,6 @@ int main ( argc, argv )
       (measure_matlab_flag && argc!=3) ||
       (!measure_matlab_flag && argc!=4)) {
 
-/*
-      ((argc!=4) && (strlen(main_args.filenames.measure_file) == 0)) || 
-      ((argc!=3) && (strlen(main_args.filenames.matlab_file)  == 0))
-      ) {
-*/
-    
     print ("Parameters left:\n");
     for_less(i,0,argc)
       print ("%s ",argv[i]);
@@ -330,54 +327,38 @@ int main ( argc, argv )
   ALLOC(model_dz,1); ALLOC(model_dxyz,1);
   
   if (main_args.trans_info.use_magnitude) {
-
     /* non-linear optimization is based on the correlation of a local
-       sub-lattice between source and target gradient magnitude volumes */
+       sub-lattice between source and target gradient magnitude volumes 
+       for the first two volumes */
 
     if (main_args.trans_info.transform_type == TRANS_NONLIN)
       DEBUG_PRINT( "This run will use sub-lattice correlation between the two input vols.\n");
-
-
-    status = input_volume( main_args.filenames.data, 3, default_dim_names, 
-			  NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-			  TRUE, &data, (minc_input_options *)NULL );
-    if (status != OK)
-      print_error_and_line_num("Cannot input volume '%s'",
-			       __FILE__, __LINE__,main_args.filenames.data);
-    data_dxyz = data;
-    
-    status = input_volume( main_args.filenames.model, 3, default_dim_names, 
-			  NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-			  TRUE, &model, (minc_input_options *)NULL );
-    if (status != OK)
-      print_error_and_line_num("Cannot input volume '%s'",
-			       __FILE__, __LINE__,main_args.filenames.model);
-    model_dxyz = model;
   }
   else {
-
-    /* non-linear optimization is based on the correlation of the
-       Taylor projections stored in the {blurred,dx,dy,dz} data
-       volumes, so load all the files based on the basename */
+    /* non-linear optimization is based on the direct computation of a
+       deformation vector, based on optical flow.  Both volume _MUST_
+       be intensity normalized! */
 
     if (main_args.trans_info.transform_type == TRANS_NONLIN)
-      DEBUG_PRINT( "This run will use projection correlation between the 10 input vols.\n");
-
-    print_error_and_line_num("Ask Louis to change the code for loading into *features!\n",
-		     __FILE__, __LINE__);
-
-    status = read_all_data(&data, &data_dx, &data_dy, &data_dz, &data_dxyz,
-			   main_args.filenames.data );
-    if (status!=OK)
-      print_error_and_line_num("Cannot input gradient volumes for  '%s'",
-		  __FILE__, __LINE__,main_args.filenames.data);
-
-    status = read_all_data(&model, &model_dx, &model_dy, &model_dz, &model_dxyz,
-			   main_args.filenames.model );
-    if (status!=OK)
-      print_error_and_line_num("Cannot input gradient volumes for  '%s'",
-		  __FILE__, __LINE__,main_args.filenames.model);
+      DEBUG_PRINT( "This run will use optical flow.\n");
   }
+
+  status = input_volume( main_args.filenames.data, 3, default_dim_names, 
+			 NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+			 TRUE, &data, (minc_input_options *)NULL );
+  if (status != OK)
+      print_error_and_line_num("Cannot input volume '%s'",
+			       __FILE__, __LINE__,main_args.filenames.data);
+  data_dxyz = data;
+    
+  status = input_volume( main_args.filenames.model, 3, default_dim_names, 
+			 NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+			 TRUE, &model, (minc_input_options *)NULL );
+  if (status != OK)
+    print_error_and_line_num("Cannot input volume '%s'",
+			     __FILE__, __LINE__,main_args.filenames.model);
+  model_dxyz = model;
+
 
   get_volume_separations(data, step);
   get_volume_sizes(data, sizes);
@@ -443,7 +424,12 @@ int main ( argc, argv )
   main_args.features.mask_model_name[0] = main_args.filenames.mask_model;
   main_args.features.thresh_data[0]     = main_args.threshold[0];
   main_args.features.thresh_model[0]    = main_args.threshold[1];
-  main_args.features.obj_func[0]        = NONLIN_XCORR;
+  if (main_args.trans_info.use_magnitude) {
+    main_args.features.obj_func[0]        = NONLIN_XCORR;
+  } 
+  else {
+    main_args.features.obj_func[0]        = NONLIN_OPTICALFLOW;    
+  }
   main_args.features.weight[0]          = 1.0;
 
   /* ===========================  translate initial transformation matrix into 
@@ -839,6 +825,14 @@ public int get_feature_volumes(char *dst, char *key, int argc, char **argv)
       }
       if ( strncmp(argv[obj_func_index], "label", 2)==0 ) {
 	obj_func =  NONLIN_LABEL;
+	weight_index++; args_used++;
+      }
+      if ( strncmp(argv[obj_func_index], "chamfer", 2)==0 ) {
+	obj_func =  NONLIN_CHAMFER;
+	weight_index++; args_used++;
+      }
+      if ( strncmp(argv[obj_func_index], "opticalflow", 2)==0 ) {
+	obj_func =  NONLIN_OPTICALFLOW;
 	weight_index++; args_used++;
       }
 

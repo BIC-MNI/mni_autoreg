@@ -1,0 +1,89 @@
+There are at least two problems with estimations of a deformation
+vector based on similarity measures evaluated on a local neighbourhood
+with a limited window size:
+
+Self deformation:
+
+their appears to be a certain small amount of self deformation
+recovered for an object, even when it is matched to itself.  This is
+true for both simplex and quadratic fitting objective functions.  Why?
+Quantization errors? Sampling errors? Neighbourhood size?
+
+With an ellipsoid phantom, 16fwhm, gradient magnitude features,
+tri-linear interpolation, 8mm step, non-isotropic local smoothing:
+	simplex opt:   .421 avg def mag in 3D
+	quadratic opt: .425 avg def mag in 3D
+
+quadratic:
+compare_transform ellip_edge_mask2.mnc etest0_2.xfm1 ident.xfm
+xfm1: etest0_2.xfm1
+xfm2: ident.xfm
+mask: ellip_edge_mask2.mnc
+           mean      std
+x=       0.051844 0.047397
+y=       0.043518 0.045684
+z=       0.070164 0.055402
+3d=      0.112520 0.065166
+rms 3D:  0.130027
+ max/min:0.362361 0.000886
+count= 18179
+
+simplex:
+compare_transform ellip_edge_mask2.mnc etest0s_2.xfm1 ident.xfm
+xfm2: ident.xfm
+mask: ellip_edge_mask2.mnc
+           mean      std
+x=       0.039073 0.040137
+y=       0.034912 0.037930
+z=       0.048191 0.048133
+3d=      0.084178 0.057866
+rms 3D:  0.102147
+ max/min:0.541632 0.000381
+count= 18179
+
+Let us begin with a 1D example to see what the objective function should
+look like when an ideal step edge with matched to itself.  The profile
+of the gradient magnitude data extracted from the ideal step edge has
+a gaussian shape (since the data is blurred with a gaussian before
+derivation).  The shape of the local similarity function is a modulated
+gaussian: the similarity function should be ideally an gaussian-shaped
+autocorrelation function with a fwhm sqrt(2) times wider than the
+blurring fwhm. This gaussian is then modulated by the cost function to
+get the resulting objective function.  The shape of the obj function
+should be a bit sharpened, since the cost function reduces its value
+with distance from the center (zero deformation).
+
+Since the actual cost function is a truncated cubic, the resulting obj
+function is a gaussian * a truncated cubic.  In the
+
+
+Quadratic: In the case of the quadratic fitting procedure, I assume
+that the local objective function can be fit locally by a quadratic
+function.  While this is true in the limiting case, as the diameter of
+the neighbourhood approaches zero, it is not true for the size of the
+neighbourhoods used to estimate the deformation vectors (diameter =
+1.5fwhm recovered def).
+
+
+Aperture problem:
+
+The limited aperture permits the estimation of only the component of
+the deformation that is perpendicular to the "edges" that appear in
+the window.  In order to specify all components (x,y and z) of the
+deformation vector, the hessian matrix of the local similarity
+function _must_ be negative definite within the region defined by the
+local window. (Note that I am identifying the similarity function
+only, and not the objective function = similarity + cost; since the
+cost function coerces the obj function to be negative definite.)
+
+This means that a local translation will be correctly estimated, only
+when the translation is perpendicular to the gradient edges in the
+volume.
+
+Most authors (including me) use additional constraints to regularize
+the estimated vectors.  We assume that the deformation function is
+smooth (ie is band limited) wrt the scale of recovery.  The components
+of the deformation parallel to the gradient edges are given by the
+smoothing term in the optimization process.
+
+

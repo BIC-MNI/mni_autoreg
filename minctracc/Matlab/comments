@@ -1,0 +1,258 @@
+==================METHODS===================:
+
+***** DATA: 
+
+initial model data set created by simulating an ideal intensity
+profile through the ventricles of a T1-weighted transverse MRI slice.
+
+Intensity noise was added to the model to create a `subject's' data set.
+
+This data set was non-linearly deformed by resampling it with an
+variable offset transformation.  The offsets were created by summing
+different sine functions to maintain continuity through the
+deformation and constrained to have a limited maximum size.  These
+offsets are added at each sample position to locate the point in the
+original (model) space.
+
+
+***** BLURRING:
+
+Both data and model were blurred at resolutions of 24, 16, 12, 8 and 4 mm.
+First and second derivatives for each were calculated.
+
+***** MATCHING:
+
+Starting with the most blurred data set, the routine attempts to
+recover the deformation needed, that when applied to the model data
+set, makes it match the sample data set.  The matching process finds
+the best offset (from the current position) that minimises the
+normalized intensity difference of the second derivative of the
+blurred intensity data.  The offset is estimated at sample points
+along the data that are separated by the distance of the current
+scale.
+
+Note that this minimization is valid only when the value of the first
+derivative is non-zero, since the direction of the normal to the
+iso-intensity gradient cannot be reliably estimated for small first
+derivative values.
+
+Therefore, if the value of the magnitude of the first derivative for
+all points in the immediate neighbourhood of the sample node is less
+than 20% of the maximum first derivative value, then a zero
+displacement is assigned to that node.
+
+The deformation for the particular scale is stored in an array.
+
+Since the local deformation calculated for one node is part of the
+global warp, it will affect the correlation of neighbouring nodes.
+Thus the optimum displacement for a node does not take into account
+the optimum displacement for the neighbouring nodes, and therefore
+cannot be estimated independently.
+
+This requires the use of an iterative solution, where at each
+iteration over all nodes, only a fraction of the required displacement
+is stored in (by adding it to the current) the deformation field. 
+
+At each iterative step, the best dispacement (from the current
+position) is calculated and stored in a temporary array.  Once
+calculated for all nodes, the best displacement value is multiplied by
+a scaling factor (smaller than 1.0, currently equal to 0.4), so that
+this iteration will account for only a fraction of the displacement
+necessary for optimal alignment of the second derivative functions.
+This array is added, node by node, to the warp from the current scale.
+The current scale warp is smoothed (using a [0.2 0.6 0.2] weighting)
+and then added to the total transformation recovered, previous to this
+scale step, forming the current total warp.
+
+This current total warp is used to transform the model, making fit on
+the data, and the next iteration starts anew.
+
+
+At this time, the number of iterations is limited to 20 at each scale
+step. This should be changed to stop when the area under the best
+dispacement curve is less than a certain tolerance.
+
+***** MULTI-SCALE:
+
+This process is repeated, in decreasing levels of scale (increasing
+resolution).  Inputs to the process are: the 1st and 2nd derivative at
+that scale and the current summed total non-linear deformation.
+
+The current  non-linear deformation is the sum of the previous
+non-linear deformations, from the previous scales.  These deformation
+arrays are resampled and added together on the highest resolution
+sampling grid (smallest step size).
+
+
+***** PROBLEMS:
+
+There are a number of problems with the current implementation:
+
+1 - misses some peaks in the deformation field
+
+	- could be because there is no support in the data to capture
+	the deformation.  
+
+ 	- could be that I am not sampling often enough?
+
+3 - in match.m, I normalize the intensity of the two data strings to
+    be matched - I am not sure how this affects the match.  
+
+    if the two arrays were on the rising slope of a curve, and there
+    was some real displacement between the two because they truely
+    correspond to different parts of the curve, then they will be
+    mapped together incorrectly.
+
+4 - what is the sampling limit of the deformation function?  If I want
+to recover the deformation at a resolution of X, then the maximum
+spacing between sample nodes must be X/2.
+
+Using this argument, and the fact that I dont want to/can't have samples
+smaller than 1mm spacing, then the deformation field to be recovered
+must be bandlimited to have no frequencies greater than .5cycles/mm.  
+
+5- topological equivalence:
+
+what to do when, at some scale, there is no topological equivalence
+between data and model, ie when data has two bumps and model has one?
+
+
+
+***** NOTES:
+
+The matching process balences the need for a deformation (as reqd from
+image correlation) and the smoothness constraint applied to the
+deformation field (by averaging neighbours).
+
+Note that there is no deformation recovered where there is no support
+to calculate it.  In these regions, the deformation is extrapolated
+from the neighbouring regions in the smoothing process at each iteration.
+
+while the number of nodes to be tested doubles at each step in
+resolution, the number of nodes to be optimized does not, since only
+nodes with a non-negligable first derivative are optimized.  for clean
+MR data, the fraction of nodes optimized to nodes to be tested
+actually goes down with resolution (?!).
+
+
+-----------PROBLEMS SOLVED ---------------------------
+
+NEW MATCHING done
+  use a different match criteria - use d^2 instead of abs(d) in
+match.m 
+
+NEW OPTIMIZATION done
+  use brute force for the first few iterations, afterwards, NR or
+bisection methods should work reasonably well.  
+
+Note that the objective function is not smooth all the way through the
+domain where is is being estimated now. (However, most of the time is
+is nicely parabolic, and always with a single minima!)  
+
+NEW RESAMPLING/FEATURES -done
+  need to try to run the process using the original data, and use the
+cubic spline fits to estimate the 1st and 2nd derivative.  Note that
+one has to be very careful when calculating the deformation using
+cubic spline interpolation.  The values must be interpolated from the
+original data to avoid errors that are detrimental to the matching
+process.  While it is possible to estimate the 1st and second
+derivative from interpolated intensity values, the derivatives
+determined this way are unreliable.  They must be estimated from the
+original voxel values directly.
+
+-----------TODO---------------------------
+
+
+FLAT OBJECTIVE FUNCTION-
+  check the diff between the min and max function values returned in
+p, vs the distance over x.  there should be some difference in the
+min/max, say at least 0.15*LR distance, otherwise the obj function is
+too flat to be reliable.
+
+Determine DOMAIN LIMIT:
+
+What is the domain limit that should be used? After the first few
+iterations, the minima seems to be within one half of the current
+scale. If I include too much, then there is problems with data that is
+very different from the model, if too little, then there is not enough
+to grab on and match.
+
+SCALE STEP? 
+   how should we change scales at each step? by how much? 0.5 seems to
+be the accepted practice, but it is far from continuous in scale space!
+
+STOPPING CRITERIA:
+  when do I stop iterating - should be when the smallest step
+deformation applied at the current scale is some fraction of the
+current scale ( or of the next scale, since it should be smaller than
+the next scale as the next scale will have an upper limit.).
+
+ITERATION STEP/ SMOOTHING amount
+  how far along the desired direction should I step?  currently, I
+step 0.3 times the required amount.  this has to be balanced against
+the smoothing factors.
+
+Smoothing has a tendency to soften the single point peaks of the
+deformation function.  Once the magnitude of the peak reduced, it will
+be impossible for it to come back into position, since only a fraction
+of the required distance is ever applied to the warp.  Thus the curve
+will tend to the correct result, without ever attaining it.
+
+If the peak is a number of points wide, the same argument is true, but
+the affect on the warping is diminished, since the neighbouring points
+in the deformation field will have similar values, and thus will not
+be overly smoothed.
+
+WARP PROPAGATION
+
+I need to find some way to propagate a warp through areas where there
+is no data to support the estimatation of the local warp.  This
+propagation would probably come from the use of some elastic model,
+where the constraints of the physical model can be used to propagate
+the forces.
+
+
+EDGE EFFECTS - done
+  is there a problem on the edges due to insufficient zero padding?
+  done - I modified makedata.m to make makedata2, but there may still
+be some problems
+
+
+--------- TODO - TO TRY ONCE WORKING -------------------
+
+Simulate noise:  graph error against amount of noise in data.
+
+Optimization: is there some way to measure the match between source
+and target, and concentrate fitting in these area only, instead of
+calculating the fit everywhere?
+
+Real data matching: take a profile through the average brain and use
+as model + profiles through a number of real brains (in stx space, so
+that linear alignment is already done) and try to match profiles!
+
+
+	avg.mnc and subj.mnc contain 1 slice minc files.  
+
+	mincextract -float -start 0,149,0 -count 1,1,256 avg.mnc | ftoa > ! avg.prof
+	mincextract -float -start 0,149,0 -count 1,1,256 subj.mnc | ftoa > ! subj.prof
+
+then in matlab:
+
+load avg.prof -ascii
+load subj.prof -ascii
+
+avg_pro = zeros(length(avg), 2);
+subj_pro = zeros(length(subj), 2);
+avg_pro(:,1) = avg;
+avg_pro(:,2) = [-86.095:0.67:84.755]';
+subj_pro(:,1) = subj;
+subj_pro(:,2) = [-86.095:0.67:84.755]';
+
+xpos = [-128:127];
+template = zeros(length(xpos),2);
+template(:,2) = xpos';
+
+avg_profile = int_like(avg_pro, template);
+sub_profile = int_like(subj_pro, template);
+
+do_realwarp(1) will then warp the subject to the  average model.

@@ -1,0 +1,96 @@
+function d = op_node(mod,md,mdd ,dat,d,dd, spacing, warps, pos,flag,op_type)
+
+%   check to see if we are too close to the ends
+
+if ((pos+spacing > max(md(:,2))) | (pos-spacing < min(md(:,2))))
+   d = 0;
+   return
+end
+
+%   get the value of the 1st deriv at the point of interest
+
+md_val = inter_p(md, pos);
+
+%   if the value is not large enough, then ignore it
+
+if abs(md_val) < 0.2*max(md)
+   d = 0;
+   return;
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%   get values of model 2nd derivative
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%  for f1 = f(-1),
+%      f2 = f(0),
+%      f3 = f(1),
+%      f4 = f(2), 
+%
+%      a1 =                f2;
+%      a2 =  -1.0*f1/3.0 - f2/2.0 + f3     - f4/6.0;
+%      a3 =       f1/2.0 - f2     + f3/2.0 ;
+%      a4 =  -1.0*f1/6.0 + f2/2.0 - f3/2.0 + f4/6.0;
+%
+%  to estimate function f() at xpos, using cubic interpolation:
+%
+%      f   = a1 + a2*xpos + a3*xpos^2 + a4*xpos^3
+%      fp  = a2 + 2*a3*xpos + 3*a4*xpos*xpos;      first derivitive
+%      fpp = 2*a3 + 6*a4*xpos;	                   second derivitive 
+
+
+vspace = spacing / (md(2,2)-md(2,1));
+
+data = zeros(11,2);
+model= zeros(11,2);
+
+for i=-5:5,
+  p_i = pos + i*spacing/4;
+  model(i+6,1) = inter_p(mod, p_i);
+  model(i+6,2) = p_i;
+end
+
+mod_pp = model;
+for i=-4:4,
+   f1 = model(i+6-1,1);
+   f2 = model(i+6,1);
+   f3 = model(i+6+1,1);
+   mod_pp(i+6,1) = f1/2.0 - f2     + f3/2.0;
+end
+
+%   get values of data 2nd derivative
+
+for i=-5:5,
+   pd = pos + i*spacing/4;
+%				apply current transformation to get data point.
+   p_i = transf(pd, warps);
+   data(i+6,1) = inter_p(dat, p_i);
+   data(i+6,2) = pd;
+end;
+
+dat_pp = data;
+for i=-4:4,
+   f1 = data(i+6-1,1);
+   f2 = data(i+6,1);
+   f3 = data(i+6+1,1);
+   dat_pp(i+6,1) = f1/2.0 - f2     + f3/2.0;
+end
+
+[d,tmpp] = match(mod_pp(2:10,:),dat_pp(2:10,:),spacing,op_type);
+
+if (flag>0)
+ figure(5);
+ plot(mod_pp(2:10,2),mod_pp(2:10,1),'x',dat_pp(2:10,2),dat_pp(2:10,1),'o'); hold on
+ plot(mod_pp(2:10,2),mod_pp(2:10,1),dat_pp(2:10,2),dat_pp(2:10,1)); 
+ plot([mod_pp(5,2) mod_pp(5,2)+d], [mod_pp(5,1) mod_pp(5,1)],'-w');
+
+ mt = max(abs(tmpp(:,1)));
+ tmpp(:,1) = tmpp(:,1) / mt;
+ tmpp(:,1) = max(abs(mod_pp(2:10,1))) * tmpp(:,1);
+ plot(tmpp(:,2),tmpp(:,1),'r');
+ grid on ; 
+ hold off;
+ title('model (x), dat_pp (o)');
+
+ drawnow;
+end;
