@@ -225,19 +225,78 @@ BOOLEAN get_cog(char *file, double *c1)
 
 }
 
+/* Centre of rotation and scale */
+double cent[3];
 
-int main(int argc, char *argv[])
+
+void process_linear_transform( Transform* mat )
 {
-  static double 
-    cent[3],
+  int i;
+  double 
     rots[3],
     tran[3],
     scal[3],
     sher[6];
-  Transform 
-    *mat;
-  General_transform
-    gt;
+
+  for_less(i,0,3) {
+    rots[i] = tran[i] = scal[i] = 0.0;
+  }
+  for_less(i,0,6) sher[i] = 0.0;
+
+  extract2_parameters_from_matrix(mat,    cent, tran, scal, sher, rots);
+
+  print("after parameter extraction\n");
+  print("-center      %10.5f %10.5f %10.5f\n", cent[0], cent[1], cent[2]);
+  print("-translation %10.5f %10.5f %10.5f\n", tran[0], tran[1], tran[2]);
+  print("-rotation    %10.5f %10.5f %10.5f\n", 
+	rots[0]*180.0/3.1415927, rots[1]*180.0/3.1415927, rots[2]*180.0/3.1415927);
+  print("-scale       %10.5f %10.5f %10.5f\n", scal[0], scal[1], scal[2]);
+  print("-shear       %10.5f %10.5f %10.5f\n", sher[0], sher[1], sher[2]);
+  
+}
+
+
+void process_general_transform( General_transform* t);
+
+void process_concatenated_transform( General_transform* t )
+{
+    int n = get_n_concated_transforms( t );
+    int i;
+
+    print("[CONCATENATED TRANSFORM]\n");
+    for( i = 0; i < n; ++i ) {
+	print("Transform %d: ", i+1);
+	process_general_transform( get_nth_general_transform(t,i) );
+	print("\n\n");
+    }
+}
+	    
+
+void process_general_transform( General_transform* t )
+{
+    switch (t->type) {
+    case LINEAR:
+	process_linear_transform( get_linear_transform_ptr(t) );
+	break;
+    case THIN_PLATE_SPLINE:
+	print("[THIN PLATE SPLINE]\n");
+	break;
+    case USER_TRANSFORM:
+	print("[USER SPECIFIED TRANSFORM]\n");
+	break;
+    case CONCATENATED_TRANSFORM:
+	process_concatenated_transform( t );
+	break;
+    case GRID_TRANSFORM:
+	print("[GRID TRANSFORM]\n");
+	break;
+    }
+}
+
+
+int main(int argc, char *argv[])
+{
+  General_transform gt;
   char *xfmfile;
   int i;
 
@@ -250,12 +309,9 @@ int main(int argc, char *argv[])
     {NULL, ARGV_END, NULL, NULL, NULL}
   };
    
-  prog_name = argv[0];
-
   for_less(i,0,3) {
-    cent[i] = rots[i] = tran[i] = scal[i] = 0.0;
+    cent[i] = 0.0;
   }
-  for_less(i,0,6) sher[i] = 0.0;
 
   if (ParseArgv(&argc, argv, argTable, 0) || (argc<2)) {
     (void) fprintf(stderr, "Usage: %s file.xfm [file.mnc] [options] \n",
@@ -278,19 +334,9 @@ int main(int argc, char *argv[])
     (void)fprintf(stderr, "Error reading transformation file.\n");
     exit(EXIT_FAILURE);
   }
-  
-  mat = get_linear_transform_ptr(&gt);
 
-  extract2_parameters_from_matrix(mat,    cent, tran, scal, sher, rots);
-
-  print("after parameter extraction\n");
-  print("-center      %10.5f %10.5f %10.5f\n", cent[0], cent[1], cent[2]);
-  print("-translation %10.5f %10.5f %10.5f\n", tran[0], tran[1], tran[2]);
-  print("-rotation    %10.5f %10.5f %10.5f\n", 
-	rots[0]*180.0/3.1415927, rots[1]*180.0/3.1415927, rots[2]*180.0/3.1415927);
-  print("-scale       %10.5f %10.5f %10.5f\n", scal[0], scal[1], scal[2]);
-  print("-shear       %10.5f %10.5f %10.5f\n", sher[0], sher[1], sher[2]);
-  
+  process_general_transform( &gt );
   exit(EXIT_SUCCESS);
 }
+
 
