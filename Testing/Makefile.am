@@ -21,12 +21,12 @@ aux_testfiles = \
 	ellipse1.mnc \
 	ellipse2.mnc \
 	ellipse3.mnc \
-	ellipse4.mnc \
+	warped_ellipse4.mnc \
 	ellipse0_dxyz.mnc \
 	ellipse1_dxyz.mnc \
 	ellipse2_dxyz.mnc \
 	ellipse3_dxyz.mnc \
-	ellipse4_dxyz.mnc \
+	warped_ellipse4_dxyz.mnc \
 	test1.xfm \
 	test2.xfm \
 	test3.xfm 
@@ -67,9 +67,11 @@ ellipse3.mnc: Makefile.am ellipse0.mnc test3.xfm
 	mincresample -clobber -transformation test3.xfm \
 	-like ellipse0.mnc ellipse0.mnc $@
 
-ellipse4.mnc: Makefile.am ellipse0.mnc
+warped_ellipse4.mnc: Makefile.am ellipse0.mnc
+	mincmath ellipse0.mnc ellipse_tmp$$.mnc -mult -constant 4.5 ; \
 	mincresample -clobber -transformation $(srcdir)/tps.xfm \
-	-like ellipse0.mnc ellipse0.mnc $@
+	-like ellipse0.mnc ellipse_tmp$$.mnc $@ ; \
+	rm -f ellipse_tmp$$.mnc
 
 ellipse0_dxyz.mnc: ellipse0.mnc
 	../mincblur/mincblur -clobber -gradient -fwhm 6 ellipse0.mnc ellipse0
@@ -83,8 +85,8 @@ ellipse2_dxyz.mnc: ellipse2.mnc
 ellipse3_dxyz.mnc: ellipse3.mnc
 	../mincblur/mincblur -clobber -gradient -fwhm 6 ellipse3.mnc ellipse3
 
-ellipse4_dxyz.mnc: ellipse4.mnc
-	../mincblur/mincblur -clobber -gradient -fwhm 6 ellipse4.mnc ellipse4
+warped_ellipse4_dxyz.mnc: warped_ellipse4.mnc
+	../mincblur/mincblur -clobber -gradient -fwhm 6 warped_ellipse4.mnc warped_ellipse4
 
 
 
