@@ -16,12 +16,18 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 1.10  1994-06-19 15:00:20  louis
-@MODIFIED   : working version with 3D simplex optimization to find local deformation
-@MODIFIED   : vector.  time for cleanup.  will remove all fft stuff from code in 
-@MODIFIED   : next version.
+@MODIFIED   : Revision 1.11  1994-06-19 15:43:50  louis
+@MODIFIED   : clean working version of 3D local deformation with simplex optimization
+@MODIFIED   : (by default) on magnitude data (default).  No more FFT stuff.
+@MODIFIED   : This working version before change of deformation field in do_nonlinear.c
 @MODIFIED   :
 @MODIFIED   :
+ * Revision 1.10  94/06/19  15:00:20  louis
+ * working version with 3D simplex optimization to find local deformation
+ * vector.  time for cleanup.  will remove all fft stuff from code in 
+ * next version.
+ * 
+ * 
  * Revision 1.9  94/06/18  12:29:12  louis
  * temporary version.  trying to find previously working simplex
  * method.
@@ -91,7 +97,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 1.10 1994-06-19 15:00:20 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 1.11 1994-06-19 15:43:50 louis Exp $";
 #endif
 
 
@@ -150,18 +156,12 @@ extern int    number_dimensions;
 /* prototypes */
 
 
-int amoeba2(float **p, float y[], int ndim, float ftol, float (*funk)(), int *nfunk);
-
-
-public void muli_vects(float *r, float *s1, float *s2, int n);
-
-private void copy_data_into_fft_array(float *data, float *ffa, int numd, int numf, int dim);
-
-private void find_max_in_fft_array(float *ffa, int num, int ndim,
-				   int *dx, int *dy, int *dz);
-
-private void find_best_offset(float *data, float *mask, int n1, int n2, int dim, 
-			      float *dx, float *dy, float *dz);
+int amoeba2(float **p, 
+	    float y[], 
+	    int ndim, 
+	    float ftol, 
+	    float (*funk)(), 
+	    int *nfunk);
 
 public void    build_source_lattice(Real x, Real y, Real z,
 				    float PX[], float PY[], float PZ[],
@@ -217,13 +217,14 @@ public Real find_offset_to_match(Line_data *m,
 				 Real      limit,
 				 int       op_type);
 
-private Real optimize_1D_deformation_for_single_node(Real spacing, Real threshold1, Real threshold2,
+private Real optimize_1D_deformation_for_single_node(Real spacing, 
+						     Real threshold1, Real threshold2,
 						     Real wx, Real wy, Real wz,
 						     Real mx, Real my, Real mz,
 						     Real *def_x, Real *def_y, Real *def_z,
 						     int match_type);
 
-private Real optimize_3D_deformation_for_single_node(Real spacing, Real threshold1, Real threshold2,
+private Real optimize_3D_deformation_for_single_node(Real spacing, Real threshold1, 
 						     Real src_x, Real src_y, Real src_z,
 						     Real mx, Real my, Real mz,
 						     Real *def_x, Real *def_y, Real *def_z,
@@ -231,20 +232,11 @@ private Real optimize_3D_deformation_for_single_node(Real spacing, Real threshol
 						     int *nfunks,
 						     int ndim);
 
-private Real optimize_3D_deformation_by_FFT(Real spacing, Real threshold1, Real threshold2,
-						     Real src_x, Real src_y, Real src_z,
-						     Real mx, Real my, Real mz,
-						     Real *def_x, Real *def_y, Real *def_z,
-						     int *nfunks,
-						     int ndim);
-
-private BOOLEAN get_best_start_from_neighbours(Real threshold1, Real threshold2,
+private BOOLEAN get_best_start_from_neighbours(Real threshold1, 
 					       Real wx, Real wy, Real wz,
 					       Real mx, Real my, Real mz,
 					       Real *tx, Real *ty, Real *tz,
 					       Real *d1x_dir, Real *d1y_dir, Real *d1z_dir,
-					       Real *px_dir,  Real *py_dir,  Real *pz_dir,
-					       Real *d2x_dir, Real *d2y_dir, Real *d2z_dir,
 					       Real *def_x, Real *def_y, Real *def_z);
   
 
@@ -575,7 +567,7 @@ public Status do_non_linear_optimization(Volume d1,
 
 	    if (Gglobals->trans_info.use_simplex==TRUE)
 	      result = optimize_3D_deformation_for_single_node(steps[0], 
-							       threshold1,threshold2,
+							       threshold1,
 							       tx,ty,tz,
 							       mx, my, mz,
 							       &def_x, &def_y, &def_z, 
@@ -583,13 +575,12 @@ public Status do_non_linear_optimization(Volume d1,
 							       &nfunks,
 							       number_dimensions);
 	    else
-	      result = optimize_3D_deformation_by_FFT(steps[0], 
-						      threshold1,threshold2,
-						      tx,ty,tz,
-						      mx, my, mz,
-						      &def_x, &def_y, &def_z, 
-						      &nfunks,
-						      number_dimensions);
+	      result = optimize_1D_deformation_for_single_node(steps[0], 
+							       threshold1,threshold2,
+							       tx,ty,tz,
+							       mx, my, mz,
+							       &def_x, &def_y, &def_z, 
+							       matching_type);
 	    
 	    if (result == -40.0) {
 	      nodes_tried++;
@@ -729,7 +720,7 @@ print ("time: %d - %d = %d seconds\n",timer2, timer1, timer2-timer1);
 		
 		if (Gglobals->trans_info.use_simplex==TRUE)
 		  result = optimize_3D_deformation_for_single_node(steps[0], 
-								   threshold1,threshold2,
+								   threshold1,
 								   tx,ty,tz,
 								   mx, my, mz,
 								   &def_x, &def_y, &def_z, 
@@ -737,13 +728,12 @@ print ("time: %d - %d = %d seconds\n",timer2, timer1, timer2-timer1);
 								   &nfunks,
 								   number_dimensions);
 		else
-		  result = optimize_3D_deformation_by_FFT(steps[0], 
-							  threshold1,threshold2,
-							  tx,ty,tz,
-							  mx, my, mz,
-							  &def_x, &def_y, &def_z, 
-							  &nfunks,
-							  number_dimensions);
+		  result = optimize_1D_deformation_for_single_node(steps[0], 
+								   threshold1,threshold2,
+								   tx,ty,tz,
+								   mx, my, mz,
+								   &def_x, &def_y, &def_z, 
+								   matching_type);
 		
 	      }
 	    }
@@ -840,9 +830,10 @@ private Real optimize_1D_deformation_for_single_node(Real spacing, Real threshol
 {
   Line_data data1, data2;
   Real
+    mag_normal2,mag,
     offset, 
     result,
-    tx,ty,tz, 
+    tx,ty,tz, tempx, tempy, tempz, temp1x, temp1y, temp1z,
     px_dir, py_dir, pz_dir,
     d1x_dir, d1y_dir, d1z_dir,
     d2x_dir, d2y_dir, d2z_dir;
@@ -855,16 +846,74 @@ private Real optimize_1D_deformation_for_single_node(Real spacing, Real threshol
   *def_z = 0.0;
 
 
-  if (!get_best_start_from_neighbours(threshold1,  threshold2,
+  if (!get_best_start_from_neighbours(threshold1,  
 				      wx,  wy,  wz,
 				      mx,  my,  mz,
 				      &tx, &ty,  &tz,
 				      &d1x_dir, &d1y_dir, &d1z_dir,
-				      &px_dir, &py_dir, &pz_dir,
-				      &d2x_dir, &d2y_dir, &d2z_dir,
 				      def_x,  def_y,  def_z)) {
     return(result);
   }
+
+  mag_normal2 =
+    get_normalized_world_gradient_direction(tx,ty,tz,
+					    Gd2_dx, Gd2_dy, Gd2_dz,
+					    &d2x_dir, &d2y_dir, &d2z_dir,
+					    threshold2);
+
+                                /* project normal 1 in space of normal 2 */
+    tempx = wx + d1x_dir;
+    tempy = wy + d1y_dir;
+    tempz = wz + d1z_dir;
+    general_transform_point(Gglobals->trans_info.transformation,
+                            tempx,tempy,tempz,
+                            &temp1x,&temp1y,&temp1z);
+    tempx = temp1x - tx;
+    tempy = temp1y - ty;
+    tempz = temp1z - tz;
+
+    mag = sqrt(tempx*tempx + tempy*tempy + tempz*tempz);
+
+    if (mag>0) {
+      px_dir = tempx / mag;
+      py_dir = tempy / mag;
+      pz_dir = tempz / mag;
+    }
+    else {
+      px_dir = tempx;
+      py_dir = tempy;
+      pz_dir = tempz;
+    }
+
+                                /* if mag_normal2 is too small, than use projection of d1?_dir
+                                   in the target space for the direction vector*/
+    if (mag_normal2 < threshold2) {
+      d2x_dir = px_dir;
+      d2y_dir = py_dir;
+      d2z_dir = pz_dir;
+    }
+    else {                      /* make sure that the both normal directions are  aligned,
+                                   and are not pointing in opposite directions!*/
+      tempx = d2x_dir + px_dir;
+      tempy = d2y_dir + py_dir;
+      tempz = d2z_dir + pz_dir;
+      mag = tempx*tempx + tempy*tempy + tempz*tempz;
+
+      tempx = d2x_dir - px_dir;
+      tempy = d2y_dir - py_dir;
+      tempz = d2z_dir - pz_dir;
+
+                                /* if the d2?_dir + p?_dir < d2?_dir - p?_dir,
+                                   then d2?_dir is pointing the wrong way! x*/
+
+      if (mag < (tempx*tempx + tempy*tempy + tempz*tempz)) {
+        d2x_dir = -(d2x_dir);
+        d2y_dir = -(d2y_dir);
+        d2z_dir = -(d2z_dir);
+      }
+
+    }
+
 
 
   /* we now have direction vectors and positions for both volumes.
@@ -921,30 +970,31 @@ private Real optimize_1D_deformation_for_single_node(Real spacing, Real threshol
 
 
 
-private BOOLEAN get_best_start_from_neighbours(Real threshold1, Real threshold2,
+private BOOLEAN get_best_start_from_neighbours(Real threshold1, 
 					       Real wx, Real wy, Real wz,
 					       Real mx, Real my, Real mz,
 					       Real *tx, Real *ty, Real *tz,
 					       Real *d1x_dir, Real *d1y_dir, Real *d1z_dir,
-					       Real *px_dir, Real *py_dir, Real *pz_dir,
-					       Real *d2x_dir, Real *d2y_dir, Real *d2z_dir,
 					       Real *def_x, Real *def_y, Real *def_z)
      
 {
   Real
-    t,mag_normal1, mag_normal2,
-    mag,
-    nx, ny, nz, tempx,tempy,tempz,temp1x,temp1y,temp1z;
+    mag_normal1,
+    nx, ny, nz;
 
 
 				/* map point from source, forward into target space */
 
   general_transform_point(Gglobals->trans_info.transformation, wx,wy,wz, tx,ty,tz);
 
-                /* average out target point with the mean position of its neightbours */
+				/* average out target point with the mean position 
+				   of its neightbours */
 
-  nx = (*tx+mx)/2.0; ny = (*ty+my)/2.0; nz = (*tz+mz)/2.0; 
-
+  nx = (*tx+mx)/2.0; 
+  ny = (*ty+my)/2.0; 
+  nz = (*tz+mz)/2.0; 
+				/* what is the deformation needed to achieve this 
+				   displacement */
   *def_x = nx - *tx;
   *def_y = ny - *ty;
   *def_z = nz - *tz;
@@ -962,96 +1012,6 @@ private BOOLEAN get_best_start_from_neighbours(Real threshold1, Real threshold2,
   else
     return(TRUE);
   
-
-  return(TRUE);
-
-  if ( mag_normal1 < threshold1 )  { /* we can't estimate the local surface */
-    exit(-1);
-  }
-  else {
-				/* first direction is fine, get its equivalent in the 
-				   other volume */
-
-    mag_normal2 = 
-      get_normalized_world_gradient_direction(*tx,*ty,*tz, 
-					      Gd2_dx, Gd2_dy, Gd2_dz, 
-					      d2x_dir, d2y_dir, d2z_dir,
-					      threshold2);
-
-				/* project normal 1 in space of normal 2 */
-    tempx = wx + *d1x_dir;
-    tempy = wy + *d1y_dir;
-    tempz = wz + *d1z_dir;
-    general_transform_point(Gglobals->trans_info.transformation,
-			    tempx,tempy,tempz,
-			    &temp1x,&temp1y,&temp1z);
-    tempx = temp1x - *tx;
-    tempy = temp1y - *ty;
-    tempz = temp1z - *tz;
-
-    mag = sqrt(tempx*tempx + tempy*tempy + tempz*tempz);
-
-    if (mag>0) {
-      *px_dir = tempx / mag;
-      *py_dir = tempy / mag;
-      *pz_dir = tempz / mag;
-    } 
-    else {
-      *px_dir = tempx;
-      *py_dir = tempy;
-      *pz_dir = tempz;
-    }
-      
-				/* if mag_normal2 is too small, than use projection of d1?_dir
-				   in the target space for the direction vector */
-    if (mag_normal2 < threshold2) {
-      *d2x_dir = *px_dir;
-      *d2y_dir = *py_dir;
-      *d2z_dir = *pz_dir;
-    }
-    else {			/* make sure that the both normal directions are aligned,
-				   and are not pointing in opposite directions! */
-      tempx = *d2x_dir + *px_dir;
-      tempy = *d2y_dir + *py_dir;
-      tempz = *d2z_dir + *pz_dir;
-      mag = tempx*tempx + tempy*tempy + tempz*tempz;
-
-      tempx = *d2x_dir - *px_dir;
-      tempy = *d2y_dir - *py_dir;
-      tempz = *d2z_dir - *pz_dir;
-
-				/* if the d2?_dir + p?_dir < d2?_dir - p?_dir,
-				   then d2?_dir is pointing the wrong way! x*/
-
-      if (mag < (tempx*tempx + tempy*tempy + tempz*tempz)) {
-	*d2x_dir = -(*d2x_dir);
-	*d2y_dir = -(*d2y_dir);
-	*d2z_dir = -(*d2z_dir);
-      }
-
-    }
-  
-
-       /* project the mean point in target space onto the plane defined by the 
-	  direction d2?_dir and the point tx,ty,tz */
-
-    t = ( *d2x_dir * (*tx - mx) + *d2y_dir * (*ty - my) + *d2z_dir * (*tz - mz) ) / 
-      (*d2x_dir * *d2x_dir + *d2y_dir * *d2y_dir + *d2z_dir * *d2z_dir);
-    
-    nx = mx + t * *d2x_dir;
-    ny = my + t * *d2y_dir;
-    nz = mz + t * *d2z_dir;
-    
-		     /* store the difference as the 1st part of the additional warp */
-    *def_x = nx - *tx;
-    *def_y = ny - *ty;
-    *def_z = nz - *tz;
-		     /* replace the target point with this new point */
-    *tx = nx; *ty = ny; *tz = nz;
-    return(TRUE);
-  }
-
-
 }
 
 /*******************************************************************************/
@@ -1396,168 +1356,8 @@ public void save_data(char *basename, int i, int j,
 /* note that the value of the spacing coming in is FWHM/2 for the data
    used to do the correlation. */
 
-private Real optimize_3D_deformation_by_FFT(Real spacing, 
-					    Real threshold1, Real threshold2,
-					    Real src_x, Real src_y, Real src_z,
-					    Real mx, Real my, Real mz,
-					    Real *def_x, Real *def_y, Real *def_z,
-					    int *num_functions,
-					    int ndim)
-{
-  Real
-    result,
-    tx,ty,tz, 
-    xp,yp,zp, 
-    px_dir, py_dir, pz_dir,
-    d1x_dir, d1y_dir, d1z_dir,
-    d2x_dir, d2y_dir, d2z_dir;
-  float
-    step,
-    dx,dy,dz,
-    *res;
-    
-    
-  int 
-    num1,num2,len1,len2,
-    i;
-
-  result = 0.0;			/* assume no additional deformation */
-  *num_functions = 0;		/* assume no optimization done      */
-
-  if (!get_best_start_from_neighbours(threshold1, threshold2,
-				      src_x,  src_y,  src_z,
-				      mx,  my,  mz,
-				      &tx,  &ty,  &tz,
-				      &d1x_dir, &d1y_dir, &d1z_dir,
-				      &px_dir,  &py_dir,  &pz_dir,
-				      &d2x_dir, &d2y_dir, &d2z_dir,
-				      def_x,  def_y,  def_z)) {
-
-				/* then there is no gradient magnitude strong enough
-				   to grab onto...*/
-
-    result = -40.0;		/* set result to a flag value used above */
-
-  }
-  else {
-
-
-    /* we now have the info needed to continue...
-
-       src_x, src_y, src_z - point in source volume
-       tx, ty, tz          - best point in target volume, so far.
-       def_x,def_y,def_z   - currently contains the additional def needed to 
-                             take src_x,src_y,src_z mid-way to the neighbour's mean-point
-			     (which is now stored in tx,ty,tz).
-                    
-       */   
-    
-    num1 = 14;    num2 = 6;	/* if odd number, then the lattice will have
-				   one node ON the point to be optimized     */
-    len1 = num1;  len2 = num2;
-    for_less(i,1,ndim) {
-      len1 *= num1;
-      len2 *= num2;
-    }
-
-    Glen = len1;
-    
-    Ga1xyz = vector(1,len1);
-    Ga2xyz = vector(1,len2);
-    
-    SX = vector(1,len1);
-    SY = vector(1,len1);
-    SZ = vector(1,len1);
-    TX = vector(1,len2);
-    TY = vector(1,len2);
-    TZ = vector(1,len2);
-				/* get the position, in the source volume, of 
-				   the node to be optimized            	   */
-    general_inverse_transform_point(Gglobals->trans_info.transformation, 
-				    tx,  ty,  tz,
-				    &xp, &yp, &zp);
-
-				/* build the lattice of points, in the source volume */
-				/* taking into consideration the warp from neighbours */
-
-    step = (spacing*2)/5;	/* step = .2* FWHM approximately */
-    build_source_lattice(xp, yp, zp, 
-			 SX,    SY,    SZ,
-			 step*(num2-1), step*(num2-1), step*(num2-1),  /* lattice size= 1.5*fwhm */
-			 num2, num2, num2, 
-			 ndim);
-    
-				/* map this lattice forward into the target space,
-				   using the current transformation. */
-    build_target_lattice(SX,SY,SZ,
-			 TX,TY,TZ,
-			 len2);
-
-				/* build the source lattice (without warp),
-				   that will be used in the optimization below */
-    build_source_lattice(src_x, src_y, src_z,
-			 SX,    SY,    SZ,
-			 step*(num1-1), step*(num1-1), step*(num1-1),  /* lattice size= 3.0*fwhm */
-			 num1, num1, num1, 
-			 ndim);
-    
-    go_get_samples_in_source(Gd1_dxyz, SX,SY,SZ, Ga1xyz, len1, 3);
-    go_get_samples_in_source(Gd2_dxyz, TX,TY,TZ, Ga2xyz, len2, 3);
-
-    find_best_offset(Ga1xyz,Ga2xyz, num1,num2, ndim, &dx, &dy, &dz);
-    
-/*
-if (!(dx==0 && dy==0)) {
-  for_less(i,0,num2) {
-    for_less(j,0,num2) {
-      print ("%9.4f ", Ga2xyz[i*num2 + j +1] - Ga1xyz[(i+(num1-num2)/2)*num1 + (j+(num1-num2)/2) +1]);
-    }
-    print ("\n");
-  }
-
-  for_less(i,0,num2){
-    for_less(j,0,num2){
-      print ("%9.4f %9.4f %9.4f (%9.4f) -> (%9.4f) %9.4f %9.4f %9.4f \n",
-	     SX[(i+(num1-num2)/2)*num1 + (j+(num1-num2)/2) +1],
-	     SY[(i+(num1-num2)/2)*num1 + (j+(num1-num2)/2) +1],
-	     SZ[(i+(num1-num2)/2)*num1 + (j+(num1-num2)/2) +1],
-	     Ga1xyz[(i+(num1-num2)/2)*num1 + (j+(num1-num2)/2) +1],
-	     Ga2xyz[i*num2 + j +1],
-	     TX[i*num2 + j +1],
-	     TY[i*num2 + j +1],
-	     TZ[i*num2 + j +1]);
-    }
-  }
-  print ("dx dy = %d %d\n\n", dx, dy);
-
-}
-*/
-    *def_x -= step*dx;
-    *def_y -= step*dy;
-    if (ndim > 2)
-      *def_z -= step*dz;
-    else
-      *def_z = 0.0;
-    
-    result = sqrt((*def_x * *def_x) + (*def_y * *def_y) + (*def_z * *def_z)) ;      
-    
-    free_vector(Ga1xyz ,1,len1);
-    free_vector(Ga2xyz ,1,len2);
-    free_vector(TX ,1,len2);
-    free_vector(TY ,1,len2);
-    free_vector(TZ ,1,len2);
-    free_vector(SX ,1,len1);
-    free_vector(SY ,1,len1);
-    free_vector(SZ ,1,len1);
-    
-
-  }
-  
-  return(result);
-}
-
 private Real optimize_3D_deformation_for_single_node(Real spacing, 
-						     Real threshold1, Real threshold2,
+						     Real threshold1, 
 						     Real src_x, Real src_y, Real src_z,
 						     Real mx, Real my, Real mz,
 						     Real *def_x, Real *def_y, Real *def_z,
@@ -1573,9 +1373,7 @@ private Real optimize_3D_deformation_for_single_node(Real spacing,
     result,
     tx,ty,tz, 
     xp,yp,zp, 
-    px_dir, py_dir, pz_dir,
-    d1x_dir, d1y_dir, d1z_dir,
-    d2x_dir, d2y_dir, d2z_dir;
+    d1x_dir, d1y_dir, d1z_dir;
   float 
     ftol, *y, **p;
     
@@ -1588,13 +1386,11 @@ private Real optimize_3D_deformation_for_single_node(Real spacing,
   result = 0.0;			/* assume no additional deformation */
   *num_functions = 0;		/* assume no optimization done      */
 
-  if (!get_best_start_from_neighbours(threshold1, threshold2,
+  if (!get_best_start_from_neighbours(threshold1, 
 				      src_x,  src_y,  src_z,
 				      mx,  my,  mz,
 				      &tx,  &ty,  &tz,
 				      &d1x_dir, &d1y_dir, &d1z_dir,
-				      &px_dir,  &py_dir,  &pz_dir,
-				      &d2x_dir, &d2y_dir, &d2z_dir,
 				      def_x,  def_y,  def_z)) {
 
 				/* then there is no gradient magnitude strong enough
@@ -1783,341 +1579,6 @@ private Real optimize_3D_deformation_for_single_node(Real spacing,
   return(result);
 }
 
-private float correl_value_with_offset(float *data, float *mask, int n1, int n2, float s1_2,
-				       int dim, int dx, int dy, int dz)
-{ 
-  int offset,i,j,k;
-  float s2,s1s2,correl;
-
-  offset = (n1-n2)/2;
-
-  s2 = 0.0;
-  s1s2=0.0;
-
-  if (dim==3) {
-    for_less(i,0,n2) {		/* for every point in the mask */
-      for_less(j,0,n2) {
-	for_less(k,0,n2) {
-
-
-	  s2   += data[(i+offset+dx)*n1*n1 + (j+offset+dy)*n1 + k+offset+dz +1] * 
-	          data[(i+offset+dx)*n1*n1 + (j+offset+dy)*n1 + k+offset+dz +1];
-	  s1s2 += mask[i*n2*n2 + j*n2 +k +1] * 
-	          data[(i+offset+dx)*n1*n1 + (j+offset+dy)*n1 + k+offset+dz +1];
-
-	}
-      }
-    }
-  }
-  else {
-    for_less(i,0,n2) {		/* for every point in the mask */
-      for_less(j,0,n2) {
-
-	s2   += data[(i+offset+dx)*n1 + (j+offset+dy) +1] * 
-	        data[(i+offset+dx)*n1 + (j+offset+dy) +1];
-	s1s2 += mask[i*n2 + j +1] * 
-	        data[(i+offset+dx)*n1 + (j+offset+dy) +1];
-	
-      }
-    }
-  }
-  
-  s2 = fsqrt(s2);
-
-  if ( s2 < 0.0001 && s1_2 < 0.0001) 
-    correl = 1.0;
-  else {
-    if ( s2 < 0.0001 || s1_2 < 0.0001) 
-      correl = 0.0;
-    else 
-      correl = s1s2 / (s2*s1_2);
-  }
-  
-  return(correl);
-}
-
-
-private float cog3(float f1,float f2,float f3)
-{
-  float c;
-
-  c = 0.0;
-
-  if ((2*f2 -f1 - f3) > (0.03*f1)) {
-    if ((f1+f2-2*f3) != 0.0)
-      c = ( (f1 - f3) / ( 2* (f1+f2-2*f3)) )  ;
-  }
-
-  if (ABS(c)>1.0)
-    c = 0.0;
-
-  return(c);
-}
-
-private float cog2(float f1,float f2)
-{
-  float c;
-
-  if (f1+f2 != 0.0)
-    c = ((f1 + 2*f2) / (f1+f2))  -1.0;
-  else
-    c = 0.0;
-
-  return(c);
-}
-
-private void find_best_offset(float *data, float *mask, int n1, int n2, int dim, 
-			      float *dx, float  *dy, float *dz)
-{
-  int 
-    size,
-    len,
-    off_i,off_k,off_j,
-    i,j,k;
-  float 
-    ***cor_mat3,**cor_mat2,s2,
-    c,max;
-  
-
-  
-  size = n1-n2;
-
-  if (dim==3) {
-    ALLOC3D(cor_mat3,size,size,size);
-  }
-  else { 
-    ALLOC2D(cor_mat2,size,size);
-  }
-
-  len = n2;
-  for_less(i,1,dim)
-    len *= n2;
-
-  s2 = 0.0;			
-  for_less(i,0,len) {
-    s2 += mask[i+1]*mask[i+1];
-  }
-  s2 = fsqrt(s2);
-
-  max = -FLT_MAX;
-  *dx = 0;
-  *dy = 0;
-  *dz = 0;
-
-  if (dim==3) {
-    for_less(i,0,size) 
-      for_less(j,0,size)
-	for_less(k,0,size) {
-	  off_i = -size/2 + i;
-	  off_j = -size/2 + j;
-	  off_k = -size/2 + k;
-	  c = correl_value_with_offset(data, mask, n1, n2, s2, 
-				       dim, off_i, off_j, off_k);
-	  cor_mat3[i][j][k] = c;
-	  if (max < c) {
-	    max = c;
-	    *dx = off_i;
-	    *dy = off_j;
-	    *dz = off_k;
-	  }
-	}
-
-    off_i = *dx + size/2; off_j = *dy + size/2; off_k = *dz + size/2;
-
-    if ( (off_i)>0 && (off_i)<size-1 )
-      *dx += cog3(cor_mat3[off_i-1][off_j][off_k],
-		  cor_mat3[off_i  ][off_j][off_k],
-		  cor_mat3[off_i+1][off_j][off_k]);
-    else
-      if ( (off_i)==0 )
-	*dx += cog2(cor_mat3[off_i  ][off_j][off_k],
-		    cor_mat3[off_i+1][off_j][off_k]);
-      else
-	 if ( (off_i)==(size-1) )
-	   *dx -= cog2(cor_mat3[off_i  ][off_j][off_k],
-		       cor_mat3[off_i-1][off_j][off_k]);
-
-    if ( (off_j)>0 && (off_j)<size-1 )
-      *dy += cog3(cor_mat3[off_i][off_j-1][off_k],
-		  cor_mat3[off_i][off_j  ][off_k],
-		  cor_mat3[off_i][off_j+1][off_k]);
-    else
-      if ( (off_i)==0 )
-	*dy += cog2(cor_mat3[off_i][off_j  ][off_k],
-		    cor_mat3[off_i][off_j+1][off_k]);
-      else
-	 if ( (off_i)==(size-1) )
-	   *dy -= cog2(cor_mat3[off_i][off_j  ][off_k],
-		       cor_mat3[off_i][off_j-1][off_k]);
-
-    if ( (off_k)>0 && (off_k)<size-1 )
-      *dz += cog3(cor_mat3[off_i][off_j][off_k-1],
-		  cor_mat3[off_i][off_j][off_k  ],
-		  cor_mat3[off_i][off_j][off_k+1]);
-    else
-      if ( (off_i)==0 )
-	*dz += cog2(cor_mat3[off_i][off_j][off_k  ],
-		    cor_mat3[off_i][off_j][off_k+1]);
-      else
-	 if ( (off_i)==(size-1) )
-	   *dz -= cog2(cor_mat3[off_i][off_j][off_k  ],
-		       cor_mat3[off_i][off_j][off_k-1]);
-
-
-
-
-
-  }
-  else {
-    for_less(i,0,size) {
-      for_less(j,0,size) {
-	off_i = -size/2 + i;
-	off_j = -size/2 + j;
-	off_k = 0;
-	c = correl_value_with_offset(data, mask, n1, n2, s2, 
-				     dim, off_i, off_j, off_k);
-	cor_mat2[i][j] = c;
-/*	print ("%7.5f ",c);  */
-	if (max < c) {
-	  max = c;
-	  *dx = off_i;
-	  *dy = off_j;
-	  *dz = off_k;
-	}
-      }
-/*      print ("\n"); */
-    }
-
-    off_i = *dx + (int)(size/2); off_j = *dy + (int)(size/2); off_k = *dz + (int)(size/2);
-
-/*print ("dxdy %2.0f %2.0f ",*dx,*dy);*/
-
-    if ( (off_i)>0 && (off_i)<size-1 ) {
-      *dx += cog3(cor_mat2[off_i-1][off_j],
-		  cor_mat2[off_i  ][off_j],
-		  cor_mat2[off_i+1][off_j]);
-/*print ("(%4.0f %4.0f %4.0f)",
-       cor_mat2[off_i-1][off_j]*1000,
-       cor_mat2[off_i  ][off_j]*1000,
-       cor_mat2[off_i+1][off_j]*1000);*/
-    }
-    else
-      if ( (off_i)==0 )
-	*dx += cog2(cor_mat2[off_i  ][off_j],
-		    cor_mat2[off_i+1][off_j]);
-      else
-	 if ( (off_i)==(size-1) )
-	   *dx -= cog2(cor_mat2[off_i  ][off_j],
-		       cor_mat2[off_i-1][off_j]);
-
-    if ( (off_j)>0 && (off_j)<size-1 ){
-      *dy += cog3(cor_mat2[off_i][off_j-1],
-		  cor_mat2[off_i][off_j  ],
-		  cor_mat2[off_i][off_j+1]);
-/*print ("[%4.0f %4.0f %4.0f]",
-       cor_mat2[off_i][off_j-1]*1000,
-       cor_mat2[off_i][off_j  ]*1000,
-       cor_mat2[off_i][off_j+1]*1000); */
-    }
-    else
-      if ( (off_i)==0 )
-	*dy += cog2(cor_mat2[off_i][off_j  ],
-		    cor_mat2[off_i][off_j+1]);
-      else
-	if ( (off_i)==(size-1) )
-	  *dy -= cog2(cor_mat2[off_i][off_j  ],
-		      cor_mat2[off_i][off_j-1]);
-  }
-  
-/*print ("-> %8.5f %8.5f \n",*dx,*dy);*/
-
-
-/*  print ("dxdy: %7.5f %7.5f\n\n",*dx, *dy);*/
-
-  if (dim==3) {
-    FREE3D(cor_mat3);
-  }
-  else {
-    FREE2D(cor_mat2);
-  }
-
-}
-
-private void find_max_in_fft_array(float *ffa, int num, int ndim,
-				   int *dx, int *dy, int *dz) 
-{
-  int i,j,k;
-  float max;
-  
-  max = -FLT_MAX;
-
-
-  *dx = 0;
-  *dy = 0;
-  *dz = 0;
-
-  if (ndim==3) {
-
-    for_less(i,0,num) 
-      for_less(j,0,num)
-	for_less(k,0,num) {
-	  if (max < ffa[2*(i*num*num + j*num + k)+1]) {
-	    max = ffa[2*(i*num*num + j*num + k)+1];
-	    *dx = i;
-	    *dy = j;
-	    *dz = k;
-	  }
-	}
-
-  }
-  else {
-
-    for_less(i,0,num) 
-      for_less(j,0,num) {
-	if (max < ffa[2*( i*num + j)+1]) {
-	  max = ffa[2*( i*num + j)+1];
-	  *dx = i;
-	  *dy = j;
-	  *dz = 0;
-	}
-      }
-
-  }
-
-  if ( *dx > num/2) *dx -=  num;
-  if ( *dy > num/2) *dy -=  num;
-  if ( *dz > num/2) *dz -=  num;
-
-}
-
-
-private void copy_data_into_fft_array(float *data, float *ffa, int numd, int numf, int dim)
-{
-  int offset,i,j,k;
-  
-  offset = (numf - numd)/2;
-
-  if (dim==3) {
-    memset(ffa, 0, (size_t)(2*numf*numf*numf*sizeof(float)));
-    for_less(i,0,numd) {
-      for_less(j,0,numd) {
-	for_less(k,0,numd) {
-	  ffa[2*((i+offset)*numf*numf + (j+offset)*numf + k+offset)+1] = 
-	    data[i*numd*numd+j*numd+k+1];
-	}
-      }
-    }
-  }
-  else {
-    memset(ffa, 0, (size_t)(2*numf*numf*sizeof(float)));
-    for_less(i,0,numd) {
-      for_less(j,0,numd) {
-	  ffa[2*((i+offset)*numf + (j+offset)) +1] = data[i*numd + j + 1];
-      }
-    }
-  }
-}
-
 
 public void    build_source_lattice(Real x, Real y, Real z,
 				    float PX[], float PY[], float PZ[],
@@ -2252,7 +1713,7 @@ private float gauss_3d(float c,
 		       int ndim)
 {
   float 
-    two_pi3,dx,dy,dz,sigma_x,sigma_y,sigma_z,t1,t2,t3,f;
+    dx,dy,dz,sigma_x,sigma_y,sigma_z,t1,t2,t3,f;
   
   
   if (ndim==2) {
@@ -2394,13 +1855,9 @@ private float xcorr_fitting_function(float *d)
 {
    float
       similarity,cost, r;
-   int size[3];
-
-   go_get_samples_with_offset(Gd2_dxyz, TX,TY,TZ,
-			      Ga2xyz, d[1], d[2], d[3],
-			      Glen, 0);
 
 /*
+   int size[3];
    Real 
      pos[3],voxel;
 
@@ -2433,6 +1890,10 @@ private float xcorr_fitting_function(float *d)
 */
 
 
+   go_get_samples_with_offset(Gd2_dxyz, TX,TY,TZ,
+			      Ga2xyz, d[1], d[2], d[3],
+			      Glen, 0);
+
 
 
    cost = (float)cost_fn(d[1], d[2], d[3], Gcost_radius);
@@ -2448,36 +1909,4 @@ print ("s c g: %12.8f %12.8f (%6.1f)-- %6.2f %6.2f \n", similarity, cost, Gsimpl
 }
 
 
-
-public void muli_vects(float *r, float *s1, float *s2, int n)
-{
-  int i;
-  float r1,i1,r2,i2;
-
-  r++; s1++; s2++; /* all arrays start at r[1],s1[1] and s2[1], where the real
-		      part is r[1] and the imag in r[2], and so on... */
-
-  if (r!=s1 && r!=s2) {		/* if separate arrays */
-    for (i=0; i< n; ++i) { 
-      *r = (*(s1) * *(s2))   - (*(s1+1) * *(s2+1)); 
-      r++;
-      *r = (*(s1+1) * *(s2)) + (*(s1) * *(s2+1)); 
-      r++;
-      s1++;s1++;
-      s2++;s2++;
-    } 
-  }
-  else {			/* if one array=result array */
-    for (i=0; i< n; ++i) { 
-      r1= *(s1); i1= *(s1+1);
-      r2= *(s2); i2= *(s2+1);
-      *r = (r1 * r2)   - (i1 * i2); 
-      r++;
-      *r = (i1 * r2) + (r1 * i2);
-      r++;
-      s1++;s1++;
-      s2++;s2++;
-    } 
-  }
-}
 
