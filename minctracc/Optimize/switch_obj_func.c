@@ -19,9 +19,12 @@
 
 @CREATED    : 
 @MODIFIED   : $Log: switch_obj_func.c,v $
-@MODIFIED   : Revision 96.1  1997-11-03 20:05:41  louis
-@MODIFIED   : no changes
+@MODIFIED   : Revision 96.2  1997-11-12 21:07:43  louis
+@MODIFIED   : added support for chamfer distance local objective function
 @MODIFIED   :
+ * Revision 96.1  1997/11/03  20:05:41  louis
+ * no changes
+ *
  * Revision 96.0  1996/08/21  18:22:10  louis
  * Release of MNI_AutoReg version 0.96
  *
@@ -44,19 +47,25 @@
 
 	switch (obj_func) {
 	case NONLIN_XCORR:
-	  s1 += *a1++ * sample;
+	  s1 += *a1++ * sample; /* compute correlation */
 	  s3 += sample * sample;
 	  break;
 	case NONLIN_DIFF:
 	  tmp = *a1++ - sample;
 	  if (tmp<0) tmp *= -1.0;
-	  s1 -= tmp;
+	  s1 += tmp;            /* add the difference */
 	  break;
 	case NONLIN_LABEL:
 	  tmp = *a1++ - sample;
 	  if (tmp<0) tmp *= -1.0;
 	  if (tmp < 0.01)
-	    s1 += 1.0;
+	    s1 += 1.0;          /* count up similar labels */
+	  break;
+	case NONLIN_CHAMFER:
+	  if (*a1++ > 0) {
+             s1 += sample;         /* add the distance */
+             number_of_nonzero_samples++;
+          }
 	  break;
 	default:
 	  print_error_and_line_num("Objective function %d not supported in go_get_samples_with_offset",__FILE__, __LINE__,obj_func);
