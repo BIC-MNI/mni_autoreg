@@ -1,3 +1,5 @@
+@BOTTOM@
+
 #ifdef HAVE_STDLIB_H
 #  include <stdlib.h>
 #endif
@@ -72,30 +74,13 @@
  *    operations
  */
 
-#ifdef HAVE_RECENT_VOLUME_IO
+#ifdef VOLIO_HAVE_VOLUME_ARRAY_DATA
 #  define VOXEL_DATA(vol) ((vol)->array.data)
 #else
+#  ifndef VOLIO_HAVE_VOLUME_DATA
+#    error Help!  Can not find raw volume data.
+#  endif
 #  define VOXEL_DATA(vol) ((vol)->data)
-#endif
-
-
-/*
- * This macro is needed because Dave changed the calling convention 
- * for format_time(), which Louis uses several times in do_nonlinear.c.
- * AAARRGGHHHH!!!!
- * 
- * Note that it might not always work, depending on how str is
- * declared (ie. we're OK if it's a "char *", but not if it's a 
- * statically allocated "char [n]".  Louis seems to have used 
- * Dave's STRING type, so I expect we'll be OK...      -GPW 1996/06/27
- */
-
-#ifdef HAVE_RECENT_VOLUME_IO
-#  define FORMAT_TIME(str,format,seconds) \
-          (str) = format_time ((format), (seconds))
-#else
-#  define FORMAT_TIME(str,format,seconds) \
-          format_time ((str), (format), (seconds))
 #endif
 
 

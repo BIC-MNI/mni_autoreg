@@ -5,7 +5,7 @@
                procedures.               
 @CREATED    : Mon Nov  3, 1997 , Louis Collins
 @MODIFIED   : not yet!
-@VERSION    : $Id: extras.c,v 1.1 1997-11-03 20:05:41 louis Exp $
+@VERSION    : $Id: extras.c,v 1.2 2000-02-07 19:33:06 stever Exp $
 #-----------------------------------------------------------------------------
 */
 
@@ -29,11 +29,16 @@ public void report_time(long start_time, STRING text)
 
    time_total = (Real)(present_time - start_time);
 
-#ifdef HAVE_RECENT_VOLUME_IO
+#ifdef VOLIO_HAVE_2ARG_FORMAT_TIME
    time_total_string = format_time("%g %s", time_total);
 #else
+#  ifndef VOLIO_HAVE_3ARG_FORMAT_TIME
+#    error Help!  Do not know how to invoke format_time.
+#  endif
+   /* This comes from a very very old VolumeIO library. */
    format_time( time_total_string,"%g %s", time_total);
 #endif
+
    print ("\n%s : %s", text, time_total_string);
 
    if (time_total > 120)

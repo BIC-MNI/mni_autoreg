@@ -35,7 +35,10 @@
       created by removing build_default_deformation_field from 
       transformations.c
 @MODIFIED   : $Log: default_def.c,v $
-@MODIFIED   : Revision 96.1  1997-11-03 19:59:49  louis
+@MODIFIED   : Revision 96.2  2000-02-07 19:33:05  stever
+@MODIFIED   : replaced HAVE_RECENT_VOLUME_IO with more specific feature tests.
+@MODIFIED   :
+@MODIFIED   : Revision 96.1  1997/11/03 19:59:49  louis
 @MODIFIED   : - now include internal_volume_io.h instead of volume_io.h
 @MODIFIED   : - used xyzv[X] instead of 0 for the index for the x variable
 @MODIFIED   :
@@ -67,7 +70,7 @@
 static char rcsid[]="";
 #endif
 
-#include <config.h>		/* to have HAVE_RECENT_VOLUME_IO macro */
+#include <config.h>
 #include <internal_volume_io.h>
 #include <print_error.h>
 #include "arg_data.h"
@@ -223,9 +226,13 @@ private void resample_the_deformation_field(Arg_Data *globals)
 	  strlen(MIvector_dimension  ) + 1 );
     (void) strcpy( (new_field)->dimension_names[xyzv[Z+1]], MIvector_dimension );
   }
-#ifdef HAVE_RECENT_VOLUME_IO
+
+#ifdef VOLIO_HAVE_2ARG_DELETE_DIMENSION_NAMES
   delete_dimension_names(new_field, data_dim_names);
 #else
+#  ifndef VOLIO_HAVE_1ARG_DELETE_DIMENSION_NAMES
+#    error Help!  Do not know how to invoke delete_dimension_names.
+#  endif
   delete_dimension_names(data_dim_names);
 #endif
 

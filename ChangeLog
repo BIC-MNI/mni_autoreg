@@ -1,3 +1,10 @@
+2000-02-07  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* config.h.bot: renamed to acconfig.h.
+
+	* acconfig.h: replaced test of HAVE_RECENT_VOLUME_IO with more
+	specific feature tests.
+
 2000-02-02  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* Testing/Makefile.am (TEST_LIST): add animal.test, taken from

@@ -28,7 +28,10 @@
 
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   :  $Log: init_lattice.c,v $
-@MODIFIED   :  Revision 96.1  1999-10-25 19:59:16  louis
+@MODIFIED   :  Revision 96.2  2000-02-07 19:33:07  stever
+@MODIFIED   :  replaced HAVE_RECENT_VOLUME_IO with more specific feature tests.
+@MODIFIED   :
+@MODIFIED   :  Revision 96.1  1999/10/25 19:59:16  louis
 @MODIFIED   :  final checkin before switch to CVS
 @MODIFIED   :
  * Revision 96.0  1996/08/21  18:22:15  louis
@@ -74,7 +77,7 @@ made change to init lattice to not change start when there is only 1 slice.
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/init_lattice.c,v 96.1 1999-10-25 19:59:16 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/init_lattice.c,v 96.2 2000-02-07 19:33:07 stever Exp $";
 #endif
 
 #include <config.h>
@@ -119,9 +122,13 @@ public void get_volume_XYZV_indices(Volume data, int xyzv[])
       xyzv[Z+1] = i;
     }
   }
-#ifdef HAVE_RECENT_VOLUME_IO
+
+#ifdef VOLIO_HAVE_2ARG_DELETE_DIMENSION_NAMES
   delete_dimension_names(data, data_dim_names);
 #else
+#  ifndef VOLIO_HAVE_1ARG_DELETE_DIMENSION_NAMES
+#    error Help!  Do not know how to invoke delete_dimension_names.
+#  endif
   delete_dimension_names(data_dim_names);
 #endif
 

@@ -20,7 +20,10 @@
 
 @CREATED    : Tue Feb 22 08:37:49 EST 1994
 @MODIFIED   : $Log: deform_support.c,v $
-@MODIFIED   : Revision 96.3  1999-10-25 19:59:06  louis
+@MODIFIED   : Revision 96.4  2000-02-07 19:33:05  stever
+@MODIFIED   : replaced HAVE_RECENT_VOLUME_IO with more specific feature tests.
+@MODIFIED   :
+@MODIFIED   : Revision 96.3  1999/10/25 19:59:06  louis
 @MODIFIED   : final checkin before switch to CVS
 @MODIFIED   :
  * Revision 96.2  1997/11/03  20:05:41  louis
@@ -178,10 +181,10 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 96.3 1999-10-25 19:59:06 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 96.4 2000-02-07 19:33:05 stever Exp $";
 #endif
 
-#include <config.h>             /* for VOXEL_DATA macro */
+#include <config.h>
 #include <internal_volume_io.h>
 #include "arg_data.h"
 #include <louis_splines.h>

@@ -11,7 +11,10 @@
 @CALLS      : 
 @CREATED    : Mon May 29 09:07:14 MET DST 1995 Collins
 @MODIFIED   : $Log: reversedef.c,v $
-@MODIFIED   : Revision 1.1  1999-10-25 19:52:10  louis
+@MODIFIED   : Revision 1.2  2000-02-07 19:33:03  stever
+@MODIFIED   : replaced HAVE_RECENT_VOLUME_IO with more specific feature tests.
+@MODIFIED   :
+@MODIFIED   : Revision 1.1  1999/10/25 19:52:10  louis
 @MODIFIED   : final checkin before switch to CVS
 @MODIFIED   :
 
@@ -28,7 +31,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/reversedef.c,v 1.1 1999-10-25 19:52:10 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/reversedef.c,v 1.2 2000-02-07 19:33:03 stever Exp $";
 #endif
 
 #include <config.h>
@@ -73,9 +76,12 @@ void get_volume_XYZV_indices(Volume data, int xyzv[])
     }
   }
 
-#ifdef HAVE_RECENT_VOLUME_IO
+#ifdef VOLIO_HAVE_2ARG_DELETE_DIMENSION_NAMES
   delete_dimension_names(data, data_dim_names);
-#else  
+#else
+#ifndef VOLIO_HAVE_1ARG_DELETE_DIMENSION_NAMES
+#  error Help!  Do not know how to invoke delete_dimension_names.
+#endif
   delete_dimension_names(data_dim_names);
 #endif
  

@@ -1,3 +1,11 @@
+2000-02-07  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* Optimize/extras.c (report_time): 
+	* Numerical/default_def.c (resample_the_deformation_field): 
+	* Volume/init_lattice.c (get_volume_XYZV_indices): 
+	* Extra_progs/reversedef.c (get_volume_XYZV_indices): replaced
+	test of HAVE_RECENT_VOLUME_IO with more specific feature tests.
+
 2000-02-02  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* Testing: removed.  Folded extra test for "animal" into

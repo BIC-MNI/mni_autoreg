@@ -47,7 +47,7 @@ AC_DEFINE_UNQUOTED(MNI_AUTOREG_COMPILE_SYSTEM,"$host",[Configure System])
 #------------------------------------------------------------------------
 AC_PROG_CC
 AC_PROG_INSTALL
-AC_PROG_LN_S
+dnl AC_PROG_LN_S
 AC_PROG_MAKE_SET
 AC_PROG_RANLIB
 
@@ -189,19 +189,91 @@ AC_SUBST(INCLUDEDIRS)
 AC_SUBST(LIBDIRS)
 
 #------------------------------------------------------------------------
-# See if we have the latest version of Volume_io (based on RCS id 
-# in volume_io.h)
+# Check some oddities of the volume IO library.
 #------------------------------------------------------------------------
 
-AC_MSG_CHECKING(revision of volume_io.h)
 save_CPPFLAGS="$CPPFLAGS"
 save_LIBS="$LIBS"
 CPPFLAGS="$CPPFLAGS $INCLUDEDIRS"
 LIBS="$LIBS $LIBDIRS -lvolume_io -lminc -lnetcdf -lm"
 
+# Test if volume data structure has array.data member (CURRNENT), 
+# or just data member (OLD).
+AC_MSG_CHECKING(how to access raw array of a volume)
+autoreg_test="volume->array.data"
+AC_TRY_COMPILE( [#include <volume_io.h>], 
+		[Volume v; v->array.data = NULL;],
+		AC_DEFINE(VOLIO_HAVE_VOLUME_ARRAY_DATA, 1, [Volume data stored in array.data]),
+		autoreg_test=fail )
+
+if test $autoreg_test = "fail"; then
+    autoreg_test="volume->data"
+    AC_TRY_COMPILE( [#include <volume_io.h>], 
+		    [Volume v; v->data = NULL;],
+		    AC_DEFINE(VOLIO_HAVE_VOLUME_DATA, 1, [Volume data stored in data]),
+		    autoreg_test=fail )
+fi
+
+AC_MSG_RESULT($autoreg_test)
+if test $autoreg_test = "fail"; then
+    AC_MSG_ERROR(Cannot determine how to access raw data in a volume.)
+fi
+
+
+# Test if format_time is called as
+#   string = format_time( format, time )   CURRENT
+# or
+#   format_time( string, format, time )    OLD
+#
+autoreg_test="2"
+AC_MSG_CHECKING(number of arguments of format_time)
+AC_TRY_COMPILE( [#include <volume_io.h>], 
+		[STRING s = format_time( "%g %s", 0 );],
+		AC_DEFINE( VOLIO_HAVE_2ARG_FORMAT_TIME, 1, [format_time takes 2 arguments] ),
+		autoreg_test=fail )
+
+if test $autoreg_test = "fail"; then
+    autoreg_test="3"
+    AC_TRY_COMPILE( [#include <volume_io.h>], 
+		    [STRING s; format_time( s, "%g %s", 0 );],
+		    AC_DEFINE( VOLIO_HAVE_3ARG_FORMAT_TIME, 1, [format_time takes 3 arguments] ),
+		    autoreg_test=fail )
+fi
+
+AC_MSG_RESULT($autoreg_test)
+if test $autoreg_test = "fail"; then
+    AC_MSG_ERROR(Cannot determine arguments to format_time.)
+fi
+
+# Test if delete_dimension_names takes two arguments (CURRENT),
+# or one (OLD).
+#
+autoreg_test="2"
+AC_MSG_CHECKING(number of arguments of delete_dimension_names)
+AC_TRY_COMPILE( [#include <volume_io.h>], 
+		[Volume v; char** names; delete_dimension_names(v,names);],
+		AC_DEFINE( VOLIO_HAVE_2ARG_DELETE_DIMENSION_NAMES, 1, [function takes 2 arguments] ),
+		autoreg_test=fail )
+
+if test $autoreg_test = "fail"; then
+    autoreg_test="1"
+    AC_TRY_COMPILE( [#include <volume_io.h>], 
+		    [Volume v; char** names; delete_dimension_names(v,names);],
+		    AC_DEFINE( VOLIO_HAVE_1ARG_DELETE_DIMENSION_NAMES, 1, [function takes 1 argument] ),
+		    autoreg_test=fail )
+fi
+
+AC_MSG_RESULT($autoreg_test)
+if test $autoreg_test = "fail"; then
+    AC_MSG_ERROR(Cannot determine arguments to delete_dimension_names.)
+fi
+
 dnl This bit of magic was borrowed from XEmacs via FVWM.
 dnl If the program compiles and runs, we run again with a dummy argument
 dnl that outputs the RCSID revision number.
+dnl Note that this check is only informational.  The source code only
+dnl depends on the more specific tests, above.
+AC_MSG_CHECKING(revision of volume_io.h)
 AC_TRY_RUN([
     #include <string.h>
     #include <volume_io.h>
@@ -218,7 +290,7 @@ AC_TRY_RUN([
     }],
     [vio_ver=`./conftest dummy_arg`],
     [AC_MSG_RESULT(unknown)
-     AC_MSG_ERROR([Ancient version of Volume_io; please upgrade.])])
+     AC_MSG_ERROR([Cannot determine version.  See config.log for details.])])
 
 CPPFLAGS="$save_CPPFLAGS"
 LIBS="$save_LIBS"
@@ -229,11 +301,14 @@ if test x$vio_ver = x; then
 else
     AC_MSG_RESULT($vio_ver)
     case $vio_ver in
-    	1.[[1-5]]) AC_MSG_WARN([you have an old version of Volume_io; if you have problems compiling, please upgrade]) ;;
-    	1.6) AC_MSG_RESULT([you have the version distributed with MINC 0.3 -- no problem!]) ;;
-    	*) AC_MSG_RESULT([you have an up-to-date version -- excellent!]) ;
-           AC_DEFINE(HAVE_RECENT_VOLUME_IO,1,
-                [Volume_io version is more recent than that distributed with MINC 0.3]) ;;
+    	1.[[1-5]]) 
+	    AC_MSG_WARN([you have an old version of Volume_io; if you have problems compiling, please upgrade])
+	    ;;
+    	1.6) 
+	    AC_MSG_RESULT([you have the version distributed with MINC 0.3 -- no problem!]) 
+	    ;;
+    	*)  AC_MSG_RESULT([you have an up-to-date version -- excellent!])
+	    ;;
     esac
 fi
 
