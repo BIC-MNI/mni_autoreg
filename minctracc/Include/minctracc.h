@@ -17,9 +17,13 @@
 
 @CREATED    : Thu May 20 14:20:21 EST 1993 Louis Collins
 @MODIFIED   : $Log: minctracc.h,v $
-@MODIFIED   : Revision 96.0  1996-08-21 18:21:43  louis
-@MODIFIED   : Release of MNI_AutoReg version 0.96
+@MODIFIED   : Revision 96.1  1997-11-03 19:52:55  louis
+@MODIFIED   : changed the number of default groups from 64 to 256 for -mi.
+@MODIFIED   : added the default pdf blurring size for -mi
 @MODIFIED   :
+ * Revision 96.0  1996/08/21  18:21:43  louis
+ * Release of MNI_AutoReg version 0.96
+ *
  * Revision 9.5  1996/08/12  14:15:34  louis
  * Release of MNI_AutoReg version 1.0
  *
@@ -226,7 +230,8 @@ Arg_Data main_args = {
   {FALSE, FALSE, FALSE, FALSE},	/* Transform flags: est_cent, _scale, _rots, _trans */
   {0.0,0.0},			/* lower limit of voxels considered                 */
   5.0,				/* percent noise speckle                            */
-  64				/* number of groups to use for ratio of variance    */
+  256,				/* number of groups to use for ratio of variance    */
+  3				/* pdf blurring size for -mi                        */
 };
 
 
