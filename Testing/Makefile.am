@@ -110,7 +110,7 @@ old-checks: banner $(TEST_LIST)
 	@echo "Tests completed successfully."
 
 clean-local:
-	rm -f *.test *.act *.mnc test*.xfm
+	rm -f *.test *.act *.mnc test*.xfm output.xfm
 
 # -------banner message------------------
 banner:
