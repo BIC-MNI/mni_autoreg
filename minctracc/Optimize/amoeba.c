@@ -17,10 +17,17 @@
 
 @CREATED    : 
 @MODIFIED   : $Log: amoeba.c,v $
-@MODIFIED   : Revision 96.1  1997-11-03 15:04:23  louis
-@MODIFIED   : working version, before creation of mni_animal package, and before inserting
-@MODIFIED   : distance transforms
+@MODIFIED   : Revision 96.2  1997-11-03 20:05:41  louis
+@MODIFIED   : no changes
 @MODIFIED   :
+ * Revision 96.1  1997/11/03  15:04:23  louis
+ * working version, before creation of mni_animal package, and before inserting
+ * distance transforms
+ *
+ * Revision 96.1  1997/11/03  15:04:23  louis
+ * working version, before creation of mni_animal package, and before inserting
+ * distance transforms
+ *
  * Revision 96.0  1996/08/21  18:22:10  louis
  * Release of MNI_AutoReg version 0.96
  *
@@ -102,7 +109,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/amoeba.c,v 96.1 1997-11-03 15:04:23 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/amoeba.c,v 96.2 1997-11-03 20:05:41 louis Exp $";
 #endif
 
 
