@@ -20,11 +20,16 @@
 
 @CREATED    : Tue Feb 22 08:37:49 EST 1994
 @MODIFIED   : $Log: deform_support.c,v $
-@MODIFIED   : Revision 1.5  1995-02-22 08:56:06  louis
-@MODIFIED   : Montreal Neurological Institute version.
-@MODIFIED   : compiled and working on SGI.  this is before any changes for SPARC/
-@MODIFIED   : Solaris.
+@MODIFIED   : Revision 1.6  1995-05-02 11:30:27  louis
+@MODIFIED   : started clean up of code, separation of non used procedures into
+@MODIFIED   : old_methods.c.  This version was working, but I am now going to
+@MODIFIED   : rewrite everything to use GRID_TRANSFORM.
 @MODIFIED   :
+ * Revision 1.5  1995/02/22  08:56:06  louis
+ * Montreal Neurological Institute version.
+ * compiled and working on SGI.  this is before any changes for SPARC/
+ * Solaris.
+ *
  * Revision 1.4  94/06/21  10:59:28  louis
  * working optimized version of program.  when compiled with -O, this
  * code is approximately 60% faster than the previous version.
@@ -56,7 +61,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 1.5 1995-02-22 08:56:06 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 1.6 1995-05-02 11:30:27 louis Exp $";
 #endif
 
 #include <volume_io.h>
@@ -81,409 +86,6 @@ public void set_up_lattice(Volume data,
 			   int    *count,     /* number of steps in each direction */
 			   double *step,      /* step size in each direction */
 			   VectorR directions[]);/* array of vector directions for each index*/
-
-
-typedef Real (*Difference_Function) 
-     (Line_data *m, Line_data *d, Real offset);
-
-
-
-/*
-% return the value of the 1st or second derivative of the data, based on cubic
-% interpolation through the four equally spaced data function value
-% points.
-% xpos is the fractional distance from the x position of f2 for which the
-% value is to be returned.
-function v = cubic_p(f1,f2,f3,f4,xpos)
-
-%  for f1 = f(-1),
-%      f2 = f(0),
-%      f3 = f(1),
-%      f4 = f(2), 
-%
-%      a1 =                f2;
-%      a2 =  -1.0*f1/3.0 - f2/2.0 + f3     - f4/6.0;
-%      a3 =       f1/2.0 - f2     + f3/2.0 ;
-%      a4 =  -1.0*f1/6.0 + f2/2.0 - f3/2.0 + f4/6.0;
-%
-%  to estimate function f() at xpos, using cubic interpolation:
-%
-%      f   = a1 + a2*xpos + a3*xpos^2 + a4*xpos^3
-%      fp  = a2 + 2*a3*xpos + 3*a4*xpos*xpos;      first derivitive
-%      fpp = 2*a3 + 6*a4*xpos;	                   second derivitive 
-*/
-
-public Real CUBIC_PP(Real f1, Real f2, Real f3, Real f4, Real xpos) {
-  Real v,a3,a4;
-  
-  a3 =      f1/2.0 - f2     + f3/2.0 ;
-  a4 = -1.0*f1/6.0 + f2/2.0 - f3/2.0 + f4/6.0;
-  
-  v =  2*a3 + 6*a4*xpos;
-  
-  return(v);
-}
-
-public Real CUBIC_P(Real f1, Real f2, Real f3, Real f4, Real xpos) {
-
-  Real v,a2,a3,a4;
-  
-  a2 = -1.0*f1/3.0 - f2/2.0 + f3     - f4/6.0;
-  a3 =      f1/2.0 - f2     + f3/2.0 ;
-  a4 = -1.0*f1/6.0 + f2/2.0 - f3/2.0 + f4/6.0;
-  
-  v =  a2 + 2*a3*xpos + 3*a4*xpos*xpos;
-  
-  return(v);
-}
-
-
-
-/*
-  real space 2nd derivative value interpolation
-*/
-public Real inter_2p(Line_data *line, Real real_p) {
-
-  Real pos, u, v, v0,v1,v2,v3;
-  int p,m;
-				/* establish voxel position */
-  
-  pos = (real_p - line->start) / line->step;
-  m = line->count;
-  
-  p = FLOOR(pos);
-  u = pos-p;
-  
-  v=0;
-  
-  if (pos>=1 &&  pos<(m-2)) {
-    v0 = line->data[p-1];
-    v1 = line->data[p];
-    v2 = line->data[p+1];
-    v3 = line->data[p+2];
-    
-    v = CUBIC_PP(v0,v1,v2,v3,u);
-    
-  } else if (pos>=0 &&  pos<1) {
-    v0 = line->data[p];
-    v1 = line->data[p+1];
-    v2 = line->data[p+2];
-    v3 = line->data[p+3];
-    u=u+1;
-
-    v = CUBIC_PP(v0,v1,v2,v3,u);
-
-  } else if (pos>=(m-2) &&  pos<(m-1)) {
-    v0 = line->data[p-2];
-    v1 = line->data[p-1];
-    v2 = line->data[p];
-    v3 = line->data[p+1];
-    u=u-1;
-    
-    v = CUBIC_PP(v0,v1,v2,v3,u);
-  }
-
-  return(v);
-}
-
-
-
-
-/* 
-  real space 1st derivative value interpolation
-*/ 
-public Real inter_1p(Line_data *line, Real real_p) {
-
-  Real pos, u, v, v0,v1,v2,v3;
-  int m,p;
-				/* establish voxel position */
-  
-  pos = (real_p - line->start) / line->step;
-  m = line->count;
-  
-  p = FLOOR(pos);
-  u = pos-p;
-  
-  v=0;
-  
-  if (pos>=1 &&  pos<(m-2)) {
-    v0 = line->data[p-1];
-    v1 = line->data[p];
-    v2 = line->data[p+1];
-    v3 = line->data[p+2];
-    
-    v = CUBIC_P(v0,v1,v2,v3,u);
-    
-  } else if (pos>=0 &&  pos<1) {
-    v0 = line->data[p];
-    v1 = line->data[p+1];
-    v2 = line->data[p+2];
-    v3 = line->data[p+3];
-    u=u+1;
-
-    v = CUBIC_P(v0,v1,v2,v3,u);
-
-  } else if (pos>=(m-2) &&  pos<(m-1)) {
-    v0 = line->data[p-2];
-    v1 = line->data[p-1];
-    v2 = line->data[p];
-    v3 = line->data[p+1];
-    u=u-1;
-    
-    v = CUBIC_P(v0,v1,v2,v3,u);
-  }
-
-  return(v);
-}
-
-
-
-
-
-
-
-/*
-  voxel space value interpolation
-*/
-public Real inter(Line_data *line, Real pos) {
-
-  Real v,u,v0,v1,v2,v3,f;
-  int m,p;
-
-  m = line->count;
-  v = 0;
-
-  if (pos>=1 &&  pos<(m-2)) {
-    p = FLOOR(pos);
-    u = pos-p;
-    
-    v0 = line->data[p-1];
-    v1 = line->data[p];
-    v2 = line->data[p+1];
-    v3 = line->data[p+2];
-    
-    v = ( (v1) + (u) * ( 0.5 * ((v2)-(v0)) + (u) * ( (v0) - 2.5 * (v1) + 2.0 * (v2) - 0.5 * (v3) + (u) * ( -0.5 * (v0) + 1.5 * (v1) - 1.5 * (v2) + 0.5 * (v3)  ) ) ) );
-  }
-  else {
-    if (pos<-0.5 || pos>=(m-0.5))
-      v = 0;
-    else {
-      if (pos<0 || pos>(m-1)) {
-	if (pos<0)
-	  v = 0.5 * line->data[0];
-	else
-	  v = 0.5 * line->data[m-1];
-      }
-      else {
-	if (pos<1) {
-	  f = pos;
-	  v = (1.0-f)*line->data[0] + f*line->data[1];
-	} else
-	  if (pos>=m-2) {
-	    f = pos-(m-2);
-	    v = (1.0-f)*line->data[m-2] + f*line->data[m-1];
-	  }
-      }
-    }
-  }
-  
-  return(v);
-}
-
-/*
-  real space value interpolation
-*/
-public Real inter_p(Line_data *data, Real real_p) {
-
-  Real pos,v;
-
-  pos = (real_p - data->start) / data->step;
-
-  v = inter(data, pos);
-
-  return(v);
-}
-
-
-
-/*  return the difference between the overlapping area
-    of the two functions of model+offset wrt data.
-*/
-public Real difference(Line_data *model,
-		      Line_data *data,
-		      Real offset) {
-
-  Real t, d, val, minx, maxx;
-  int i;
-  
-  val = 0;
-  minx = data->start;
-  maxx = data->start + data->count*data->step;
-
-  for_less(i,0,model->count) {
-
-    t = model->start + i*model->step + offset; /* new position */
-
-    if (t>=minx && t <=maxx) {
-      d = model->data[i] - inter_p(data, t);
-      val = val + d*d;
-    }
-  }
-  return(val);
-}
-
-/* procedure: brute
-     use brute force to search for the offset that minimizes the difference
-     between the data in m and d, where m is a spatial subset of d.
-   method:
-     search with offsets from -limit to limit, stepping by the value in step
-     and return the best offset position.
-*/
-public Real brute(Difference_Function differ,
-		  Line_data *m,
-		  Line_data *d,
-		  Real step,
-		  Real limit)
-{
-
-  Real 
-    v_min, v, pos,
-    dist;
-
-  v_min = FLT_MAX;
-
-  dist = 0;
-
-  pos = -limit;
-
-  while (pos<=limit) {
-
-
-    v = (*(differ))(m,d,pos);
-
-/*
-print ("%6.2f %10.8f\n",pos,v*1000);
-*/
-    if (v<v_min) {
-      v_min = v;
-      dist = pos;
-    }
-    pos += step;
-  }
-
-  pos = dist;
-
-  if (dist<limit) {
-    v = (*(differ))(m,d,pos+step/2);
-
-    if (v<v_min) {
-      v_min = v;
-      dist = pos+step/2;
-    }
-  }
-
-  if (dist> -limit) {
-    v = (*(differ))(m,d,pos-step/2);
-    if (v<v_min) {
-      v_min = v;
-      dist = pos-step/2;
-    }
-  }
-
-  return(dist);
-}
-
-#define R  0.61803399
-#define C  1.0-R
-
-public Real gold(Difference_Function differ,
-		 Line_data *m,
-		 Line_data *d,
-		 Real limit)
-{
-
-  Real /*f0,*/f1,f2,/*f3,*/d1,d2,x0,x3,x1,x2,ax,bx,cx,dist;
-  
-  int i;
-
-  i = 0;
-  dist = 0;
-
-  ax = -0.6*limit;
-  cx = 0.6*limit;
-
-
-  
-  x0 = ax;
-  bx = 0;
-  x3 = cx;
-
-  d1=cx-bx;
-  d2=bx=ax;
-
-  if ( ABS(d1) > ABS(d2)) {
-    x1=bx;
-    x2=bx+C*(cx-bx);
-  }
-  else {
-    x2=bx;
-    x1=bx-C*(bx-ax);
-  }
-
-  f1= (*(differ))(m,d,x1);
-  f2= (*(differ))(m,d,x2);
-
-  while (abs(x3-x0) > limit/16 && i<20) {
-    i++;
-    if (f2 < f1) {
-      x0=x1; x1=x2; x2=R*x1+C*x3;
-      /* f0=f1;  */
-      f1=f2; f2= (*(differ))(m,d,x2);
-    }
-    else {
-      x3=x2; x2=x1; x1=R*x2+C*x0;
-      /* f3=f2; */
-      f2=f1; f1= (*(differ))(m,d,x1);
-    }
-  }
-  
-  if (f1 < f2)
-    dist=x1;
-  else
-    dist=x2;
-  
-  return(dist);
-  
-  
-}
-
-
-/*
-  find the  offset to best match model (m) with data (d)
-
-  offset returned is constrained to: 
-       | offset | <= limit
-
-  if op_type = 1, do brute force, otherwise use secant
-*/
-public Real find_offset_to_match(Line_data *m,
-				 Line_data *d,
-				 Real      limit,
-				 int       op_type) 
-{
-
-  Real dist,step;
-
-  if (op_type==1) {
-    step = limit/10;
-    dist = brute(difference,m,d,step,limit);
-  }
-  else
-    dist = gold(difference,m,d,limit);
-
-  return(dist);
-}
-
 
 
 public void get_average_warp_of_neighbours(Volume dx, Volume dy, Volume dz, 
@@ -1160,3 +762,283 @@ public void interpolate_super_sampled_data(Volume orig_dx, Volume orig_dy, Volum
 
 
 }
+
+
+public Real get_value_of_point_in_volume(Real xw, Real yw, Real zw, 
+					  Volume data)
+     
+{
+
+  Real
+    mag,
+    xvox, yvox, zvox;
+  
+  PointR 
+    voxel;
+
+  convert_3D_world_to_voxel(data, xw, yw, zw,
+			    &zvox, &yvox, &xvox);
+  fill_Point( voxel, zvox, yvox, xvox );
+
+  if (!trilinear_interpolant(data, &voxel, &mag)) 
+    return(-DBL_MAX); 
+  else 
+    return(mag);
+}
+
+/*******************************************************************************/
+/* debugging procedure called to save the deformation at each iterative step  */
+
+public void save_data(char *basename, int i, int j,
+		      General_transform *transform)
+{
+
+  Status 
+    status;
+  STRING 
+    comments,name;
+  FILE *file;
+
+  (void)sprintf(comments,"step %d of %d of the non-linear estimation",i,j);
+
+  status = open_file_with_default_suffix(basename,
+					 get_default_transform_file_suffix(),
+					 WRITE_FILE, ASCII_FORMAT, &file );
+  
+  if( status == OK )
+    status = output_transform(file,
+			      basename,
+			      &i,
+			      comments,
+			      transform);
+  
+  if( status == OK )
+    status = close_file( file );
+  
+  if (status!=OK)
+    print ("Error saving %s\n",basename);
+}
+
+public void    build_source_lattice(Real x, Real y, Real z,
+				    float PX[], float PY[], float PZ[],
+				    Real width_x, Real width_y, Real width_z, 
+				    int nx, int ny, int nz,
+				    int ndim, int *length)
+{
+  int 
+    c, 
+    i,j,k;
+  float 
+    radius_squared,
+    tx,ty,tz;
+
+  *length = 0; 
+  c = 1;
+  radius_squared = 0.55 * 0.55;	/* a bit bigger than .5^2 */
+  
+  if (ndim==2) {
+    for_less(i,0,nx)
+      for_less(j,0,ny) {
+	tx = -0.5 + (float)(i)/(float)(nx-1);
+	ty = -0.5 + (float)(j)/(float)(ny-1);
+	if ((tx*tx + ty*ty) <= radius_squared) {
+	  PX[c] = (float)(x + width_x * tx);
+	  PY[c] = (float)(y + width_y * ty);
+	  PZ[c] = (float)z;
+	  c++;
+	  (*length)++;
+	}
+      }
+  }
+  else {
+    for_less(i,0,nx)
+      for_less(j,0,ny)
+	for_less(k,0,nz) {
+	  tx = -0.5 + (float)(i)/(float)(nx-1);
+	  ty = -0.5 + (float)(j)/(float)(ny-1);
+	  tz = -0.5 + (float)(k)/(float)(nz-1);
+	  if ((tx*tx + ty*ty + tz*tz) <= radius_squared) {
+	    PX[c] = (float)(x + width_x * tx);
+	    PY[c] = (float)(y + width_y * ty);
+	    PZ[c] = (float)(z + width_z * tz);
+	    c++;
+	    (*length)++;
+	  }
+	}
+  }
+}
+
+public void go_get_samples_in_source(Volume data,
+				     float x[], float y[], float z[],
+				     float samples[],
+				     int len,
+				     int inter_type) 
+{
+  int 
+    flag, c;
+  Real 
+    val;
+  PointR
+    point;
+
+
+  for_inclusive(c,1,len) {
+    convert_3D_world_to_voxel(data, (Real)x[c], (Real)y[c], (Real)z[c], 
+			      &Point_x(point), &Point_y(point), &Point_z(point));
+
+    if (inter_type==0)
+	flag = nearest_neighbour_interpolant(data,  &point , &val);
+    else {
+      if (inter_type==1)
+	flag = trilinear_interpolant(data,  &point , &val);
+      else
+	flag = tricubic_interpolant(data,  &point , &val);
+    }
+
+    if (flag)
+      samples[c] = (float)val;
+    else
+      samples[c] = 0.0;
+  }
+
+}
+
+
+public float go_get_samples_with_offset(Volume data,
+				       float *x, float *y, float *z,
+				       Real dx, Real dy, Real dz,
+				       int len, float sqrt_s1, float *a1)
+{
+  float
+    sample, r,
+    s1,s3;			/* to store the sums for f1,f2,f3 */
+  int 
+    sizes[3],
+    ind0, ind1, ind2, 
+    c;  
+  int xs,ys,zs;
+  float
+    f_trans, f_scale;
+
+  unsigned char  ***byte_ptr;
+  unsigned short ***ushort_ptr;
+           short ***sshort_ptr;
+  
+  get_volume_sizes(data, sizes);  
+  xs = sizes[0];  
+  ys = sizes[1];  
+  zs = sizes[2];
+
+  f_trans = data->real_value_translation;
+  f_scale = data->real_value_scale;
+
+  dx += 0.5;
+  dy += 0.5;
+  dz += 0.5;
+
+  s1 = 0.0;
+  s3 = 0.0;
+
+  ++a1; 
+
+  switch( data->data_type ) {
+  case UNSIGNED_BYTE:  
+
+    byte_ptr = data->data;
+
+    ++x; ++y; ++z; 
+
+    for_inclusive(c,1,len) {
+      
+      ind0 = (int) ( *x++ + dz );
+      ind1 = (int) ( *y++ + dy );
+      ind2 = (int) ( *z++ + dx );
+      
+      if (ind0>=0 && ind0<xs &&
+	  ind1>=0 && ind1<ys &&
+	  ind2>=0 && ind2<zs) {
+	sample = byte_ptr[ind0][ind1][ind2] * f_scale + f_trans;
+      }
+      else
+	sample = 0.0;
+      
+      s1 += *a1++ * sample;
+      s3 += sample * sample;
+      
+
+    }
+    break;
+  case SIGNED_SHORT:  
+
+    sshort_ptr = data->data;
+
+    ++x; ++y; ++z; 
+
+    for_inclusive(c,1,len) {
+      
+      ind0 = (int) ( *x++ + dz );
+      ind1 = (int) ( *y++ + dy );
+      ind2 = (int) ( *z++ + dx );
+      
+      if (ind0>=0 && ind0<xs &&
+	  ind1>=0 && ind1<ys &&
+	  ind2>=0 && ind2<zs) {
+	sample = sshort_ptr[ind0][ind1][ind2] * f_scale + f_trans;
+      }
+      else
+	sample = 0.0;
+      
+      s1 += *a1++ * sample;
+      s3 += sample * sample;
+      
+
+    }
+    break;
+  case UNSIGNED_SHORT:  
+
+    ushort_ptr = data->data;
+
+    ++x; ++y; ++z; 
+
+    for_inclusive(c,1,len) {
+      
+      ind0 = (int) ( *x++ + dz );
+      ind1 = (int) ( *y++ + dy );
+      ind2 = (int) ( *z++ + dx );
+      
+      if (ind0>=0 && ind0<xs &&
+	  ind1>=0 && ind1<ys &&
+	  ind2>=0 && ind2<zs) {
+	sample = ushort_ptr[ind0][ind1][ind2] * f_scale + f_trans;
+      }
+      else
+	sample = 0.0;
+      
+      s1 += *a1++ * sample;
+      s3 += sample * sample;
+      
+
+    }
+    break;
+  default:
+    print_error_and_line_num("Data type not supported in go_get_samples_with_offset",__FILE__, __LINE__);
+  }
+
+
+
+  if ( sqrt_s1 < 0.01 && s3 < 0.0001) {
+    r = 1.0;
+  }
+  else {
+    if ( sqrt_s1 < 0.01 || s3 < 0.0001) {
+      r = 0.0;
+    }
+    else {
+      r = s1 / (sqrt_s1*sqrt((double)s3));
+    }
+  }
+
+  return(r);
+}
+
+
