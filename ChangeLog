@@ -1,3 +1,10 @@
+2000-05-12  Steve ROBBINS  <stever@bic.mni.mcgill.ca>
+
+	* INSTALL.quick: point to README.CVS.
+
+	* README: note current version; add pointers to INSTALL.quick and
+ 	INSTALL.
+
 2000-05-11  Louis COLLINS  <louis@bic.mni.mcgill.ca>
 
 	* AUTHORS (contact): changed the contact list to include Steve and

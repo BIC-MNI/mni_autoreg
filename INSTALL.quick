@@ -1,3 +1,6 @@
+If you are using a version of mni_autoreg from CVS, please
+read README.CVS before continuing.
+
 This is the short form of the installation instructions for MNI
 AutoReg.  See the files INSTALL, README, and TESTING for more details
 --- especially if anything goes wrong.

@@ -1,6 +1,6 @@
                  MNI Automated Linear Registration Package
-                     Version 0.98h (seventh beta release)
-                            March 2000
+                      Version 0.98i  ---  Spring 2000
+
 
 DESCRIPTION
 -----------
@@ -46,13 +46,17 @@ procedure has appeared in:
 
 The nonlinear registration procedure is described in:
 
-   DL Collins, CJ Holmes, TM Peters and AC Evans",
+   DL Collins, CJ Holmes, TM Peters and AC Evans,
    Automatic 3D model-based neuro-anatomical segmentation
    Human Brain Mapping, 3(3) p 190-208, 1995
 
 
-GETTING MNI_AUTOREG
--------------------
+INSTALLING MNI_AUTOREG
+----------------------
+
+The install directions for this package are contained in the files
+INSTALL.quick and INSTALL.  What follows here are instructions for 
+installing *prerequisite* software.
 
 You can obtain a copy of the latest version of the MNI_AutoReg
 software using anonymous FTP from:

@@ -1,4 +1,6 @@
 * configure and --with-xxx:
+  - the README is misleading on the use of --prefix; really need
+    a --site-includes/--site-libraries flag
   - if a --with flag is given, the computed -L/dir options should appear
     up front, certainly before -L/usr/local/include
   - if --prefix is given, $prefix/lib and $prefix/include should be
