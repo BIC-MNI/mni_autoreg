@@ -14,8 +14,17 @@
                                     to create a sublattice defined on the target.
      
 @CREATED    : Mon Nov  3, 1997 , Louis Collins
-@MODIFIED   : not yet!
-@VERSION    : $Id: sub_lattice.c,v 1.2 1997-11-12 21:07:43 louis Exp $
+@VERSION    : $Id: sub_lattice.c,v 1.3 1998-03-13 20:22:22 louis Exp $
+@MODIFIED   : $Log: sub_lattice.c,v $
+@MODIFIED   : Revision 1.3  1998-03-13 20:22:22  louis
+@MODIFIED   : Modified the loops over the nodes of the sublattice so that no interpolation
+@MODIFIED   : in the target volume is done in go_get_samples_with_offset() when the
+@MODIFIED   : objective function == NONLIN_CHAMFER and there is no sulci (*a1==0)
+@MODIFIED   : in the node list for the source sub-lattice.  This yields a considerable
+@MODIFIED   : improvement in speed (62% faster) for the evaluation of chamfer feature.
+@MODIFIED   : Overall speedup is on the order of 25-30% when using 2 features, with
+@MODIFIED   : no measurable cost when using only a single feature.
+@MODIFIED   :
 #-----------------------------------------------------------------------------
 */
 
@@ -261,23 +270,31 @@ public float go_get_samples_with_offset(
 	   sample = (float)sampleR;
 	*/
 	
-	ind0 = (int) ( *x++ + dx );
-	ind1 = (int) ( *y++ + dy );
-	ind2 = (int) ( *z++ + dz );
-	
-	if (ind0>=0 && ind0<xs &&
-	    ind1>=0 && ind1<ys &&
-	    ind2>=0 && ind2<zs) {
-	  sample = (float)(byte_ptr[ind0][ind1][ind2]) * f_scale + f_trans;
-	}
-	else
-	  sample = 0.0;
-		
-	
-#include "switch_obj_func.c"
+      if (  !(obj_func==NONLIN_CHAMFER) ||  (*a1>0) ) {
 
+         ind0 = (int) ( *x++ + dx );
+         ind1 = (int) ( *y++ + dy );
+         ind2 = (int) ( *z++ + dz );
+         
+         if (ind0>=0 && ind0<xs &&
+             ind1>=0 && ind1<ys &&
+             ind2>=0 && ind2<zs) {
+            sample = (float)(byte_ptr[ind0][ind1][ind2]) * f_scale + f_trans;
+         }
+         else
+            sample = 0.0;
+         
+         
+#include "switch_obj_func.c"
       }
-      break;
+      else {
+         a1++;
+         x++;
+         y++;
+         z++;
+      }
+    }
+    break;
     case SIGNED_SHORT:  
       
       sshort_ptr = VOXEL_DATA (data); 
@@ -286,20 +303,27 @@ public float go_get_samples_with_offset(
       
       for_inclusive(c,1,len) {
 	
-	ind0 = (int) ( *x++ + dx );
-	ind1 = (int) ( *y++ + dy );
-	ind2 = (int) ( *z++ + dz );
-	
-	if (ind0>=0 && ind0<xs &&
-	    ind1>=0 && ind1<ys &&
-	    ind2>=0 && ind2<zs) {
-	  sample = sshort_ptr[ind0][ind1][ind2] * f_scale + f_trans;
-	}
-	else
-	  sample = 0.0;
+         if (  !(obj_func==NONLIN_CHAMFER) ||  (*a1>0) ) {
+            ind0 = (int) ( *x++ + dx );
+            ind1 = (int) ( *y++ + dy );
+            ind2 = (int) ( *z++ + dz );
+            
+            if (ind0>=0 && ind0<xs &&
+                ind1>=0 && ind1<ys &&
+                ind2>=0 && ind2<zs) {
+               sample = sshort_ptr[ind0][ind1][ind2] * f_scale + f_trans;
+            }
+            else
+               sample = 0.0;
 	
 #include "switch_obj_func.c"
-	
+         }
+         else {
+            a1++;
+            x++;
+            y++;
+            z++;
+         }
       }
       break;
     case UNSIGNED_SHORT:  
@@ -313,20 +337,27 @@ public float go_get_samples_with_offset(
       
       for_inclusive(c,1,len) {
 	
-	ind0 = (int) ( *x++ + dx );
-	ind1 = (int) ( *y++ + dy );
-	ind2 = (int) ( *z++ + dz );
-	
-	if (ind0>=0 && ind0<xs &&
-	    ind1>=0 && ind1<ys &&
-	    ind2>=0 && ind2<zs) {
-	  sample = (float)(ushort_ptr[ind0][ind1][ind2]) * f_scale + f_trans;
-	}
-	else
-	  sample = 0.0;
-	
+         if (  !(obj_func==NONLIN_CHAMFER) ||  (*a1>0) ) {
+            ind0 = (int) ( *x++ + dx );
+            ind1 = (int) ( *y++ + dy );
+            ind2 = (int) ( *z++ + dz );
+            
+            if (ind0>=0 && ind0<xs &&
+                ind1>=0 && ind1<ys &&
+                ind2>=0 && ind2<zs) {
+               sample = (float)(ushort_ptr[ind0][ind1][ind2]) * f_scale + f_trans;
+            }
+            else
+               sample = 0.0;
+            
 #include "switch_obj_func.c"
-
+         }
+         else {
+            a1++;
+            x++;
+            y++;
+            z++;
+         }
       }
       break;
     default:
@@ -336,216 +367,240 @@ public float go_get_samples_with_offset(
   }
   else {			/* then do fast trilinear interpolation */
     
-    switch( data_type ) {
-    case UNSIGNED_BYTE:  
-      
-       byte_ptr = VOXEL_DATA (data);
-
-      ++x; ++y; ++z; 
-      
-      for_inclusive(c,1,len) {
-	
-	/*  fast tri-linear interplation */
-	
-	v0 = (Real) ( *x++ + dx );
-	v1 = (Real) ( *y++ + dy );
-	v2 = (Real) ( *z++ + dz );
-	
-	ind0 = (int)v0;
-	ind1 = (int)v1;
-	ind2 = (int)v2;
-	
-	if (ind0>=0 && ind0<(xs-1) &&
-	    ind1>=0 && ind1<(ys-1) &&
-	    ind2>=0 && ind2<(zs-1)) {
-	  
-	  /* get the data */
-	  v000 = (Real)(byte_ptr[ind0  ][ind1  ][ind2  ]);
-	  v001 = (Real)(byte_ptr[ind0  ][ind1  ][ind2+1]);
-	  v010 = (Real)(byte_ptr[ind0  ][ind1+1][ind2  ]);
-	  v011 = (Real)(byte_ptr[ind0  ][ind1+1][ind2+1]);
-	  v100 = (Real)(byte_ptr[ind0+1][ind1  ][ind2  ]);
-	  v101 = (Real)(byte_ptr[ind0+1][ind1  ][ind2+1]);
-	  v110 = (Real)(byte_ptr[ind0+1][ind1+1][ind2  ]);
-	  v111 = (Real)(byte_ptr[ind0+1][ind1+1][ind2+1]);
-	  
-	  /* Get the fraction parts */
-	  f0 = v0 - ind0;
-	  f1 = v1 - ind1;
-	  f2 = v2 - ind2;
-	  r0 = 1.0 - f0;
-	  r1 = 1.0 - f1;
-	  r2 = 1.0 - f2;
-	  
-	  /* Do the interpolation */
-	  r1r2 = r1 * r2;
-	  r1f2 = r1 * f2;
-	  f1r2 = f1 * r2;
-	  f1f2 = f1 * f2;
-	  
-	  sample   = 
-	    r0 *  (r1r2 * v000 +
-		   r1f2 * v001 +
-		   f1r2 * v010 +
-		   f1f2 * v011);
-	  sample  +=
-	    f0 *  (r1r2 * v100 +
-		   r1f2 * v101 +
-		   f1r2 * v110 +
-		   f1f2 * v111);
-	  
-	  sample = sample * f_scale + f_trans;
-
-
-	}
-	else
-	  sample = 0.0;
-	
-	
+     switch( data_type ) {
+        case UNSIGNED_BYTE:  
+        
+        byte_ptr = VOXEL_DATA (data);
+        
+        ++x; ++y; ++z; 
+        
+        for_inclusive(c,1,len) {
+           
+           /*  fast tri-linear interplation */
+           
+           if (  !(obj_func==NONLIN_CHAMFER) ||  (*a1>0) ) {
+              v0 = (Real) ( *x++ + dx );
+              v1 = (Real) ( *y++ + dy );
+              v2 = (Real) ( *z++ + dz );
+              
+              ind0 = (int)v0;
+              ind1 = (int)v1;
+              ind2 = (int)v2;
+              
+              if (ind0>=0 && ind0<(xs-1) &&
+                  ind1>=0 && ind1<(ys-1) &&
+                  ind2>=0 && ind2<(zs-1)) {
+                 
+                 /* get the data */
+                 v000 = (Real)(byte_ptr[ind0  ][ind1  ][ind2  ]);
+                 v001 = (Real)(byte_ptr[ind0  ][ind1  ][ind2+1]);
+                 v010 = (Real)(byte_ptr[ind0  ][ind1+1][ind2  ]);
+                 v011 = (Real)(byte_ptr[ind0  ][ind1+1][ind2+1]);
+                 v100 = (Real)(byte_ptr[ind0+1][ind1  ][ind2  ]);
+                 v101 = (Real)(byte_ptr[ind0+1][ind1  ][ind2+1]);
+                 v110 = (Real)(byte_ptr[ind0+1][ind1+1][ind2  ]);
+                 v111 = (Real)(byte_ptr[ind0+1][ind1+1][ind2+1]);
+                 
+                 /* Get the fraction parts */
+                 f0 = v0 - ind0;
+                 f1 = v1 - ind1;
+                 f2 = v2 - ind2;
+                 r0 = 1.0 - f0;
+                 r1 = 1.0 - f1;
+                 r2 = 1.0 - f2;
+                 
+                 /* Do the interpolation */
+                 r1r2 = r1 * r2;
+                 r1f2 = r1 * f2;
+                 f1r2 = f1 * r2;
+                 f1f2 = f1 * f2;
+                 
+                 sample   = 
+                    r0 *  (r1r2 * v000 +
+                           r1f2 * v001 +
+                           f1r2 * v010 +
+                           f1f2 * v011);
+                 sample  +=
+                    f0 *  (r1r2 * v100 +
+                           r1f2 * v101 +
+                           f1r2 * v110 +
+                           f1f2 * v111);
+                 
+                 sample = sample * f_scale + f_trans;
+                 
+                 
+              }
+              else
+                 sample = 0.0;
+              
+              
 #include "switch_obj_func.c"
-
-      }
-      break;
-    case SIGNED_SHORT:  
-      
-       sshort_ptr = VOXEL_DATA (data); 
-
-      ++x; ++y; ++z; 
-      
-      for_inclusive(c,1,len) {
-	
+           }
+           else {
+              a1++;
+              x++;
+              y++;
+              z++;
+           }
+           
+        }
+        break;
+        case SIGNED_SHORT:  
+        
+        sshort_ptr = VOXEL_DATA (data); 
+        
+        ++x; ++y; ++z; 
+        
+        for_inclusive(c,1,len) {
+           
 	/*  fast tri-linear interpolation */
 	
-	v0 = (Real) ( *x++ + dx );
-	v1 = (Real) ( *y++ + dy );
-	v2 = (Real) ( *z++ + dz );
-	
-	ind0 = (int)v0;
-	ind1 = (int)v1;
-	ind2 = (int)v2;
-	
-	if (ind0>=0 && ind0<(xs-1) &&
-	    ind1>=0 && ind1<(ys-1) &&
-	    ind2>=0 && ind2<(zs-1)) {
-	  
-	  /* get the data */
-	  v000 = (Real)(sshort_ptr[ind0  ][ind1  ][ind2  ]);
-	  v001 = (Real)(sshort_ptr[ind0  ][ind1  ][ind2+1]);
-	  v010 = (Real)(sshort_ptr[ind0  ][ind1+1][ind2  ]);
-	  v011 = (Real)(sshort_ptr[ind0  ][ind1+1][ind2+1]);
-	  v100 = (Real)(sshort_ptr[ind0+1][ind1  ][ind2  ]);
-	  v101 = (Real)(sshort_ptr[ind0+1][ind1  ][ind2+1]);
-	  v110 = (Real)(sshort_ptr[ind0+1][ind1+1][ind2  ]);
-	  v111 = (Real)(sshort_ptr[ind0+1][ind1+1][ind2+1]);
-	  
-	  /* Get the fraction parts */
-	  f0 = v0 - ind0;
-	  f1 = v1 - ind1;
-	  f2 = v2 - ind2;
-	  r0 = 1.0 - f0;
-	  r1 = 1.0 - f1;
-	  r2 = 1.0 - f2;
-	  
-	  /* Do the interpolation */
-	  r1r2 = r1 * r2;
-	  r1f2 = r1 * f2;
-	  f1r2 = f1 * r2;
-	  f1f2 = f1 * f2;
-	  
-	  sample   = 
-	    r0 *  (r1r2 * v000 +
-		   r1f2 * v001 +
-		   f1r2 * v010 +
-		   f1f2 * v011);
-	  sample  +=
-	    f0 *  (r1r2 * v100 +
-		   r1f2 * v101 +
-		   f1r2 * v110 +
-		   f1f2 * v111);
-	  
-	  sample = sample * f_scale + f_trans;
-	  
-	}
-	else
-	  sample = 0.0;
-	
+           if (  !(obj_func==NONLIN_CHAMFER) ||  (*a1>0) ) {
+              v0 = (Real) ( *x++ + dx );
+              v1 = (Real) ( *y++ + dy );
+              v2 = (Real) ( *z++ + dz );
+              
+              ind0 = (int)v0;
+              ind1 = (int)v1;
+              ind2 = (int)v2;
+              
+              if (ind0>=0 && ind0<(xs-1) &&
+                  ind1>=0 && ind1<(ys-1) &&
+                  ind2>=0 && ind2<(zs-1)) {
+                 
+                 /* get the data */
+                 v000 = (Real)(sshort_ptr[ind0  ][ind1  ][ind2  ]);
+                 v001 = (Real)(sshort_ptr[ind0  ][ind1  ][ind2+1]);
+                 v010 = (Real)(sshort_ptr[ind0  ][ind1+1][ind2  ]);
+                 v011 = (Real)(sshort_ptr[ind0  ][ind1+1][ind2+1]);
+                 v100 = (Real)(sshort_ptr[ind0+1][ind1  ][ind2  ]);
+                 v101 = (Real)(sshort_ptr[ind0+1][ind1  ][ind2+1]);
+                 v110 = (Real)(sshort_ptr[ind0+1][ind1+1][ind2  ]);
+                 v111 = (Real)(sshort_ptr[ind0+1][ind1+1][ind2+1]);
+                 
+                 /* Get the fraction parts */
+                 f0 = v0 - ind0;
+                 f1 = v1 - ind1;
+                 f2 = v2 - ind2;
+                 r0 = 1.0 - f0;
+                 r1 = 1.0 - f1;
+                 r2 = 1.0 - f2;
+                 
+                 /* Do the interpolation */
+                 r1r2 = r1 * r2;
+                 r1f2 = r1 * f2;
+                 f1r2 = f1 * r2;
+                 f1f2 = f1 * f2;
+                 
+                 sample   = 
+                    r0 *  (r1r2 * v000 +
+                           r1f2 * v001 +
+                           f1r2 * v010 +
+                           f1f2 * v011);
+                 sample  +=
+                    f0 *  (r1r2 * v100 +
+                           r1f2 * v101 +
+                           f1r2 * v110 +
+                           f1f2 * v111);
+                 
+                 sample = sample * f_scale + f_trans;
+                 
+              }
+              else
+                 sample = 0.0;
+              
 #include "switch_obj_func.c"
-	
-      }
-      break;
-    case UNSIGNED_SHORT:  
-      
-       ushort_ptr = VOXEL_DATA (data);
-
-      ++x; ++y; ++z; 
-      
-      for_inclusive(c,1,len) {
-	
-	/*  fast tri-linear interplation */
-	
-	v0 = (Real) ( *x++ + dx );
-	v1 = (Real) ( *y++ + dy );
-	v2 = (Real) ( *z++ + dz );
-	
-	ind0 = (int)v0;
-	ind1 = (int)v1;
-	ind2 = (int)v2;
-	
-	if (ind0>=0 && ind0<(xs-1) &&
-	    ind1>=0 && ind1<(ys-1) &&
-	    ind2>=0 && ind2<(zs-1)) {
-	  
-	  /* get the data */
-	  v000 = (Real)(ushort_ptr[ind0  ][ind1  ][ind2  ]);
-	  v001 = (Real)(ushort_ptr[ind0  ][ind1  ][ind2+1]);
-	  v010 = (Real)(ushort_ptr[ind0  ][ind1+1][ind2  ]);
-	  v011 = (Real)(ushort_ptr[ind0  ][ind1+1][ind2+1]);
-	  v100 = (Real)(ushort_ptr[ind0+1][ind1  ][ind2  ]);
-	  v101 = (Real)(ushort_ptr[ind0+1][ind1  ][ind2+1]);
-	  v110 = (Real)(ushort_ptr[ind0+1][ind1+1][ind2  ]);
-	  v111 = (Real)(ushort_ptr[ind0+1][ind1+1][ind2+1]);
-	  
-	  /* Get the fraction parts */
-	  f0 = v0 - ind0;
-	  f1 = v1 - ind1;
-	  f2 = v2 - ind2;
-	  r0 = 1.0 - f0;
-	  r1 = 1.0 - f1;
-	  r2 = 1.0 - f2;
-	  
-	  /* Do the interpolation */
-	  r1r2 = r1 * r2;
-	  r1f2 = r1 * f2;
-	  f1r2 = f1 * r2;
-	  f1f2 = f1 * f2;
-	  
-	  sample   = 
-	    r0 *  (r1r2 * v000 +
-		   r1f2 * v001 +
-		   f1r2 * v010 +
-		   f1f2 * v011);
-	  sample  +=
-	    f0 *  (r1r2 * v100 +
-		   r1f2 * v101 +
-		   f1r2 * v110 +
-		   f1f2 * v111);
-	  
-	  sample = sample * f_scale + f_trans;
-	  
-	}
-	else
-	  sample = 0.0;
-	
+           }
+           else {
+              a1++;
+              x++;
+              y++;
+              z++;
+           }
+           
+        }
+        break;
+        case UNSIGNED_SHORT:  
+        
+        ushort_ptr = VOXEL_DATA (data);
+        
+        ++x; ++y; ++z; 
+        
+        for_inclusive(c,1,len) {
+           
+           if (  !(obj_func==NONLIN_CHAMFER) ||  (*a1>0) ) {
+              /*  fast tri-linear interplation */
+              
+              v0 = (Real) ( *x++ + dx );
+              v1 = (Real) ( *y++ + dy );
+              v2 = (Real) ( *z++ + dz );
+              
+              ind0 = (int)v0;
+              ind1 = (int)v1;
+              ind2 = (int)v2;
+              
+              if (ind0>=0 && ind0<(xs-1) &&
+                  ind1>=0 && ind1<(ys-1) &&
+                  ind2>=0 && ind2<(zs-1)) {
+                 
+                 /* get the data */
+                 v000 = (Real)(ushort_ptr[ind0  ][ind1  ][ind2  ]);
+                 v001 = (Real)(ushort_ptr[ind0  ][ind1  ][ind2+1]);
+                 v010 = (Real)(ushort_ptr[ind0  ][ind1+1][ind2  ]);
+                 v011 = (Real)(ushort_ptr[ind0  ][ind1+1][ind2+1]);
+                 v100 = (Real)(ushort_ptr[ind0+1][ind1  ][ind2  ]);
+                 v101 = (Real)(ushort_ptr[ind0+1][ind1  ][ind2+1]);
+                 v110 = (Real)(ushort_ptr[ind0+1][ind1+1][ind2  ]);
+                 v111 = (Real)(ushort_ptr[ind0+1][ind1+1][ind2+1]);
+                 
+                 /* Get the fraction parts */
+                 f0 = v0 - ind0;
+                 f1 = v1 - ind1;
+                 f2 = v2 - ind2;
+                 r0 = 1.0 - f0;
+                 r1 = 1.0 - f1;
+                 r2 = 1.0 - f2;
+                 
+                 /* Do the interpolation */
+                 r1r2 = r1 * r2;
+                 r1f2 = r1 * f2;
+                 f1r2 = f1 * r2;
+                 f1f2 = f1 * f2;
+                 
+                 sample   = 
+                    r0 *  (r1r2 * v000 +
+                           r1f2 * v001 +
+                           f1r2 * v010 +
+                           f1f2 * v011);
+                 sample  +=
+                    f0 *  (r1r2 * v100 +
+                           r1f2 * v101 +
+                           f1r2 * v110 +
+                           f1f2 * v111);
+                 
+                 sample = sample * f_scale + f_trans;
+                 
+              }
+              else
+                 sample = 0.0;
+              
 #include "switch_obj_func.c"
+           }
+           else {
+              a1++;
+              x++;
+              y++;
+              z++;
+           }
 
-      }
-      break;
-    default:
-      print_error_and_line_num("Data type not supported in go_get_samples_with_offset (only signed_byte, signed_short, unsigned_short allowed)",__FILE__, __LINE__);
-    }
-    
+        }
+        break;
+        default:
+        print_error_and_line_num("Data type not supported in go_get_samples_with_offset (only signed_byte, signed_short, unsigned_short allowed)",__FILE__, __LINE__);
+     }
+     
   }
-    
+  
   
 				/* do the last bits of the similarity function
 				   calculation here - normalizing each obj_func
@@ -587,9 +642,6 @@ public float go_get_samples_with_offset(
   case NONLIN_CHAMFER:
     if (number_of_nonzero_samples>0) {
        r = 1.0 - (s1 / (20.0*number_of_nonzero_samples));	
-    }
-    else
-       r = 1.0;
                                 /* r = 1- average distance / 20mm 
                                        0 < r < ~1.0 
                                    where 1.0 is best     
@@ -601,6 +653,11 @@ public float go_get_samples_with_offset(
                                        1.0, but when it is, shouldn't
                                        chamfer have larger weight to drive
                                        the fit? */
+    }
+    else
+       r = 2.0;                 /* this is simply a value > 1.5, used as a
+                                   flag to indicate that there were no
+                                   samples used for the chamfer */
     break;
   default:
     print_error_and_line_num("Objective function %d not supported in go_get_samples_with_offset",__FILE__, __LINE__,obj_func);
