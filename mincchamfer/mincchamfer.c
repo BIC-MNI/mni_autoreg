@@ -39,6 +39,7 @@ int main ( int argc, char* argv[] )
    char* history = history_string( argc, argv );
 
    /* set globals */
+   max_dist = 50;
    debug = FALSE;
    verbose = TRUE;
    prog_name = argv[0];
@@ -91,7 +92,7 @@ int main ( int argc, char* argv[] )
    
                                 /* call the chamfer estimation */
    
-   status = compute_chamfer(data);
+   status = compute_chamfer(data,max_dist);
    if (status != OK)
       print_error_and_line_num("problems computing chamfer...",__FILE__, __LINE__);
    

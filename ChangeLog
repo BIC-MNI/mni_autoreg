@@ -1,5 +1,7 @@
 2003-07-04  Steve ROBBINS  <stever@bic.mni.mcgill.ca>
 
+	* Merge all changes to main trunk in perl directory.
+
 	* configure.in: Set VERSION to 0.98j_smr.
 
 	* minctracc/ChangeLog:

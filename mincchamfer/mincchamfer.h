@@ -17,8 +17,12 @@ int
   first,
   debug,
   verbose;
+Real
+  max_dist;
 
 static ArgvInfo argTable[] = {
+  {"-max_dist", ARGV_FLOAT, (char*)0, (char*)&max_dist,
+     "Maximum distance value in transform."},
   {"-first", ARGV_INT, (char *) 0, (char *) &first,
      "Number of initial background structure dilations"},
   {NULL, ARGV_HELP, NULL, NULL,

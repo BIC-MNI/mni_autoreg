@@ -13,6 +13,8 @@ Release 0.98j_smr
 * mritotal will now interpret the Site Tables as well as the Protocol.  This
   allows the user to define the -model and -modeldir in the protocol file.
 
+* New option mincchamfer: -max_dist
+  Set the maximum distance allowed in the distance transform volume.
 
 Release 0.98j
 -------------
