@@ -16,9 +16,12 @@
 @CREATED    : Wed Jun 23 09:04:34 EST 1993 Louis Collins
 
 @MODIFIED   : $Log: blur_support.h,v $
-@MODIFIED   : Revision 96.0  1996-08-21 18:22:24  louis
-@MODIFIED   : Release of MNI_AutoReg version 0.96
+@MODIFIED   : Revision 96.1  2000-01-27 18:03:51  louis
+@MODIFIED   : final checkin before switch to CVS
 @MODIFIED   :
+ * Revision 96.0  1996/08/21  18:22:24  louis
+ * Release of MNI_AutoReg version 0.96
+ *
  * Revision 9.6  1996/08/21  18:22:16  louis
  * Pre-release
  *
@@ -51,14 +54,16 @@ public void  make_kernel(float *kern, float vsize, float fwhm, int size, int typ
 # undef X
 #endif
 #define X  2
-#ifdef y
-# undef y
+
+#ifdef Y
+# undef Y
 #endif
-#define y  1
-#ifdef z
-# undef z
+#define Y  1
+
+#ifdef Z
+# undef Z
 #endif
-#define z  0
+#define Z  0
 
 #include "kernel.h"
 

@@ -15,9 +15,12 @@
 
 @CREATED    : Wed Jun 23 09:04:34 EST 1993 Louis Collins
 @MODIFIED   : $Log: mincblur.h,v $
-@MODIFIED   : Revision 96.0  1996-08-21 18:22:24  louis
-@MODIFIED   : Release of MNI_AutoReg version 0.96
+@MODIFIED   : Revision 96.1  2000-01-27 18:03:52  louis
+@MODIFIED   : final checkin before switch to CVS
 @MODIFIED   :
+ * Revision 96.0  1996/08/21  18:22:24  louis
+ * Release of MNI_AutoReg version 0.96
+ *
  * Revision 9.6  1996/08/21  18:22:20  louis
  * Pre-release
  *
@@ -43,13 +46,6 @@ public Status gradient3D_volume(FILE *ifd,
 				int ndim,
 				char *history,
 				int curvature_flg);
-
-public Status calc_Lvv_volume(FILE *ifd, 
-			      Volume data, 
-			      char *infile,
-			      char *outfile, 
-			      int ndim,
-			      char *history);
 
 
 public void apodize_data(Volume data, 
@@ -83,7 +79,6 @@ int
   apodize_data_flg,
   kernel_type,
   dimensions,
-  do_Lvv_flag,
   do_gradient_flag,
   do_partials_flag;
 
@@ -105,8 +100,6 @@ static ArgvInfo argTable[] = {
      "Use a rect (box) smoothing kernel."},
   {"-gradient", ARGV_CONSTANT, (char *) TRUE, (char *) &do_gradient_flag, 
      "Create the gradient magnitude volume as well."},
-  {"-Lvv", ARGV_CONSTANT, (char *) TRUE, (char *) &do_Lvv_flag, 
-     "Create the Lvv volume as well."},
   {"-partial", ARGV_CONSTANT, (char *) TRUE, (char *) &do_partials_flag, 
      "Create the partial derivative and gradient magnitude volumes as well."},
   {"-no_apodize", ARGV_CONSTANT, (char *) FALSE, (char *) &apodize_data_flg, 
@@ -127,4 +120,17 @@ static ArgvInfo argTable[] = {
      "Print out version info and exit."},
   {NULL, ARGV_END, NULL, NULL, NULL}
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
 
