@@ -35,9 +35,13 @@
       created by removing build_default_deformation_field from 
       transformations.c
 @MODIFIED   : $Log: default_def.c,v $
-@MODIFIED   : Revision 96.0  1996-08-21 18:21:58  louis
-@MODIFIED   : Release of MNI_AutoReg version 0.96
+@MODIFIED   : Revision 96.1  1997-11-03 19:59:49  louis
+@MODIFIED   : - now include internal_volume_io.h instead of volume_io.h
+@MODIFIED   : - used xyzv[X] instead of 0 for the index for the x variable
 @MODIFIED   :
+ * Revision 96.0  1996/08/21  18:21:58  louis
+ * Release of MNI_AutoReg version 0.96
+ *
  * Revision 9.6  1996/08/21  18:21:52  louis
  * Pre-release
  *
@@ -64,7 +68,7 @@ static char rcsid[]="";
 #endif
 
 #include <config.h>		/* to have HAVE_RECENT_VOLUME_IO macro */
-#include <volume_io.h>
+#include <internal_volume_io.h>
 #include <print_error.h>
 #include "arg_data.h"
 #include "local_macros.h"
@@ -238,7 +242,7 @@ private void resample_the_deformation_field(Arg_Data *globals)
   alloc_volume_data(new_field);
   
   if (globals->flags.verbose>0)
-    initialize_progress_report( &progress, FALSE, count[0],
+    initialize_progress_report( &progress, FALSE, count[xyzv[X]],
 			       "Interpolating new field" );
   
   /* now resample the values from the input deformation */
@@ -287,7 +291,7 @@ private void resample_the_deformation_field(Arg_Data *globals)
       }
     }
     if (globals->flags.verbose>0) 
-      update_progress_report( &progress, i+1 );
+      update_progress_report( &progress,index[xyzv[X]]+1);
   }
   if (globals->flags.verbose>0) 
     terminate_progress_report( &progress );
