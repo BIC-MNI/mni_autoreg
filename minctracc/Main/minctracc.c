@@ -13,7 +13,11 @@
 
    @CREATED    : February 3, 1992 - louis collins
    @MODIFIED   : $Log: minctracc.c,v $
-   @MODIFIED   : Revision 96.11  2004-02-12 05:54:22  rotor
+   @MODIFIED   : Revision 96.12  2004-03-18 06:51:03  rotor
+   @MODIFIED   :  * changed make_model from csh to sh
+   @MODIFIED   :  * removed an extraneous printf from minctracc
+   @MODIFIED   :
+   @MODIFIED   : Revision 96.11  2004/02/12 05:54:22  rotor
    @MODIFIED   :  * removed public/private defs
    @MODIFIED   :
    @MODIFIED   : Revision 96.10  2004/02/04 20:42:33  lenezet
@@ -124,7 +128,7 @@ Wed May 26 13:05:44 EST 1993 lc
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.11 2004-02-12 05:54:22 rotor Exp $";
+static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.12 2004-03-18 06:51:03 rotor Exp $";
 #endif
 
 #include <config.h>
@@ -144,14 +148,14 @@ static char *default_dim_names[N_DIMENSIONS] =
 
 /* Why are these declared here?  They aren't apparently used.
  * -smr
+ *
+ * static   const STRING      TRANSFORM_FILE_HEADER = "MNI Transform File";
+ * static   const STRING      LINEAR_TYPE = "Linear";
+ * static   const STRING      TYPE_STRING = "Transform_Type";
+ * static   const STRING      LINEAR_TRANSFORM_STRING = "Linear_Transform";
+ * static   const STRING      GRID_TRANSFORM_STRING = "Grid_Transform";
+ * static   const STRING      DISPLACEMENT_VOLUME = "Displacement_Volume";
  */
-static   const STRING      TRANSFORM_FILE_HEADER = "MNI Transform File";
-static   const STRING      LINEAR_TYPE = "Linear";
-static   const STRING      TYPE_STRING = "Transform_Type";
-static   const STRING      LINEAR_TRANSFORM_STRING = "Linear_Transform";
-static   const STRING      GRID_TRANSFORM_STRING = "Grid_Transform";
-static   const STRING      DISPLACEMENT_VOLUME = "Displacement_Volume";
-
 
 /*************************************************************************/
 int main ( int argc, char* argv[] )
@@ -690,11 +694,6 @@ int main ( int argc, char* argv[] )
 		__FILE__, __LINE__);
     exit(EXIT_FAILURE);
   }
-  else {
-    print ("successful write\n");
-  }
-
-
   
   delete_general_transform(main_args.trans_info.transformation);
   FREE(main_args.trans_info.transformation);

@@ -1,4 +1,8 @@
-2004-08-04  Andrew Janke <rotor@cmr.uq.edu.au>
+2004-03-18  Andrew Janke <rotor@cmr.uq.edu.au>
+
+        * changed make_model from csh to sh (Cygwin has no csh by default)
+
+2004-02-08  Andrew Janke <rotor@cmr.uq.edu.au>
 
 	* removed all the public/private syntatic sugar (private->static)
 	* Added use of FindBin::Bin to perl progs for libs, data and config
