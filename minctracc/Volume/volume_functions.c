@@ -14,7 +14,11 @@
 
 @CREATED    : Tue Jun 15 08:57:23 EST 1993 LC
 @MODIFIED   :  $Log: volume_functions.c,v $
-@MODIFIED   :  Revision 96.7  2001-01-17 14:10:38  louis
+@MODIFIED   :  Revision 96.8  2001-01-17 14:26:07  louis
+@MODIFIED   :  added a delete_volume() after the copy_volume_definition_no_alloc,
+@MODIFIED   :  just to make sure that there is no leak.
+@MODIFIED   :
+@MODIFIED   :  Revision 96.7  2001/01/17 14:10:38  louis
 @MODIFIED   :  Fixed memory leak in the code used to compute the intensity
 @MODIFIED   :  normalization function.  I used a copy_volume_definition instead of
 @MODIFIED   :  copy_volume_definition_no_alloc to build a volume header structure.
@@ -72,7 +76,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/volume_functions.c,v 96.7 2001-01-17 14:10:38 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/volume_functions.c,v 96.8 2001-01-17 14:26:07 louis Exp $";
 #endif
 
 #include <config.h>
@@ -555,6 +559,8 @@ public void normalize_data_to_match_target(Volume d1, Volume m1, Real thresh1,
       if (globals->flags.debug) (void)print ("After normalization min,max, thresh = %f %f %f\n",
 					     min_range, max_range, t1/result);
 
+      delete_volume(vol);
+    
     }
   }
 
