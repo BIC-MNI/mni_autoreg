@@ -1,9 +1,9 @@
 .rn '' }`
-''' $RCSfile: autocrop.man1,v $$Revision: 1.1 $$Date: 2000-01-19 14:10:31 $
+''' $RCSfile: autocrop.man1,v $$Revision: 1.1.1.1 $$Date: 2000-01-19 14:10:31 $
 '''
 ''' $Log: autocrop.man1,v $
-''' Revision 1.1  2000-01-19 14:10:31  louis
-''' Initial revision
+''' Revision 1.1.1.1  2000-01-19 14:10:31  louis
+''' First installation of mni_autoreg package into the CVS repository.
 '''
 '''
 .de Sh

@@ -184,8 +184,8 @@ vio_hdr="$VOLUMEIO_INCLUDE/volume_io.h"
 
 # This bit of awk magic sort-of emulates the RCS command `ident', by
 # looking for lines with "Header:" in them, and then getting the token two
-# tokens after "Header:". (This works because Dave puts "$Header: /private-cvsroot/registration/mni_autoreg/Attic/configure.in,v 1.1 2000-01-19 14:10:30 louis Exp $" instead
-# of, say, "$Id: configure.in,v 1.1 2000-01-19 14:10:30 louis Exp $" into his source files.)
+# tokens after "Header:". (This works because Dave puts "$Header: /private-cvsroot/registration/mni_autoreg/Attic/configure.in,v 1.1.1.1 2000-01-19 14:10:30 louis Exp $" instead
+# of, say, "$Id: configure.in,v 1.1.1.1 2000-01-19 14:10:30 louis Exp $" into his source files.)
 
 # A Note to Aspriring Shell Hackers: trying to match on a literal dollar
 # sign in the regexps below doesn't work very well.  I think the problem is

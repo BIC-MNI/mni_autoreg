@@ -9,7 +9,7 @@
 #@GLOBALS    : 
 #@CREATED    : 95/08/07, Greg Ward (from gpw_utilities.pl)
 #@MODIFIED   : 
-#@VERSION    : $Id: misc_utilities.pl,v 1.1 2000-01-19 14:10:32 louis Exp $
+#@VERSION    : $Id: misc_utilities.pl,v 1.1.1.1 2000-01-19 14:10:32 louis Exp $
 #-----------------------------------------------------------------------------
 
 # --------------------------------------------------------------------

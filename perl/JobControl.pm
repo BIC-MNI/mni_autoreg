@@ -29,7 +29,7 @@
 #                              default options for commands, and a priori
 #                              searching for required programs; also major
 #                              code reorg and cleanup
-#@VERSION    : $Id: JobControl.pm,v 1.1 2000-01-19 14:10:31 louis Exp $
+#@VERSION    : $Id: JobControl.pm,v 1.1.1.1 2000-01-19 14:10:31 louis Exp $
 #-----------------------------------------------------------------------------
 
 # --------------------------------------------------------------------

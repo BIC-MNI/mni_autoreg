@@ -8,7 +8,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/Proglib/Attic/vax_conversions.c,v 1.1 2000-01-19 14:10:36 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/Proglib/Attic/vax_conversions.c,v 1.1.1.1 2000-01-19 14:10:36 louis Exp $";
 #endif
 
 /* ----------------------------- MNI Header -----------------------------------

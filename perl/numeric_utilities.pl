@@ -10,7 +10,7 @@
 #@CALLS      : 
 #@CREATED    : 95/08/07, Greg Ward - broke off from gpw_utilties.pl
 #@MODIFIED   : 
-#@VERSION    : $Id: numeric_utilities.pl,v 1.1 2000-01-19 14:10:32 louis Exp $
+#@VERSION    : $Id: numeric_utilities.pl,v 1.1.1.1 2000-01-19 14:10:32 louis Exp $
 #-----------------------------------------------------------------------------
 
 # --------------------------------------------------------------------

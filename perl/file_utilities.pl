@@ -5,7 +5,7 @@
 #@GLOBALS    : 
 #@CREATED    : 1995/08/07, Greg Ward (from gpw_utilities.pl)
 #@MODIFIED   : 
-#@VERSION    : $Id: file_utilities.pl,v 1.1 2000-01-19 14:10:31 louis Exp $
+#@VERSION    : $Id: file_utilities.pl,v 1.1.1.1 2000-01-19 14:10:31 louis Exp $
 #-----------------------------------------------------------------------------
 
 # --------------------------------------------------------------------

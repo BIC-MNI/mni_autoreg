@@ -66,7 +66,7 @@
 #              96/03/21, GW: rearranged shutdown sequence, added/edited
 #                        tons of comments
 #@COMMENTS   : 
-#@VERSION    : $Id: Startup.pm,v 1.1 2000-01-19 14:10:31 louis Exp $
+#@VERSION    : $Id: Startup.pm,v 1.1.1.1 2000-01-19 14:10:31 louis Exp $
 #----------------------------------------------------------------------------
 
 # --------------------------------------------------------------------

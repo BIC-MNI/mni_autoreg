@@ -22,7 +22,7 @@
 
 # By Greg Ward 94/9/22
 
-# $Id: autocrop.in,v 1.1 2000-01-19 14:10:31 louis Exp $
+# $Id: autocrop.in,v 1.1.1.1 2000-01-19 14:10:31 louis Exp $
 
 use Startup;
 use JobControl;

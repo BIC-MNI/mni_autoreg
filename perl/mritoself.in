@@ -14,7 +14,7 @@
 #              rewrite #2: December 1995-February 1996, GW
 #@MODIFIED   : April-May 1996, Louis Collins: modifications to make an
 #                              official mritoself for ICBM and AI data
-#@VERSION    : $Id: mritoself.in,v 1.1 2000-01-19 14:10:31 louis Exp $
+#@VERSION    : $Id: mritoself.in,v 1.1.1.1 2000-01-19 14:10:31 louis Exp $
 #@COMMENTS   : 
 #  possible additions:
 #    figure out the thresholding stuff

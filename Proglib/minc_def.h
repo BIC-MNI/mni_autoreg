@@ -5,8 +5,8 @@
 @CALLS      : 
 @CREATED    : July 7, 1993 (Peter Neelin)
 @MODIFIED   : $Log: minc_def.h,v $
-@MODIFIED   : Revision 1.1  2000-01-19 14:10:36  louis
-@MODIFIED   : Initial revision
+@MODIFIED   : Revision 1.1.1.1  2000-01-19 14:10:36  louis
+@MODIFIED   : First installation of mni_autoreg package into the CVS repository.
 @MODIFIED   :
  * Revision 1.5  93/08/11  13:23:31  neelin
  * Modified ROUND macro to cast to (long)
@@ -16,8 +16,8 @@
  * 
  * Revision 1.3  93/08/04  13:03:30  neelin
  * Added RCS $Log: minc_def.h,v $
- * Added RCS Revision 1.1  2000-01-19 14:10:36  louis
- * Added RCS Initial revision
+ * Added RCS Revision 1.1.1.1  2000-01-19 14:10:36  louis
+ * Added RCS First installation of mni_autoreg package into the CVS repository.
  * Added RCS
  * Revision 1.5  93/08/11  13:23:31  neelin
  * Modified ROUND macro to cast to (long)
