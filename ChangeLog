@@ -1,3 +1,9 @@
+2000-05-19  Steve ROBBINS  <stever@bic.mni.mcgill.ca>
+
+	* autogen.sh: run `autoheader' before `automake'.  In order for
+ 	the autoheader-generated file `config.h.in' to appear in the
+ 	distribution list, it must exist before `automake' is run.
+
 2000-05-12  Steve ROBBINS  <stever@bic.mni.mcgill.ca>
 
 	* Testing/Makefile.am (ellipse4.mnc): make sure we look

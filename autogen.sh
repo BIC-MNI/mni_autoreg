@@ -1,18 +1,19 @@
 #! /bin/sh
 
 cat <<EOF
-Ignore the following three warnings:
+Messages of the following type may be safely ignored.
+Any other diagnostics may be a sign of trouble.  
+Let us know if something goes wrong.
 
-	required file \`./config.h.in' not found
-	warning: AC_TRY_RUN called without default to allow cross compiling
-	warning: AC_TRY_RUN called without default to allow cross compiling
+    automake: configure.in: installing [...]
+    warning: AC_TRY_RUN called without default to allow cross compiling
 
 
 
 EOF
 
 aclocal
+autoheader
 automake --add-missing
 autoconf
-autoheader
 
