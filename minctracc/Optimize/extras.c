@@ -5,7 +5,7 @@
                procedures.               
 @CREATED    : Mon Nov  3, 1997 , Louis Collins
 @MODIFIED   : not yet!
-@VERSION    : $Id: extras.c,v 1.4 2002-03-26 14:15:44 stever Exp $
+@VERSION    : $Id: extras.c,v 1.5 2002-12-13 21:18:20 lenezet Exp $
 #-----------------------------------------------------------------------------
 */
 
@@ -17,38 +17,38 @@
 public void report_time(long start_time, STRING text) 
 {
 
-   Real 
-      time_total;
-   long 
-      present_time;
-   STRING 
-      time_total_string;
-
-   ALLOC(time_total_string,512);
-
-   present_time = time(NULL);
-
-   time_total = (Real)(present_time - start_time);
-
+  Real 
+    time_total;
+  long 
+    present_time;
+  STRING 
+    time_total_string;
+    
+  present_time = time(NULL);
+  
+  time_total = (Real)(present_time - start_time);
+  
 #ifdef VOLIO_HAVE_2ARG_FORMAT_TIME
-   time_total_string = format_time("%g %s", time_total);
+  time_total_string = format_time("%g %s", time_total);
 #else
 #  ifndef VOLIO_HAVE_3ARG_FORMAT_TIME
 #    error Help!  Do not know how to invoke format_time.
 #  endif
-   /* This comes from a very very old VolumeIO library. */
-   format_time( time_total_string,"%g %s", time_total);
+  /* This comes from a very very old VolumeIO library. */
+  format_time( time_total_string,"%g %s", time_total);
 #endif
-
-   print ("\n%s : %s", text, time_total_string);
-
-   if (time_total > 120)
-      print (" (%d seconds)\n",(int)time_total);
-   else
-      print ("\n");
-
-   FREE(time_total_string);
+  
+  print ("\n%s : %s", text, time_total_string);
+  
+  if (time_total > 120)
+    print (" (%d seconds)\n",(int)time_total);
+  else
+    print ("\n");
+  
+  
+  delete_string(time_total_string);
 }
+
 
 public void init_the_volume_to_zero(Volume volume)
 {

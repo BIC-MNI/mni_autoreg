@@ -3,9 +3,13 @@
 @DESCRIPTION: routines to calculate the objective function used for local
               optimization              
 @CREATED    : Nov 4, 1997, Louis Collins
-@VERSION    : $Id: def_obj_functions.c,v 1.6 2002-03-26 14:15:43 stever Exp $
+@VERSION    : $Id: def_obj_functions.c,v 1.7 2002-12-13 21:18:19 lenezet Exp $
 @MODIFIED   : $Log: def_obj_functions.c,v $
-@MODIFIED   : Revision 1.6  2002-03-26 14:15:43  stever
+@MODIFIED   : Revision 1.7  2002-12-13 21:18:19  lenezet
+@MODIFIED   :
+@MODIFIED   : A memory leak has been repaired
+@MODIFIED   :
+@MODIFIED   : Revision 1.6  2002/03/26 14:15:43  stever
 @MODIFIED   : Update includes to <volume_io/foo.h> style.
 @MODIFIED   :
 @MODIFIED   : Revision 1.5  2000/03/15 08:42:45  stever
@@ -51,6 +55,9 @@ public int
   nearest_neighbour_interpolant(Volume volume, 
                                 PointR *coord, double *result);
 
+public void from_param_to_grid_weights(
+   Real p[],
+   Real grid[]);
 
 
 public float go_get_samples_with_offset(Volume data,
@@ -130,6 +137,7 @@ private Real similarity_fn(float *d)
 					 Gsqrt_features[i], Ga1_features[i],
 					 Gglobals->interpolant==nearest_neighbour_interpolant);
       
+
       norm += ABS(Gglobals->features.weight[i]);
       s += Gglobals->features.weight[i] * func_sim;
       
@@ -166,7 +174,6 @@ public Real local_objective_function(float *d)
   similarity = (Real)similarity_fn( d );
   cost       = (Real)cost_fn( d[1], d[2], d[3], Gcost_radius );
   
-  
   r = 1.0 - 
       similarity * similarity_cost_ratio + 
       cost       * (1.0-similarity_cost_ratio);
@@ -182,12 +189,27 @@ public Real amoeba_NL_obj_function(void * dummy, float d[])
 {
   int i;
   float p[4];
-  Real obj_func_val;
+  Real
+    real_d[N_DIMENSIONS],
+    grid_weights[N_DIMENSIONS],
+    obj_func_val;
 
+
+  /* for_less(i,0,number_dimensions)
+      p[i+1] = d[i]; */
 
   for_less(i,0,number_dimensions)
-    p[i+1] = d[i];
+    real_d[i] = d[i];
+
+  from_param_to_grid_weights( real_d, grid_weights);
+
+  for_less(i,0,number_dimensions)
+    p[i+1] = grid_weights[i];
+  
+
   obj_func_val =  local_objective_function(p);
+
+
 
   return ( obj_func_val );
   

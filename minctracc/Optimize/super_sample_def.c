@@ -20,7 +20,11 @@
 
 @CREATED    : 
 @MODIFIED   : $Log: super_sample_def.c,v $
-@MODIFIED   : Revision 96.6  2002-11-20 21:39:16  lenezet
+@MODIFIED   : Revision 96.7  2002-12-13 21:18:20  lenezet
+@MODIFIED   :
+@MODIFIED   : A memory leak has been repaired
+@MODIFIED   :
+@MODIFIED   : Revision 96.6  2002/11/20 21:39:16  lenezet
 @MODIFIED   :
 @MODIFIED   : Fix the code to take in consideration the direction cosines especially in the grid transform.
 @MODIFIED   : Add an option to choose the maximum expected deformation magnitude.
@@ -72,7 +76,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/super_sample_def.c,v 96.6 2002-11-20 21:39:16 lenezet Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/super_sample_def.c,v 96.7 2002-12-13 21:18:20 lenezet Exp $";
 #endif
 
 #include <config.h>
@@ -96,7 +100,15 @@ public void set_up_lattice(Volume data,
 			   double *step,      
 			   VectorR directions[]);
 
-
+private void interpolate_super_sampled_data_by2_dim2(General_transform *orig_deformation,
+						     General_transform *super_sampled,
+						     int i);
+private void interpolate_super_sampled_data_by2_dim2_X(General_transform *orig_deformation,
+						       General_transform *super_sampled);
+private void interpolate_super_sampled_data_by2_dim2_Y(General_transform *orig_deformation,
+						       General_transform *super_sampled);
+private void interpolate_super_sampled_data_by2_dim2_Z(General_transform *orig_deformation,
+						       General_transform *super_sampled);
 /* build the volume structure and allocate the data space to store
    a super-sampled GRID_TRANSFORM.
 
@@ -111,7 +123,7 @@ public void create_super_sampled_data_volumes(General_transform *orig_deformatio
 
 {
 
-  int 
+ int
     i,
     xyzv[MAX_DIMENSIONS],
     orig_count[MAX_DIMENSIONS], 
@@ -127,6 +139,8 @@ public void create_super_sampled_data_volumes(General_transform *orig_deformatio
 
   VectorR 
     directions[3];
+
+
 
   if (orig_deformation->type != GRID_TRANSFORM) {
     print_error_and_line_num("create_super_sampled_data_volumes not called with GRID_TRANSFORM",
@@ -171,9 +185,12 @@ public void create_super_sampled_data_volumes(General_transform *orig_deformatio
     new_steps[ xyzv[i] ] = xyz_steps[i];
   }
 
+
+
+
   set_volume_sizes(       super_sampled->displacement_volume, new_count);
   set_volume_separations( super_sampled->displacement_volume, new_steps);
-  set_volume_translation( super_sampled->displacement_volume, voxel, start);
+  set_volume_starts( super_sampled->displacement_volume,  start);
   alloc_volume_data(      super_sampled->displacement_volume );
 
 
@@ -190,10 +207,16 @@ public void create_super_sampled_data_volumes(General_transform *orig_deformatio
 
    see interpolate_super_sampled_data_by2() (below) for speedy code for the
    special case when the super sampling rate is euqal to 2.
+
+
+
+         W A R N I N G : there appears to be a bug in volume_io's evaluate_volume
+                         call, so this routine should not be called.
+
+
 */
 public void interpolate_super_sampled_data(General_transform *orig_deformation,
-					   General_transform *super_sampled,
-					   int dim)
+					   General_transform *super_sampled)
 {
   Volume
     orig_vol,
@@ -212,6 +235,11 @@ public void interpolate_super_sampled_data(General_transform *orig_deformation,
   progress_struct
     progress;
 
+  print ("W A R N I N G : there appears to be a bug in volume_io's evaluate_volume\ncall, so interpolate_super_sampled_data should not be called.\n");
+
+
+
+
   orig_vol = orig_deformation->displacement_volume;
   super_vol= super_sampled->displacement_volume;
 
@@ -224,6 +252,9 @@ public void interpolate_super_sampled_data(General_transform *orig_deformation,
   
   for_less(i,0,MAX_DIMENSIONS) index[i]=0;
   
+
+  /* check here to see if special case of super sampling by 2, and if so, call the correct routine dec 02 */
+
   for_less( index[ xyzv[X] ] , 0, count[ xyzv[X] ]) {
     for_less( index[ xyzv[Y] ] , 0, count[ xyzv[Y] ]) {
       for_less( index[ xyzv[Z] ] , 0, count[ xyzv[Z] ]) {
@@ -233,14 +264,11 @@ public void interpolate_super_sampled_data(General_transform *orig_deformation,
 	convert_voxel_to_world(super_vol, 
 			       voxel,
 			       &wx, &wy, &wz);
-	if (dim==2) 
-	  interpolate_deformation_slice(orig_vol, wx, wy, wz, def_vector);
-	else {
-	  evaluate_volume_in_world(orig_vol, wx,wy,wz, 2, TRUE, 0.0,
-				   def_vector,
-				   NULL, NULL, NULL,
-				   NULL, NULL, NULL, NULL, NULL, NULL);
-	}
+
+	evaluate_volume_in_world(orig_vol, wx,wy,wz, 2, TRUE, 0.0,
+				 def_vector,
+				 NULL, NULL, NULL,
+				 NULL, NULL, NULL, NULL, NULL, NULL);
 
 	for_less( index[ xyzv[Z+1] ], 0, count[ xyzv[Z+1] ]) 
 	  set_volume_real_value(super_vol,
@@ -280,7 +308,7 @@ public void create_super_sampled_data_volumes_by2(General_transform *orig_deform
 
 {
 
-  int 
+  int
     i,
     xyzv[MAX_DIMENSIONS],
     new_xyzv[MAX_DIMENSIONS], 
@@ -293,6 +321,8 @@ public void create_super_sampled_data_volumes_by2(General_transform *orig_deform
     start[MAX_DIMENSIONS],
     orig_steps[MAX_DIMENSIONS],
     new_steps[MAX_DIMENSIONS];
+
+ 
 
   if (orig_deformation->type != GRID_TRANSFORM) {
     print_error_and_line_num("create_super_sampled_data_volumes not called with GRID_TRANSFORM",
@@ -322,19 +352,23 @@ public void create_super_sampled_data_volumes_by2(General_transform *orig_deform
   for_less(i,0,3) {		
     new_steps[new_xyzv[i]] = orig_steps[xyzv[i]]/2.0;
   }
-  
+   
 				/* set up the new number of elements size */
-  for_less(i,0,3) {		
-    new_count[new_xyzv[i]] = orig_count[xyzv[i]]*2.0 - 1;
+  for_less(i,0,3) { 		
+    if (orig_count[xyzv[i]] > 1) { 
+      new_count[new_xyzv[i]] = orig_count[xyzv[i]]*2.0 - 1;
+    }
+    else {
+      new_count[new_xyzv[i]] = orig_count[xyzv[i]];
+    }
   }
-  
+
   for_less(i,0,MAX_DIMENSIONS) 
     voxel[i] = 0.0;
-
   convert_voxel_to_world(orig_deformation->displacement_volume,
 			 voxel,
 			 &start[X], &start[Y], &start[Z]);
-  
+ 
   
 				/* write the new info to the volume struct
 				   and allocate the space for the volume data */
@@ -342,6 +376,9 @@ public void create_super_sampled_data_volumes_by2(General_transform *orig_deform
   set_volume_separations( super_sampled->displacement_volume, new_steps);
   set_volume_translation( super_sampled->displacement_volume, voxel, start);
   alloc_volume_data(      super_sampled->displacement_volume );
+    
+
+
 
 }
 
@@ -1286,19 +1323,1196 @@ private void interpolate_super_sampled_data_by2_dim3(
 
 public void interpolate_super_sampled_data_by2(
     General_transform *orig_deformation,
-    General_transform *super_sampled,
-    int dim)
+    General_transform *super_sampled)
 {
-    if (orig_deformation->type != GRID_TRANSFORM || super_sampled->type != GRID_TRANSFORM) {
-	print_error_and_line_num("interpolate_super_sampled_data_by2 not called with GRID_TRANSFORM",
-				 __FILE__, __LINE__);
-    }
 
-    if (dim == 2) {
-	interpolate_super_sampled_data(orig_deformation,super_sampled,dim);
-    } else {
-	interpolate_super_sampled_data_by2_dim3( orig_deformation, super_sampled );
+  int
+    i,num_dim,
+    xyzv[MAX_DIMENSIONS],
+    count[MAX_DIMENSIONS];
+  Volume
+    orig_vol;
+
+
+  
+
+  if (orig_deformation->type != GRID_TRANSFORM || super_sampled->type != GRID_TRANSFORM) {
+    print_error_and_line_num("interpolate_super_sampled_data_by2 not called with GRID_TRANSFORM",
+			     __FILE__, __LINE__);
+  }
+
+  orig_vol = orig_deformation->displacement_volume;
+  get_volume_sizes(       orig_vol,  count);
+  get_volume_XYZV_indices(orig_vol,  xyzv);
+
+  num_dim = 0;
+
+  for_less(i,0,N_DIMENSIONS) {
+    if ( count[xyzv[i]] > 1 ) 
+      num_dim++;
+  }
+
+  if (num_dim == 3) {
+    interpolate_super_sampled_data_by2_dim3( orig_deformation, super_sampled );
+  } else {
+
+    if (num_dim == 2){		/* then one dim == 1 */
+      
+      for_less(i,0,N_DIMENSIONS) {
+
+	if ( count[xyzv[i]] == 1 ) {
+	  interpolate_super_sampled_data_by2_dim2( orig_deformation, super_sampled,i );
+
+	}
+
+      }
+    }
+  }
+}
+
+
+private void interpolate_super_sampled_data_by2_dim2(General_transform *orig_deformation,
+						     General_transform *super_sampled,
+						     int i)
+{
+
+  if(i==0) interpolate_super_sampled_data_by2_dim2_X(orig_deformation,super_sampled );
+  else
+    { 
+      if (i==1) interpolate_super_sampled_data_by2_dim2_Y(orig_deformation,super_sampled );
+      else
+	{
+	  if (i==2) interpolate_super_sampled_data_by2_dim2_Z(orig_deformation,super_sampled );
+	  else print("\n\n\n warning\n in interpolate_super_sampled_data_by2_dim2 \n i >2 \n\n");
+	}
     }
 }
 
 
+private void interpolate_super_sampled_data_by2_dim2_X( 
+    General_transform *orig_deformation,
+    General_transform *super_sampled )
+{
+  Volume
+    orig_vol,
+    super_vol;
+
+  int 
+    i, save_index, save_index1, save_index2,
+    count,
+    index[MAX_DIMENSIONS],
+    sindex[MAX_DIMENSIONS],
+    orig_xyzv[MAX_DIMENSIONS],
+    xyzv[MAX_DIMENSIONS],
+    orig_count[MAX_DIMENSIONS],
+    super_count[MAX_DIMENSIONS];
+  Real
+    value1, value2, value3, v1,v2,v3,v4,v5,v6;
+  progress_struct
+    progress;
+
+    orig_vol = orig_deformation->displacement_volume;
+    super_vol= super_sampled->displacement_volume;
+    
+    get_volume_sizes(       super_vol, super_count);
+    get_volume_sizes(       orig_vol,  orig_count);
+    get_volume_XYZV_indices(super_vol, xyzv);
+    get_volume_XYZV_indices(orig_vol,  orig_xyzv);
+    
+    init_the_volume_to_zero(super_sampled->displacement_volume);
+
+    initialize_progress_report(&progress, FALSE, 
+			      	super_count[ xyzv[Y] ]*
+			        super_count[ xyzv[Z] ]*super_count[ xyzv[Z+1] ]+1,
+			       "Super-sampling defs:" );
+    count = 0;
+
+
+    print("\norig count x y z %d %d %d\nsuper count x y z %d %d %d\n ",orig_count[ orig_xyzv[X] ],orig_count[ orig_xyzv[Y] ],orig_count[ orig_xyzv[Z] ],super_count[ xyzv[X] ], super_count[ xyzv[Y] ], super_count[ xyzv[Z] ]);
+
+    /* LEVEL 0: copy original 'corner' nodes, identified as 'X' in desc above */
+
+   
+    for_less(i,0,MAX_DIMENSIONS) sindex[i]=index[i]=0;
+    
+      for_less( index[ orig_xyzv[Y] ] , 0, orig_count[ orig_xyzv[Y] ]) {
+	for_less( index[ orig_xyzv[Z] ] , 0, orig_count[ orig_xyzv[Z] ]) {
+
+	  for_less(i,1,N_DIMENSIONS)
+	    sindex[ xyzv[i] ] = 2*index[ orig_xyzv[i] ];
+
+	  for_less( index[ orig_xyzv[Z+1] ], 0, orig_count[ xyzv[Z+1] ]) {
+	    sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+	    GET_VOXEL_4D(value1, orig_vol, index[0],index[1],index[2],index[3]);
+	    SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	  }	  
+
+	  count += 3;
+	}
+      }
+      update_progress_report( &progress, count+1 );
+
+
+
+   /* LEVEL 1: edge interpolation, identified as 'e' in desc above */
+
+ 
+               /* do edges along the index[ orig_xyzv[Y] ] dir */
+
+    for_less(i,0,MAX_DIMENSIONS) sindex[i]=index[i]=0;
+    
+				/* loop over all x-dirs  */
+    
+    
+    for_less( index[ orig_xyzv[Z] ], 0, orig_count[ orig_xyzv[Z] ]) {
+
+	sindex[ xyzv[Z] ] = 2*index[ orig_xyzv[Z] ];
+
+
+	for_less( index[ orig_xyzv[Z+1] ], 0, orig_count[ xyzv[Z+1] ]) {
+
+				/* do linear interp at ends */
+
+	  sindex[ xyzv[Y] ] = 1;                             /* beginning end */
+	  index[ orig_xyzv[Y] ]=0;             
+	  GET_VOXEL_4D(v1, orig_vol, index[0],index[1],index[2],index[3]);
+	  index[ orig_xyzv[Y] ]=1;
+	  GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
+	  value1 = (v1+v2)/2;
+
+	  sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+
+	  SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	  count++;
+
+	  sindex[ xyzv[Y] ] = 2*orig_count[ orig_xyzv[Y] ]-1;       /* ending end */
+	  index[ orig_xyzv[Y] ]= orig_count[ orig_xyzv[Y] ]-2;              
+	  GET_VOXEL_4D(v1, orig_vol, index[0],index[1],index[2],index[3]);
+	  index[ orig_xyzv[Y] ]= orig_count[ orig_xyzv[Y] ]-1;
+	  GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
+	  value1 = (v1+v2)/2;
+
+	  sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+
+	  SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	  count++;
+	  
+	  sindex[ xyzv[Y] ] = 2*orig_count[ orig_xyzv[Y] ]-3;       /* ending end */
+	  index[ orig_xyzv[Y] ]= orig_count[ orig_xyzv[Y] ]-3;              
+	  GET_VOXEL_4D(v1, orig_vol, index[0],index[1],index[2],index[3]);
+	  index[ orig_xyzv[Y] ]= orig_count[ orig_xyzv[Y] ]-2;
+	  GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
+	  value1 = (v1+v2)/2;
+
+	  sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+
+	  SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	  count++;
+				/* now do the voxels between the two ends */
+
+
+	  for_inclusive( index[ orig_xyzv[Y] ], 1, orig_count[ orig_xyzv[Y] ]-3) {
+
+	    save_index = index[ orig_xyzv[Y] ];
+	    sindex[ xyzv[Y] ] = index[ orig_xyzv[Y] ]*2 + 1;
+
+	    index[ orig_xyzv[Y] ]--;             
+	    GET_VOXEL_4D(v1, orig_vol, index[0],index[1],index[2],index[3]);
+	    index[ orig_xyzv[Y] ]++;             
+	    GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
+	    index[ orig_xyzv[Y] ]++;             
+	    GET_VOXEL_4D(v3, orig_vol, index[0],index[1],index[2],index[3]);
+	    index[ orig_xyzv[Y] ]++;             
+	    GET_VOXEL_4D(v4, orig_vol, index[0],index[1],index[2],index[3]);
+
+	    value1 = MY_CUBIC_05(v1,v2,v3,v4);
+
+	    SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	    count++;
+
+	    index[ orig_xyzv[Y] ] = save_index;
+	  }
+	}	  
+      update_progress_report( &progress, count+1 );
+    }
+               /* do edges along the index[ orig_xyzv[Z] ] dir */
+
+    for_less(i,0,MAX_DIMENSIONS) sindex[i]=index[i]=0;
+    
+				/* loop over all Z-dirs  */
+
+
+      for_less( index[ orig_xyzv[Y] ] , 0, orig_count[ orig_xyzv[Y] ]) {
+
+	sindex[ xyzv[Y] ] = 2*index[ orig_xyzv[Y] ];
+
+	for_less( index[ orig_xyzv[Z+1] ], 0, orig_count[ xyzv[Z+1] ]) {
+
+				/* do linear interp at ends */
+
+	  sindex[ xyzv[Z] ] = 1;                             /* beginning end */
+	  index[ orig_xyzv[Z] ]=0;             
+	  GET_VOXEL_4D(v1, orig_vol, index[0],index[1],index[2],index[3]);
+	  index[ orig_xyzv[Z] ]=1;
+	  GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
+	  value1 = (v1+v2)/2;
+
+	  sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+
+	  SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	  count++;
+
+	  sindex[ xyzv[Z] ] = 2*orig_count[ orig_xyzv[Z] ]-1;  /*super_count[ xyzv[Z] ] -2;*/      /* ending end */
+	  index[ orig_xyzv[Z] ]= orig_count[ orig_xyzv[Z] ]-2;              
+	  GET_VOXEL_4D(v1, orig_vol, index[0],index[1],index[2],index[3]);
+	  index[ orig_xyzv[Z] ]= orig_count[ orig_xyzv[Z] ]-1;
+	  GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
+	  value1 = (v1+v2)/2;
+
+	  sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+
+	  SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	  count++;
+ 
+	  sindex[ xyzv[Z] ] = 2*orig_count[ orig_xyzv[Z] ]-3;  /*super_count[ xyzv[Z] ] -2;*/      /* ending end */
+	  index[ orig_xyzv[Z] ]= orig_count[ orig_xyzv[Z] ]-3;              
+	  GET_VOXEL_4D(v1, orig_vol, index[0],index[1],index[2],index[3]);
+	  index[ orig_xyzv[Z] ]= orig_count[ orig_xyzv[Z] ]-2;
+	  GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
+	  value1 = (v1+v2)/2;
+
+	  sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+
+	  SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	  count++;
+
+				/* now do the voxels between the two ends */
+
+
+	  for_inclusive( index[ orig_xyzv[Z] ], 1, orig_count[ orig_xyzv[Z] ]-3) {
+
+	    save_index = index[ orig_xyzv[Z] ];
+	    sindex[ xyzv[Z] ] = index[ orig_xyzv[Z] ]*2 + 1;
+
+	    index[ orig_xyzv[Z] ]--;             
+	    GET_VOXEL_4D(v1, orig_vol, index[0],index[1],index[2],index[3]);
+	    index[ orig_xyzv[Z] ]++;             
+	    GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
+	    index[ orig_xyzv[Z] ]++;             
+	    GET_VOXEL_4D(v3, orig_vol, index[0],index[1],index[2],index[3]);
+	    index[ orig_xyzv[Z] ]++;             
+	    GET_VOXEL_4D(v4, orig_vol, index[0],index[1],index[2],index[3]);
+
+	    value1 = MY_CUBIC_05(v1,v2,v3,v4);
+
+	    SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	    count++;
+
+	    index[ orig_xyzv[Z] ] = save_index;
+	  }
+
+	}	  
+
+      update_progress_report( &progress, count+1 );
+    }
+
+  /* LEVEL 2: face interpolation, identified as 'f' in desc above */
+
+               /* do faces in the plane with index[ orig_xyzv[X] ]=CONST */
+
+    for_less(i,0,MAX_DIMENSIONS)  sindex[i]=index[i]=0;
+    
+				/* loop over the X plane  */
+
+ 
+      for_less( index[ orig_xyzv[Z+1] ], 0, orig_count[ xyzv[Z+1] ]) {
+
+	sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+
+
+				/* do faces near the edge first */
+
+	for_inclusive( index[ orig_xyzv[Z] ] , 0, orig_count[ orig_xyzv[Z] ]-1) {
+
+	  sindex[ xyzv[Z] ] = index[ orig_xyzv[Z] ]*2 + 1;
+	  
+	  sindex[ xyzv[Y] ] = 0;
+	  GET_VOXEL_4D(v1, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	  sindex[ xyzv[Y] ] = 2;
+	  GET_VOXEL_4D(v2, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	  
+	  value1 = (v1+v2)/2;
+	  
+	  sindex[ xyzv[Y] ] = 1;
+	  SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	  count++;
+	  
+
+	  sindex[ xyzv[Y] ] = super_count[ xyzv[Y] ] -2;
+	  GET_VOXEL_4D(value1, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+
+	  
+	  sindex[ xyzv[Y] ] = super_count[ xyzv[Y] ] -1;
+	  SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	  count++;
+	  
+	  sindex[ xyzv[Y] ] = super_count[ xyzv[Y] ] -4;
+	  GET_VOXEL_4D(v1, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	  sindex[ xyzv[Y] ] = super_count[ xyzv[Y] ] -2;
+	  GET_VOXEL_4D(v1, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	  
+	  value1 = (v1+v2)/2;
+	  
+	  sindex[ xyzv[Y] ] = super_count[ xyzv[Y] ] -3;
+	  SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	  count++;
+	  
+	  
+	}
+	update_progress_report( &progress, count+1 );
+
+	for_inclusive( index[ orig_xyzv[Y] ] , 0, orig_count[ orig_xyzv[Y] ]-1) {
+
+	  sindex[ xyzv[Y] ] = index[ orig_xyzv[Y] ]*2 + 1;
+	  
+	  sindex[ xyzv[Z] ] = 0;
+	  GET_VOXEL_4D(v1, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	  sindex[ xyzv[Z] ] = 2;
+	  GET_VOXEL_4D(v2, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	  
+	  value1 = (v1+v2)/2;
+	  
+	  sindex[ xyzv[Z] ] = 1;
+	  SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	  count++;
+	  
+	  sindex[ xyzv[Z] ] = super_count[ xyzv[Z] ] -2;
+ 	  GET_VOXEL_4D(value1, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	  
+
+ 	  sindex[ xyzv[Z] ] = super_count[ xyzv[Z] ] -1;
+	  SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	  count++;
+	  
+	  sindex[ xyzv[Z] ] = super_count[ xyzv[Z] ] -4;
+	  GET_VOXEL_4D(v1, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	  sindex[ xyzv[Z] ] = super_count[ xyzv[Z] ] -2;
+	  GET_VOXEL_4D(v1, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	  
+	  value1 = (v1+v2)/2;
+	  
+	  sindex[ xyzv[Z] ] = super_count[ xyzv[Z] ] -3;
+	  SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	  count++;
+	  
+	  
+	}
+	update_progress_report( &progress, count+1 );
+      
+				/* now do faces in the middle */
+
+
+	for_less( index[ orig_xyzv[Y] ] , 1, orig_count[ orig_xyzv[Y] ]-2) {
+	  for_less( index[ orig_xyzv[Z] ] , 1, orig_count[ orig_xyzv[Z] ]-2) {
+
+	    sindex[ xyzv[Y] ] = index[ orig_xyzv[Y] ]*2 + 1;
+	    sindex[ xyzv[Z] ] = index[ orig_xyzv[Z] ]*2 + 1;
+
+	    save_index1 =  sindex[ xyzv[Y] ];
+	    save_index2 =  sindex[ xyzv[Z] ];
+
+
+	    sindex[ xyzv[Y] ] -= 3;
+	    GET_VOXEL_4D(v1, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	    sindex[ xyzv[Y] ] += 2;
+	    GET_VOXEL_4D(v2, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	    sindex[ xyzv[Y] ] += 2;
+	    GET_VOXEL_4D(v3, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	    sindex[ xyzv[Y] ] += 2;
+	    GET_VOXEL_4D(v4, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	    sindex[ xyzv[Y] ] = save_index1 ;
+	    value1 = MY_CUBIC_05(v1,v2,v3,v4);
+
+
+	    sindex[ xyzv[Z] ] -= 3;
+	    GET_VOXEL_4D(v1, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	    sindex[ xyzv[Z] ] += 2;
+	    GET_VOXEL_4D(v2, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	    sindex[ xyzv[Z] ] += 2;
+	    GET_VOXEL_4D(v3, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	    sindex[ xyzv[Z] ] += 2;
+	    GET_VOXEL_4D(v4, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	    sindex[ xyzv[Z] ] = save_index2 ;
+	    value2 = MY_CUBIC_05(v1,v2,v3,v4);
+
+
+	    value1 = (value1 + value2)/2.0;
+
+	    SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	    count++;
+	  }
+	  update_progress_report( &progress, count+1 );
+	}
+
+      } /* index[ orig_xyzv[Z+1] ] */
+      
+
+    terminate_progress_report( &progress );
+
+}
+
+
+private void interpolate_super_sampled_data_by2_dim2_Y( 
+    General_transform *orig_deformation,
+    General_transform *super_sampled )
+{
+  Volume
+    orig_vol,
+    super_vol;
+
+  int 
+    i, save_index, save_index1, save_index2,
+    count,
+    index[MAX_DIMENSIONS],
+    sindex[MAX_DIMENSIONS],
+    orig_xyzv[MAX_DIMENSIONS],
+    xyzv[MAX_DIMENSIONS],
+    orig_count[MAX_DIMENSIONS],
+    super_count[MAX_DIMENSIONS];
+  Real
+    value1, value2, value3, v1,v2,v3,v4,v5,v6;
+  progress_struct
+    progress;
+
+    orig_vol = orig_deformation->displacement_volume;
+    super_vol= super_sampled->displacement_volume;
+    
+    get_volume_sizes(       super_vol, super_count);
+    get_volume_sizes(       orig_vol,  orig_count);
+    get_volume_XYZV_indices(super_vol, xyzv);
+    get_volume_XYZV_indices(orig_vol,  orig_xyzv);
+    
+    init_the_volume_to_zero(super_sampled->displacement_volume);
+
+    initialize_progress_report(&progress, FALSE, 
+			       super_count[ xyzv[X] ]*super_count[ xyzv[Y] ]*
+			       super_count[ xyzv[Z] ]*super_count[ xyzv[Z+1] ]+1,
+			       "Super-sampling defs:" );
+    count = 0;
+
+
+
+    /* LEVEL 0: copy original 'corner' nodes, identified as 'X' in desc above */
+
+    for_less(i,0,MAX_DIMENSIONS) sindex[i]=index[i]=0;
+    
+    for_less( index[ orig_xyzv[X] ] , 0, orig_count[ orig_xyzv[X] ]) {
+	for_less( index[ orig_xyzv[Z] ] , 0, orig_count[ orig_xyzv[Z] ]) {
+
+	  for_less(i,0,N_DIMENSIONS)
+	    sindex[ xyzv[i] ] = 2*index[ orig_xyzv[i] ];
+	  sindex[ xyzv[Y] ] = 0;
+
+	  for_less( index[ orig_xyzv[Z+1] ], 0, orig_count[ xyzv[Z+1] ]) {
+	    sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+	    GET_VOXEL_4D(value1, orig_vol, index[0],index[1],index[2],index[3]);
+	    SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	  }	  
+
+	  count += 3;
+	}
+      update_progress_report( &progress, count+1 );
+    }
+
+    
+
+    /* LEVEL 1: edge interpolation, identified as 'e' in desc above */
+
+               /* do edges along the index[ orig_xyzv[X] ] dir */
+
+    for_less(i,0,MAX_DIMENSIONS) sindex[i]=index[i]=0;
+    
+				/* loop over all x-dirs  */
+    
+    sindex[ xyzv[Y] ] = 0;
+
+      for_less( index[ orig_xyzv[Z] ] , 0, orig_count[ orig_xyzv[Z] ]) {
+
+	sindex[ xyzv[Z] ] = 2*index[ orig_xyzv[Z] ];
+
+	for_less( index[ orig_xyzv[Z+1] ], 0, orig_count[ xyzv[Z+1] ]) {
+
+				/* do linear interp at ends */
+
+	  sindex[ xyzv[X] ] = 1;                             /* beginning end */
+	  index[ orig_xyzv[X] ]=0;             
+	  GET_VOXEL_4D(v1, orig_vol, index[0],index[1],index[2],index[3]);
+	  index[ orig_xyzv[X] ]=1;
+	  GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
+	  value1 = (v1+v2)/2;
+
+	  sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+
+	  SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	  count++;
+
+	  sindex[ xyzv[X] ] = 2*orig_count[ orig_xyzv[X] ]-1;/*super_count[ xyzv[X] ] -2;*/      /* ending end */
+	  index[ orig_xyzv[X] ]= orig_count[ orig_xyzv[X] ]-2;              
+	  GET_VOXEL_4D(v1, orig_vol, index[0],index[1],index[2],index[3]);
+	  index[ orig_xyzv[X] ]= orig_count[ orig_xyzv[X] ]-1;
+	  GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
+	  value1 = (v1+v2)/2;
+
+	  sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+
+	  SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	  count++;
+
+
+	  sindex[ xyzv[X] ] = 2*orig_count[ orig_xyzv[X] ]-3;      /* ending end */
+	  index[ orig_xyzv[X] ]= orig_count[ orig_xyzv[X] ]-3;              
+	  GET_VOXEL_4D(v1, orig_vol, index[0],index[1],index[2],index[3]);
+	  index[ orig_xyzv[X] ]= orig_count[ orig_xyzv[X] ]-2;
+	  GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
+	  value1 = (v1+v2)/2;
+
+	  sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+
+	  SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	  count++;
+
+				/* now do the voxels between the two ends */
+
+
+	  for_inclusive( index[ orig_xyzv[X] ], 1, orig_count[ orig_xyzv[X] ]-3) {
+
+	    save_index = index[ orig_xyzv[X] ];
+	    sindex[ xyzv[X] ] = index[ orig_xyzv[X] ]*2 + 1;
+
+	    index[ orig_xyzv[X] ]--;             
+	    GET_VOXEL_4D(v1, orig_vol, index[0],index[1],index[2],index[3]);
+	    index[ orig_xyzv[X] ]++;             
+	    GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
+	    index[ orig_xyzv[X] ]++;             
+	    GET_VOXEL_4D(v3, orig_vol, index[0],index[1],index[2],index[3]);
+	    index[ orig_xyzv[X] ]++;             
+	    GET_VOXEL_4D(v4, orig_vol, index[0],index[1],index[2],index[3]);
+
+	    value1 = MY_CUBIC_05(v1,v2,v3,v4);
+
+	    SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	    count++;
+
+	    index[ orig_xyzv[X] ] = save_index;
+	  }
+
+	}	  
+
+      }
+      update_progress_report( &progress, count+1 );
+
+
+               /* do edges along the index[ orig_xyzv[Z] ] dir */
+
+    for_less(i,0,MAX_DIMENSIONS) sindex[i]=index[i]=0;
+    
+				/* loop over all Z-dirs  */
+
+    sindex[ xyzv[Y] ] = 0;
+
+    for_less( index[ orig_xyzv[X] ], 0, orig_count[ orig_xyzv[X] ]) {
+
+
+	sindex[ xyzv[X] ] = 2*index[ orig_xyzv[X] ];
+
+
+	for_less( index[ orig_xyzv[Z+1] ], 0, orig_count[ xyzv[Z+1] ]) {
+
+				/* do linear interp at ends */
+
+	  sindex[ xyzv[Z] ] = 1;                             /* beginning end */
+	  index[ orig_xyzv[Z] ]=0;             
+	  GET_VOXEL_4D(v1, orig_vol, index[0],index[1],index[2],index[3]);
+	  index[ orig_xyzv[Z] ]=1;
+	  GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
+	  value1 = (v1+v2)/2;
+
+	  sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+
+	  SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	  count++;
+
+	  sindex[ xyzv[Z] ] = 2*orig_count[ orig_xyzv[Z] ]-1;/*super_count[ xyzv[Z] ] -2; */     /* ending end */
+	  index[ orig_xyzv[Z] ]= orig_count[ orig_xyzv[Z] ]-2;              
+	  GET_VOXEL_4D(v1, orig_vol, index[0],index[1],index[2],index[3]);
+	  index[ orig_xyzv[Z] ]= orig_count[ orig_xyzv[Z] ]-1;
+	  GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
+	  value1 = (v1+v2)/2;
+
+	  sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+
+	  SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	  count++;
+
+	  sindex[ xyzv[Z] ] = 2*orig_count[ orig_xyzv[Z] ]-3;     /* ending end */
+	  index[ orig_xyzv[Z] ]= orig_count[ orig_xyzv[Z] ]-3;              
+	  GET_VOXEL_4D(v1, orig_vol, index[0],index[1],index[2],index[3]);
+	  index[ orig_xyzv[Z] ]= orig_count[ orig_xyzv[Z] ]-2;
+	  GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
+	  value1 = (v1+v2)/2;
+
+	  sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+
+	  SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	  count++;
+
+				/* now do the voxels between the two ends */
+
+
+	  for_inclusive( index[ orig_xyzv[Z] ], 1, orig_count[ orig_xyzv[Z] ]-3) {
+
+	    save_index = index[ orig_xyzv[Z] ];
+	    sindex[ xyzv[Z] ] = index[ orig_xyzv[Z] ]*2 + 1;
+
+	    index[ orig_xyzv[Z] ]--;             
+	    GET_VOXEL_4D(v1, orig_vol, index[0],index[1],index[2],index[3]);
+	    index[ orig_xyzv[Z] ]++;             
+	    GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
+	    index[ orig_xyzv[Z] ]++;             
+	    GET_VOXEL_4D(v3, orig_vol, index[0],index[1],index[2],index[3]);
+	    index[ orig_xyzv[Z] ]++;             
+	    GET_VOXEL_4D(v4, orig_vol, index[0],index[1],index[2],index[3]);
+
+	    value1 = MY_CUBIC_05(v1,v2,v3,v4);
+
+	    SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	    count++;
+
+	    index[ orig_xyzv[Z] ] = save_index;
+	  }
+
+	}	  
+      update_progress_report( &progress, count+1 );
+    }
+
+
+    /* LEVEL 2: face interpolation, identified as 'f' in desc above */
+
+               /* do faces in the plane with index[ orig_xyzv[X] ]=CONST */
+
+    for_less(i,0,MAX_DIMENSIONS)  sindex[i]=index[i]=0;
+    
+
+                        /* loop over the Y plane  */
+
+
+      sindex[ xyzv[Y] ] = 0;
+
+      for_less( index[ orig_xyzv[Z+1] ], 0, orig_count[ xyzv[Z+1] ]) {
+
+	sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+
+
+				/* do faces near the edge first */
+
+	for_less( index[ orig_xyzv[X] ] , 0, orig_count[ orig_xyzv[X] ]-1) {
+
+	  sindex[ xyzv[X] ] = index[ orig_xyzv[X] ]*2 + 1;
+	  
+	  sindex[ xyzv[Z] ] = 0;
+	  GET_VOXEL_4D(v1, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	  sindex[ xyzv[Z] ] = 2;
+	  GET_VOXEL_4D(v2, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	  
+	  value1 = (v1+v2)/2;
+	  
+	  sindex[ xyzv[Z] ] = 1;
+	  SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	  count++;
+	  
+	  sindex[ xyzv[Z] ] = super_count[ xyzv[Z] ] -4;
+	  GET_VOXEL_4D(v1, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	  sindex[ xyzv[Z] ] = super_count[ xyzv[Z] ] -2;
+	  GET_VOXEL_4D(v2, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	  
+	  value1 = (v1+v2)/2;
+	  
+	  sindex[ xyzv[Z] ] = super_count[ xyzv[Z] ] -3;
+	  SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	  count++;
+
+	  sindex[ xyzv[Z] ] = super_count[ xyzv[Z] ] -2;
+	  GET_VOXEL_4D(value1, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	  
+	  sindex[ xyzv[Z] ] = super_count[ xyzv[Z] ] -1;
+	  SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	  count++;
+	  
+	  
+	}
+	update_progress_report( &progress, count+1 );
+
+	for_less( index[ orig_xyzv[Z] ] , 0, orig_count[ orig_xyzv[Z] ]-1) {
+
+	  sindex[ xyzv[Z] ] = index[ orig_xyzv[Z] ]*2 + 1;
+	  
+	  sindex[ xyzv[X] ] = 0;
+	  GET_VOXEL_4D(v1, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	  sindex[ xyzv[X] ] = 2;
+	  GET_VOXEL_4D(v2, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	  
+	  value1 = (v1+v2)/2;
+	  
+	  sindex[ xyzv[X] ] = 1;
+	  SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	  count++;
+	  
+	  sindex[ xyzv[X] ] = super_count[ xyzv[X] ] -4;
+	  GET_VOXEL_4D(v1, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	  sindex[ xyzv[X] ] = super_count[ xyzv[X] ] -2;
+	  GET_VOXEL_4D(v2, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	  
+	  value1 = (v1+v2)/2;
+	  
+	  sindex[ xyzv[X] ] = super_count[ xyzv[X] ] -3;
+	  SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	  count++;
+	  
+
+	  sindex[ xyzv[X] ] = super_count[ xyzv[X] ] -2;
+	  GET_VOXEL_4D(value1, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+
+	  sindex[ xyzv[X] ] = super_count[ xyzv[X] ] -1;
+	  SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	  count++;
+	  
+	  
+	}
+	update_progress_report( &progress, count+1 );
+
+				/* now do faces in the middle */
+
+
+	for_less( index[ orig_xyzv[Z] ] , 1, orig_count[ orig_xyzv[Z] ]-2) {
+	  for_less( index[ orig_xyzv[X] ] , 1, orig_count[ orig_xyzv[X] ]-2) {
+
+	    sindex[ xyzv[Z] ] = index[ orig_xyzv[Z] ]*2 + 1;
+	    sindex[ xyzv[X] ] = index[ orig_xyzv[X] ]*2 + 1;
+
+	    save_index1 =  sindex[ xyzv[Z] ];
+	    save_index2 =  sindex[ xyzv[X] ];
+
+
+	    sindex[ xyzv[Z] ] -= 3;
+	    GET_VOXEL_4D(v1, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	    sindex[ xyzv[Z] ] += 2;
+	    GET_VOXEL_4D(v2, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	    sindex[ xyzv[Z] ] += 2;
+	    GET_VOXEL_4D(v3, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	    sindex[ xyzv[Z] ] += 2;
+	    GET_VOXEL_4D(v4, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	    sindex[ xyzv[Z] ] = save_index1 ;
+	    value1 = MY_CUBIC_05(v1,v2,v3,v4);
+
+
+	    sindex[ xyzv[X] ] -= 3;
+	    GET_VOXEL_4D(v1, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	    sindex[ xyzv[X] ] += 2;
+	    GET_VOXEL_4D(v2, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	    sindex[ xyzv[X] ] += 2;
+	    GET_VOXEL_4D(v3, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	    sindex[ xyzv[X] ] += 2;
+	    GET_VOXEL_4D(v4, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	    sindex[ xyzv[X] ] = save_index2 ;
+	    value2 = MY_CUBIC_05(v1,v2,v3,v4);
+
+
+	    value1 = (value1 + value2)/2.0;
+
+	    SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	    count++;
+	  }
+	  update_progress_report( &progress, count+1 );
+	}
+
+      } /* index[ orig_xyzv[Z+1] ] */
+      
+
+    terminate_progress_report( &progress );
+
+}
+
+private void interpolate_super_sampled_data_by2_dim2_Z( 
+    General_transform *orig_deformation,
+    General_transform *super_sampled )
+{
+  Volume
+    orig_vol,
+    super_vol;
+
+  int 
+    i, save_index, save_index1, save_index2,
+    count,
+    index[MAX_DIMENSIONS],
+    sindex[MAX_DIMENSIONS],
+    orig_xyzv[MAX_DIMENSIONS],
+    xyzv[MAX_DIMENSIONS],
+    orig_count[MAX_DIMENSIONS],
+    super_count[MAX_DIMENSIONS];
+  Real
+    value1, value2, value3, v1,v2,v3,v4,v5,v6;
+  progress_struct
+    progress;
+
+    orig_vol = orig_deformation->displacement_volume;
+    super_vol= super_sampled->displacement_volume;
+    
+    get_volume_sizes(       super_vol, super_count);
+    get_volume_sizes(       orig_vol,  orig_count);
+    get_volume_XYZV_indices(super_vol, xyzv);
+    get_volume_XYZV_indices(orig_vol,  orig_xyzv);
+    
+    init_the_volume_to_zero(super_sampled->displacement_volume);
+
+    initialize_progress_report(&progress, FALSE, 
+			       super_count[ xyzv[X] ]*super_count[ xyzv[Y] ]*
+			       super_count[ xyzv[Z] ]*super_count[ xyzv[Z+1] ]+1,
+			       "Super-sampling defs:" );
+    count = 0;
+
+
+
+    /* LEVEL 0: copy original 'corner' nodes, identified as 'X' in desc above */
+
+    for_less(i,0,MAX_DIMENSIONS) sindex[i]=index[i]=0;
+    
+    for_less( index[ orig_xyzv[X] ] , 0, orig_count[ orig_xyzv[X] ]) {
+      for_less( index[ orig_xyzv[Y] ] , 0, orig_count[ orig_xyzv[Y] ]) {
+
+	  for_less(i,0,N_DIMENSIONS)
+	    sindex[ xyzv[i] ] = 2*index[ orig_xyzv[i] ];
+	  sindex[ xyzv[2] ] = 0;
+ 
+	  for_less( index[ orig_xyzv[Z+1] ], 0, orig_count[ xyzv[Z+1] ]) {
+	    sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+	    GET_VOXEL_4D(value1, orig_vol, index[0],index[1],index[2],index[3]);
+	    SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	  }	  
+
+
+      }
+      update_progress_report( &progress, count+1 );
+    }
+
+
+    /* LEVEL 1: edge interpolation, identified as 'e' in desc above */
+
+               /* do edges along the index[ orig_xyzv[X] ] dir */
+
+    for_less(i,0,MAX_DIMENSIONS) sindex[i]=index[i]=0;
+    
+				/* loop over all x-dirs  */
+
+    sindex[ xyzv[Z] ] = 0;
+    for_less( index[ orig_xyzv[Y] ], 0, orig_count[ orig_xyzv[Y] ]) {
+
+	sindex[ xyzv[Y] ] = 2*index[ orig_xyzv[Y] ];
+	
+
+	for_less( index[ orig_xyzv[Z+1] ], 0, orig_count[ xyzv[Z+1] ]) {
+
+				/* do linear interp at ends */
+
+	  sindex[ xyzv[X] ] = 1;                             /* beginning end */
+	  index[ orig_xyzv[X] ]=0;             
+	  GET_VOXEL_4D(v1, orig_vol, index[0],index[1],index[2],index[3]);
+	  index[ orig_xyzv[X] ]=1;
+	  GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
+	  value1 = (v1+v2)/2;
+
+	  sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+
+	  SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	  count++;
+
+	  sindex[ xyzv[X] ] = 2*orig_count[ orig_xyzv[X] ]-1;/*super_count[ xyzv[X] ] -2;*/      /* ending end */
+	  index[ orig_xyzv[X] ]= orig_count[ orig_xyzv[X] ]-2;              
+	  GET_VOXEL_4D(v1, orig_vol, index[0],index[1],index[2],index[3]);
+	  index[ orig_xyzv[X] ]= orig_count[ orig_xyzv[X] ]-1;
+	  GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
+	  value1 = (v1+v2)/2;
+
+	  sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+
+	  SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	  count++;
+
+	  sindex[ xyzv[X] ] = 2*orig_count[ orig_xyzv[X] ]-3;     /* ending end */
+	  index[ orig_xyzv[X] ]= orig_count[ orig_xyzv[X] ]-3;              
+	  GET_VOXEL_4D(v1, orig_vol, index[0],index[1],index[2],index[3]);
+	  index[ orig_xyzv[X] ]= orig_count[ orig_xyzv[X] ]-2;
+	  GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
+	  value1 = (v1+v2)/2;
+
+	  sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+
+	  SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	  count++;
+
+				/* now do the voxels between the two ends */
+
+
+	  for_inclusive( index[ orig_xyzv[X] ], 1, orig_count[ orig_xyzv[X] ]-3) {
+
+	    save_index = index[ orig_xyzv[X] ];
+	    sindex[ xyzv[X] ] = index[ orig_xyzv[X] ]*2 + 1;
+
+	    index[ orig_xyzv[X] ]--;             
+	    GET_VOXEL_4D(v1, orig_vol, index[0],index[1],index[2],index[3]);
+	    index[ orig_xyzv[X] ]++;             
+	    GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
+	    index[ orig_xyzv[X] ]++;             
+	    GET_VOXEL_4D(v3, orig_vol, index[0],index[1],index[2],index[3]);
+	    index[ orig_xyzv[X] ]++;             
+	    GET_VOXEL_4D(v4, orig_vol, index[0],index[1],index[2],index[3]);
+
+	    value1 = MY_CUBIC_05(v1,v2,v3,v4);
+
+	    SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	    count++;
+
+	    index[ orig_xyzv[X] ] = save_index;
+	  }
+
+	}	  
+
+      update_progress_report( &progress, count+1 );
+    }
+               /* do edges along the index[ orig_xyzv[Y] ] dir */
+
+    for_less(i,0,MAX_DIMENSIONS) sindex[i]=index[i]=0;
+    
+				/* loop over all x-dirs  */
+
+
+    for_less( index[ orig_xyzv[X] ] , 0, orig_count[ orig_xyzv[X] ]) {
+
+
+
+	sindex[ xyzv[X] ] = 2*index[ orig_xyzv[X] ];
+
+	for_less( index[ orig_xyzv[Z+1] ], 0, orig_count[ xyzv[Z+1] ]) {
+
+				/* do linear interp at ends */
+
+	  sindex[ xyzv[Y] ] = 1;                             /* beginning end */
+	  index[ orig_xyzv[Y] ]=0;             
+	  GET_VOXEL_4D(v1, orig_vol, index[0],index[1],index[2],index[3]);
+	  index[ orig_xyzv[Y] ]=1;
+	  GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
+	  value1 = (v1+v2)/2;
+
+	  sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+
+	  SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	  count++;
+
+	  sindex[ xyzv[Y] ] = 2*orig_count[ orig_xyzv[Y] ]-1;/*super_count[ xyzv[Y] ] -2;*/      /* ending end */
+	  index[ orig_xyzv[Y] ]= orig_count[ orig_xyzv[Y] ]-2;              
+	  GET_VOXEL_4D(v1, orig_vol, index[0],index[1],index[2],index[3]);
+	  index[ orig_xyzv[Y] ]= orig_count[ orig_xyzv[Y] ]-1;
+	  GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
+	  value1 = (v1+v2)/2;
+
+	  sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+
+	  SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	  count++;
+
+	  sindex[ xyzv[Y] ] = 2*orig_count[ orig_xyzv[Y] ]-3;      /* ending end */
+	  index[ orig_xyzv[Y] ]= orig_count[ orig_xyzv[Y] ]-3;              
+	  GET_VOXEL_4D(v1, orig_vol, index[0],index[1],index[2],index[3]);
+	  index[ orig_xyzv[Y] ]= orig_count[ orig_xyzv[Y] ]-2;
+	  GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
+	  value1 = (v1+v2)/2;
+
+	  sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+
+	  SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	  count++;
+
+				/* now do the voxels between the two ends */
+
+
+	  for_inclusive( index[ orig_xyzv[Y] ], 1, orig_count[ orig_xyzv[Y] ]-3) {
+
+	    save_index = index[ orig_xyzv[Y] ];
+	    sindex[ xyzv[Y] ] = index[ orig_xyzv[Y] ]*2 + 1;
+
+	    index[ orig_xyzv[Y] ]--;             
+	    GET_VOXEL_4D(v1, orig_vol, index[0],index[1],index[2],index[3]);
+	    index[ orig_xyzv[Y] ]++;             
+	    GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
+	    index[ orig_xyzv[Y] ]++;             
+	    GET_VOXEL_4D(v3, orig_vol, index[0],index[1],index[2],index[3]);
+	    index[ orig_xyzv[Y] ]++;             
+	    GET_VOXEL_4D(v4, orig_vol, index[0],index[1],index[2],index[3]);
+
+	    value1 = MY_CUBIC_05(v1,v2,v3,v4);
+
+	    SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	    count++;
+
+	    index[ orig_xyzv[Y] ] = save_index;
+	  }
+
+	}	  
+      update_progress_report( &progress, count+1 );
+} 
+
+
+    /* LEVEL 2: face interpolation, identified as 'f' in desc above */
+
+               /* do faces in the plane with index[ orig_xyzv[X] ]=CONST */
+
+    for_less(i,0,MAX_DIMENSIONS)  sindex[i]=index[i]=0;
+    
+
+
+				/* loop over the Z plane  */
+    
+    sindex[ xyzv[Z] ] = 0;
+
+    for_less( index[ orig_xyzv[Z+1] ], 0, orig_count[ xyzv[Z+1] ]) {
+      
+      sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+      
+      
+                                /* do faces near the edge first */
+      
+      for_less( index[ orig_xyzv[Y] ] , 0, orig_count[ orig_xyzv[Y] ]-1) {
+	
+	sindex[ xyzv[Y] ] = index[ orig_xyzv[Y] ]*2 + 1;
+	
+	sindex[ xyzv[X] ] = 0;
+	GET_VOXEL_4D(v1, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	sindex[ xyzv[X] ] = 2;
+	GET_VOXEL_4D(v2, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	
+	value1 = (v1+v2)/2;
+	
+	sindex[ xyzv[X] ] = 1;
+	SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	count++;
+	
+	sindex[ xyzv[X] ] = super_count[ xyzv[X] ] -4;
+	GET_VOXEL_4D(v1, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	sindex[ xyzv[X] ] = super_count[ xyzv[X] ] -2;
+	GET_VOXEL_4D(v2, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	
+	value1 = (v1+v2)/2;
+	
+	sindex[ xyzv[X] ] = super_count[ xyzv[X] ] -3;
+	SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	count++;
+	
+
+	sindex[ xyzv[X] ] = super_count[ xyzv[X] ] -2;
+	GET_VOXEL_4D(value1, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	
+	sindex[ xyzv[X] ] = super_count[ xyzv[X] ] -1;
+	SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	count++;
+	
+	
+      }
+      update_progress_report( &progress, count+1 );
+      
+      for_less( index[ orig_xyzv[X] ] , 0, orig_count[ orig_xyzv[X] ]-1) {
+	
+	sindex[ xyzv[X] ] = index[ orig_xyzv[X] ]*2 + 1;
+	
+	sindex[ xyzv[Y] ] = 0;
+	GET_VOXEL_4D(v1, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	sindex[ xyzv[Y] ] = 2;
+	GET_VOXEL_4D(v2, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	
+	value1 = (v1+v2)/2;
+	
+	sindex[ xyzv[Y] ] = 1;
+	SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	count++;
+	  
+	sindex[ xyzv[Y] ] = super_count[ xyzv[Y] ] -4;
+	GET_VOXEL_4D(v1, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	sindex[ xyzv[Y] ] = super_count[ xyzv[Y] ] -2;
+	GET_VOXEL_4D(v2, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	
+	value1 = (v1+v2)/2;
+	
+	sindex[ xyzv[Y] ] = super_count[ xyzv[Y] ] -3;
+	SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	count++;
+	  
+
+	sindex[ xyzv[Y] ] = super_count[ xyzv[Y] ] -2;
+	GET_VOXEL_4D(value1, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	
+	sindex[ xyzv[Y] ] = super_count[ xyzv[Y] ] -1;
+	SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	count++;
+	
+	
+      }
+      update_progress_report( &progress, count+1 );
+      
+                              /* now do faces in the middle */
+      
+      
+      for_less( index[ orig_xyzv[X] ] , 1, orig_count[ orig_xyzv[X] ]-2) {
+	for_less( index[ orig_xyzv[Y] ] , 1, orig_count[ orig_xyzv[Y] ]-2) {
+	  
+	  sindex[ xyzv[X] ] = index[ orig_xyzv[X] ]*2 + 1;
+	  sindex[ xyzv[Y] ] = index[ orig_xyzv[Y] ]*2 + 1;
+	  
+	  save_index1 =  sindex[ xyzv[X] ];
+	  save_index2 =  sindex[ xyzv[Y] ];
+	  
+	  
+	  sindex[ xyzv[X] ] -= 3;
+	  GET_VOXEL_4D(v1, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	  sindex[ xyzv[X] ] += 2;
+	  GET_VOXEL_4D(v2, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	  sindex[ xyzv[X] ] += 2;
+	  GET_VOXEL_4D(v3, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	  sindex[ xyzv[X] ] += 2;
+	  GET_VOXEL_4D(v4, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	  sindex[ xyzv[X] ] = save_index1 ;
+	  value1 = MY_CUBIC_05(v1,v2,v3,v4);
+	  
+	  
+	  sindex[ xyzv[Y] ] -= 3;
+	  GET_VOXEL_4D(v1, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	  sindex[ xyzv[Y] ] += 2;
+	  GET_VOXEL_4D(v2, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	  sindex[ xyzv[Y] ] += 2;
+	  GET_VOXEL_4D(v3, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	  sindex[ xyzv[Y] ] += 2;
+	  GET_VOXEL_4D(v4, super_vol, sindex[0],sindex[1],sindex[2],sindex[3]);
+	  sindex[ xyzv[Y] ] = save_index2 ;
+	  value2 = MY_CUBIC_05(v1,v2,v3,v4);
+	  
+	  
+	  value1 = (value1 + value2)/2.0;
+	  
+	  SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
+	  count++;
+	}
+	update_progress_report( &progress, count+1 );
+      }
+
+    } /* index[ orig_xyzv[Z+1] ] */
+ 
+    terminate_progress_report( &progress );
+
+}

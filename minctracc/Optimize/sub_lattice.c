@@ -14,9 +14,13 @@
                                     to create a sublattice defined on the target.
      
 @CREATED    : Mon Nov  3, 1997 , Louis Collins
-@VERSION    : $Id: sub_lattice.c,v 1.6 2002-08-09 18:31:33 stever Exp $
+@VERSION    : $Id: sub_lattice.c,v 1.7 2002-12-13 21:18:20 lenezet Exp $
 @MODIFIED   : $Log: sub_lattice.c,v $
-@MODIFIED   : Revision 1.6  2002-08-09 18:31:33  stever
+@MODIFIED   : Revision 1.7  2002-12-13 21:18:20  lenezet
+@MODIFIED   :
+@MODIFIED   : A memory leak has been repaired
+@MODIFIED   :
+@MODIFIED   : Revision 1.6  2002/08/09 18:31:33  stever
 @MODIFIED   : Fix error messages: it is UNsigned bytes that are allowed.
 @MODIFIED   :
 @MODIFIED   : Revision 1.5  2002/03/26 14:15:46  stever
@@ -82,6 +86,10 @@ public  void  general_transform_point_in_trans_plane(
    coordinates 
 */
 
+/* make sure that the lattice is defined on the axis of the 2nd data
+   volume (and hence the grid transform volume) and NOT the world
+   coordinate axis! */
+
 public void    build_source_lattice(Real x, Real y, Real z,
 				    float PX[], float PY[], float PZ[],
 				    Real width_x, Real width_y, Real width_z, 
@@ -90,15 +98,63 @@ public void    build_source_lattice(Real x, Real y, Real z,
 {
   int 
     c, 
+    tnx, tny, tnz,
     i,j,k;
   float 
     radius_squared,
     tx,ty,tz;
+  float
+    abs_step,
+    dir[3][3];
 
   *length = 0; 
   c = 1;
   radius_squared = 0.55 * 0.55;	/* a bit bigger than .5^2 */
   
+
+  for_less(i,0,3) {
+    
+    abs_step = ABS(Gglobals->step[i]);
+
+    dir[i][0] = Point_x(Gglobals->directions[i]) / abs_step;
+    dir[i][1] = Point_y(Gglobals->directions[i]) / abs_step;
+    dir[i][2] = Point_z(Gglobals->directions[i]) / abs_step;
+  }
+
+
+  if (Gglobals->count[0] > 1) { tnx = nx; }  else {    tnx = 1;  }
+  if (Gglobals->count[1] > 1) { tny = ny; }  else {    tny = 1;  }
+  if (Gglobals->count[2] > 1) { tnz = nz; }  else {    tnz = 1;  }
+
+
+  for_less(i,0,tnx) {
+    for_less(j,0,tny) {
+      for_less(k,0,tnz) {
+
+	if (tnx>1) { tx = -0.5 + (float)(i)/(float)(tnx-1); } else tx = 0.0;
+	if (tny>1) { ty = -0.5 + (float)(j)/(float)(tny-1); } else ty = 0.0;
+	if (tnz>1) { tz = -0.5 + (float)(k)/(float)(tnz-1); } else tz = 0.0;
+      
+
+	if ((tx*tx + ty*ty + tz*tz) <= radius_squared) {
+
+	  tx *= width_x;
+	  ty *= width_y;
+	  tz *= width_z;
+
+	  PX[c] = (float)x + tx*dir[X][X] + ty*dir[Y][X] + tz*dir[Z][X];
+	  PY[c] = (float)y + tx*dir[X][Y] + ty*dir[Y][Y] + tz*dir[Z][Y];
+	  PZ[c] = (float)z + tx*dir[X][Z] + ty*dir[Y][Z] + tz*dir[Z][Z];
+
+	  c++;
+	  (*length)++;
+	}
+      }
+    }
+  }
+
+
+  /*
   if (ndim==2) {
     for_less(i,0,nx)
       for_less(j,0,ny) {
@@ -129,6 +185,8 @@ public void    build_source_lattice(Real x, Real y, Real z,
 	  }
 	}
   }
+  */
+
 }
 
 /*********************************************************************** 
@@ -175,7 +233,9 @@ public void go_get_samples_in_source(Volume data,
    garenteed) to be between -1.0 and 1.0 with 1.0 indicating a PERFECT FIT
    (ie, greater values indicate better fits)
 
-   note: the volume is assumed to be in x,y,z order.
+   note: the volume is assumed to be in MIzspace, MIyspace, MIxspace
+   order. (since the data is loaded in with default_dim_names as an
+   option to input_volume).
 
    actually, the order does not matter, except that dx corresponds to
    the displacement along the 1st dimension x[], dy corresponds to
@@ -207,6 +267,7 @@ public float go_get_samples_with_offset(
   int 
     sizes[3],
     ind0, ind1, ind2, 
+    offset0, offset1, offset2,
     c,number_of_nonzero_samples;  
   int xs,ys,zs;
   float
@@ -244,12 +305,13 @@ public float go_get_samples_with_offset(
                                    to the first sub-lattice point x,y,z   */
 
 
+
   if (use_nearest_neighbour) {
 				/* then do fast NN interpolation */
 
-    dx += 0.5;			/* to achieve `rounding' for ind0, ind1 and */
-    dy += 0.5;			/* ind2 below */
-    dz += 0.5;
+    dx += 0.;			/* to achieve `rounding' for ind0, ind1 and */
+    dy += 0.;			/* ind2 below */
+    dz += 0.;
     
     switch( data_type ) {
     case UNSIGNED_BYTE:  
@@ -296,8 +358,7 @@ public float go_get_samples_with_offset(
          }
          else
             sample = 0.0;
-         
-         
+
 #include "switch_obj_func.c"
       }
       else {
@@ -379,8 +440,12 @@ public float go_get_samples_with_offset(
     
   }
   else {			/* then do fast trilinear interpolation */
+     
+    if (Gglobals->count[Z]>1) {offset0 = 1;} else {offset0 = 0;}
+    if (Gglobals->count[Y]>1) {offset1 = 1;} else {offset1 = 0;}
+    if (Gglobals->count[X]>1) {offset2 = 1;} else {offset2 = 0;}
     
-     switch( data_type ) {
+    switch( data_type ) {
         case UNSIGNED_BYTE:  
         
         byte_ptr = VOXEL_DATA (data);
@@ -400,19 +465,19 @@ public float go_get_samples_with_offset(
               ind1 = (int)v1;
               ind2 = (int)v2;
               
-              if (ind0>=0 && ind0<(xs-1) &&
-                  ind1>=0 && ind1<(ys-1) &&
-                  ind2>=0 && ind2<(zs-1)) {
+              if (ind0>=0 && ind0<(xs-offset0) &&
+                  ind1>=0 && ind1<(ys-offset1) &&
+                  ind2>=0 && ind2<(zs-offset2)) {
                  
                  /* get the data */
-                 v000 = (Real)(byte_ptr[ind0  ][ind1  ][ind2  ]);
-                 v001 = (Real)(byte_ptr[ind0  ][ind1  ][ind2+1]);
-                 v010 = (Real)(byte_ptr[ind0  ][ind1+1][ind2  ]);
-                 v011 = (Real)(byte_ptr[ind0  ][ind1+1][ind2+1]);
-                 v100 = (Real)(byte_ptr[ind0+1][ind1  ][ind2  ]);
-                 v101 = (Real)(byte_ptr[ind0+1][ind1  ][ind2+1]);
-                 v110 = (Real)(byte_ptr[ind0+1][ind1+1][ind2  ]);
-                 v111 = (Real)(byte_ptr[ind0+1][ind1+1][ind2+1]);
+                 v000 = (Real)(byte_ptr[ind0        ][ind1        ][ind2        ]);
+                 v001 = (Real)(byte_ptr[ind0        ][ind1        ][ind2+offset2]);
+                 v010 = (Real)(byte_ptr[ind0        ][ind1+offset1][ind2        ]);
+                 v011 = (Real)(byte_ptr[ind0        ][ind1+offset1][ind2+offset2]);
+                 v100 = (Real)(byte_ptr[ind0+offset0][ind1        ][ind2        ]);
+                 v101 = (Real)(byte_ptr[ind0+offset0][ind1        ][ind2+offset2]);
+                 v110 = (Real)(byte_ptr[ind0+offset0][ind1+offset1][ind2        ]);
+                 v111 = (Real)(byte_ptr[ind0+offset0][ind1+offset1][ind2+offset2]);
                  
                  /* Get the fraction parts */
                  f0 = v0 - ind0;
@@ -477,19 +542,19 @@ public float go_get_samples_with_offset(
               ind1 = (int)v1;
               ind2 = (int)v2;
               
-              if (ind0>=0 && ind0<(xs-1) &&
-                  ind1>=0 && ind1<(ys-1) &&
-                  ind2>=0 && ind2<(zs-1)) {
+              if (ind0>=0 && ind0<(xs-offset0) &&
+                  ind1>=0 && ind1<(ys-offset1) &&
+                  ind2>=0 && ind2<(zs-offset2)) {
                  
                  /* get the data */
-                 v000 = (Real)(sshort_ptr[ind0  ][ind1  ][ind2  ]);
-                 v001 = (Real)(sshort_ptr[ind0  ][ind1  ][ind2+1]);
-                 v010 = (Real)(sshort_ptr[ind0  ][ind1+1][ind2  ]);
-                 v011 = (Real)(sshort_ptr[ind0  ][ind1+1][ind2+1]);
-                 v100 = (Real)(sshort_ptr[ind0+1][ind1  ][ind2  ]);
-                 v101 = (Real)(sshort_ptr[ind0+1][ind1  ][ind2+1]);
-                 v110 = (Real)(sshort_ptr[ind0+1][ind1+1][ind2  ]);
-                 v111 = (Real)(sshort_ptr[ind0+1][ind1+1][ind2+1]);
+                 v000 = (Real)(sshort_ptr[ind0        ][ind1        ][ind2        ]);
+                 v001 = (Real)(sshort_ptr[ind0        ][ind1        ][ind2+offset2]);
+                 v010 = (Real)(sshort_ptr[ind0        ][ind1+offset1][ind2        ]);
+                 v011 = (Real)(sshort_ptr[ind0        ][ind1+offset1][ind2+offset2]);
+                 v100 = (Real)(sshort_ptr[ind0+offset0][ind1        ][ind2        ]);
+                 v101 = (Real)(sshort_ptr[ind0+offset0][ind1        ][ind2+offset2]);
+                 v110 = (Real)(sshort_ptr[ind0+offset0][ind1+offset1][ind2        ]);
+                 v111 = (Real)(sshort_ptr[ind0+offset0][ind1+offset1][ind2+offset2]);
                  
                  /* Get the fraction parts */
                  f0 = v0 - ind0;
@@ -552,19 +617,19 @@ public float go_get_samples_with_offset(
               ind1 = (int)v1;
               ind2 = (int)v2;
               
-              if (ind0>=0 && ind0<(xs-1) &&
-                  ind1>=0 && ind1<(ys-1) &&
-                  ind2>=0 && ind2<(zs-1)) {
+              if (ind0>=0 && ind0<(xs-offset0) &&
+                  ind1>=0 && ind1<(ys-offset1) &&
+                  ind2>=0 && ind2<(zs-offset2)) {
                  
                  /* get the data */
-                 v000 = (Real)(ushort_ptr[ind0  ][ind1  ][ind2  ]);
-                 v001 = (Real)(ushort_ptr[ind0  ][ind1  ][ind2+1]);
-                 v010 = (Real)(ushort_ptr[ind0  ][ind1+1][ind2  ]);
-                 v011 = (Real)(ushort_ptr[ind0  ][ind1+1][ind2+1]);
-                 v100 = (Real)(ushort_ptr[ind0+1][ind1  ][ind2  ]);
-                 v101 = (Real)(ushort_ptr[ind0+1][ind1  ][ind2+1]);
-                 v110 = (Real)(ushort_ptr[ind0+1][ind1+1][ind2  ]);
-                 v111 = (Real)(ushort_ptr[ind0+1][ind1+1][ind2+1]);
+                 v000 = (Real)(ushort_ptr[ind0        ][ind1        ][ind2        ]);
+                 v001 = (Real)(ushort_ptr[ind0        ][ind1        ][ind2+offset2]);
+                 v010 = (Real)(ushort_ptr[ind0        ][ind1+offset1][ind2        ]);
+                 v011 = (Real)(ushort_ptr[ind0        ][ind1+offset1][ind2+offset2]);
+                 v100 = (Real)(ushort_ptr[ind0+offset0][ind1        ][ind2        ]);
+                 v101 = (Real)(ushort_ptr[ind0+offset0][ind1        ][ind2+offset2]);
+                 v110 = (Real)(ushort_ptr[ind0+offset0][ind1+offset1][ind2        ]);
+                 v111 = (Real)(ushort_ptr[ind0+offset0][ind1+offset1][ind2+offset2]);
                  
                  /* Get the fraction parts */
                  f0 = v0 - ind0;
@@ -619,7 +684,10 @@ public float go_get_samples_with_offset(
 				   calculation here - normalizing each obj_func
                                    where-ever possible: */
   r = 0.0;
+
   switch (obj_func) {
+
+
 
   case NONLIN_XCORR:            /* use standard normalized cross-correlation 
                                    where 0.0 < r < 1.0, where 1.0 is best*/
