@@ -54,7 +54,6 @@
 #   define DEBUG_PRINT7(str,a1,a2,a3,a4,a5,a6,a7) if (main_args.flags.debug) (void) fprintf (stderr,  str ,a1,a2,a3,a4,a5,a6,a7 );
 #endif
 
-
 #ifdef INTERPOLATE
 #  undef INTERPOLATE
 #endif
@@ -74,3 +73,5 @@
 # define facos acosf
 # define fasin asinf
 #endif
+
+

@@ -23,7 +23,10 @@
 
 @CREATED    : Mon Oct  4 13:06:17 EST 1993 Louis
 @MODIFIED   : $Log: make_matlab_data_file.c,v $
-@MODIFIED   : Revision 96.3  2002-03-26 14:15:38  stever
+@MODIFIED   : Revision 96.4  2002-08-14 19:54:42  lenezet
+@MODIFIED   :  quaternion option added for the rotation
+@MODIFIED   :
+@MODIFIED   : Revision 96.3  2002/03/26 14:15:38  stever
 @MODIFIED   : Update includes to <volume_io/foo.h> style.
 @MODIFIED   :
 @MODIFIED   : Revision 96.2  2000/02/15 19:02:07  stever
@@ -66,7 +69,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/make_matlab_data_file.c,v 96.3 2002-03-26 14:15:38 stever Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/make_matlab_data_file.c,v 96.4 2002-08-14 19:54:42 lenezet Exp $";
 #endif
 
 
@@ -93,6 +96,7 @@ extern Real            *prob_fn2;
 extern int Matlab_num_steps;
 
 public float fit_function(float *params);
+public float fit_function_quater(float *params);
 
 public void make_zscore_volume(Volume d1, Volume m1, 
 			       Real *threshold); 
@@ -107,6 +111,13 @@ public void parameters_to_vector(double *trans,
 				  double *shears,
 				  float  *op_vector,
 				  double *weights);
+
+public void parameters_to_vector_quater(double *trans, 
+					double *quats, 
+					double *scales,
+					double *shears,
+					float  *op_vector,
+					double *weights);
 
 public BOOLEAN replace_volume_data_with_ubyte(Volume data);
 
@@ -130,7 +141,7 @@ public void make_matlab_data_file(Volume d1,
     *ofd;
   Real
     start,step;
-  double trans[3], rots[3], shears[3], scales[3];
+  double trans[3], quats[4], shears[3], scales[3],rots[3];
   Data_types
     data_type;
 
@@ -201,8 +212,10 @@ public void make_matlab_data_file(Volume d1,
       ALLOC2D( prob_hash_table, globals->groups, globals->groups);
 
     } 
-    
 
+
+if(globals->trans_info.rotation_type == TRANS_ROT)
+  {
   /* ---------------- prepare the weighting array for for the objective function  ---------*/
 
   stat = TRUE;
@@ -366,7 +379,180 @@ print ("scale: %10.5f %10.5f %10.5f \n",
     
     FREE(p);
   }
+  }
 
+
+    
+if(globals->trans_info.rotation_type == TRANS_QUAT)
+  {
+  /* ---------------- prepare the weighting array for for the objective function  ---------*/
+
+  stat = TRUE;
+  switch (globals->trans_info.transform_type) {
+  case TRANS_LSQ3: 
+    for_less(i,3,13) globals->trans_info.weights[i] = 0.0;
+    for_less(i,0,3) {
+      globals->trans_info.scales[i] = 1.0;
+      globals->trans_info.quaternions[i] = 0.0;
+      globals->trans_info.shears[i] = 0.0;
+    }
+    globals->trans_info.quaternions[3] = 0.1;
+    break;
+  case TRANS_LSQ6: 
+    for_less(i,7,13) globals->trans_info.weights[i] = 0.0;
+    for_less(i,0,3) {
+      globals->trans_info.scales[i] = 1.0;
+      globals->trans_info.shears[i] = 0.0;
+    }
+    break;
+  case TRANS_LSQ7: 
+    for_less(i,8,13) globals->trans_info.weights[i] = 0.0;
+    for_less(i,0,3) {
+      globals->trans_info.shears[i] = 0.0;
+    }
+    break;
+  case TRANS_LSQ9: 
+    for_less(i,10,13) globals->trans_info.weights[i] = 0.0;
+    for_less(i,0,3) {
+      globals->trans_info.shears[i] = 0.0;
+    }
+    break;
+  case TRANS_LSQ10: 
+    for_less(i,11,13) globals->trans_info.weights[i] = 0.0;
+    for_less(i,1,3) {
+      globals->trans_info.shears[i] = 0.0;
+    }
+    break;
+  case TRANS_LSQ: 
+				/* nothing to be zeroed */
+    break;
+  case TRANS_LSQ12: 
+				/* nothing to be zeroed */
+    break;
+  default:
+    (void)fprintf(stderr, "Unknown type of transformation requested (%d)\n",
+		   globals->trans_info.transform_type);
+    (void)fprintf(stderr, "Error in line %d, file %s\n",__LINE__, __FILE__);
+    stat = FALSE;
+  }
+
+  if ( !stat ) 
+    print_error_and_line_num ("Can't calculate measure (stat is false).", 
+			      __FILE__, __LINE__);
+
+
+				/* find number of dimensions for obj function */
+  ndim = 0;
+  for_less(i,0,13)
+    if (globals->trans_info.weights[i] != 0.0) ndim++;
+
+
+				/* set GLOBALS to communicate with the
+				   function to be fitted!              */
+  Gndim = ndim;
+  Gdata1 = d1;
+  Gdata2 = d2;
+  Gmask1 = m1;
+  Gmask2 = m2;
+  Ginverse_mapping_flag = FALSE;
+
+print ("trans: %10.5f %10.5f %10.5f \n",
+       globals->trans_info.translations[0],globals->trans_info.translations[1],globals->trans_info.translations[2]);
+print ("quats : %10.5f %10.5f %10.5f  %10.5f\n",
+       globals->trans_info.quaternions[0],globals->trans_info.quaternions[1],globals->trans_info.quaternions[2],globals->trans_info.quaternions[3]);
+print ("scale: %10.5f %10.5f %10.5f \n",
+       globals->trans_info.scales[0],globals->trans_info.scales[1],globals->trans_info.scales[2]);
+
+
+  if (ndim>0) {
+
+    ALLOC(p,ndim+1); /* parameter values */
+    
+    /*  translation +/- simplex_size
+	rotation    +/- simplex_size*DEG_TO_RAD
+	scale       +/- simplex_size/50
+	*/
+    
+    
+    
+    status = open_file(  globals->filenames.matlab_file, WRITE_FILE, BINARY_FORMAT,  &ofd );
+    if ( status != OK ) 
+      print_error_and_line_num ("filename `%s' cannot be opened.", 
+		   __FILE__, __LINE__, globals->filenames.matlab_file);
+    
+    
+    (void)fprintf (ofd,"%% %s\n",comments);
+    
+    /* do translations */
+    for_inclusive(j,1,13) {
+      if (globals->trans_info.weights[j-1] != 0.0) {
+	switch (j) {
+	case  1: (void)fprintf (ofd,"tx = [\n"); start = globals->trans_info.translations[0]; break;
+	case  2: (void)fprintf (ofd,"ty = [\n"); start = globals->trans_info.translations[1]; break;
+	case  3: (void)fprintf (ofd,"tz = [\n"); start = globals->trans_info.translations[2]; break;
+	case  4: (void)fprintf (ofd,"rx = [\n"); start = globals->trans_info.quaternions[0]; break;
+	case  5: (void)fprintf (ofd,"ry = [\n"); start = globals->trans_info.quaternions[1]; break;
+	case  6: (void)fprintf (ofd,"rz = [\n"); start = globals->trans_info.quaternions[2]; break;
+	case  7: (void)fprintf (ofd,"rz = [\n"); start = globals->trans_info.quaternions[3]; break;
+	case  8: (void)fprintf (ofd,"sx = [\n"); start = globals->trans_info.scales[0]; break;
+	case  9: (void)fprintf (ofd,"sy = [\n"); start = globals->trans_info.scales[1]; break;
+	case 10: (void)fprintf (ofd,"sz = [\n"); start = globals->trans_info.scales[2]; break;
+	case 11: (void)fprintf (ofd,"shx = [\n");start = globals->trans_info.shears[0]; break;
+	case 12: (void)fprintf (ofd,"shy = [\n");start = globals->trans_info.shears[1]; break;
+	case 13: (void)fprintf (ofd,"shz = [\n");start = globals->trans_info.shears[2]; break; 
+	}
+	
+	for_less(i,0,3) {
+	  trans[i]  = globals->trans_info.translations[i];
+	  scales[i] = globals->trans_info.scales[i];
+	  shears[i] = globals->trans_info.shears[i];
+	  quats[i]   = globals->trans_info.quaternions[i];
+	}
+	quats[3] = globals->trans_info.quaternions[3];
+
+	step =  globals->trans_info.weights[j-1] * simplex_size/ Matlab_num_steps;
+	
+	for_inclusive(i,-Matlab_num_steps,Matlab_num_steps) {
+	  
+	  switch (j) {
+	  case  1: trans[0] =start + i*step; break;
+	  case  2: trans[1] =start + i*step; break;
+	  case  3: trans[2] =start + i*step; break;
+	  case  4: quats[0]  =start + i*step; break;
+	  case  5: quats[1]  =start + i*step; break;
+	  case  6: quats[2]  =start + i*step; break;
+	  case  7: quats[3]  =start + i*step; break;
+	  case  8: scales[0]=start + i*step; break;
+	  case  9: scales[1]=start + i*step; break;
+	  case 10: scales[2]=start + i*step; break;
+	  case 11: shears[0]=start + i*step; break;
+	  case 12: shears[1]=start + i*step; break;
+	  case 13: shears[2]=start + i*step; break; 
+	  }
+	  
+	  parameters_to_vector_quater(trans,
+				      quats,
+				      scales,
+				      shears,
+				      p,
+				      globals->trans_info.weights);
+    
+	  (void)fprintf (ofd, "%f %f %f\n",i*step, start+i*step, fit_function_quater(p));
+	}
+
+	(void)fprintf (ofd,"];\n"); 
+      }
+    }
+    
+    status = close_file(ofd);
+    if ( status != OK ) 
+      print_error_and_line_num ("filename `%s' cannot be closed.", 
+		   __FILE__, __LINE__, globals->filenames.matlab_file);
+    
+    
+    FREE(p);
+  }
+  }
   if (globals->obj_function == vr_objective) {
     if (!free_segment_table(segment_table)) {
       (void)fprintf(stderr, "Can't free segment table.\n");

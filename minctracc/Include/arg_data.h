@@ -9,7 +9,7 @@ typedef float (*Objective_Function) (Volume d1,
 				     Arg_Data *globals);
 
 typedef void (*Transform_Function)(PointR *result,
-                                   General_transform *trans_data, PointR *coordinate);
+                                   General_transform *trans_data, PointR *coordinate); /* transforme un point dans ces nouvelles coordonnees */
 
 typedef int (*Interpolating_Function) 
      (Volume volume, PointR *coord, double *result);
@@ -22,8 +22,9 @@ typedef struct {
 typedef struct {
    int estimate_center;
    int estimate_scale;
-   int estimate_rots;
    int estimate_trans;
+   int estimate_rots;
+   int estimate_quats;
 } Transform_Flags;
 
 typedef struct {
@@ -69,10 +70,12 @@ typedef struct {
   double center[3];		/* parameters corresponding to trans matrix */
   double scales[3];
   double shears[3];
-  double rotations[3];
   double translations[3];
-  double weights[12];		/* optimization weighting function */
+  double quaternions[4];  
+  double rotations[3];
+  double weights[12];        /* optimization weighting function with quaternions */
   int invert_mapping_flag;	/* true if input transform maps model to source */
+  int rotation_type;            /* type of rotation quaternion used or not */
 } Program_Transformation;
 
 struct Arg_Data_struct {

@@ -13,7 +13,10 @@
 
    @CREATED    : February 3, 1992 - louis collins
    @MODIFIED   : $Log: minctracc.c,v $
-   @MODIFIED   : Revision 96.5  2002-03-26 14:15:38  stever
+   @MODIFIED   : Revision 96.6  2002-08-14 19:54:42  lenezet
+   @MODIFIED   :  quaternion option added for the rotation
+   @MODIFIED   :
+   @MODIFIED   : Revision 96.5  2002/03/26 14:15:38  stever
    @MODIFIED   : Update includes to <volume_io/foo.h> style.
    @MODIFIED   :
    @MODIFIED   : Revision 96.4  2002/03/07 19:08:34  louis
@@ -62,7 +65,7 @@
  * Montreal Neurological Institute version.
  * compiled and working on SGI.  this is before any changes for SPARC/
  * Solaris.
- *
+c *
  * Revision 1.12  94/05/28  16:18:54  louis
  * working version before modification of non-linear optimiation
  * 
@@ -104,13 +107,14 @@ Wed May 26 13:05:44 EST 1993 lc
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.5 2002-03-26 14:15:38 stever Exp $";
+static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.6 2002-08-14 19:54:42 lenezet Exp $";
 #endif
 
 #include <config.h>
 #include <volume_io/internal_volume_io.h>
 #include <minctracc.h>
 #include <globals.h>
+#include "quaternion.h"
 
        Real initial_corr, final_corr;
 static char *default_dim_names[N_DIMENSIONS] =
@@ -139,6 +143,7 @@ int main ( int argc, char* argv[] )
     *ofd;
   Real
     obj_func_val;
+  float quat4;
 
   prog_name     = argv[0];	
 
@@ -235,6 +240,8 @@ int main ( int argc, char* argv[] )
 			 main_args.trans_info.orig_transformation);
 
 
+
+
   if (main_args.flags.debug) {
     /*
        this is simply to print out debugging info at the beginning of a run
@@ -319,23 +326,37 @@ int main ( int argc, char* argv[] )
 	      main_args.trans_info.center[1],
 	      main_args.trans_info.center[2] );
     }
-    else {
-      print ( "Transform center   = %8.3f %8.3f %8.3f\n", 0.0,0.0,0.0);
-    }
-  
-    print ( "Transform trans    = %8.3f %8.3f %8.3f\n", 
-		main_args.trans_info.translations[0],
-		main_args.trans_info.translations[1],
-		main_args.trans_info.translations[2] );
-    print ( "Transform rotation = %8.3f %8.3f %8.3f\n", 
+    else 
+      {
+	print ( "Transform center   = %8.3f %8.3f %8.3f\n", 0.0,0.0,0.0);
+      }
+
+    /* rotation with quaternion or euler angle */
+    if (main_args.trans_info.rotation_type == TRANS_QUAT)
+      {
+	quat4=sqrt(1-SQR(main_args.trans_info.quaternions[0])-SQR(main_args.trans_info.quaternions[1])-SQR(main_args.trans_info.quaternions[2]));
+	print ( "Transform quaternion   = %8.3f %8.3f %8.3f %8.3f \n\n", 
+		main_args.trans_info.quaternions[0],
+		main_args.trans_info.quaternions[1],
+		main_args.trans_info.quaternions[2],
+		quat4 );
+      }
+    if (main_args.trans_info.rotation_type == TRANS_ROT)
+      {
+	print ( "Transform rotation   = %8.3f %8.3f %8.3f \n\n", 
 		main_args.trans_info.rotations[0],
 		main_args.trans_info.rotations[1],
 		main_args.trans_info.rotations[2] );
+      }
+    print ( "Transform trans    = %8.3f %8.3f %8.3f\n", 
+	    main_args.trans_info.translations[0],
+	    main_args.trans_info.translations[1],
+	    main_args.trans_info.translations[2] );
     print ( "Transform scale    = %8.3f %8.3f %8.3f\n\n", 
-		main_args.trans_info.scales[0],
-		main_args.trans_info.scales[1],
-		main_args.trans_info.scales[2] );
-
+	    main_args.trans_info.scales[0],
+	    main_args.trans_info.scales[1],
+	    main_args.trans_info.scales[2] );
+    
 
   }
 
@@ -347,29 +368,31 @@ int main ( int argc, char* argv[] )
   ALLOC(model_dx,1); ALLOC(model_dy,  1);
   ALLOC(model_dz,1); ALLOC(model_dxyz,1);
   
-  if (main_args.trans_info.use_magnitude) {
-    /* non-linear optimization is based on the correlation of a local
-       sub-lattice between source and target gradient magnitude volumes 
-       for the first two volumes */
+  if (main_args.trans_info.use_magnitude) 
+    {
+      /* non-linear optimization is based on the correlation of a local
+	 sub-lattice between source and target gradient magnitude volumes 
+	 for the first two volumes */
 
-    if (main_args.trans_info.transform_type == TRANS_NONLIN)
-      DEBUG_PRINT( "This run will use sub-lattice correlation between the two input vols.\n");
-  }
-  else {
-    /* non-linear optimization is based on the direct computation of a
-       deformation vector, based on optical flow.  Both volume _MUST_
-       be intensity normalized! */
+      if (main_args.trans_info.transform_type == TRANS_NONLIN)
+	DEBUG_PRINT( "This run will use sub-lattice correlation between the two input vols.\n");
+    }
+  else 
+    {
+      /* non-linear optimization is based on the direct computation of a
+	 deformation vector, based on optical flow.  Both volume _MUST_
+	 be intensity normalized! */
 
-    if (main_args.trans_info.transform_type == TRANS_NONLIN)
-      DEBUG_PRINT( "This run will use optical flow.\n");
-  }
+      if (main_args.trans_info.transform_type == TRANS_NONLIN)
+	DEBUG_PRINT( "This run will use optical flow.\n");
+    }
 
   status = input_volume( main_args.filenames.data, 3, default_dim_names, 
 			 NC_UNSPECIFIED, FALSE, 0.0, 0.0,
 			 TRUE, &data, (minc_input_options *)NULL );
   if (status != OK)
-      print_error_and_line_num("Cannot input volume '%s'",
-			       __FILE__, __LINE__,main_args.filenames.data);
+    print_error_and_line_num("Cannot input volume '%s'",
+			     __FILE__, __LINE__,main_args.filenames.data);
   data_dxyz = data;
     
   status = input_volume( main_args.filenames.model, 3, default_dim_names, 
@@ -403,16 +426,18 @@ int main ( int argc, char* argv[] )
   get_volume_voxel_range(model, &min_value, &max_value);
   DEBUG_PRINT2 ( "min/max voxel= %8.3f %8.3f\n\n\n", min_value, max_value);
   
-  if (get_volume_n_dimensions(data)!=3) {
-    print_error_and_line_num ("Data file %s has %d dimensions.  Only 3 dims supported.", 
-			      __FILE__, __LINE__, main_args.filenames.data, 
-			      get_volume_n_dimensions(data));
-  }
-  if (get_volume_n_dimensions(model)!=3) {
-    print_error_and_line_num ("Model file %s has %d dimensions.  Only 3 dims supported.", 
-			      __FILE__, __LINE__, main_args.filenames.model, 
-			      get_volume_n_dimensions(model));
-  }
+  if (get_volume_n_dimensions(data)!=3) 
+    {
+      print_error_and_line_num ("Data file %s has %d dimensions.  Only 3 dims supported.", 
+				__FILE__, __LINE__, main_args.filenames.data, 
+				get_volume_n_dimensions(data));
+    }
+  if (get_volume_n_dimensions(model)!=3) 
+    {
+      print_error_and_line_num ("Model file %s has %d dimensions.  Only 3 dims supported.", 
+				__FILE__, __LINE__, main_args.filenames.model, 
+				get_volume_n_dimensions(model));
+    }
 
 
 				/* shift features to be able to
@@ -456,24 +481,28 @@ int main ( int argc, char* argv[] )
   /* ===========================  translate initial transformation matrix into 
                                   transformation parameters */
 
-  if (!init_params( data, model, mask_data, mask_model, &main_args )) {
-    print_error_and_line_num("%s",__FILE__, __LINE__,
+    if (!init_params( data, model, mask_data, mask_model, &main_args )) {
+      print_error_and_line_num("%s",__FILE__, __LINE__,
 			     "Could not initialize transformation parameters\n");
-  }
+    }
 
-  if (strlen(main_args.filenames.matlab_file) != 0) {
-    init_lattice( data, model, mask_data, mask_model, &main_args );
-    make_matlab_data_file( data, model, mask_data, mask_model, comments, &main_args );
-    exit( OK );
-  }
 
-  if (strlen(main_args.filenames.measure_file) != 0) {
+
+  if (strlen(main_args.filenames.matlab_file) != 0) 
+    {
+      init_lattice( data, model, mask_data, mask_model, &main_args );
+      make_matlab_data_file( data, model, mask_data, mask_model, comments, &main_args );
+      exit( OK );
+    }
+
+  if (strlen(main_args.filenames.measure_file) != 0) 
+    {
 
 #include "measure_code.c"
 
     /* measure code finishes with 
        exit(status); */
-  }
+    }
 
   DEBUG_PRINT  ("AFTER init_params()\n");
   if (get_transform_type(main_args.trans_info.transformation)==LINEAR) {
@@ -495,14 +524,27 @@ int main ( int argc, char* argv[] )
 		main_args.trans_info.center[0],
 		main_args.trans_info.center[1],
 		main_args.trans_info.center[2] );
+  if (main_args.trans_info.rotation_type == TRANS_ROT){
+    DEBUG_PRINT3 ( "Transform rotations  = %8.3f %8.3f %8.3f\n", 
+		   main_args.trans_info.rotations[0],
+		   main_args.trans_info.rotations[1],
+		   main_args.trans_info.rotations[2] );
+  }
+  if (main_args.trans_info.rotation_type == TRANS_QUAT)
+    {
+      quat4=sqrt(1-SQR(main_args.trans_info.quaternions[0])-SQR(main_args.trans_info.quaternions[1])-SQR(main_args.trans_info.quaternions[2]));
+      DEBUG_PRINT4 ( "Transform quaternions  = %8.3f %8.3f %8.3f %8.3f\n", 
+		     main_args.trans_info.quaternions[0],
+		     main_args.trans_info.quaternions[1],
+		     main_args.trans_info.quaternions[2],
+		     quat4 );
+    }
+  
+
   DEBUG_PRINT3 ( "Transform trans    = %8.3f %8.3f %8.3f\n", 
 		main_args.trans_info.translations[0],
 		main_args.trans_info.translations[1],
 		main_args.trans_info.translations[2] );
-  DEBUG_PRINT3 ( "Transform rotation = %8.3f %8.3f %8.3f\n", 
-		main_args.trans_info.rotations[0]*180/3.1415927,
-		main_args.trans_info.rotations[1]*180/3.1415927,
-		main_args.trans_info.rotations[2]*180/3.1415927 );
   DEBUG_PRINT3 ( "Transform scale    = %8.3f %8.3f %8.3f\n", 
 		main_args.trans_info.scales[0],
 		main_args.trans_info.scales[1],
@@ -556,12 +598,25 @@ int main ( int argc, char* argv[] )
     }
     else {
       
-
-      if (!optimize_linear_transformation( data, model, mask_data, mask_model, &main_args )) {
-	print_error_and_line_num("Error in optimization of linear transformation\n",
+      if (main_args.trans_info.rotation_type == TRANS_ROT )
+	{
+	  if (!optimize_linear_transformation( data, model, mask_data, mask_model, &main_args )) {
+	    print_error_and_line_num("Error in optimization of linear transformation\n",
 				 __FILE__, __LINE__);
 	exit(EXIT_FAILURE);
-      }
+	  }
+	}
+      
+      
+      if (main_args.trans_info.rotation_type == TRANS_QUAT )
+	{
+	  if (!optimize_linear_transformation_quater( data, model, mask_data, mask_model, &main_args )) {
+	    print_error_and_line_num("Error in optimization of linear transformation\n",
+				 __FILE__, __LINE__);
+	exit(EXIT_FAILURE);
+	  }
+	}
+      
       
     }
 

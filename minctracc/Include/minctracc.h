@@ -17,7 +17,10 @@
 
 @CREATED    : Thu May 20 14:20:21 EST 1993 Louis Collins
 @MODIFIED   : $Log: minctracc.h,v $
-@MODIFIED   : Revision 96.5  2002-03-07 19:07:51  louis
+@MODIFIED   : Revision 96.6  2002-08-14 19:54:49  lenezet
+@MODIFIED   :  quaternion option added for the rotation
+@MODIFIED   :
+@MODIFIED   : Revision 96.5  2002/03/07 19:07:51  louis
 @MODIFIED   : Added -lattice_diameter as an optionto minctracc to account for a
 @MODIFIED   : problem with the automated calculation of the sub-lattice diameter.
 @MODIFIED   : It used to be step*3*2 - which was pretty big, when step = 8mm.
@@ -135,6 +138,13 @@ public BOOLEAN init_params(Volume d1,
 			   Volume m2, 
 			   Arg_Data *globals);
 
+public BOOLEAN init_params_quater(Volume d1,
+				  Volume d2,
+				  Volume m1,
+				  Volume m2, 
+				  Arg_Data *globals);
+
+
 public void init_lattice(Volume d1,
 			 Volume d2,
 			 Volume m1,
@@ -146,6 +156,12 @@ public BOOLEAN optimize_linear_transformation(Volume d1,
 					      Volume m1,
 					      Volume m2, 
 					      Arg_Data *globals);
+
+public BOOLEAN optimize_linear_transformation_quater(Volume d1,
+						     Volume d2,
+						     Volume m1,
+						     Volume m2, 
+						     Arg_Data *globals);
 
 public BOOLEAN optimize_non_linear_transformation(Arg_Data *globals);
 
@@ -190,6 +206,12 @@ void add_a_feature_for_matching(Feature_volumes *features,
 				Real thresh_data,
 				Real thresh_model);
 
+
+/*---------------------- functions relatives to quaternions-------------------------------------------*/
+#include "quaternion.h" 
+
+
+
 /*  ------------------------ Macros used in program  ------------------------ */
 
 #include "local_macros.h"
@@ -216,10 +238,12 @@ Arg_Data main_args = {
     {-DBL_MAX, -DBL_MAX, -DBL_MAX},		/*   center            */
     {1.0, 1.0, 1.0},		/*   scale             */
     {0.0, 0.0, 0.0},		/*   shears            */
-    {0.0, 0.0, 0.0},		/*   rotations         */
     {0.0, 0.0, 0.0},		/*   translations      */
-    {1.0, 1.0, 1.0,  3.1415927/180.0, 3.1415927/180.0, 3.1415927/180.0,   0.02, 0.02, 0.02,  0.02, 0.02, 0.02}, /* optimization weights*/
-    FALSE},			/*   invert_mapping_flag                  */
+    {0.0, 0.0, 0.0, 1.0},      	/*   quaternions       */
+    {0.0, 0.0, 0.0},            /*   rotations         */
+    {1.0, 1.0, 1.0,  3.1415927/180.0, 3.1415927/180.0, 3.1415927/180.0, 0.02, 0.02, 0.02,  0.02, 0.02, 0.02}, /* optimization weights*/
+    FALSE,			/*   invert_mapping_flag                  */
+    TRANS_ROT},                  /* default use normal rotation */
   {0,NULL, NULL, NULL, NULL, NULL, NULL},	/* FEATURE VOL */
   trilinear_interpolant,	/* use trilinear interpolation by default */
   xcorr_objective,              /* use cross-correlation by default       */

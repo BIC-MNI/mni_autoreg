@@ -1,3 +1,4 @@
+#define SQR(a) (a)*(a)
 
 /* ------------------------ Constants used in program  ------------------------ */
 
@@ -31,6 +32,9 @@
 #define TRANS_PAT         8
 #define TRANS_NONLIN      9
 #define TRANS_IDENT       10
+
+# define TRANS_ROT 0
+# define TRANS_QUAT 1
 
 #define NONLIN_XCORR          0
 #define NONLIN_DIFF           1
