@@ -17,7 +17,10 @@
 
 @CREATED    : 
 @MODIFIED   : $Log: amoeba.c,v $
-@MODIFIED   : Revision 96.5  2002-03-26 14:15:43  stever
+@MODIFIED   : Revision 96.6  2004-02-04 20:44:11  lenezet
+@MODIFIED   : *** empty log message ***
+@MODIFIED   :
+@MODIFIED   : Revision 96.5  2002/03/26 14:15:43  stever
 @MODIFIED   : Update includes to <volume_io/foo.h> style.
 @MODIFIED   :
 @MODIFIED   : Revision 96.4  2000/03/15 08:42:45  stever
@@ -121,7 +124,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/amoeba.c,v 96.5 2002-03-26 14:15:43 stever Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/amoeba.c,v 96.6 2004-02-04 20:44:11 lenezet Exp $";
 #endif
 
 
@@ -240,7 +243,7 @@ public  void  initialize_amoeba(
 
     for_less( j, 0, n_parameters )
         amoeba->sum[j] = 0.0;
-
+    
     for_less( i, 0, n_parameters+1 )
     {
         for_less( j, 0, n_parameters )
@@ -277,10 +280,10 @@ public  Real  get_amoeba_parameters(
     low = 0;
     for_less( i, 1, amoeba->n_parameters+1 )
     {
+      
         if( amoeba->values[i] < amoeba->values[low] )
             low = i;
     }
-
     for_less( j, 0, amoeba->n_parameters )
         parameters[j] = (Real) amoeba->parameters[low][j];
 
@@ -343,6 +346,7 @@ private  Real  try_amoeba(
 
     for_less( j, 0, amoeba->n_parameters )
         parameters[j] = sum[j] * fac1 + amoeba->parameters[high][j] * fac2;
+
 
     y_try = get_function_value( amoeba, parameters );
 
@@ -426,7 +430,6 @@ public  BOOLEAN  perform_amoeba(
    {
         ++amoeba->n_steps_no_improvement;
         if( ++amoeba->n_steps_no_improvement == N_STEPS_NO_IMPROVEMENT ) {
-/*	  print ("no improvement %d\n",amoeba->n_steps_no_improvement);*/
 	  return( FALSE );
 	}
     }

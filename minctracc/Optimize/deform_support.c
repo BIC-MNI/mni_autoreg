@@ -20,7 +20,10 @@
 
 @CREATED    : Tue Feb 22 08:37:49 EST 1994
 @MODIFIED   : $Log: deform_support.c,v $
-@MODIFIED   : Revision 96.8  2002-12-13 21:18:20  lenezet
+@MODIFIED   : Revision 96.9  2004-02-04 20:44:11  lenezet
+@MODIFIED   : *** empty log message ***
+@MODIFIED   :
+@MODIFIED   : Revision 96.8  2002/12/13 21:18:20  lenezet
 @MODIFIED   :
 @MODIFIED   : A memory leak has been repaired
 @MODIFIED   :
@@ -196,7 +199,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 96.8 2002-12-13 21:18:20 lenezet Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 96.9 2004-02-04 20:44:11 lenezet Exp $";
 #endif
 
 #include <config.h>
@@ -230,7 +233,9 @@ public void init_the_volume_to_zero(Volume volume);
 
 public Real get_volume_maximum_real_value(Volume volume);
 
- 
+public Real get_coeff_from_neighbours(General_transform *trans,
+				      int voxel[],
+				      int avg_type); 
 
 				/* define the limits for three nested
 				   for loops, so that we loop through
@@ -573,7 +578,7 @@ public void smooth_the_warp(General_transform *smoothed,
   Real 
     value[3], 
     wx, wy, wz, 
-    mx, my, mz;
+    mx, my, mz,smoothing;
   progress_struct
     progress;
   

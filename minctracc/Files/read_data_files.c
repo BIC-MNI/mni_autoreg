@@ -17,7 +17,10 @@
 
 @CREATED    : Tue Nov 16 13:56:34 EST 1993 LC
 @MODIFIED   : $Log: read_data_files.c,v $
-@MODIFIED   : Revision 1.2  2002-03-26 14:15:36  stever
+@MODIFIED   : Revision 1.3  2004-02-04 20:42:02  lenezet
+@MODIFIED   : *** empty log message ***
+@MODIFIED   :
+@MODIFIED   : Revision 1.2  2002/03/26 14:15:36  stever
 @MODIFIED   : Update includes to <volume_io/foo.h> style.
 @MODIFIED   :
 @MODIFIED   : Revision 1.1  1999/10/25 19:52:13  louis
@@ -30,7 +33,7 @@
  *
  * Revision 1.2  94/04/06  11:48:48  louis
  * working linted version of linear + non-linear registration based on Lvv
- * operator working in 3D
+ * operator working in 3D 
  * 
  * Revision 1.1  94/02/21  16:36:21  louis
  * Initial revision
@@ -38,7 +41,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Files/read_data_files.c,v 1.2 2002-03-26 14:15:36 stever Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Files/read_data_files.c,v 1.3 2004-02-04 20:42:02 lenezet Exp $";
 #endif
 
 #include <volume_io/internal_volume_io.h>

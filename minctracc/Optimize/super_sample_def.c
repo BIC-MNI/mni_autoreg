@@ -20,7 +20,10 @@
 
 @CREATED    : 
 @MODIFIED   : $Log: super_sample_def.c,v $
-@MODIFIED   : Revision 96.8  2003-02-26 00:56:38  lenezet
+@MODIFIED   : Revision 96.9  2004-02-04 20:44:13  lenezet
+@MODIFIED   : *** empty log message ***
+@MODIFIED   :
+@MODIFIED   : Revision 96.8  2003/02/26 00:56:38  lenezet
 @MODIFIED   : for 2D : now computes all 3 coordinates for the "start" (to take into account the slice position).
 @MODIFIED   : simplification of build_lattices.
 @MODIFIED   : bug correction in amoeba_NL_obj_function.
@@ -81,7 +84,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/super_sample_def.c,v 96.8 2003-02-26 00:56:38 lenezet Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/super_sample_def.c,v 96.9 2004-02-04 20:44:13 lenezet Exp $";
 #endif
 
 #include <config.h>
@@ -189,7 +192,7 @@ public void create_super_sampled_data_volumes(General_transform *orig_deformatio
     new_steps[ xyzv[i] ] = xyz_steps[i];
   }
 
-
+  
 
 
   set_volume_sizes(       super_sampled->displacement_volume, new_count);

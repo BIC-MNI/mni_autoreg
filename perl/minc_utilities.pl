@@ -18,7 +18,7 @@
 #@CALLS      : 
 #@CREATED    : Greg Ward, July 95
 #@MODIFIED   : considerably
-#@VERSION    : $Id: minc_utilities.pl,v 1.1 2000-01-19 14:10:31 louis Exp $
+#@VERSION    : $Id: minc_utilities.pl,v 1.2 2004-02-04 20:44:52 lenezet Exp $
 #-----------------------------------------------------------------------------
 
 # --------------------------------------------------------------------
@@ -66,7 +66,7 @@ sub volume_minmax
    my ($volume) = @_;
    my ($status, $volmax, $volmin);
 #   die "\$MincInfo undefined" unless defined $MincInfo;
-
+   
    (&volume_min ($volume), &volume_max ($volume));
 }
 
@@ -84,8 +84,7 @@ sub auto_threshold
 #   die "\$VolumeStats undefined" unless defined $VolumeStats;
 
    ($status, $threshold) = 
-      &Spawn ("volume_stats -biModalT -quiet $volume");
-
+      &Spawn ("mincstats -discrete_histogram -biModalT -quiet $volume");
    if ($Execute) { chop $threshold; return $threshold; }
    0;
 }

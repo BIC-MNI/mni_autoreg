@@ -16,7 +16,10 @@
 
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   :  $Log: objectives.c,v $
-@MODIFIED   :  Revision 96.6  2002-11-20 21:39:16  lenezet
+@MODIFIED   :  Revision 96.7  2004-02-04 20:44:13  lenezet
+@MODIFIED   :  *** empty log message ***
+@MODIFIED   :
+@MODIFIED   :  Revision 96.6  2002/11/20 21:39:16  lenezet
 @MODIFIED   :
 @MODIFIED   :  Fix the code to take in consideration the direction cosines especially in the grid transform.
 @MODIFIED   :  Add an option to choose the maximum expected deformation magnitude.
@@ -86,7 +89,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/objectives.c,v 96.6 2002-11-20 21:39:16 lenezet Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/objectives.c,v 96.7 2004-02-04 20:44:13 lenezet Exp $";
 #endif
 
 #include <volume_io/internal_volume_io.h>
@@ -192,7 +195,6 @@ public float xcorr_objective(Volume d1,
     voxel;
 
   int
-    i,j,
     r,c,s;
 
   Real

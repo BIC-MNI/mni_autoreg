@@ -13,7 +13,10 @@
 
    @CREATED    : February 3, 1992 - louis collins
    @MODIFIED   : $Log: minctracc.c,v $
-   @MODIFIED   : Revision 96.9  2003-02-04 06:08:44  stever
+   @MODIFIED   : Revision 96.10  2004-02-04 20:42:33  lenezet
+   @MODIFIED   : *** empty log message ***
+   @MODIFIED   :
+   @MODIFIED   : Revision 96.9  2003/02/04 06:08:44  stever
    @MODIFIED   : Add support for correlation coefficient and sum-of-squared difference.
    @MODIFIED   :
    @MODIFIED   : Revision 96.8  2002/12/13 21:16:11  lenezet
@@ -118,7 +121,7 @@ Wed May 26 13:05:44 EST 1993 lc
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.9 2003-02-04 06:08:44 stever Exp $";
+static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.10 2004-02-04 20:42:33 lenezet Exp $";
 #endif
 
 #include <config.h>
@@ -172,6 +175,7 @@ int main ( int argc, char* argv[] )
   float quat4;
   
   prog_name     = argv[0];	
+  
 
 
   /* Call ParseArgv to interpret all command line args (returns TRUE if error) */

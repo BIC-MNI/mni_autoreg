@@ -14,7 +14,10 @@
               express or implied warranty.
 
 @MODIFIED   : $Log: optimize.c,v $
-@MODIFIED   : Revision 96.10  2003-02-04 06:08:46  stever
+@MODIFIED   : Revision 96.11  2004-02-04 20:44:13  lenezet
+@MODIFIED   : *** empty log message ***
+@MODIFIED   :
+@MODIFIED   : Revision 96.10  2003/02/04 06:08:46  stever
 @MODIFIED   : Add support for correlation coefficient and sum-of-squared difference.
 @MODIFIED   :
 @MODIFIED   : Revision 96.9  2002/11/20 21:39:16  lenezet
@@ -137,7 +140,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 96.10 2003-02-04 06:08:46 stever Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 96.11 2004-02-04 20:44:13 lenezet Exp $";
 #endif
 
 #include <config.h>
@@ -1982,6 +1985,7 @@ public BOOLEAN optimize_non_linear_transformation(Arg_Data *globals)
 
 
 	   /* ---------------- call requested optimization strategy ---------*/
+
 
   stat = ( do_non_linear_optimization(globals)==OK );
  

@@ -16,7 +16,10 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 96.19  2003-02-26 01:20:34  lenezet
+@MODIFIED   : Revision 96.20  2004-02-04 20:44:13  lenezet
+@MODIFIED   : *** empty log message ***
+@MODIFIED   :
+@MODIFIED   : Revision 96.19  2003/02/26 01:20:34  lenezet
 @MODIFIED   : *** empty log message ***
 @MODIFIED   :
 @MODIFIED   : Revision 96.18  2003/02/26 00:56:37  lenezet
@@ -313,7 +316,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.19 2003-02-26 01:20:34 lenezet Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.20 2004-02-04 20:44:13 lenezet Exp $";
 #endif
 
 #include <config.h>		/* MAXtype and MIN defs                      */
@@ -691,7 +694,8 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 
 
    Gglobals= globals;
-
+   current_def_vector[0]=current_def_vector[1]=current_def_vector[2]=0.0;
+   
    /* pour eviter d'avoir une option -2Dnonlin ou 3d le fcalcul se fait directement */
    num_of_dims_to_optimize = 0;
    for_less(i,0,N_DIMENSIONS) {
@@ -977,9 +981,9 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
 	  xyzv[X], xyzv[Y], xyzv[Z], xyzv[Z+1]);
     print("number_dimensions    = %d\n",number_dimensions);
     print("num_of_dims_to_opt   = %d\n",num_of_dims_to_optimize);
-    print("smoothing_weight     = %f\n",smoothing_weight);
     print("loop                 = (%d %d) (%d %d) (%d %d)\n",
 	  start[0],end[0],start[1],end[1],start[2],end[2]);
+    print("current_def_vector   = %f %f %f\n",current_def_vector[X], current_def_vector[Y],current_def_vector[Z]);
 
 
     print ("\nFitting STRATEGY ----------\n");
@@ -1228,7 +1232,6 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
 			   eig1 = 0.0;
 			   if (Gglobals->trans_info.use_local_smoothing) 
 			     {
-			     
 			       eig1 = return_locally_smoothed_def(
 								  Gglobals->trans_info.use_local_isotropic,
 								  number_dimensions,

@@ -28,7 +28,10 @@
 
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   :  $Log: init_lattice.c,v $
-@MODIFIED   :  Revision 96.6  2003-02-26 00:50:25  lenezet
+@MODIFIED   :  Revision 96.7  2004-02-04 20:44:42  lenezet
+@MODIFIED   :  *** empty log message ***
+@MODIFIED   :
+@MODIFIED   :  Revision 96.6  2003/02/26 00:50:25  lenezet
 @MODIFIED   :  for 2D : now computes all 3 coordinates for the "start" (to take into account the slice position)
 @MODIFIED   :
 @MODIFIED   :  Revision 96.5  2002/12/13 21:18:45  lenezet
@@ -91,7 +94,7 @@ made change to init lattice to not change start when there is only 1 slice.
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/init_lattice.c,v 96.6 2003-02-26 00:50:25 lenezet Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/init_lattice.c,v 96.7 2004-02-04 20:44:42 lenezet Exp $";
 #endif
 
 #include <config.h>
@@ -556,7 +559,7 @@ public void init_lattice(Volume d1,
 
   if (globals->flags.debug && globals->flags.verbose>1) {
     print ("in init_lattice: for the target data set\n");
-    print ("start = %8.2f %8.2f %8.2f \n",start2[0],start2[1],start2[2]);
+    print ("start = %8.2f %8.2f %8.2f in vol order\n",start2[0],start2[1],start2[2]);
     print ("wstart= %8.2f %8.2f %8.2f \n",wstart2[0],wstart2[1],wstart2[2]);
     print ("count = %8d %8d %8d \n",count2[0],count2[1],count2[2]);
     print ("step  = %8.2f %8.2f %8.2f \n",step2[0],step2[1],step2[2]);
@@ -620,7 +623,7 @@ public void init_lattice(Volume d1,
     }
   }
 
-  if (globals->flags.debug || (max2_row < min2_row) || (max2_col < min2_col) || 
+  if ((max2_row < min2_row) || (max2_col < min2_col) || 
       (max2_slice < min2_slice)) {
     print ("slice lim %d %d\n",min2_slice, max2_slice);
     print ("row lim   %d %d\n",min2_row, max2_row);
