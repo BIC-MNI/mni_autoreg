@@ -10,7 +10,10 @@
 @CALLS      : 
 @CREATED    : Thur Oct 5 08:45:43 MET 1995
 @MODIFIED   : $Log: make_lvv_vol.c,v $
-@MODIFIED   : Revision 1.2  2002-03-26 14:15:30  stever
+@MODIFIED   : Revision 1.3  2002-12-13 21:09:12  lenezet
+@MODIFIED   : tests added for direction cosines and for 2d nonlinear
+@MODIFIED   :
+@MODIFIED   : Revision 1.2  2002/03/26 14:15:30  stever
 @MODIFIED   : Update includes to <volume_io/foo.h> style.
 @MODIFIED   :
 @MODIFIED   : Revision 1.1  1999/10/25 19:52:06  louis
@@ -30,7 +33,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/make_lvv_vol.c,v 1.2 2002-03-26 14:15:30 stever Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/make_lvv_vol.c,v 1.3 2002-12-13 21:09:12 lenezet Exp $";
 #endif
 
 #include <stdio.h>
@@ -49,6 +52,7 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #endif
 
 #define VERY_SMALL_EPS 0.0001	/* this is data dependent! */
+#define sqr(a) (a)*(a)
 
 typedef struct {
   Real 
@@ -86,21 +90,21 @@ int main(int argc, char *argv[])
     stat;
 
   Real 
-    tmp, max_val, min_val, intensity_threshold,
-    K, S, k1, k2, Lvv,
+    tmp, max_val, min_val, intensity_threshold,Lvv,
     val[3][3][3];
   
   Volume 
     data, lvv;
 
-  float ***float_vol,  *f_ptr;
+  float ***float_vol,*f_ptr;
 
   int
     count,
     index[MAX_DIMENSIONS],
     data_xyzv[MAX_DIMENSIONS],
     sizes[MAX_DIMENSIONS],
-    m,n,o,i,j,k;
+    m,n,o,i,j,k,
+    state;
 
   char 
     *history,
@@ -122,47 +126,46 @@ int main(int argc, char *argv[])
     exit(EXIT_FAILURE);
   }
 
-  lvv = copy_volume_definition(data, NC_UNSPECIFIED, FALSE, 0.0, 0.0);
-
-
+  lvv   = copy_volume_definition(data, NC_UNSPECIFIED, FALSE, 0.0, 0.0);
+  
   get_volume_sizes(data,sizes);
   get_volume_XYZV_indices(data,data_xyzv);
 
 
   max_val = -DBL_MAX;
   min_val =  DBL_MAX;
-
-  ALLOC3D(float_vol, sizes[0], sizes[1], sizes[2]);
-
+  
+  ALLOC3D(float_vol  , sizes[0], sizes[1], sizes[2]);
+  
   for_less(i,0,sizes[0])
     for_less(j,0,sizes[1])
       for_less(k,0,sizes[2]) {
-	float_vol[i][j][k] = 0.0;
+	float_vol  [i][j][k] = 0.0;
 	tmp = get_volume_real_value(data, i,j,k,0,0);
 	if (tmp>max_val) max_val = tmp;
 	if (tmp<min_val) min_val = tmp;
       }
-
   intensity_threshold = 0.01 * max_val;
+  print("\nintensity_threshold = %f\n",intensity_threshold);
 
   initialize_progress_report(&progress, FALSE, sizes[0]*sizes[1]*sizes[2]+1,
 			     "Building Lvv:");
   count = 0;
   max_val = -1000000.0;
   min_val =  1000000.0;
-
+ 
   for_less(index[ data_xyzv[X] ],1,sizes[data_xyzv[X]]-1)
     for_less(index[ data_xyzv[Y] ],1,sizes[data_xyzv[Y]]-1)
       for_less(index[ data_xyzv[Z] ],1,sizes[data_xyzv[Z]]-1) {
-	
+
 	tmp = get_volume_real_value(data, 
 				    index[data_xyzv[X]], 
 				    index[data_xyzv[Y]], 
 				    index[data_xyzv[Z]], 0,0);
 
-	Lvv = 0.0;
+	Lvv=0.0;
+     
 	if (tmp > intensity_threshold) {
-
 	  for_inclusive(m,-1,1)
 	    for_inclusive(n,-1,1)
 	      for_inclusive(o,-1,1)
@@ -171,47 +174,51 @@ int main(int argc, char *argv[])
 					index[data_xyzv[X]]+m, 
 					index[data_xyzv[Y]]+n, 
 					index[data_xyzv[Z]]+o, 0,0);
-	  
 	  Lvv = return_Lvv(val, (Real)VERY_SMALL_EPS);
 	}
-
+       
 	if (max_val < Lvv) max_val = Lvv;
 	if (min_val > Lvv) min_val = Lvv;
-
-	float_vol[index[data_xyzv[X]]][index[data_xyzv[Y]]][index[data_xyzv[Z]]]=Lvv;
-
-
+	 
+	float_vol  [index[data_xyzv[X]]][index[data_xyzv[Y]]][index[data_xyzv[Z]]]=Lvv;
+	
 	count++;
 	update_progress_report( &progress, count );
 	
-      }
+  }
   terminate_progress_report(&progress);
-  
+ 
   min_val *= 0.9;
-  max_val *= 0.9;
+  max_val *= 0.9;  
+  
 
-  set_volume_real_range(lvv, min_val, max_val);
+  
+  set_volume_real_range(lvv  , min_val, max_val);
+
+
 
   for_less(i,0,sizes[0])
     for_less(j,0,sizes[1])
-      for_less(k,0,sizes[2]) {
-	
+      for_less(k,0,sizes[2]) 
+       {
 	Lvv = float_vol[i][j][k];
 	if (Lvv < min_val) Lvv = min_val;
 	if (Lvv > max_val) Lvv = max_val;
-    
-	set_volume_real_value(lvv, i,j,k, 0, 0, Lvv);
+	  
+
+	set_volume_real_value(lvv  , i,j,k, 0, 0, Lvv);
       }
 
   FREE3D(float_vol);
 
   print ("Saving data (%f,%f)...\n",max_val, min_val);
+  
 
   sprintf(output_filename,"%s_Lvv.mnc",argv[2]);
   stat = output_modified_volume(output_filename, NC_UNSPECIFIED, FALSE, 
 				0.0, 0.0,  lvv, argv[1], history, NULL);
   if (stat != OK) {
-    print ("Error: cannot write %s.\n",output_filename);
+    print ("Error: cannot write Lvv %s.\n",output_filename);
     exit(EXIT_FAILURE);
   }
 
@@ -257,7 +264,7 @@ void get_volume_XYZV_indices(Volume data, int xyzv[])
       xyzv[Z+1] = i;
     }
   }
-  delete_dimension_names(data_dim_names);
+  delete_dimension_names(data,data_dim_names);
   
 }
 
@@ -373,9 +380,9 @@ public Real return_Lvv(Real r[3][3][3],
   d.u  = (r[2][1][1] - r[0][1][1] ) / 2.0;
   d.v  = (r[1][2][1] - r[1][0][1] ) / 2.0;
   d.w  = (r[1][1][2] - r[1][1][0] ) / 2.0;
-  d.uu = (r[2][1][1] + r[0][1][1] -2*r[1][1][1]);
-  d.vv = (r[1][2][1] + r[1][0][1] -2*r[1][1][1]);
-  d.ww = (r[1][1][2] + r[1][1][0] -2*r[1][1][1]);
+  d.uu = (r[2][1][1] + r[0][1][1] - 2*r[1][1][1]);
+  d.vv = (r[1][2][1] + r[1][0][1] - 2*r[1][1][1]);
+  d.ww = (r[1][1][2] + r[1][1][0] - 2*r[1][1][1]);
   d.uv = (r[2][2][1] + r[0][0][1] - r[0][2][1] - r[2][0][1]) / 4.0;
   d.uw = (r[2][1][2] + r[0][1][0] - r[0][1][2] - r[2][1][0]) / 4.0;
   d.vw = (r[1][2][2] + r[1][0][0] - r[1][0][2] - r[1][2][0]) / 4.0;
@@ -396,10 +403,8 @@ public Real return_Lvv(Real r[3][3][3],
 	 )
           / (2 * sqrt(sq_mag_grad*sq_mag_grad*sq_mag_grad));
 
-    Lvv =  sq_mag_grad * S;
+    Lvv = sq_mag_grad * S;
   }
 
   return(Lvv);
 }
-					
-
