@@ -90,7 +90,7 @@ public Status compute_chamfer(Volume chamfer)
 
    max_val = sqrt(sizes[2]*steps[2]*sizes[2]*steps[2] + edge*edge);
 
-   max_val = 254.0;
+   max_val = 50.0;
    set_volume_real_range(chamfer, 0.0, max_val);
    
    zero =CONVERT_VALUE_TO_VOXEL(chamfer,0.0);
@@ -106,11 +106,6 @@ public Status compute_chamfer(Volume chamfer)
             
             if (val != zero) { /* then apply forward mask */
 
-/*
-if (ind0==40 && ind1==32 && ind2==32) {
-   print ("Hi!\n");
-}
-*/                            
                min = val;
 
                for_inclusive(i, -1, +1) {
