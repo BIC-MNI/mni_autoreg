@@ -16,7 +16,12 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 96.17  2003-02-04 06:08:45  stever
+@MODIFIED   : Revision 96.18  2003-02-26 00:56:37  lenezet
+@MODIFIED   : for 2D : now computes all 3 coordinates for the "start" (to take into account the slice position).
+@MODIFIED   : simplification of build_lattices.
+@MODIFIED   : bug correction in amoeba_NL_obj_function.
+@MODIFIED   :
+@MODIFIED   : Revision 96.17  2003/02/04 06:08:45  stever
 @MODIFIED   : Add support for correlation coefficient and sum-of-squared difference.
 @MODIFIED   :
 @MODIFIED   : Revision 96.16  2002/12/13 21:18:20  lenezet
@@ -305,7 +310,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.17 2003-02-04 06:08:45 stever Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.18 2003-02-26 00:56:37 lenezet Exp $";
 #endif
 
 #include <config.h>		/* MAXtype and MIN defs                      */
@@ -499,7 +504,7 @@ private double return_locally_smoothed_def(int  isotropic_smoothing,
 
 
 
-private BOOLEAN get_best_start_from_neighbours(
+private BOOLEAN get_best_start_from_neighbours2(
 					       Real threshold1, 
 					       Real source[],
 					       Real mean_target[],
@@ -537,13 +542,23 @@ public int nearest_neighbour_interpolant(Volume volume,
 private BOOLEAN is_a_sub_lattice_needed (char obj_func[],
 					 int  number_of_features);
 
-private BOOLEAN build_lattices(Real spacing, 
+private BOOLEAN build_lattices2(Real spacing, 
 			       Real threshold, 
 			       Real source_coord[],
 			       Real mean_target[],
 			       Real target_coord[],
 			       Real def_vector[],
 			       int ndim);
+
+public void    build_target_lattice2(float px[], float py[], float pz[],
+				    float tx[], float ty[], float tz[],
+				     int len, int dim);
+
+public void    build_target_lattice_using_super_sampled_def(
+                                     float px[], float py[], float pz[],
+				     float tx[], float ty[], float tz[],
+				     int len, int dim);
+
 
 private Real get_optical_flow_vector(Real threshold1, 
 				     Real source_coord[],
@@ -647,7 +662,7 @@ public Status do_non_linear_optimization(Arg_Data *globals)
       def_vector[3],		/* the additional deformation estimated for node,
 				   for these three vectors in real world coords
 				   index [0] stores the x disp, and [2] the z disp */
-      voxel_displacement[3],    /* the additional displacement, in voxel coords 
+      voxel_displacement[N_DIMENSIONS],    /* the additional displacement, in voxel coords 
 				   with [0] storing the displacement of the
 				   fastest varying index, and [2] the slowest in
 				   the data voluming = xdim and zdim respectively*/
@@ -674,7 +689,7 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 
    Gglobals= globals;
 
-   
+   /* pour eviter d'avoir une option -2Dnonlin ou 3d le fcalcul se fait directement */
    num_of_dims_to_optimize = 0;
    for_less(i,0,N_DIMENSIONS) {
      if (Gglobals->count[i] > 1) 
@@ -728,11 +743,9 @@ public Status do_non_linear_optimization(Arg_Data *globals)
    ALLOC(TY,MAX_G_LEN+1);
    ALLOC(TZ,MAX_G_LEN+1);
 
+
    /* split the total transformation into the first linear part and the
-      last non-linear def.  */
-
-
-  
+      last non-linear def.  */  
    split_up_the_transformation(globals->trans_info.transformation,
                                &all_until_last,
                                &current_warp);
@@ -849,7 +862,13 @@ public Status do_non_linear_optimization(Arg_Data *globals)
     
 
     if (globals->flags.debug) {
-      for_less(i,0,MAX_DIMENSIONS) voxel[i]=0.0;
+      for_less(i,0,MAX_DIMENSIONS) {
+	voxel[i]=0.0;
+	debug_sizes[i]=0.0;
+	debug_steps[i]=0.0;
+	st[i]=0.0;
+	wst[i]=0.0;
+      }
       convert_voxel_to_world(current_warp->displacement_volume, 
 			     voxel,
 			     &wx, &wy, &wz);
@@ -885,7 +904,14 @@ public Status do_non_linear_optimization(Arg_Data *globals)
     if (globals->flags.debug) {
 
 
-      for_less(i,0,MAX_DIMENSIONS) voxel[i]=0.0;
+      for_less(i,0,MAX_DIMENSIONS) {
+	voxel[i]=0.0;
+	debug_sizes[i]=0.0;
+	debug_steps[i]=0.0;
+	st[i]=0.0;
+	wst[i]=0.0;
+      }
+
       convert_voxel_to_world(Gsuper_sampled_warp->displacement_volume, 
 			     voxel,
 			     &wx, &wy, &wz);
@@ -1112,6 +1138,7 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
        for_less(i,0,MAX_DIMENSIONS) index[i]=0;
        
        /* step index[] through all the nodes in the deformation field. */
+       
 
        for_less( index[ xyzv[X] ] , start[ X ], end[ X ]) 
 	 {
@@ -1174,7 +1201,6 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
 					   this node                        */
 		       
 
-		       
 		       result = get_deformation_vector_for_node(steps[xyzv[X]], 
 								threshold1,
 								source_node,
@@ -1186,7 +1212,7 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
 								num_of_dims_to_optimize,
 								sub_lattice_needed);
 		     
-		       
+		     
 		       if (result < 0.0) 
 			 {
 			   nodes_tried++;
@@ -1220,12 +1246,13 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
 			       for_inclusive(i,X,Z)
 				 result_def_vector[ i ] -= current_def_vector[ i ];
 			       
+
 			       for_less( index[ xyzv[Z+1] ], start[ Z+1 ], end[ Z+1 ])  
 				 {
 				   set_volume_real_value(additional_vol,
 							 index[0],index[1],index[2],
 							 index[3],index[4],
-							 result_def_vector[ index[ xyzv[Z+1] ] ]);
+							 result_def_vector[index[ xyzv[Z+1]]]);
 				   set_volume_real_value(another_vol,
 							 index[0],index[1],index[2],
 							 index[3],index[4],
@@ -1237,7 +1264,7 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
 			     {		/* then prepare for global smoothing, (this will
 					   actually be done after all nodes 
 					   have been estimated  */
-
+			       
 			       for_less( index[ xyzv[Z+1] ], start[ Z+1 ], end[ Z+1 ]) 
 				 set_volume_real_value(additional_vol,
 						       index[0],index[1],index[2],
@@ -1369,7 +1396,6 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
        
        if (Gglobals->trans_info.use_local_smoothing) 
 	 {
-
 	   /* extrapolate (and smooth) the newly estimated deformation vectors
 	      (stored in additional vol) to un-estimated nodes, leaving the
 	      extrapolated result in additional_vol (note that it still has to
@@ -1406,7 +1432,7 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
 	   temp_start_time = time(NULL);
 	   add_additional_warp_to_current(additional_warp,
 					  current_warp,
-					  iteration_weight);
+			 		  iteration_weight);
 	   if (globals->flags.debug) 
 	     report_time(temp_start_time, "TIME:Adding additional to current");
        
@@ -1420,10 +1446,10 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
 	   
 	   smooth_the_warp(current_warp,
 			   additional_warp,
-			   additional_mag, -1.0);
+		 	   additional_mag, -1.0);
 	   
 	   if (globals->flags.debug) 
-	     report_time(temp_start_time, "TIME:Smoothing the current warp");
+ 	     report_time(temp_start_time, "TIME:Smoothing the current warp");
 
 	 }
     
@@ -1433,14 +1459,16 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
 
        init_the_volume_to_zero(additional_vol);
        init_the_volume_to_zero(additional_mag);
-       
-  
-
+ 
+ 
        if (globals->flags.debug && 
-	   globals->flags.verbose == 3) 
+	   globals->flags.verbose == 3) {
+
 	 save_data(globals->filenames.output_trans, 
-		   iters+1, iteration_limit, 
+		   iters+1, iteration_limit,  
 		   globals->trans_info.transformation);
+	 
+       }
 
 				/* re-apply intensity normalization if doing
 				   optical flow fitting. */
@@ -1850,7 +1878,8 @@ private double return_locally_smoothed_def(int isotropic_smoothing,
 	        def = deformation needed to bring current_target to 
 		      the best starting target.
 */
-private BOOLEAN get_best_start_from_neighbours(
+
+private BOOLEAN get_best_start_from_neighbours2(
 			   Real threshold1, 
 			   Real source[],
 			   Real mean_target[],
@@ -1872,27 +1901,23 @@ private BOOLEAN get_best_start_from_neighbours(
 				/* map point from source, forward into
                                    target_ space */
 
+/* possible problem: does the following work for a 2D grid transformation? 
+ */
     general_transform_point(Gglobals->trans_info.transformation, 
 			    source[X],source[Y],source[Z], 
 			    &(target[X]),&(target[Y]),&(target[Z]));
 
-				/* average out target_ point with the
-				   mean position of its neightbours */
-    nx = (target[X] + mean_target[X])/2.0; 
-    ny = (target[Y] + mean_target[Y])/2.0; 
-    nz = (target[Z] + mean_target[Z])/2.0; 
 
-				/* what is the deformation needed to
-				   achieve this displacement */
-    def[X] = nx - target[X];
-    def[Y] = ny - target[Y];
-    def[Z] = nz - target[Z];
+    /* set mean_target to be equal to target, just in case this is used later. */
+    mean_target[X] = target[X];
+    mean_target[Y] = target[Y];
+    mean_target[Z] = target[Z];    
 
-				/* reset the target location to be
-				   halfway to the mean position of its
-				   neighbours */
-    target[X] = nx; target[Y] = ny; target[Z] = nz;
-
+    /* what is the deformation needed to achieve this displacement */
+    def[X] = 0.0;
+    def[Y] = 0.0;
+    def[Z] = 0.0;
+    
     return(TRUE);
   }  
 }
@@ -2187,16 +2212,7 @@ print ("%5.3f: %7.2f %7.2f %7.2f -> %7.2f %7.2f %7.2f [%7.2f %7.2f %7.2f ]",
   return(result);
 }
 
-/* procedure build_lattices will construct the sub-lattice on the
-   source and target volumes for xcorr, diff and label objective
-   functions that need to be optimized with the similarity_function 
-
-   inputs:
-   outputs:
-
-*/
-
-private BOOLEAN build_lattices(Real spacing, 
+private BOOLEAN build_lattices2(Real spacing, 
 			       Real threshold, 
 			       Real source_coord[],
 			       Real mean_target[],
@@ -2228,43 +2244,23 @@ private BOOLEAN build_lattices(Real spacing,
 
   result = TRUE;
 
-  if (!get_best_start_from_neighbours(threshold,
+  if (!get_best_start_from_neighbours2(threshold,
 				      source_coord, mean_target, target_coord,
 				      def_vector)) {
     
     for_less (i,0,3)
-      target_coord[i] = mean_target[i];
+       target_coord[i] = mean_target[i];
 
     result = FALSE;
     
   }
   else {   
 
-    /* we now have the info needed to continue...
-       
-       source_coord[] - point in source volume
-       target_coord[] - best point in target volume, so far.
-       def_vector[]   - currently contains the additional def needed to 
-                        take source_coord mid-way to the neighbour's
-                        mean-point (which is now stored in target_coord[]).  
+    xp = source_coord[0];
+    yp = source_coord[1];
+    zp = source_coord[2];
+    
 
-       now,
-       get the world coord position of the node in the source volume,
-       corresponding to the target node in question, taking into
-       consideration the current warp  
-       
-       xp,yp,zp will be the position in the source volume, corresponding to
-       the 'best target' position */
-    
-    if (ndim==3)
-      general_inverse_transform_point(Gglobals->trans_info.transformation, 
-				      target_coord[X],  target_coord[Y],  target_coord[Z],
-				      &xp, &yp, &zp);
-    else
-      general_inverse_transform_point_in_trans_plane(Gglobals->trans_info.transformation, 
-						     target_coord[X],  target_coord[Y],  target_coord[Z],
-						     &xp, &yp, &zp);
-    
     /* -------------------------------------------------------------- */
     /* BUILD THE SOURCE VOLUME LOCAL NEIGHBOURHOOD INFO:
           build the list of world coordinates representing nodes in the
@@ -2297,7 +2293,7 @@ private BOOLEAN build_lattices(Real spacing,
       build_target_lattice_using_super_sampled_def(
 		  SX,SY,SZ, TX,TY,TZ, Glen, ndim);
     else 
-      build_target_lattice(SX,SY,SZ, TX,TY,TZ, Glen, ndim);
+      build_target_lattice2(SX,SY,SZ, TX,TY,TZ, Glen, ndim);
       
 
     /* -------------------------------------------------------------- */
@@ -2410,6 +2406,8 @@ private BOOLEAN build_lattices(Real spacing,
   return(result );
 }
 
+
+
 /**********************************************************
 
   get_deformation_vector_for_node will return the magnitude of the
@@ -2493,7 +2491,7 @@ private Real get_deformation_vector_for_node(Real spacing,
 				/* build sub-lattice if necessary */
   if (sub_lattice_needed) {
 
-    if ( ! build_lattices(spacing, threshold1, 
+    if ( ! build_lattices2(spacing, threshold1, 
 			  source_coord, mean_target, target_coord, def_vector,
 			  ndim) ){
       result = -DBL_MAX;
@@ -2576,6 +2574,8 @@ private Real get_deformation_vector_for_node(Real spacing,
 	
       }
       
+
+      
       if ( flag ) {
 	voxel_displacement[0] = dw * Gsimplex_size/2.0;	/* fastest (X) data index */
 	voxel_displacement[1] = dv * Gsimplex_size/2.0;	/* Y */
@@ -2589,7 +2589,6 @@ private Real get_deformation_vector_for_node(Real spacing,
       }
     }
     else {
-      
       /* ----------------------------------------------------------- */
       /*  USE SIMPLEX OPTIMIZATION to find best deformation vector   */
       
@@ -2622,16 +2621,18 @@ private Real get_deformation_vector_for_node(Real spacing,
       
       /*   do the actual SIMPLEX optimization,
 	   note that nfunk is incremented inside perform_amoeba  */
-
-      while (nfunk < AMOEBA_ITERATION_LIMIT && 
+ 
+      while (nfunk < AMOEBA_ITERATION_LIMIT  && 
 	     perform_amoeba(&the_amoeba, &nfunk) );
 
 
+      
       
       *num_functions += nfunk;
 
       if (nfunk < AMOEBA_ITERATION_LIMIT) {
 	
+
 	get_amoeba_parameters(&the_amoeba,parameters);
 
 	/* the voxel displacement here is in X Y Z order, where X Y Z
@@ -2642,8 +2643,12 @@ private Real get_deformation_vector_for_node(Real spacing,
 	   volume (not the source volume or the lattice grid!)
 	*/
 
-	from_param_to_grid_weights( parameters, voxel_displacement);
 
+
+	from_param_to_grid_weights( parameters, voxel_displacement);
+       
+
+      
       }
       else {
 
@@ -2662,14 +2667,17 @@ private Real get_deformation_vector_for_node(Real spacing,
       
     } /* else use_simplex */
  
-
+   
 
 
     /* -------------------------------------------------------------- */
     /* RETURN DEFORMATION FOUND 
-       deformation calculated above is in voxel coordinates, it
-       has to be transformed into real world coordinates so that it
-       can be saved in the GRID_TRANSFORM                          */
+
+       deformation calculated above is in voxel coordinates (ie voxel
+       size of the target volume, but in x,y,z order like the
+       deformation grid volume), therefore, it has to be transformed
+       into real world coordinates so that it can be saved in the
+       GRID_TRANSFORM  */
     
     if ((voxel_displacement[0] == 0.0 &&
 	 voxel_displacement[1] == 0.0 &&
@@ -2695,8 +2703,14 @@ private Real get_deformation_vector_for_node(Real spacing,
 				(Real)(voxel[1]+voxel_displacement[1]),   /* voxel[y]+voxel_displacement[y] */
 				(Real)(voxel[2]+voxel_displacement[0]),   /* voxel[x]+voxel_displacement[x] */
 				&pos[X], &pos[Y], &pos[Z]);
-      
-      /* the deformation vector is in the real world coordinates */
+
+      /* pos[] is the world coordinate of the new target position that best matched the source position */
+
+      /* we now will compute the deformation vector, in world
+	 coordinates, by subtracting the new target 'pos[]' from the
+	 'target_coord[]'
+      */
+
       def_vector[X] += pos[X]-target_coord[X];
       def_vector[Y] += pos[Y]-target_coord[Y];
       def_vector[Z] += pos[Z]-target_coord[Z];
@@ -2709,7 +2723,7 @@ private Real get_deformation_vector_for_node(Real spacing,
     }
 
   }
-  
+ 
   /* at this point, we have the deformations coming from optimization
      of correlation, label or difference objective functions (if any)
      stored in def_vector and voxel_displacement, now time to find
@@ -2798,7 +2812,7 @@ public void from_param_to_grid_weights(
 	}
       else 
 	{
-	  grid[i]=0;
+	  grid[i]=0.0;
 	}
     }
 }

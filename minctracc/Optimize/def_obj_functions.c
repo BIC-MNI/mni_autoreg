@@ -3,9 +3,14 @@
 @DESCRIPTION: routines to calculate the objective function used for local
               optimization              
 @CREATED    : Nov 4, 1997, Louis Collins
-@VERSION    : $Id: def_obj_functions.c,v 1.7 2002-12-13 21:18:19 lenezet Exp $
+@VERSION    : $Id: def_obj_functions.c,v 1.8 2003-02-26 00:56:37 lenezet Exp $
 @MODIFIED   : $Log: def_obj_functions.c,v $
-@MODIFIED   : Revision 1.7  2002-12-13 21:18:19  lenezet
+@MODIFIED   : Revision 1.8  2003-02-26 00:56:37  lenezet
+@MODIFIED   : for 2D : now computes all 3 coordinates for the "start" (to take into account the slice position).
+@MODIFIED   : simplification of build_lattices.
+@MODIFIED   : bug correction in amoeba_NL_obj_function.
+@MODIFIED   :
+@MODIFIED   : Revision 1.7  2002/12/13 21:18:19  lenezet
 @MODIFIED   :
 @MODIFIED   : A memory leak has been repaired
 @MODIFIED   :
@@ -194,24 +199,25 @@ public Real amoeba_NL_obj_function(void * dummy, float d[])
     grid_weights[N_DIMENSIONS],
     obj_func_val;
 
-
   /* for_less(i,0,number_dimensions)
       p[i+1] = d[i]; */
-
+  
   for_less(i,0,number_dimensions)
     real_d[i] = d[i];
 
+
   from_param_to_grid_weights( real_d, grid_weights);
 
-  for_less(i,0,number_dimensions)
-    p[i+1] = grid_weights[i];
-  
+
+  /*  for_less(i,0,number_dimensions)*/
+
+  for_less(i,0,N_DIMENSIONS)
+    p[i+1] = (float)grid_weights[i];
+
 
   obj_func_val =  local_objective_function(p);
 
 
-
   return ( obj_func_val );
-  
 }
 

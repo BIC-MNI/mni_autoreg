@@ -14,9 +14,14 @@
                                     to create a sublattice defined on the target.
      
 @CREATED    : Mon Nov  3, 1997 , Louis Collins
-@VERSION    : $Id: sub_lattice.c,v 1.8 2003-02-04 06:08:46 stever Exp $
+@VERSION    : $Id: sub_lattice.c,v 1.9 2003-02-26 00:56:38 lenezet Exp $
 @MODIFIED   : $Log: sub_lattice.c,v $
-@MODIFIED   : Revision 1.8  2003-02-04 06:08:46  stever
+@MODIFIED   : Revision 1.9  2003-02-26 00:56:38  lenezet
+@MODIFIED   : for 2D : now computes all 3 coordinates for the "start" (to take into account the slice position).
+@MODIFIED   : simplification of build_lattices.
+@MODIFIED   : bug correction in amoeba_NL_obj_function.
+@MODIFIED   :
+@MODIFIED   : Revision 1.8  2003/02/04 06:08:46  stever
 @MODIFIED   : Add support for correlation coefficient and sum-of-squared difference.
 @MODIFIED   :
 @MODIFIED   : Revision 1.7  2002/12/13 21:18:20  lenezet
@@ -795,14 +800,9 @@ public void    build_target_lattice(float px[], float py[], float pz[],
 
   for_inclusive(i,1,len) {
 
-    if (dim==3)
-      general_transform_point(Gglobals->trans_info.transformation, 
-			      (Real)px[i],(Real) py[i], (Real)pz[i], 
-			      &x, &y, &z);
-    else
-      general_transform_point_in_trans_plane(Gglobals->trans_info.transformation, 
-				 (Real)px[i],(Real) py[i], (Real)pz[i], 
-				 &x, &y, &z);
+    general_transform_point(Gglobals->trans_info.transformation, 
+			    (Real)px[i],(Real) py[i], (Real)pz[i], 
+			    &x, &y, &z);
     
     tx[i] = (float)x;
     ty[i] = (float)y;
