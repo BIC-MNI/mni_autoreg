@@ -17,9 +17,13 @@
 @CREATED    : Thu May 27 16:50:50 EST 1993
                   
 @MODIFIED   :  $Log: init_params.c,v $
-@MODIFIED   :  Revision 96.0  1996-08-21 18:21:58  louis
-@MODIFIED   :  Release of MNI_AutoReg version 0.96
+@MODIFIED   :  Revision 96.1  1997-11-03 19:59:49  louis
+@MODIFIED   :  - now include internal_volume_io.h instead of volume_io.h
+@MODIFIED   :  - changed for_inclusive to for_less when stepping through the lattice
 @MODIFIED   :
+ * Revision 96.0  1996/08/21  18:21:58  louis
+ * Release of MNI_AutoReg version 0.96
+ *
  * Revision 9.6  1996/08/21  18:21:53  louis
  * Pre-release
  *
@@ -79,12 +83,12 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 96.0 1996-08-21 18:21:58 louis Rel $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 96.1 1997-11-03 19:59:49 louis Exp $";
 #endif
 
 
 #include "config.h"
-#include <volume_io.h>
+#include <internal_volume_io.h>
 
 #include "constants.h"
 #include "arg_data.h"
@@ -181,18 +185,18 @@ BOOLEAN vol_cog(Volume d1, Volume m1, float *centroid, double *step)
   sz = 0.0;
   si = 0.0;
 
-  for_inclusive(s,0,count[SLICE_IND]) {
+  for_less(s,0,count[SLICE_IND]) {
 
     SCALE_VECTOR( vector_step, directions[SLICE_IND], s);
     ADD_POINT_VECTOR( slice, starting_position, vector_step );
 
-    for_inclusive(r,0,count[ROW_IND]) {
+    for_less(r,0,count[ROW_IND]) {
 
       SCALE_VECTOR( vector_step, directions[ROW_IND], r);
       ADD_POINT_VECTOR( row, slice, vector_step );
 
       SCALE_POINT( col, row, 1.0); /* init first col position */
-      for_inclusive(c,0,count[COL_IND]) {
+      for_less(c,0,count[COL_IND]) {
 
 	
 	convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
@@ -306,18 +310,18 @@ BOOLEAN vol_cov(Volume d1, Volume m1, float *centroid, float **covar, double *st
     
 				/* now calculate variances and co-variances */
 
-  for_inclusive(s,0,count[SLICE_IND]) {
+  for_less(s,0,count[SLICE_IND]) {
     
     SCALE_VECTOR( vector_step, directions[SLICE_IND], s);
     ADD_POINT_VECTOR( slice, starting_position, vector_step );
     
-    for_inclusive(r,0,count[ROW_IND]) {
+    for_less(r,0,count[ROW_IND]) {
       
       SCALE_VECTOR( vector_step, directions[ROW_IND], r);
       ADD_POINT_VECTOR( row, slice, vector_step );
       
       SCALE_POINT( col, row, 1.0); /* init first col position */
-      for_inclusive(c,0,count[COL_IND]) {
+      for_less(c,0,count[COL_IND]) {
 	
 	
 	convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
