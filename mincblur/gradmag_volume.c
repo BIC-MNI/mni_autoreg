@@ -19,15 +19,31 @@
 
 @CREATED    : some time in 1993
 @MODIFIED   : $Log: gradmag_volume.c,v $
-@MODIFIED   : Revision 1.10  1995-09-18 06:45:42  louis
-@MODIFIED   : this file is a working version of mincblur.  All references to numerical
-@MODIFIED   : recipes routines have been removed.  This version is included in the
-@MODIFIED   : package mni_reg-0.1i
+@MODIFIED   : Revision 1.11  1995-09-18 09:02:42  louis
+@MODIFIED   : new functional version of mincblur with new and improved default behavior.
+@MODIFIED   : By default, only the blurred volume is created. If you want the gradient
+@MODIFIED   : magnitude volumes, you have to ask for it (-gradient).
 @MODIFIED   :
+@MODIFIED   : The temporary files (corresponding to the REAL data, and partial derivatives)
+@MODIFIED   : are removed by mincblur, so now it runs cleanly.  Unfortunately, these files
+@MODIFIED   : are _not_ deleted if mincblur fails, or is stopped.  I will have to use
+@MODIFIED   : unlink for this, but its a bit to much to do right now, since I would have
+@MODIFIED   : to change the way files are dealt with in gradient_volume.c, blur_volume.c
+@MODIFIED   : and gradmag_volume.c.
+@MODIFIED   :
+@MODIFIED   : Also, it is possible to keep the partial derivative volumes (-partial).
+@MODIFIED   :
+@MODIFIED   : this version is in mni_reg-0.1j
+@MODIFIED   :
+ * Revision 1.10  1995/09/18  06:45:42  louis
+ * this file is a working version of mincblur.  All references to numerical
+ * recipes routines have been removed.  This version is included in the
+ * package mni_reg-0.1i
+ *
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/gradmag_volume.c,v 1.10 1995-09-18 06:45:42 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/gradmag_volume.c,v 1.11 1995-09-18 09:02:42 louis Exp $";
 #endif
 
 #include <sys/types.h>
@@ -51,7 +67,9 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur
 extern int verbose;
 extern int debug;
 
-public void calc_gradient_magnitude(char *infilename, char *history, 
+public void calc_gradient_magnitude(char *infilename, 
+				    char *output_basename,
+				    char *history, 
 				    double *min_value, double *max_value)
 {   
   MincVolume 
@@ -73,7 +91,7 @@ public void calc_gradient_magnitude(char *infilename, char *history,
   sprintf (infilename1,"%s_dx.mnc",infilename);
   sprintf (infilename2,"%s_dy.mnc",infilename);
   sprintf (infilename3,"%s_dz.mnc",infilename);
-  sprintf (fulloutfilename,"%s_dxyz.mnc",infilename);
+  sprintf (fulloutfilename,"%s_dxyz.mnc",output_basename);
 
   build_vol_info(infilename1, fulloutfilename,  in_vol1, out_vol, history);
 

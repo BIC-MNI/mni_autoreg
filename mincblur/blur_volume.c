@@ -29,15 +29,31 @@
               express or implied warranty.
 
 @MODIFIED   : $Log: blur_volume.c,v $
-@MODIFIED   : Revision 1.11  1995-09-18 06:45:42  louis
-@MODIFIED   : this file is a working version of mincblur.  All references to numerical
-@MODIFIED   : recipes routines have been removed.  This version is included in the
-@MODIFIED   : package mni_reg-0.1i
+@MODIFIED   : Revision 1.12  1995-09-18 09:02:42  louis
+@MODIFIED   : new functional version of mincblur with new and improved default behavior.
+@MODIFIED   : By default, only the blurred volume is created. If you want the gradient
+@MODIFIED   : magnitude volumes, you have to ask for it (-gradient).
 @MODIFIED   :
+@MODIFIED   : The temporary files (corresponding to the REAL data, and partial derivatives)
+@MODIFIED   : are removed by mincblur, so now it runs cleanly.  Unfortunately, these files
+@MODIFIED   : are _not_ deleted if mincblur fails, or is stopped.  I will have to use
+@MODIFIED   : unlink for this, but its a bit to much to do right now, since I would have
+@MODIFIED   : to change the way files are dealt with in gradient_volume.c, blur_volume.c
+@MODIFIED   : and gradmag_volume.c.
+@MODIFIED   :
+@MODIFIED   : Also, it is possible to keep the partial derivative volumes (-partial).
+@MODIFIED   :
+@MODIFIED   : this version is in mni_reg-0.1j
+@MODIFIED   :
+ * Revision 1.11  1995/09/18  06:45:42  louis
+ * this file is a working version of mincblur.  All references to numerical
+ * recipes routines have been removed.  This version is included in the
+ * package mni_reg-0.1i
+ *
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/blur_volume.c,v 1.11 1995-09-18 06:45:42 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/blur_volume.c,v 1.12 1995-09-18 09:02:42 louis Exp $";
 #endif
 
 #include <volume_io.h>
@@ -53,6 +69,7 @@ public Status blur3D_volume(Volume data,
 			    double fwhmx, double fwhmy, double fwhmz, 
 			    char *infile,
 			    char *outfile, 
+			    FILE *reals_fp,
 			    int ndim, int kernel_type, char *history)
 { 
   float 
@@ -430,24 +447,16 @@ if (debug) print("before blur min/max = %f %f\n", min_val, max_val);
 
   terminate_progress_report( &progress );
   
-if (debug) print("after  blur min/max = %f %f\n", min_val, max_val);
+  if (debug) print("after  blur min/max = %f %f\n", min_val, max_val);
   
   FREE(dat_vector);
   FREE(dat_vecto2);
   FREE(kern);
   
-  
-  if (ms_volume_reals_flag) {
-    sprintf(full_outfilename,"%s_reals",outfile);
-    status = open_file(full_outfilename, WRITE_FILE, BINARY_FORMAT, &ofp);
+  if (reals_fp != (FILE *)NULL) {
+    status = io_binary_data(reals_fp,WRITE_FILE, fdata, sizeof(float), total_voxels);
     if (status != OK) 
-      print_error_and_line_num("problems opening blurred reals data...",__FILE__, __LINE__);
-    else {
-      status = io_binary_data(ofp,WRITE_FILE, fdata, sizeof(float), total_voxels);
-      if (status != OK) 
-	print_error_and_line_num("problems writing blurred reals data...",__FILE__, __LINE__);
-    }
-    close_file(ofp);
+      print_error_and_line_num("problems writing blurred reals data...",__FILE__, __LINE__);
   }
   
 /* set up the correct info to copy the data back out in mnc */
