@@ -14,12 +14,17 @@
               express or implied warranty.
 
 @MODIFIED   : $Log: optimize.c,v $
-@MODIFIED   : Revision 1.11  1995-09-07 10:05:11  louis
-@MODIFIED   : All references to numerical recipes routines are being removed.  At this
-@MODIFIED   : stage, any num rec routine should be local in the file.  All memory
-@MODIFIED   : allocation calls to vector(), matrix(), free_vector() etc... have been
-@MODIFIED   : replaced with ALLOC and FREE from the volume_io library of routines.
+@MODIFIED   : Revision 1.12  1995-09-07 13:02:13  louis
+@MODIFIED   : removed numerical recipes call to amoeba, the simplex optimization
+@MODIFIED   : procedure.  It has been replaced with Davids version of the simplex
+@MODIFIED   : optimization code.
 @MODIFIED   :
+ * Revision 1.11  1995/09/07  10:05:11  louis
+ * All references to numerical recipes routines are being removed.  At this
+ * stage, any num rec routine should be local in the file.  All memory
+ * allocation calls to vector(), matrix(), free_vector() etc... have been
+ * replaced with ALLOC and FREE from the volume_io library of routines.
+ *
  * Revision 1.10  1995/03/17  11:15:35  louis
  * added prototype for amoeba2 in optimize.c - I think that Greg may
  * have changed the call from amoeba2 to amoeba so that he could take
@@ -51,11 +56,12 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 1.11 1995-09-07 10:05:11 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 1.12 1995-09-07 13:02:13 louis Exp $";
 #endif
 
 #include <volume_io.h>
 #include <print_error.h>
+#include <amoeba.h>
 
 #include "constants.h"
 #include "arg_data.h"
@@ -81,6 +87,24 @@ extern   Real     initial_corr;
 
 /* external calls: */
 
+public  BOOLEAN  perform_amoeba(amoeba_struct  *amoeba );
+public  void  initialize_amoeba(
+    amoeba_struct     *amoeba,
+    int               n_parameters,
+    Real              initial_parameters[],
+    Real              parameter_delta,
+    amoeba_function   function,
+    void              *function_data,
+    Real              tolerance );
+
+public  Real  get_amoeba_parameters(
+    amoeba_struct  *amoeba,
+    Real           parameters[] );
+
+public  void  terminate_amoeba(
+    amoeba_struct  *amoeba );
+
+
 public void make_zscore_volume(Volume d1, Volume m1, 
 			       float threshold); 
 
@@ -103,8 +127,6 @@ public Status do_non_linear_optimization(Volume d1,
 					 Volume m2, 
 					 Arg_Data *globals);
 
-int amoeba2(float **p, float y[], int ndim, 
-	    float ftol, float (*funk)(), int *nfunk);
 
 public void parameters_to_vector(double *trans, 
 				 double *rots, 
@@ -172,6 +194,7 @@ private BOOLEAN in_limits(double x,double lower,double upper)
   else
     return(FALSE);
 }
+
 
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : fit_function
@@ -268,6 +291,19 @@ public float fit_function(float *params)
   return(r);
 }
 
+
+public Real amoeba_obj_function(void *dummy, float d[])
+{
+  int i;
+  float p[13];
+
+  for_less(i,0,Gndim)
+    p[i+1] = d[i];
+  
+  return ( (Real)fit_function(p) );
+}
+
+
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : optimize_simplex
                 get the parameters necessary to map volume 1 to volume 2
@@ -300,13 +336,20 @@ public BOOLEAN optimize_simplex(Volume d1,
     stat;
   float 
     local_ftol,
-    **p, *y;
+    *p;
+  amoeba_struct 
+    the_amoeba;
   int 
+    iteration_number,
+    max_iters,
     i,j, 
     ndim, nfunk;
 
   Transform
     *mat;
+
+  Real
+    *parameters;
 
   double trans[3];
   double cent[3];
@@ -317,8 +360,6 @@ public BOOLEAN optimize_simplex(Volume d1,
   
   stat = TRUE;
   local_ftol = ftol;
-
-
 				/* find number of dimensions for optimization */
   ndim = 0;
   for_less(i,0,12)
@@ -344,67 +385,60 @@ public BOOLEAN optimize_simplex(Volume d1,
 
   if (stat && ndim>0) {
 
-    ALLOC2D(p, ndim+1+1,ndim+1); /* simplex */
-    ALLOC(y,ndim+1+1);        /* value of correlation at simplex vertices */
+    ALLOC(p,ndim+1+1);		/* my parameters for the simplex 
+				   [1..ndim+1]*/
+
+    ALLOC(parameters, ndim+1);	/* David's parmaters for the simplex
+				   [0..ndim] */
     
+				/* build the parameter vector from the 
+				   initial transformation parameters   */
     parameters_to_vector(globals->trans_info.translations,
 			 globals->trans_info.rotations,
 			 globals->trans_info.scales,
 			 globals->trans_info.shears,
-			 p[1],
+			 p,
 			 globals->trans_info.weights);
 
-    for_inclusive(i,2,ndim+1)	/* copy initial guess to all points of simplex */
-      for_inclusive(j,1,ndim)
-	p[i][j] = p[1][j];
+    for_less(i,0,ndim+1)		/* copy initial guess into parameter list */
+      parameters[i] = (Real)p[i+1];
+
+    initialize_amoeba(&the_amoeba, ndim, parameters, 
+		      simplex_size, amoeba_obj_function, 
+		      NULL, (Real)local_ftol);
+
+    max_iters = 400;
+    iteration_number = 0;
+				/* do the ameoba optimization */
+    while ( iteration_number<max_iters && perform_amoeba(&the_amoeba) )
+      iteration_number++;
     
-				/* set up all vertices of simplex */
-    for_inclusive(j,1,ndim) {
-	p[j+1][j] = p[1][j] + simplex_size;
-    }
-
-    for (i=1; i<=(ndim+1); ++i)	{   /* set up value of correlation at all points of simplex */
+    if (globals->flags.debug) {
       
-      y[i] = fit_function(p[i]);
-
-      (void)print ("corr = %6.4f",y[i]);
-      for (j=1; j<=ndim; ++j)  {
-	(void)print (" %9.4f",p[i][j]);
-      }
-      (void)print ("\n");
-      
-    }
+      (void)print("done with simplex after %d iterations\n",iteration_number);
+      for_less(i,0,the_amoeba.n_parameters+1) {
 	
-    if (amoeba2(p,y,ndim,local_ftol,fit_function,&nfunk)) {
-    
-      (void)print("after %d iterations\n",nfunk);
-      
-      for (i=1; i<=(ndim+1); ++i)	{   /* print out value of correlation at all points of simplex */
-	if (i==1) {
-	  (void)print ("end corr = %f",y[i]);
-	  for (j=1; j<=ndim; ++j)  {
-	    (void)print (" %9.4f",p[i][j]);
-	  }
-	  (void)print ("\n");
-	} 
-      }   
+	(void)print ("%d %7.5f:",i,the_amoeba.values[i]);
+	for_less(j,0,the_amoeba.n_parameters) {
+	  (void)print ("%8.5f ", the_amoeba.parameters[i][j]);
+	}
+	(void)print ("\n");
+	
+      }
+    }
+
 				/* copy result into main data structure */
-
-      vector_to_parameters(globals->trans_info.translations,
-			   globals->trans_info.rotations,
-			   globals->trans_info.scales,
-			   globals->trans_info.shears,
-			   p[1],
-			   globals->trans_info.weights);
-    }
-    else {
-      print_error_and_line_num(
-	  "Amoeba2 failure.\n",
-	   __FILE__, __LINE__);
-
-    }
-
-print ("%d == %d\n",globals->trans_info.transform_type,TRANS_LSQ7);
+    get_amoeba_parameters(&the_amoeba,parameters);
+    for_less(i,0,ndim+1)		
+      p[i+1] = (float)parameters[i];
+    
+    vector_to_parameters(globals->trans_info.translations,
+			 globals->trans_info.rotations,
+			 globals->trans_info.scales,
+			 globals->trans_info.shears,
+			 p,
+			 globals->trans_info.weights);
+    terminate_amoeba(&the_amoeba);
 
     if (globals->trans_info.transform_type==TRANS_LSQ7) { /* adjust scaley and scalez only */
       /* if 7 parameter fit.  */
@@ -440,9 +474,8 @@ print ("%d == %d\n",globals->trans_info.transform_type,TRANS_LSQ7);
     
     build_transformation_matrix(mat, cent, trans, scale, shear, rots);
 
-    FREE2D(p); /* simplex */
-    FREE(y);        /* value of correlation at simplex vertices */
-
+    FREE(p);
+    FREE(parameters);
   }
 
   return( stat );
