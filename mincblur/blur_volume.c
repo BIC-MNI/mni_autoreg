@@ -19,8 +19,10 @@
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 #include <def_mni.h>
-#include <volume_support.h>
+#include <blur_support.h>
 #include <recipes.h>
+
+int ms_volume_reals_flag;
 
 
 public Status blur3D_volume(Volume data,
@@ -36,10 +38,10 @@ public Status blur3D_volume(Volume data,
     min_val,
     
     *dat_vector,		/* temp storage of original row, col or slice vect. */
-    *dat_vecto2,		/* storage of result of dat_vector*kern                 */
+    *dat_vecto2,		/* storage of result of dat_vector*kern             */
     *kern,			/* convolution kernel                               */
     k1,				/* width (in pixels) of gaussian                    */
-    val;			/* temp storage, to take value from dat_vector, and     */
+    val;			/* temp storage, to take value from dat_vector, and */
 				/*  place it back into data->voxels                 */
   int				
     i, total_voxels,		
@@ -51,10 +53,6 @@ public Status blur3D_volume(Volume data,
     data_offset;		/* offset required to place original data (size n)  */
 				/*  into array (size m=2^n) so that data is centered*/
 
-  unsigned char 
-    *c_ptr;			/* pointer to access original data                  */
-  unsigned short 
-    *s_ptr;			/* pointer to access original data                  */
   
   register int 
     slice_limit,
@@ -87,6 +85,17 @@ public Status blur3D_volume(Volume data,
   Real
     steps[3];			/* size of voxel step from center to center in x,y,z */
 
+  Minc_file
+    minc_fp;
+
+  String dim_names[3];
+
+
+  strcpy(dim_names[0],"xspace");
+  strcpy(dim_names[1],"yspace");
+  strcpy(dim_names[2],"zspace");
+
+
   /*---------------------------------------------------------------------------------*/
   /*             start by setting up the raw data.                                   */
   /*---------------------------------------------------------------------------------*/
@@ -102,18 +111,25 @@ public Status blur3D_volume(Volume data,
   total_voxels = sizes[Y]*sizes[X]*sizes[Z];
   
   ALLOC(fdata, total_voxels);
-  
+
+
+  max_val = -100000.0;
+  min_val = 100000.0;
+    
   printf("Making float volume..." );
   f_ptr = fdata;
   for_less( slice, 0, sizes[Z])
     for_less( row, 0, sizes[Y])
       for_less( col, 0, sizes[X]) {
 	GET_VOXEL_3D( tmp, data, col, row, slice);
-	*f_ptr++ = CONVERT_VOXEL_TO_VALUE(data, tmp);
+	*f_ptr = CONVERT_VOXEL_TO_VALUE(data, tmp);
+	if (max_val<*f_ptr) max_val = *f_ptr;
+	if (min_val>*f_ptr) min_val = *f_ptr;
+	f_ptr++;
       }
   printf("done\n");
   
-  
+
   /* note data is stored by rows (along x), then by cols (along y) then slices (along z) */
   
   /*-----------------------------------------------------------------------------*/
@@ -207,8 +223,6 @@ public Status blur3D_volume(Volume data,
   /*-----------------------------------------------------------------------------*/
   /*             determine   size of data structures needed                      */
   
-  c_ptr = data->voxels;
-  s_ptr = (unsigned short *)data->voxels;
   f_ptr = fdata;
   
   vector_size_data = sizes[Y];
@@ -298,8 +312,6 @@ public Status blur3D_volume(Volume data,
   /*             determine   size of data structures needed                      */
   
   
-  c_ptr = data->voxels;
-  s_ptr = (unsigned short *)data->voxels;
   f_ptr = fdata;
   
   vector_size_data = sizes[Z];
@@ -340,34 +352,31 @@ public Status blur3D_volume(Volume data,
       
       for (row = 0; row < sizes[Y]; row++) {           /* for each row   */
 	
-	if (data->bytes_per_voxel==1) {
-	  /*	    f_ptr = fdata + col*col_size + row*sizeof(float); */
-	  f_ptr = fdata + col*col_size + row;
+	f_ptr = fdata + col*col_size + row;
+	
+	memset(dat_vector,0,(2*array_size_pow2+1)*sizeof(float));
+	
+	for (slice=0; slice< sizes[Z]; slice++) {        /* extract the slice vector */
+	  dat_vector[1 +2*(slice+data_offset) ] = *f_ptr;
+	  f_ptr += slice_size;
+	}
+	
+	four1(dat_vector,array_size_pow2,1);
+	muli_vects(dat_vecto2,dat_vector,kern,array_size_pow2);
+	four1(dat_vecto2,array_size_pow2,-1);
+	
+	f_ptr = fdata + col*col_size + row;
+	
+	for (slice=0; slice< sizes[Z]; slice++) {        /* put the vector back */
 	  
-	  memset(dat_vector,0,(2*array_size_pow2+1)*sizeof(float));
+	  vindex = 1 + 2*(slice+data_offset);
 	  
-	  for (slice=0; slice< sizes[Z]; slice++) {        /* extract the slice vector */
-	    dat_vector[1 +2*(slice+data_offset) ] = *f_ptr;
-	    f_ptr += slice_size;
-	  }
+	  *f_ptr = dat_vecto2[vindex]/array_size_pow2;
 	  
-	  four1(dat_vector,array_size_pow2,1);
-	  muli_vects(dat_vecto2,dat_vector,kern,array_size_pow2);
-	  four1(dat_vecto2,array_size_pow2,-1);
+	  if (max_val<*f_ptr) max_val = *f_ptr;
+	  if (min_val>*f_ptr) min_val = *f_ptr;
 	  
-	  f_ptr = fdata + col*col_size + row;
-	  
-	  for (slice=0; slice< sizes[Z]; slice++) {        /* put the vector back */
-	    
-	    vindex = 1 + 2*(slice+data_offset);
-	    
-	    *f_ptr = dat_vecto2[vindex]/array_size_pow2;
-	    
-	    if (max_val<*f_ptr) max_val = *f_ptr;
-	    if (min_val>*f_ptr) min_val = *f_ptr;
-	    
-	    f_ptr += slice_size;
-	  }
+	  f_ptr += slice_size;
 	}
 	
 	
@@ -402,55 +411,75 @@ public Status blur3D_volume(Volume data,
     sprintf(full_outfilename,"%s_reals",outfile);
     status = open_file(full_outfilename, WRITE_FILE, BINARY_FORMAT, &ofp);
     if (status != OK) 
-      PRINT("problems opening blurred reals data...");
+      print_error("problems opening blurred reals data..."__FILE__, __LINE__, 0, 0,0,0,0);
     else {
       status = io_binary_data(ofp,WRITE_FILE, fdata, sizeof(float), total_voxels);
       if (status != OK) 
-	PRINT("problems writing blurred reals data...");
+	print_error("problems writing blurred reals data..."__FILE__, __LINE__, 0, 0,0,0,0);
     }
     close_file(ofp);
   }
   
 /* set up the correct info to copy the data back out in mnc */
 
-
-/*
-  *
-  *
-  *   FINISH THESE WRITE ROUTINES:
-  *
-  *
-  *
-*/
-
-
   f_ptr = fdata;
   
-  data->fp_max = max_val;
-  data->fp_min = min_val;
+  data->value_translation = min_val;
+
+  switch( data->data_type )  {  
+  case UNSIGNED_BYTE: 
+    data->value_scale       = (max_val - min_val) / ((1<<8)-1.0); 
+    break;  
+  case SIGNED_BYTE:  
+    data->value_scale       = (max_val - min_val) / (1<<7) ;
+    break;  
+  case UNSIGNED_SHORT:  
+    data->value_scale       = (max_val - min_val) / ((1<<16)-1.0); 
+    break;  
+  case SIGNED_SHORT:  
+    data->value_scale       = (max_val - min_val) / (1<<15) ;
+    break;  
+  case UNSIGNED_LONG:  
+    data->value_scale       = (max_val - min_val) / ((1<<32)-1.0) ;
+    break;  
+  case SIGNED_LONG:  
+    data->value_scale       = (max_val - min_val) / ((1<<31)-1.0) ;
+    break;  
+  case FLOAT:  
+    data->value_translation = 0.0;
+    data->value_scale       = 1.0;
+   break;  
+  case DOUBLE:  
+    data->value_translation = 0.0;
+    data->value_scale       = 1.0;
+    break;  
+  }
   
   printf("Making byte volume..." );
   for_less( slice, 0, sizes[Z])
     for_less( row, 0, sizes[Y])
       for_less( col, 0, sizes[X]) {
 	tmp = CONVERT_VALUE_TO_VOXEL(data, *f_ptr);
- 	PUT_VOXEL_3D( data, col, row, slice, tmp);
+ 	SET_VOXEL_3D( data, col, row, slice, tmp);
 	*f_ptr++;
       }
 
-
-  printf("done\n");
-  
-  sprintf(full_outfilename,"%s_blur.iff",outfile);
-  status = write_new_iff_file(data,full_outfilename);
-  if (status != OK) 
-    PRINT("problems writing blurred data...");
-  FREE1(status, data->voxels); FREE1(status, data); 
-  
-  return(status);
-
-
   FREE(fdata);
+
+  sprintf(full_outfilename,"%s_blur.mnc",outfile);
+
+  minc_fp = initialize_minc_output(full_outfilename, 3, data->dimension_names, sizes, 
+				   data->nc_data_type, FALSE, (Real)min_val, (Real)max_val,
+				   &(data->voxel_to_world_transform));
+
+  status = output_minc_volume(minc_fp, data);
+
+  if (status == OK)
+    close_minc_output(minc_fp);
+  else
+    print_error("problems writing blurred data..."__FILE__, __LINE__, 0, 0,0,0,0);
+
+  return(status);
 
   
 }

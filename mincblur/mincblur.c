@@ -48,79 +48,82 @@
    ---------------------------------------------------------------------------- */
 
 #include <def_mni.h>
-#include <minc.h>
 #include <ParseArgv.h>
+#include <minc.h>
 #include <mincblur.h>
 
 char *prog_name;
 int  debug;
 int  verbose;
+int 
+  dimensions,
+  gradonlyflg,
+  bluronlyflg;
+double   
+  fwhm,
+  standard;
 
 extern int ms_volume_reals_flag;
 
+
+static ArgvInfo argTable[] = {
+  {"-fwhm", ARGV_FLOAT, (char *) 0, (char *) &fwhm, 
+     "Full-width-half-maximum of gaussian kernel"},
+  {"-standarddev", ARGV_FLOAT, (char *) 0, (char *) &standard,
+     "Standard deviation of gaussian kernel"},
+  {"-dimensions", ARGV_INT, (char *) 0, (char *) &dimensions,
+     "Number of dimensions to blur (either 2 or 3)."},
+  {NULL, ARGV_HELP, NULL, NULL,
+     "Program flags."},
+  {"-blur_only", ARGV_CONSTANT, (char *) TRUE, (char *) &bluronlyflg,
+     "Create only the blurred volume."},
+  {"-grad_only", ARGV_CONSTANT, (char *) TRUE, (char *) &gradonlyflg, 
+     "Create only the gradient volumes."},
+  {"-no_reals", ARGV_CONSTANT, (char *) FALSE, (char *) &ms_volume_reals_flag, 
+     "Do not write out the real (float) data."},
+  {NULL, ARGV_HELP, NULL, NULL,
+     "Options for logging progress. Default = -verbose."},
+  {"-verbose", ARGV_CONSTANT, (char *) TRUE, (char *) &verbose,
+     "Write messages indicating progress"},
+  {"-quiet", ARGV_CONSTANT, (char *) FALSE , (char *) &verbose,
+     "Do not write log messages"},
+  {"-debug", ARGV_CONSTANT, (char *) TRUE, (char *) &debug,
+     "Print out debug info."},
+  {NULL, ARGV_END, NULL, NULL, NULL}
+};
+
+  
+
+
 main (int argc, char *argv[] )
 {   
-  int 
-    dimensions,
-    header_size,
-    gradonlyflg,bluronlyflg,
-    argn;
   
+  FILE 
+    *ifd,*ofd;
+ 
   char 
     *infilename,
     *outfilename,
-    blur_datafile[250];
-  FILE 
-    *ifd,*ofd;
-  double   
-    fwhm,
-    standard;
-  float
-    kernel1;
+    blur_datafile[1024];
   
   Status 
     status;
   
   Volume
     data;
-  real
+  Real
     step[3];
   int
     sizes[3];
-
-  static ArgvInfo argTable[] = {
-    {"-fwhm", ARGV_FLOAT, (char *) 0, (char *) &fwhm,
-       "Full-width-half-maximum of gaussian kernel"},
-    {"-standarddev", ARGV_FLOAT, (char *) 0, (char *) &standard,
-       "Standard deviation of gaussian kernel"},
-    {"-dimensions", ARGV_INT, (char *) 0, (char *) &dimensions,
-       "Number of dimensions to blur (either 2 or 3)."},
-    {NULL, ARGV_HELP, NULL, NULL,
-       "Program flags."},
-    {"-blur_only", ARGV_CONSTANT, (char *) TRUE, (char *) &bluronlyflg,
-       "Create only the blurred volume."},
-    {"-grad_only", ARGV_CONSTANT, (char *) TRUE, (char *) &gradonlyflg, 
-       "Create only the gradient volumes."},
-    {"-no_reals", ARGV_CONSTANT, (char *) FALSE, (char *) &ms_volume_reals_flag, 
-       "Do not write out the real (float) data."},
-    {NULL, ARGV_HELP, NULL, NULL,
-       "Options for logging progress. Default = -verbose."},
-    {"-verbose", ARGV_CONSTANT, (char *) TRUE, (char *) &verbose,
-       "Write messages indicating progress"},
-    {"-quiet", ARGV_CONSTANT, (char *) FALSE , (char *) &main_args.flags.verbose,
-       "Do not write log messages"},
-    {"-debug", ARGV_CONSTANT, (char *) TRUE, (char *) &main_args.flags.debug,
-       "Print out debug info."},
-    {NULL, ARGV_END, NULL, NULL, NULL}
-  };
+  float
+    kernel1;
   
-
   
   /* set default values */
-  
+  ms_volume_reals_flag = TRUE;
   prog_name = argv[0];
   gradonlyflg = bluronlyflg = FALSE;
-  fwhm = std = 0.0;
+  fwhm = standard = 0.0;
   kernel1 = 0.0;
   infilename =  outfilename = NULL;
   ifd = ofd = NULL;
@@ -170,16 +173,19 @@ main (int argc, char *argv[] )
   if ( status != OK )
     print_error("problems reading `%s'.\n",__FILE__, __LINE__,infilename, 0,0,0,0);
     
-  DEBUG_PRINT1 ( "===== Debugging information from %s =====\n", prog_name);
-  DEBUG_PRINT1 ( "Data filename     = %s\n", infilename);
-  DEBUG_PRINT1 ( "Output basename   = %s\n", outfilename);
   get_volume_sizes(data, sizes);
   get_volume_separations(data, step);
-  DEBUG_PRINT3 ( "Input volume      = %3d cols by %3d rows by %d slices\n",
-		 sizes[X], sizes[Y], sizes[Z]);
-  DEBUG_PRINT3 ( "Input voxels are  = %8.3f %8.3f %8.3f\n", 
-		 step[X], step[Y], step[Z]);
-  DEBUG_PRINT2 ( "min/max value     = %8.3f %8.3f\n", data->min_value, data->max_value);
+
+  if (debug) {
+    printf ( "===== Debugging information from %s =====\n", prog_name);
+    printf ( "Data filename     = %s\n", infilename);
+    printf ( "Output basename   = %s\n", outfilename);
+    printf ( "Input volume      = %3d cols by %3d rows by %d slices\n",
+		  sizes[X], sizes[Y], sizes[Z]);
+    printf ( "Input voxels are  = %8.3f %8.3f %8.3f\n", 
+		  step[X], step[Y], step[Z]);
+    printf ( "min/max value     = %8.3f %8.3f\n", data->min_value, data->max_value);
+  }
 
   if (data->n_dimensions!=3) {
     print_error ("File %s has %d dimensions.  Only 3 dims supported.", 
@@ -195,10 +201,10 @@ main (int argc, char *argv[] )
     if (status==OK) {
       status = close_file(ifd);
       if (status!=OK)
-	print_error("Error closing <%s>.",infilename,0,0,0,0);
+	print_error("Error closing <%s>.",__FILE__, __LINE__, infilename,0,0,0,0);
     }
     else
-      print_error("Problems blurring <%s>.",infilename,0,0,0,0);
+      print_error("Problems blurring <%s>.",__FILE__, __LINE__, infilename,0,0,0,0);
   }
 
   /******************************************************************************/
@@ -211,19 +217,19 @@ main (int argc, char *argv[] )
       
       status = open_file( blur_datafile ,READ_FILE, BINARY_FORMAT,  &ifd );
       if (status!=OK)
-	 print_error("Error opening <%s>.",blur_datafile,0,0,0,0);
+	 print_error("Error opening <%s>.",__FILE__, __LINE__, blur_datafile,0,0,0,0);
       
-      calc_float_gradient_3d(ifd,data,outfilename,dimensions);
+      gradient3D_volume(ifd,data,outfilename,dimensions);
       
       status = close_file(ifd);
       if (status!=OK)
-	 print_error("Error closing <%s>.",blur_datafile,0,0,0,0);
+	 print_error("Error closing <%s>.",__FILE__, __LINE__, blur_datafile,0,0,0,0);
       
       /*************************************************************************/
       /*           calculate magnitude of gradient                             */
       /*************************************************************************/
       
-      calc_float_gradient_magnitude(outfilename);
+      calc_gradient_magnitude(outfilename);
    }
 
    status = close_file(ofd);
@@ -233,7 +239,8 @@ main (int argc, char *argv[] )
 }
 
 
-public void print_error(char *s, char * d1, int d2, int d3, int d4, int d5, int d6, int d7)
+public void print_error(char *s, char * d1, 
+			int d2, int d3, int d4, int d5, int d6, int d7)
 {
   (void) fprintf(stderr, "Error in %s in file %s, line %d\n",prog_name,d1,d2);
   (void) fprintf(stderr, "   %s\n", s, d3,d4,d5,d6,d7);

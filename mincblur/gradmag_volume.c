@@ -1,324 +1,1077 @@
 /* ----------------------------- MNI Header -----------------------------------
-   @NAME       : gradmag_volume.c
-   @INPUT      : 
-   @OUTPUT     : 
-   @RETURNS    : 
-   @DESCRIPTION: routines used to make blurred and graient volumes
-   @METHOD     : 
-   @GLOBALS    : 
-   @CALLS      : 
-   @CREATED    : October 10, 1991 louis collins
-   @MODIFIED   : 
-	Wed Jun 16 13:21:18 EST 1993 LC
-	  rewrite for minc files using libmni.a and libminc.a
-   ---------------------------------------------------------------------------- */
+@NAME       : gradmag_volume.c
+@INPUT      : infilename - base file name of data
+@OUTPUT     : (none)
+@RETURNS    : error status
+@DESCRIPTION: 
+@METHOD     : 
+@GLOBALS    : 
+@CALLS      : 
+@CREATED    : 
+@MODIFIED   : 
+---------------------------------------------------------------------------- */
+#include <sys/types.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <float.h>
+#include <limits.h>
+#include <string.h>
+#include <math.h>
+#include <minc.h>
+#include <ParseArgv.h>
+#include <time_stamp.h>
+#include "gradmag_volume.h"
+#include <malloc.h>
 
-#include <def_mni.h>
+#define public
+#define private static
 
-#define EQUAL3(a,b,c) (((a)==(b)) && ((b)==(c)) && ((a)==(c)))
+/* Main program */
 
+int verbose;
+int debug;
 
-public calc_gradient_magnitude(char *infilename)
+public void calc_gradient_magnitude(char *infilename)
 {   
-   int argn;
-   
-   char 
-      *usage = "filename",
-      infilename1[256],
-      infilename2[256],
-      infilename3[256],
-      outfilename[256],
-      time_str[250];
-   FILE 
-      *ifd1,
-      *ifd2,
-      *ifd3,
-      *ofd;
-
-   unsigned char 
-      *in_slice1,
-      *in_slice2,
-      *in_slice3,
-      *out_data,
-      *c_ptr1,
-      *c_ptr2,
-      *c_ptr3,
-      *c_out;
-
-   unsigned short 
-      *s_ptr1,
-      *s_ptr2,
-      *s_ptr3,
-      *s_out;
-
-   float 
-      *f_ptr,
-      tx,ty,tz,tv;
-
-   int 
-      total_voxels,
-      header_size1,
-      header_size2,
-      header_size3,
-      x1,x2,y1,y2,z1,z2,
-      value,
-      slice_size;
-
-   progress_struct 
-      progress;
-
-   register 
-      int col,row,slice;
-
-   Status 
-      status;
-
-   DATA 
-      *data1,*data2,*data3, *data4;
-   
-   /* set default values */
-   
-   ifd1 = ifd2 = ifd3 = ofd = NULL;
-   
-   sprintf (infilename1,"%s_dx.iff",infilename);
-   sprintf (infilename2,"%s_dy.iff",infilename);
-   sprintf (infilename3,"%s_dz.iff",infilename);
-   sprintf (outfilename,"%s_dxyz.iff",infilename);
-
-   status = open_file( infilename1 , READ_FILE, BINARY_FORMAT, &ifd1 );
-   if ( status != OK ) 
-      print_error ("filename `%s' not found.", __FILE__, __LINE__, infilename1, 0,0,0,0);
-
-   status = open_file( infilename2 , READ_FILE, BINARY_FORMAT, &ifd2 );
-   if ( status != OK ) 
-      print_error ("filename `%s' not found.", __FILE__, __LINE__, infilename2, 0,0,0,0);
-
-   status = open_file( infilename3 ,READ_FILE, BINARY_FORMAT,  &ifd3 );
-   if ( status != OK ) 
-      print_error ("filename `%s' not found.", __FILE__, __LINE__, infilename3, 0,0,0,0);
-
-   status = open_file( outfilename , WRITE_FILE, BINARY_FORMAT, &ofd );
-   if ( status != OK ) 
-      print_error ("cannot write to filename `%s'.", __FILE__, __LINE__, outfilename, 0,0,0,0);
+  MincVolume 
+    in_vol_struct1, 
+    in_vol_struct2, 
+    in_vol_struct3, 
+    out_vol_struct;
+  MincVolume 
+    *in_vol1 = &in_vol_struct1, 
+    *in_vol2 = &in_vol_struct2, 
+    *in_vol3 = &in_vol_struct3, 
+    *out_vol = &out_vol_struct;
+  char
+    infilename1[1024],
+    infilename2[1024],
+    infilename3[1024],
+    fulloutfilename[1024];
 
 
+  sprintf (infilename1,"%s_dx.mnc",infilename);
+  sprintf (infilename2,"%s_dy.mnc",infilename);
+  sprintf (infilename3,"%s_dz.mnc",infilename);
+  sprintf (fulloutfilename,"%s_dxyz.mnc",infilename);
+
+  build_vol_info(infilename1, fulloutfilename,  in_vol1, out_vol);
+
+  load_vol_info(infilename2,in_vol2);
+  load_vol_info(infilename3,in_vol3);
+
+  make_vol_icv(in_vol1);
+  make_vol_icv(in_vol2);
+  make_vol_icv(in_vol3);
   
-   ALLOC1(status, data1,1,DATA); 
-   ALLOC1(status, data2,1,DATA); 
-   ALLOC1(status, data3,1,DATA); 
-   if (status != OK) 
-      PRINT("problems allocing 3 slices of data...");
+  /* calculate the gradient magnitude */
+  make_gradmag_volumes(in_vol1, in_vol2, in_vol3, out_vol);
+  
+  /* Finish up */
+  finish_up(in_vol1, in_vol2, in_vol3, out_vol);
+  
+}
 
-   status = read_iffheader(ifd1,data1,&header_size1);
-   if (status!=OK) {
-      print_error("error reading header of <%s>.",infilename1,0,0,0,0);
-      exit(-1);
-   }
+/* ----------------------------- MNI Header -----------------------------------
+@NAME       : make_vol_icv
+@INPUT      : in_vol - description of input volume.
+@OUTPUT     : 
+@RETURNS    : (nothing)
+@DESCRIPTION: Build the image conversion variable and attach it
+              to the image variable of the minc file.
+@METHOD     : 
+@GLOBALS    : 
+@CALLS      : 
+@CREATED    : Wed Jun 30 09:01:51 EST 1993 Louis Collins
+@MODIFIED   : 
+---------------------------------------------------------------------------- */
+public void make_vol_icv(MincVolume *in_vol)
+{
+  File_Info *fp;
+  
+  fp = in_vol->file;
 
-   status = read_iffheader(ifd2,data2,&header_size2);
-   if (status!=OK) {
-      print_error("error reading header of <%s>.",infilename2,0,0,0,0);
-      exit(-1);
-   }
+  fp->icvid = miicv_create();
 
-   status = read_iffheader(ifd3,data3,&header_size3);
-   if (status!=OK) {
-      print_error("error reading header of <%s>.",infilename3,0,0,0,0);
-      exit(-1);
-   }
+  (void) miicv_setint(fp->icvid, MI_ICV_TYPE,      NC_DOUBLE);
+  (void) miicv_setstr(fp->icvid, MI_ICV_SIGN,      MI_SIGNED);
+  (void) miicv_setdbl(fp->icvid, MI_ICV_VALID_MAX, DBL_MAX);
+  (void) miicv_setdbl(fp->icvid, MI_ICV_VALID_MIN, DBL_MIN);
+  (void) miicv_setint(fp->icvid, MI_ICV_USER_NORM, TRUE);
+  (void) miicv_setint(fp->icvid, MI_ICV_DO_NORM,   TRUE);
+
+  /* Attach image variable */
+
+  (void) miicv_attach(fp->icvid, fp->mincid, fp->imgid);
+  
+}  
+
+
+
+/* ----------------------------- MNI Header -----------------------------------
+@NAME       : build_vol_info
+@INPUT      : names of input and output filenames
+@OUTPUT     : in_vol - description of input volume.
+              out_vol - description of output volume.
+@RETURNS    : (nothing)
+@DESCRIPTION: Routine to get information input and 
+              output files. Sets up all structures
+              completely (including allocating space for data).
+@METHOD     : 
+@GLOBALS    : 
+@CALLS      : 
+@CREATED    : Mon Jun 28 14:16:07 EST 1993 Louis Collins
+@MODIFIED   : 
+---------------------------------------------------------------------------- */
+public void build_vol_info(char   *infile,
+			   char   *outfile,
+			   MincVolume *in_vol, 
+			   MincVolume *out_vol)
+{
+   /* Argument parsing information */
+   static Default_Data defaults={
+      NC_SHORT,               /* Type will be modified anyway */
+      INT_MIN,                /* Flag that is_signed has not been set */
+      {-DBL_MAX, -DBL_MAX},   /* Flag that range not set */
+      FILL_DEFAULT,           /* Flag indicating that fillvalue not set */
+      {
+          {2, 1, 0},          /* Axis order */
+          {0, 0, 0},          /* nelements will be modified */
+          {1.0, 1.0, 1.0},    /* Default step */
+          {0.0, 0.0, 0.0},    /* Default start */
+          {{1.0, 0.0, 0.0},   /* Default direction cosines */
+           {0.0, 1.0, 0.0},
+           {0.0, 0.0, 1.0}},
+          {"", "", ""},       /* units */
+          {"", "", ""}        /* spacetype */
+       }
+   };
+
+
+   /* Other variables */
+   int idim, index, ivar, varid;
+   int ndims, dim[MAX_VAR_DIMS], imgdim[MAX_VAR_DIMS];
+   int in_vindex, out_vindex;  /* Volume indices (0, 1 or 2) */
+   int in_findex, out_findex;  /* File indices (0 to ndims-1) */
+   long size, total_size, total_slice_size;
+   File_Info *fp;
+   char *tm_stamp, *pname;
    
-  if (!EQUAL3(data1->rows,           data2->rows,           data3->rows)   ||
-      !EQUAL3(data1->cols,           data2->cols,           data3->cols)   ||
-      !EQUAL3(data1->slices,         data2->slices,         data3->slices)  ||
-      !EQUAL3(data1->pix_depth,      data2->pix_depth,      data3->pix_depth)    ||
-      !EQUAL3(data1->bytes_per_voxel,data2->bytes_per_voxel,data3->bytes_per_voxel)  ) {
-printf ("rows: %d %d %d\n",data1->rows,           data2->rows,           data3->rows);
-printf ("cols: %d %d %d\n",data1->cols,           data2->cols,           data3->cols);
-printf ("slices: %d %d %d\n",data1->slices,           data2->slices,           data3->slices);
-printf ("pix_depth: %d %d %d\n",data1->pix_depth,           data2->pix_depth,           data3->pix_depth);
-printf ("bytes_per_voxel: %d %d %d\n",data1->bytes_per_voxel,  data2->bytes_per_voxel,   data3->bytes_per_voxel);
-      print_error("headers do not match.",__FILE__,__LINE__,0,0,0,0,0);
-      exit(-1);
+   int str_count = 3;
+   char *str_vals[3];
+
+   char *name = "mincblur(grad mag)";
+
+   /* Get the time stamp */
+
+   str_vals[0] = name;
+   str_vals[1] = infile;
+   str_vals[2] = outfile;
+
+   tm_stamp = time_stamp(str_count, str_vals);
+
+   pname   = str_vals[0];
+
+   /* Check input file for default argument information */
+   in_vol->file = MALLOC(sizeof(File_Info));
+   get_file_info(infile, &defaults.volume_def, in_vol->file);
+
+   /* Get for input volume data information */
+   in_vol->slice = NULL;
+   in_vol->volume = MALLOC(sizeof(Volume_Data));
+   in_vol->volume->datatype  = in_vol->file->datatype;
+   in_vol->volume->is_signed = in_vol->file->is_signed;
+   in_vol->volume->fillvalue = 0.0;
+   in_vol->volume->use_fill = TRUE;
+   
+   /* Get space for volume data */
+   total_slice_size = total_size = 1;
+   for (idim=0; idim < WORLD_NDIMS; idim++) {
+      index = defaults.volume_def.axes[idim];
+      size = defaults.volume_def.nelements[idim];
+      total_size *= size;
+      in_vol->volume->size[index] = size;
+      if (index != 0) 
+	total_slice_size *= size;
    }
 
-   slice_size = data1->slice_size;
-   ALLOC1(status, in_slice1, slice_size, char);
-   ALLOC1(status, in_slice2, slice_size, char);
-   ALLOC1(status, in_slice3, slice_size, char);
-   if (status != OK) 
-      PRINT("problems allocing 3 slices of data...");
 
+/* MALLOC OF DATA SPACE */
 
-   ALLOC1(status, data4,1,DATA);	/* output data struct  */
-   if (status != OK) 
-      PRINT("problems allocing DATA...");
+   in_vol->slice = MALLOC(sizeof(Slice_Data));
+   in_vol->slice->data = MALLOC((size_t) total_slice_size * sizeof(double));
 
-   *data4 = *data1;
+   /* Get space for slice scale and offset */
+   in_vol->volume->scale  = MALLOC(sizeof(double) * in_vol->volume->size[0]);
+   in_vol->volume->offset = MALLOC(sizeof(double) * in_vol->volume->size[0]);
 
-   ALLOC1(status, out_data, slice_size, char);
-   if (status != OK) 
-      PRINT("problems allocing out_data slice...");
-
-   total_voxels = data1->slices * data1->rows * data1->cols;
-
-
-
-   ALLOC1(status, fdata, total_voxels, float); 
-      if (status != OK) 
-      PRINT("problems allocing fDATA voxels...");
-
-   initialize_progress_report( &progress, TRUE, data1->slices, "Gradient Magnitude:");
+   /* Check min/max variables */
+   fp = in_vol->file;
+   if ((fp->maxid != MI_ERROR) && (fp->minid != MI_ERROR)) {
+     
+     /* Get MIimage dimensions */
+     (void) ncvarinq(fp->mincid, fp->imgid, NULL, NULL, &ndims, imgdim, NULL);
+     
+     /* Check MIimagemax/min dimensions */
+     for (ivar=0; ivar<2; ivar++) {
+       varid = (ivar==0 ? fp->maxid : fp->minid);
+       (void) ncvarinq(fp->mincid, varid, NULL, NULL, &ndims, dim, NULL);
+       for (idim=0; idim < ndims; idim++) {
+	 if ((dim[idim] == imgdim[fp->indices[1]]) ||
+	     (dim[idim] == imgdim[fp->indices[2]])) {
+	   (void) fprintf(stderr, 
+			  "MIimagemax/min vary over slice dimensions.\n");
+	   exit(EXIT_FAILURE);
+	 }
+       }        /* End loop over MIimagemax/min dimensions */
+     }        /* End loop over variables MIimagemax/min */
+     
+   }        /* If both MIimagemax/min exist */
    
-   f_ptr = fdata;
-   *f_ptr = 0;
-   data4->fp_max = -1000000.0;
-   data4->fp_min =  1000000.0;
-   if (data1->bytes_per_voxel==1) {
-      for (slice = 0; slice < data1->slices; ++slice) {
-
-	 status = io_binary_data( ifd1, READ_FILE, in_slice1, sizeof(char), slice_size);
-	 if ( status != OK ) 
-	    print_error ("problems reading slice %d of `%s'.", __FILE__, __LINE__, slice, 
-			 infilename1, 0,0,0);
-	 status = io_binary_data( ifd2, READ_FILE, in_slice2, sizeof(char), slice_size);
-	 if ( status != OK ) 
-	    print_error ("problems reading slice %d of `%s'.", __FILE__, __LINE__, slice, 
-			 infilename2, 0,0,0);
-	 status = io_binary_data( ifd3, READ_FILE, in_slice3, sizeof(char), slice_size);
-	 if ( status != OK ) 
-	    print_error ("problems reading slice %d of `%s'.", __FILE__, __LINE__, slice, 
-			 infilename3, 0,0,0);
-	 
-	 c_ptr1 = in_slice1;
-	 c_ptr2 = in_slice2;
-	 c_ptr3 = in_slice3;
-
-	 for (col = 0; col < data1->cols; ++col)
-	    for (row = 0; row < data1->rows; ++ row) {
-
-	       tx = get_float_DATA(*c_ptr1,data1);
-	       ty = get_float_DATA(*c_ptr2,data2);
-	       tz = get_float_DATA(*c_ptr3,data3);
-
-	       if (slice==0  && col==0 && row==0) {
-		  *f_ptr = 0;
-	       }
-	       else {
-		  *f_ptr  = fsqrt(tx*tx + ty*ty + tz*tz);
-	       }
-	       if (data4->fp_max < *f_ptr) data4->fp_max = *f_ptr;
-	       if (data4->fp_min > *f_ptr) data4->fp_min = *f_ptr;
-	       
-	       c_ptr1++;
-	       c_ptr2++;
-	       c_ptr3++;
-	       f_ptr++;
-	    }
-
-	 update_progress_report( &progress, slice+1 );
-      }
-
-      status = write_iffheader(ofd, data4);  /* copy header of data4 to result file. */
+   /* Set the default output file datatype */
+   defaults.datatype = in_vol->file->datatype;
 
 
-      c_ptr1  = out_data;
-      f_ptr = fdata;
 
-      for (slice = 0; slice < data4->slices; ++slice) {
 
-	 c_ptr1  = out_data;
+   /* Set up the file description for the output file */
 
-	 for (col = 0; col < data4->cols; ++col)
-	    for (row = 0; row < data4->rows; ++ row) {
+   out_vol->file = MALLOC(sizeof(File_Info));
+   out_vol->file->ndims     = in_vol->file->ndims;
+   out_vol->file->datatype  = in_vol->file->datatype;
+   out_vol->file->is_signed = in_vol->file->is_signed;
+   out_vol->file->vrange[0] = in_vol->file->vrange[0];
+   out_vol->file->vrange[1] = in_vol->file->vrange[1];
+   for (idim=0; idim < out_vol->file->ndims; idim++) {
+      out_vol->file->nelements[idim] = in_vol->file->nelements[idim];
+      out_vol->file->world_axes[idim] = in_vol->file->world_axes[idim];
+   }
 
-	       *c_ptr1 = get_uchar_DATA(*f_ptr,data4);
-	       c_ptr1++;
-	       f_ptr++;
-	    }
+   /* Get space for output slice */
+   out_vol->volume = NULL;
+   out_vol->slice = MALLOC(sizeof(Slice_Data));
 
-	 status = io_binary_data( ofd, WRITE_FILE, out_data, sizeof(char), slice_size);
-	 if ( status != OK ) 
-	    print_error ("problems writing slice %d of `%s'.", __FILE__, __LINE__, slice, 
-			 outfilename, 0,0,0);
-      }
+   /* Loop through list of axes, getting size of volume and slice */
+   total_size = 1;
+   for (idim=0; idim < WORLD_NDIMS; idim++) {
       
+      /* Get the index for input and output volumes */
+      in_vindex = in_vol->file->axes[idim];       /* 0, 1 or 2 */
+      out_vindex = defaults.volume_def.axes[idim];    /* 0, 1 or 2 */
+      in_findex = in_vol->file->indices[in_vindex];     /* 0 to ndims-1 */
+      out_findex = in_vol->file->indices[out_vindex];   /* 0 to ndims-1 */
+      size = defaults.volume_def.nelements[idim];
+
+      /* Update output axes and indices and nelements */
+      out_vol->file->nelements[out_findex] = size;
+      out_vol->file->world_axes[out_findex] = idim;
+      out_vol->file->axes[idim] = out_vindex;
+      out_vol->file->indices[out_vindex] = out_findex;
+      
+      /* Update slice size */
+      if (out_vindex != 0) {
+         out_vol->slice->size[out_vindex-1] = size;
+         total_size *= size;
+      }
+   }
+   out_vol->slice->data = MALLOC((size_t) total_size * sizeof(double));
+
+   /* Create the output file */
+   create_output_file(outfile,  &defaults.volume_def, 
+                      in_vol->file, out_vol->file,
+                      tm_stamp);
+   
+}
 
 
+/* ----------------------------- MNI Header -----------------------------------
+@NAME       : load_vol_info
+@INPUT      : names of input filenames
+@OUTPUT     : in_vol - description of input volume.
+@RETURNS    : (nothing)
+@DESCRIPTION: Routine to get information input and 
+              output files. Sets up all structures
+              completely (including allocating space for data).
+@METHOD     : 
+@GLOBALS    : 
+@CALLS      : 
+@CREATED    : Mon Jun 28 14:16:07 EST 1993 Louis Collins
+@MODIFIED   : 
+---------------------------------------------------------------------------- */
+public void load_vol_info(char   *infile,
+			  MincVolume *in_vol)
+{
+  int idim, index, ivar, varid;
+  int ndims, dim[MAX_VAR_DIMS], imgdim[MAX_VAR_DIMS];
+  long size, total_size, total_slice_size;
+  File_Info *fp;
+  Volume_Definition volume_def;
 
+  /* Get for input volume data information */
+  
+  in_vol->file = MALLOC(sizeof(File_Info));
+
+  get_file_info(infile, &volume_def, in_vol->file);
+  
+  in_vol->slice = NULL;
+  in_vol->volume = MALLOC(sizeof(Volume_Data));
+  in_vol->volume->datatype  = in_vol->file->datatype;
+  in_vol->volume->is_signed = in_vol->file->is_signed;
+  in_vol->volume->fillvalue = 0.0;
+  in_vol->volume->use_fill = TRUE;
+  
+  /* Get space for volume data */
+  total_slice_size = total_size = 1;
+  for (idim=0; idim < WORLD_NDIMS; idim++) {
+    index = volume_def.axes[idim];
+    size = volume_def.nelements[idim];
+    total_size *= size;
+    in_vol->volume->size[index] = size;
+    if (index != 0) 
+      total_slice_size *= size;
+  }
+  
+  /* MALLOC OF DATA SPACE */
+  
+  in_vol->slice = MALLOC(sizeof(Slice_Data));
+  in_vol->slice->data = MALLOC((size_t) total_slice_size * sizeof(double));
+
+
+  /* Get space for slice scale and offset */
+  in_vol->volume->scale  = MALLOC(sizeof(double) * in_vol->volume->size[0]);
+  in_vol->volume->offset = MALLOC(sizeof(double) * in_vol->volume->size[0]);
+  
+  /* Check min/max variables */
+  fp = in_vol->file;
+  if ((fp->maxid != MI_ERROR) && (fp->minid != MI_ERROR)) {
+    
+    /* Get MIimage dimensions */
+    (void) ncvarinq(fp->mincid, fp->imgid, NULL, NULL, &ndims, imgdim, NULL);
+    
+    /* Check MIimagemax/min dimensions */
+    for (ivar=0; ivar<2; ivar++) {
+      varid = (ivar==0 ? fp->maxid : fp->minid);
+      (void) ncvarinq(fp->mincid, varid, NULL, NULL, &ndims, dim, NULL);
+      for (idim=0; idim < ndims; idim++) {
+	if ((dim[idim] == imgdim[fp->indices[1]]) ||
+	    (dim[idim] == imgdim[fp->indices[2]])) {
+	  (void) fprintf(stderr, 
+			 "MIimagemax/min vary over slice dimensions.\n");
+	  exit(EXIT_FAILURE);
+	}
+      }        /* End loop over MIimagemax/min dimensions */
+    }        /* End loop over variables MIimagemax/min */
+    
+  }        /* If both MIimagemax/min exist */
+}
+
+/* ----------------------------- MNI Header -----------------------------------
+@NAME       : get_file_info
+@INPUT      : filename - name of file to read
+@OUTPUT     : volume_def - description of volume
+              file_info - description of file
+@RETURNS    : (nothing)
+@DESCRIPTION: Routine to get information about the volume definition of
+              a minc file. 
+@METHOD     : 
+@GLOBALS    : 
+@CALLS      : 
+@CREATED    : February 9, 1993 (Peter Neelin)
+@MODIFIED   : 
+---------------------------------------------------------------------------- */
+public void get_file_info(char              *filename, 
+                          Volume_Definition *volume_def,
+                          File_Info         *file_info)
+{
+   int dim[MAX_VAR_DIMS], dimid, status, length;
+   int axis_counter, idim, jdim, cur_axis;
+   char attstr[MI_MAX_ATTSTR_LEN];
+   char dimname[MAX_NC_NAME];
+   double vrange[2];
+
+   /* Open the minc file */
+   file_info->mincid = ncopen(filename, NC_NOWRITE);
+   file_info->name = filename;
+
+   /* Get variable identifiers */
+   file_info->imgid = ncvarid(file_info->mincid, MIimage);
+   ncopts = 0;
+   file_info->maxid = ncvarid(file_info->mincid, MIimagemax);
+   file_info->minid = ncvarid(file_info->mincid, MIimagemin);
+   ncopts = NC_VERBOSE | NC_FATAL;
+
+   /* Get information about datatype dimensions of variable */
+   (void) ncvarinq(file_info->mincid, file_info->imgid, NULL, 
+                   &file_info->datatype, &file_info->ndims, dim, NULL);
+
+   /* Get sign attriubte */
+   if (file_info->datatype == NC_BYTE)
+      file_info->is_signed = FALSE;
+   else
+      file_info->is_signed = TRUE;
+   ncopts = 0;
+   if ((miattgetstr(file_info->mincid, file_info->imgid, MIsigntype, 
+                    MI_MAX_ATTSTR_LEN, attstr) != NULL)) {
+      if (strcmp(attstr, MI_SIGNED) == 0)
+         file_info->is_signed = TRUE;
+      else if (strcmp(attstr, MI_UNSIGNED) == 0)
+         file_info->is_signed = FALSE;
+   }
+   ncopts = NC_VERBOSE | NC_FATAL;
+
+   /* Get valid max and min */
+   ncopts = 0;
+   status=miattget(file_info->mincid, file_info->imgid, MIvalid_range, 
+                   NC_DOUBLE, 2, vrange, &length);
+   if ((status!=MI_ERROR) && (length==2)) {
+      if (vrange[1] > vrange[0]) {
+         file_info->vrange[0] = vrange[0];
+         file_info->vrange[1] = vrange[1];
+      }
+      else {
+         file_info->vrange[0] = vrange[1];
+         file_info->vrange[1] = vrange[0];
+      }
    }
    else {
-      for (slice = 0; slice < data1->slices; ++slice) {
+      status=miattget1(file_info->mincid, file_info->imgid, MIvalid_max, 
+                       NC_DOUBLE, &(file_info->vrange[1]));
+      if (status==MI_ERROR)
+         file_info->vrange[1] =
+            get_default_range(MIvalid_max, file_info->datatype, 
+                              file_info->is_signed);
+  
+      status=miattget1(file_info->mincid, file_info->imgid, MIvalid_min, 
+                       NC_DOUBLE, &(file_info->vrange[0]));
+      if (status==MI_ERROR)
+         file_info->vrange[0] =
+            get_default_range(MIvalid_min, file_info->datatype, 
+                              file_info->is_signed);
+   }
+   ncopts = NC_VERBOSE | NC_FATAL;
 
-	 status = io_binary_data( ifd1, READ_FILE, in_slice1, sizeof(char), slice_size);
-	 if ( status != OK ) 
-	    print_error ("problems reading slice %d of `%s'.", __FILE__, __LINE__, slice, 
-			 infilename1, 0,0,0);
-	 status = io_binary_data( ifd2, READ_FILE, in_slice2, sizeof(char), slice_size);
-	 if ( status != OK ) 
-	    print_error ("problems reading slice %d of `%s'.", __FILE__, __LINE__, slice, 
-			 infilename2, 0,0,0);
-	 status = io_binary_data( ifd3, READ_FILE, in_slice3, sizeof(char), slice_size);
-	 if ( status != OK ) 
-	    print_error ("problems reading slice %d of `%s'.", __FILE__, __LINE__, slice, 
-			 infilename3, 0,0,0);
-	 
-	 s_ptr1 = (unsigned short *)in_slice1;
-	 s_ptr2 = (unsigned short *)in_slice2;
-	 s_ptr3 = (unsigned short *)in_slice3;
-	 s_out = s_ptr3;
+   /* Set variables for keeping track of spatial dimensions */
+   axis_counter = 0;                   /* Keeps track of values for axes */
 
-	 for (col = 0; col < data1->cols; ++col)
-	    for (row = 0; row < data1->rows; ++ row) {
-	       tx = (float)(*s_ptr1);
-	       tx = tx - 128.0;
-	       ty = (float)(*s_ptr2);
-	       ty = ty - 128.0;
-	       tz = (float)(*s_ptr3);
-	       tz = tz - 128.0;
-	       tv  = fsqrt(tx*tx + ty*ty + tz*tz);
-	       value = (int)(tv+0.5);
+   /* Initialize volume definition variables */
+   for (idim=0; idim < WORLD_NDIMS; idim++) {
+      volume_def->axes[idim] = NO_AXIS;
+      volume_def->step[idim] = 1.0;
+      volume_def->start[idim] = 0.0;
+      for (jdim=0; jdim < WORLD_NDIMS; jdim++) {
+         if (jdim==idim)
+            volume_def->dircos[idim][jdim] = 1.0;
+         else
+            volume_def->dircos[idim][jdim] = 0.0;
+      }
+      (void) strcpy(volume_def->units[idim], "mm");
+      (void) strcpy(volume_def->spacetype[idim], MI_NATIVE);
+   }
 
-	       if (value<0) 
-		  *s_out = 0;
-	       else if (value>(2<<16))
-		  *s_out = (2<<16);
-	       else
-		  *s_out = (short)value;
-	       s_ptr1++;
-	       s_ptr2++;
-	       s_ptr3++;
-	    }
+   /* Loop through dimensions, getting dimension information */
 
-	 status = io_binary_data( ofd, WRITE_FILE, out_data, sizeof(char), slice_size);
-	 if ( status != OK ) 
-	    print_error ("problems writing slice %d of `%s'.", __FILE__, __LINE__, slice, 
-			 outfilename, 0,0,0);
-	 
+   for (idim=0; idim < file_info->ndims; idim++) {
 
-	 update_progress_report( &progress, slice+1 );
+      /* Get size of dimension */
+      (void) ncdiminq(file_info->mincid, dim[idim], dimname, 
+                      &file_info->nelements[idim]);
+
+      /* Check variable name */
+      cur_axis = NO_AXIS;
+      if (strcmp(dimname, MIxspace)==0)
+         cur_axis = X;
+      else if (strcmp(dimname, MIyspace)==0)
+         cur_axis = Y;
+      else if (strcmp(dimname, MIzspace)==0)
+         cur_axis = Z;
+
+      /* Save world axis info */
+      file_info->world_axes[idim] = cur_axis;
+
+      /* Check for spatial dimension */
+      if (cur_axis == NO_AXIS) continue;
+
+      /* Set axis */
+      if (volume_def->axes[cur_axis] != NO_AXIS) {
+         (void) fprintf(stderr, "Repeated spatial dimension %s in file %s.\n",
+                 dimname, filename);
+         exit(EXIT_FAILURE);
+      }
+      volume_def->axes[cur_axis] = axis_counter++;
+
+      /* Save spatial axis specific info */
+      file_info->axes[cur_axis] = volume_def->axes[cur_axis];
+      file_info->indices[volume_def->axes[cur_axis]] = idim;
+      volume_def->nelements[cur_axis] = file_info->nelements[idim];
+
+      /* Check for existence of variable */
+      ncopts = 0;
+      dimid = ncvarid(file_info->mincid, dimname);
+      ncopts = NC_VERBOSE | NC_FATAL;
+      if (dimid == MI_ERROR) continue;
+             
+      /* Get attributes from variable */
+      ncopts = 0;
+      (void) miattget1(file_info->mincid, dimid, MIstep, 
+                       NC_DOUBLE, &volume_def->step[cur_axis]);
+      (void) miattget1(file_info->mincid, dimid, MIstart, 
+                       NC_DOUBLE, &volume_def->start[cur_axis]);
+      (void) miattget(file_info->mincid, dimid, MIdirection_cosines, 
+                      NC_DOUBLE, WORLD_NDIMS, 
+                      volume_def->dircos[cur_axis], NULL);
+      (void) miattgetstr(file_info->mincid, dimid, MIunits, 
+                         MI_MAX_ATTSTR_LEN, volume_def->units[cur_axis]);
+      (void) miattgetstr(file_info->mincid, dimid, MIspacetype, 
+                         MI_MAX_ATTSTR_LEN, volume_def->spacetype[cur_axis]);
+      ncopts = NC_VERBOSE | NC_FATAL;
+
+   }   /* End of loop over dimensions */
+
+   /* Check that we have the correct number of spatial dimensions */
+   if (axis_counter != WORLD_NDIMS) {
+      (void) fprintf(stderr, 
+                     "Incorrect number of spatial dimensions in file %s.\n",
+                     filename);
+         exit(EXIT_FAILURE);
+   }
+
+   return;
+}
+
+/* ----------------------------- MNI Header -----------------------------------
+@NAME       : create_output_file
+@INPUT      : filename - name of file to create
+              volume_def - description of volume
+              in_file - description of input file
+              out_file - description of output file
+              tm_stamp - string describing program invocation
+@OUTPUT     : (nothing) 
+@RETURNS    : (nothing)
+@DESCRIPTION: Routine to create an minc output file and set up its parameters
+              properly.
+@METHOD     : 
+@GLOBALS    : 
+@CALLS      : 
+@CREATED    : February 9, 1993 (Peter Neelin)
+@MODIFIED   : 
+---------------------------------------------------------------------------- */
+public void create_output_file(char *filename,
+                               Volume_Definition *volume_def,
+                               File_Info *in_file,
+                               File_Info *out_file,
+                               char *tm_stamp)
+{
+   int ndims, in_dims[MAX_VAR_DIMS], out_dims[MAX_VAR_DIMS];
+   char dimname[MAX_NC_NAME];
+   int cur_dim, axis, idim, dimid, varid;
+   int att_length;
+   nc_type datatype;
+   int nexcluded, excluded_vars[10];
+   char *string;
+   int dim_exists, is_volume_dimension;
+   int in_index, out_index;
+
+   /* Save the file name */
+   out_file->name = filename;
+
+   /* Create the list of excluded variables */
+   nexcluded = 0;
+   ncopts = 0;
+   if ((varid=ncvarid(in_file->mincid, MIxspace)) != MI_ERROR)
+      excluded_vars[nexcluded++] = varid;
+   if ((varid=ncvarid(in_file->mincid, MIyspace)) != MI_ERROR)
+      excluded_vars[nexcluded++] = varid;
+   if ((varid=ncvarid(in_file->mincid, MIzspace)) != MI_ERROR)
+      excluded_vars[nexcluded++] = varid;
+   if ((varid=ncvarid(in_file->mincid, MIimage)) != MI_ERROR)
+      excluded_vars[nexcluded++] = varid;
+   if ((varid=ncvarid(in_file->mincid, MIimagemax)) != MI_ERROR)
+      excluded_vars[nexcluded++] = varid;
+   if ((varid=ncvarid(in_file->mincid, MIimagemin)) != MI_ERROR)
+      excluded_vars[nexcluded++] = varid;
+   ncopts = NC_VERBOSE | NC_FATAL;
+
+   /* Create the file */
+   out_file->mincid = nccreate(filename, NC_CLOBBER );
+ 
+   /* Copy all other variable definitions */
+   (void) micopy_all_var_defs(in_file->mincid, out_file->mincid, 
+                              nexcluded, excluded_vars);
+
+   /* Add the time stamp */
+   ncopts=0;
+   if ((ncattinq(out_file->mincid, NC_GLOBAL, MIhistory, &datatype,
+                 &att_length) == MI_ERROR) ||
+       (datatype != NC_CHAR))
+      att_length = 0;
+   att_length += strlen(tm_stamp) + 1;
+   string = MALLOC(att_length);
+   string[0] = '\0';
+   (void) miattgetstr(out_file->mincid, NC_GLOBAL, MIhistory, att_length, 
+                      string);
+   ncopts=NC_VERBOSE | NC_FATAL;
+   (void) strcat(string, tm_stamp);
+   (void) miattputstr(out_file->mincid, NC_GLOBAL, MIhistory, string);
+   FREE(string);
+
+   /* Get the dimension ids from the input file */
+   (void) ncvarinq(in_file->mincid, in_file->imgid, NULL, NULL, 
+                   &ndims, in_dims, NULL);
+
+   /* Check for screw-up on number of dimensions */
+   if (ndims != out_file->ndims) {
+      (void) fprintf(stderr, 
+                     "Error in number of dimensions for output file.\n");
+      exit(EXIT_FAILURE);
+   }
+
+   /* Create the dimensions for the image variable */
+   for (out_index=0; out_index<ndims; out_index++) {
+
+      /* Check to see if this is a volume dimension */
+      is_volume_dimension = (out_file->world_axes[out_index] != NO_AXIS);
+
+      /* Get the input index */
+      if (!is_volume_dimension) 
+         in_index = out_index;
+      else {
+         axis = out_file->world_axes[out_index];
+         if ((axis<0) || (axis>=WORLD_NDIMS)) {
+            (void) fprintf(stderr,
+                           "Error creating dimensions for output file.\n");
+            exit(EXIT_FAILURE);
+         }
+         in_index = in_file->indices[in_file->axes[axis]];
+      }
+
+      /* Get the dimension name from the input file */
+      (void) ncdiminq(in_file->mincid, in_dims[in_index], dimname, NULL);
+
+      /* Check to see if the dimension already exists */
+      ncopts = 0;
+      out_dims[out_index] = ncdimid(out_file->mincid, dimname);
+      ncopts = NC_VERBOSE | NC_FATAL;
+      dim_exists = (out_dims[out_index] != MI_ERROR);
+
+      /* If we have a volume dimension and it exists already with the wrong
+         size, then we must rename it */
+      if (is_volume_dimension && dim_exists && 
+          (out_file->nelements[out_index] != in_file->nelements[in_index])) {
+         string = MALLOC(MAX_NC_NAME);
+         ncopts = 0;
+         idim = 0;
+         do {
+            (void) sprintf(string, "%s%d", dimname, idim);
+            idim++;
+         } while (ncdimid(out_file->mincid, string) != MI_ERROR);
+         ncopts = NC_VERBOSE | NC_FATAL;
+         (void) ncdimrename(out_file->mincid, out_dims[out_index], string);
+         FREE(string);
+         out_dims[out_index] = ncdimdef(out_file->mincid, dimname, 
+                                        out_file->nelements[out_index]);
+      }
+      else if (!dim_exists)
+         out_dims[out_index] = ncdimdef(out_file->mincid, dimname, 
+                                        out_file->nelements[out_index]);
+
+      /* If this is a volume dimension, create a variable */
+      if (is_volume_dimension) {
+
+         /* Create the variable */
+         dimid = micreate_std_variable(out_file->mincid, dimname, NC_DOUBLE,
+                                       0, NULL);
+         (void) miattputdbl(out_file->mincid, dimid, MIstep, 
+                            volume_def->step[axis]);
+         (void) miattputdbl(out_file->mincid, dimid, MIstart, 
+                            volume_def->start[axis]);
+         (void) ncattput(out_file->mincid, dimid, MIdirection_cosines, 
+                         NC_DOUBLE, WORLD_NDIMS, volume_def->dircos[axis]);
+         (void) miattputstr(out_file->mincid, dimid, MIunits, 
+                            volume_def->units[axis]);
+         (void) miattputstr(out_file->mincid, dimid, MIspacetype, 
+                            volume_def->spacetype[axis]);
+
+      }       /* If volume dimension */
+   }       /* Loop over dimensions */
+
+   /* Create the image variable */
+   out_file->imgid = micreate_std_variable(out_file->mincid, MIimage, 
+                                           out_file->datatype,
+                                           ndims, out_dims);
+   (void) micopy_all_atts(in_file->mincid, in_file->imgid,
+                          out_file->mincid, out_file->imgid);
+   (void) miattputstr(out_file->mincid, out_file->imgid, MIcomplete,
+                      MI_FALSE);
+   (void) ncattput(out_file->mincid, out_file->imgid, MIvalid_range, 
+                   NC_DOUBLE, 2, out_file->vrange);
+   if (out_file->is_signed)
+      (void) miattputstr(out_file->mincid, out_file->imgid,
+                         MIsigntype, MI_SIGNED);
+   else
+      (void) miattputstr(out_file->mincid, out_file->imgid,
+                         MIsigntype, MI_UNSIGNED);
+
+   /* Create the image max and min variables. We have to make sure that
+      these vary over spatial slices (this will violate the MINC standard if
+      there are non-spatial dimensions that vary faster than the fastest two
+      spatial dimensions, but the way the resample code is set up, there's 
+      no easy way around it, except to fix it when finishing up) */
+   cur_dim = out_file->indices[1];
+   for (idim=out_file->indices[1]+1; idim<ndims; idim++) {
+      if (idim != out_file->indices[2]) {
+         out_dims[cur_dim] = out_dims[idim];
+         cur_dim++;
+      }
+   }
+   /* To commit our subterfuge, we check for an error creating the variable
+      (it is illegal). If there is an error, we rename MIimage, create the
+      variable, restore MIimage and add the pointer */
+   ncopts = 0;
+   out_file->maxid = micreate_std_variable(out_file->mincid, MIimagemax,
+                                           NC_DOUBLE, ndims-2, out_dims);
+   ncopts = NC_VERBOSE | NC_FATAL;
+   if (out_file->maxid == MI_ERROR) {
+      (void) ncvarrename(out_file->mincid, out_file->imgid, TEMP_IMAGE_VAR);
+      out_file->maxid = micreate_std_variable(out_file->mincid, MIimagemax,
+                                              NC_DOUBLE, ndims-2, out_dims);
+      (void) ncvarrename(out_file->mincid, out_file->imgid, MIimage);
+      (void) miattput_pointer(out_file->mincid, out_file->imgid, 
+                              MIimagemax, out_file->maxid);
+   }
+   if (in_file->maxid != MI_ERROR)
+      (void) micopy_all_atts(in_file->mincid, in_file->maxid,
+                             out_file->mincid, out_file->maxid);
+   /* Repeat for min variable */
+   ncopts = 0;
+   out_file->minid = micreate_std_variable(out_file->mincid, MIimagemin,
+                                           NC_DOUBLE, ndims-2, out_dims);
+   ncopts = NC_VERBOSE | NC_FATAL;
+   if (out_file->minid == MI_ERROR) {
+      (void) ncvarrename(out_file->mincid, out_file->imgid, TEMP_IMAGE_VAR);
+      out_file->minid = micreate_std_variable(out_file->mincid, MIimagemin,
+                                              NC_DOUBLE, ndims-2, out_dims);
+      (void) ncvarrename(out_file->mincid, out_file->imgid, MIimage);
+      (void) miattput_pointer(out_file->mincid, out_file->imgid, 
+                              MIimagemin, out_file->minid);
+   }
+   if (in_file->minid != MI_ERROR)
+      (void) micopy_all_atts(in_file->mincid, in_file->minid,
+                             out_file->mincid, out_file->minid);
+
+   ncopts = 0;
+
+   /* Get id of processing variable (create it if needed) */
+   varid = ncvarid(out_file->mincid, PROCESSING_VAR);
+   if (varid == MI_ERROR) {
+      varid = ncvardef(out_file->mincid, PROCESSING_VAR, NC_LONG, 0, NULL);
+      (void) miadd_child(out_file->mincid, 
+                         ncvarid(out_file->mincid, MIrootvariable), varid);
+   }
+
+   /* Get into data mode */
+   (void) ncendef(out_file->mincid);
+
+   /* Copy all the other data */
+   (void) micopy_all_var_values(in_file->mincid, out_file->mincid,
+                                nexcluded, excluded_vars);
+
+   /* Create and attach an icv */
+   out_file->icvid = miicv_create();
+   (void) miicv_setint(out_file->icvid, MI_ICV_TYPE, NC_DOUBLE);
+   (void) miicv_setint(out_file->icvid, MI_ICV_DO_NORM, TRUE);
+   (void) miicv_setint(out_file->icvid, MI_ICV_USER_NORM, TRUE);
+   (void) miicv_attach(out_file->icvid, out_file->mincid, out_file->imgid);
+
+   return;
+}
+
+/* ----------------------------- MNI Header -----------------------------------
+@NAME       : get_default_range
+@INPUT      : what     - MIvalid_min means get default min, MIvalid_min means 
+                 get default min
+              datatype - type of variable
+              is_signed   - TRUE if variable is signed
+@OUTPUT     : (none)
+@RETURNS    : default maximum or minimum for the datatype
+@DESCRIPTION: Return the defaults maximum or minimum for a given datatype
+              and sign.
+@METHOD     : 
+@GLOBALS    : 
+@CALLS      : 
+@CREATED    : August 10, 1992 (Peter Neelin)
+@MODIFIED   : February 10, 1993 (Peter Neelin)
+                 - ripped off from MINC code
+---------------------------------------------------------------------------- */
+public double get_default_range(char *what, nc_type datatype, int is_signed)
+{
+   double limit;
+
+   if (strcmp(what, MIvalid_max)==0) {
+      switch (datatype) {
+      case NC_LONG:  limit = (is_signed) ? LONG_MAX : ULONG_MAX; break;
+      case NC_SHORT: limit = (is_signed) ? SHRT_MAX : USHRT_MAX; break;
+      case NC_BYTE:  limit = (is_signed) ? SCHAR_MAX : UCHAR_MAX; break;
+      default: limit = DEFAULT_MAX; break;
+      }
+   }
+   else if (strcmp(what, MIvalid_min)==0) {
+      switch (datatype) {
+      case NC_LONG:  limit = (is_signed) ? LONG_MIN : 0; break;
+      case NC_SHORT: limit = (is_signed) ? SHRT_MIN : 0; break;
+      case NC_BYTE:  limit = (is_signed) ? SCHAR_MIN : 0; break;
+      default: limit = DEFAULT_MIN; break;
+      }
+   }
+   else {
+      limit = 0.0;
+   }
+
+   return limit;
+}
+
+
+/* ----------------------------- MNI Header -----------------------------------
+@NAME       : finish_up
+@INPUT      : in_vol - input volume
+              out_vol - output volume
+@OUTPUT     : (nothing) 
+@RETURNS    : (nothing)
+@DESCRIPTION: Routine to finish up at end of program, closing files, etc.
+@METHOD     : 
+@GLOBALS    : 
+@CALLS      : 
+@CREATED    : February 15, 1993 (Peter Neelin)
+@MODIFIED   : 
+---------------------------------------------------------------------------- */
+public void finish_up(MincVolume *in_vol1, 
+		      MincVolume *in_vol2, 
+		      MincVolume *in_vol3, 
+		      MincVolume *out_vol)
+{
+   File_Info *in_file, *out_file;
+
+
+   /* Close the output file */
+   out_file = out_vol->file;
+   (void) miattputstr(out_file->mincid, out_file->imgid, MIcomplete, MI_TRUE);
+   (void) ncclose(out_file->mincid);
+
+   /* Close the input files */
+   in_file = in_vol1->file;
+   (void) ncclose(in_file->mincid);
+   in_file = in_vol2->file;
+   (void) ncclose(in_file->mincid);
+   in_file = in_vol3->file;
+   (void) ncclose(in_file->mincid);
+
+   return;
+}
+
+
+/* ----------------------------- MNI Header -----------------------------------
+@NAME       : make_gradmag_volumes
+@INPUT      : in_vol1 - description of input dx volume
+              in_vol2 - description of input dy volume
+              in_vol3 - description of input dz volume
+              out_vol - description of output dxyz volume
+@OUTPUT     : (none)
+@RETURNS    : (none)
+@DESCRIPTION: dxyz = sqrt(dx*dx + dy*dy + dz*dz), on a voxel by voxel basis.
+                this is calculated one slice at a time.
+@METHOD     : 
+@GLOBALS    : 
+@CALLS      : 
+@CREATED    : Wed Jun 30 09:01:51 EST 1993 Louis Collins
+@MODIFIED   : 
+---------------------------------------------------------------------------- */
+public void make_gradmag_volumes(MincVolume *in_vol1, 
+				 MincVolume *in_vol2, 
+				 MincVolume *in_vol3, 
+				 MincVolume *out_vol)
+{
+   long in_start[MAX_VAR_DIMS], in_count[MAX_VAR_DIMS], in_end[MAX_VAR_DIMS];
+   long out_start[MAX_VAR_DIMS], out_count[MAX_VAR_DIMS];
+   long mm_start[MAX_VAR_DIMS];   /* Vector for min/max variables */
+   long nslice, islice;
+   int idim, slice_dim, index, slice_index;
+   double maximum, minimum, valid_range[2];
+   File_Info *ifp,*ofp;
+
+   /* Set pointers to file information */
+   ifp = in_vol1->file;
+   ofp = out_vol->file;
+
+   /* Set input file start, count and end vectors for reading a volume
+      at a time */
+   (void) miset_coords(ifp->ndims, (long) 0, in_start);
+   (void) miset_coords(ifp->ndims, (long) 1, in_count);
+   for (idim=0; idim < ifp->ndims; idim++) {
+      in_end[idim] = ifp->nelements[idim];
+   }
+   for (idim=0; idim < VOL_NDIMS; idim++) {
+      index = ifp->indices[idim];
+      in_count[index] = ifp->nelements[index];
+   }
+
+   /* Set output file count for writing a slice and get the number of 
+      output slices */
+   (void) miset_coords(ifp->ndims, (long) 1, out_count);
+   for (idim=0; idim < VOL_NDIMS; idim++) {
+      index = ofp->indices[idim];
+      if (idim==0) {
+         slice_index = index;
+         nslice = ofp->nelements[index];
+      }
+      else {
+         out_count[index] = ofp->nelements[index];
       }
    }
 
-   terminate_progress_report( &progress );
+   slice_dim = ifp->ndims - 3;
+
+   /* Initialize global max and min */
+   valid_range[0] =  DBL_MAX;
+   valid_range[1] = -DBL_MAX;
+
+   /* Print log message */
+   if (verbose) {
+      (void) fprintf(stderr, "Transforming slices:");
+      (void) fflush(stderr);
+   }
 
 
-   FREE1(status, data1); 
-   FREE1(status, data2); 
-   FREE1(status, data3); 
-   FREE(in_slice1);
-   FREE(in_slice2);
-   FREE(in_slice3);
-   FREE(out_data);
-
-
-   status = close_file(ifd1);
-   status = close_file(ifd2);
-   status = close_file(ifd3);
-   status = close_file(ofd);
-
-   FREE1(status, fdata);
-
-   return(status);
+   /* Copy the start vector */
+   for (idim=0; idim < ifp->ndims; idim++)
+     out_start[idim] = in_start[idim];
    
+   /* Loop over slices */
+   for (islice=0; islice < nslice; islice++) {
+     
+     /* Print log message */
+     if (verbose) {
+       (void) fprintf(stderr, ".");
+       (void) fflush(stderr);
+     }
+     
+     /* Read in one slice from each volume */
+     in_start[slice_dim] = islice;
+     in_count[slice_dim] = 1;
+     
+     (void) miicv_get(in_vol1->file->icvid, in_start, in_count, in_vol1->slice->data); 
+     (void) miicv_get(in_vol2->file->icvid, in_start, in_count, in_vol2->slice->data); 
+     (void) miicv_get(in_vol3->file->icvid, in_start, in_count, in_vol3->slice->data); 
+     
+     /* Set slice number in out_start */
+     out_start[slice_index] = islice;
+     
+     /* Get the slice */
+     
+     get_mag_slice(out_vol->slice, in_vol1->slice, in_vol2->slice, in_vol3->slice, 
+		   &minimum, &maximum);
+     
+     /* Update global max and min */
+     if (maximum > valid_range[1]) valid_range[1] = maximum;
+     if (minimum > valid_range[0]) valid_range[0] = minimum;
+     
+     /* Write the max, min and slice */
+     (void) mivarput1(ofp->mincid, ofp->maxid, 
+		      mitranslate_coords(ofp->mincid, 
+					 ofp->imgid, out_start,
+					 ofp->maxid, mm_start),
+		      NC_DOUBLE, NULL, &maximum);
+     (void) mivarput1(ofp->mincid, ofp->minid, 
+		      mitranslate_coords(ofp->mincid, 
+					 ofp->imgid, out_start,
+					 ofp->minid, mm_start),
+		      NC_DOUBLE, NULL, &minimum);
+     (void) miicv_put(ofp->icvid, out_start, out_count,
+		      out_vol->slice->data);
+     
+   }    /* End loop over slices */
+   
+   
+   /* Print end of log message */
+   if (verbose) {
+      (void) fprintf(stderr, "Done\n");
+      (void) fflush(stderr);
+   }
+
+   /* If output volume is floating point, write out global max and min */
+   if ((ofp->datatype == NC_FLOAT) || (ofp->datatype == NC_DOUBLE)) {
+      (void) ncattput(ofp->mincid, ofp->imgid, MIvalid_range, 
+                      NC_DOUBLE, 2, valid_range);
+   }
+
+}
+
+
+/* ----------------------------- MNI Header -----------------------------------
+@NAME       : get_mag_slice
+@INPUT      : slice_dx - slice data struct contains partial dirivitive in x dir
+              slice_dy - slice data struct contains partial dirivitive in y dir
+	      slice_dz - slice data struct contains partial dirivitive in z dir
+@OUTPUT     : result - slice data struct contains new slice
+              minimum - slice minimum (excluding data from outside volume)
+              maximum - slice maximum (excluding data from outside volume)
+@RETURNS    : (none)
+@DESCRIPTION: result = sqrt( dx^2 + dy^2 + dz^2) for each pixel.
+@METHOD     : 
+@GLOBALS    : 
+@CALLS      : 
+@CREATED    : Tue Jun 29 10:46:01 EST 1993 (louis collins)
+@MODIFIED   : 
+---------------------------------------------------------------------------- */
+public void get_mag_slice(Slice_Data *result,
+			  Slice_Data *slice_dx,
+			  Slice_Data *slice_dy,
+			  Slice_Data *slice_dz,
+			  double *minimum, double *maximum)
+{
+   double *dptr;
+   double *dptr1;
+   double *dptr2;
+   double *dptr3;
+   long irow, icol;
+   
+   /* Get slice and volume pointers */
+   
+   dptr  = result->data;
+   dptr1 = slice_dx->data;
+   dptr2 = slice_dy->data;
+   dptr3 = slice_dz->data;
+
+   *maximum = -DBL_MAX;
+   *minimum =  DBL_MAX;
+
+   for (irow=0; irow < result->size[0]; irow++) {   /* Loop over rows of slice */
+     
+     for (icol=0; icol < result->size[1]; icol++) {      /* Loop over columns */
+       
+       *dptr = sqrt( (*dptr1 * *dptr1) + (*dptr2 * *dptr2) + (*dptr3 * *dptr3) );
+
+       if (*dptr > *maximum) *maximum = *dptr;
+       if (*dptr < *minimum) *minimum = *dptr;
+
+       dptr++;
+       dptr1++;
+       dptr2++;
+       dptr3++;
+       
+     }     /* Loop over columns */
+   }        /* Loop over rows */
+   
+   if ((*maximum == -DBL_MAX) && (*minimum ==  DBL_MAX)) {
+     *minimum = 0.0;
+     *maximum = SMALL_VALUE;
+   }
+   else if (*maximum <= *minimum) {
+     if (*minimum == 0.0) 
+       *maximum = SMALL_VALUE;
+     else if (*minimum < 0.0)
+       *maximum = 0.0;
+     else
+       *maximum = 2.0 * (*minimum);
+   }
+
 }
 

@@ -6,6 +6,11 @@
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
+#ifndef public
+   #define public
+   #define private static
+#endif
+
 public void  muli_vects(float *r, float *s1, float *s2, int n);
 public int   next_power_of_two(int x);
 public float normal_dist(float c, float fwhm, float mu, float x);

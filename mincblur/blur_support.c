@@ -6,6 +6,12 @@
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
+#include <math.h>
+#include <stdio.h>
+
+#define public
+#define private static
+#define PI 3.1415927
 
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : muli_vects
@@ -191,7 +197,7 @@ public make_kernel(float *kern, float vsize, float fwhm, int size)
   for ( k = -size/2; k<size/2; ++k) {
     kindex = ((k + size) % size)*2 +1;
     kern[kindex] = normal_dist(1.0,fwhm,0.0,(float)(vsize*k));
-    sum += ABS(kern[kindex]);	    
+    sum += kern[kindex]>0.0 ? kern[kindex] : -kern[kindex];
   }
 
   

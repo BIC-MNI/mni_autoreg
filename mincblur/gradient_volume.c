@@ -19,7 +19,7 @@
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 #include <def_mni.h>
-#include <volume_support.h>
+#include <blur_support.h>
 #include <recipes.h>
 
 
@@ -76,9 +76,14 @@ public Status gradient3D_volume(FILE *ifd,
   Real
     steps[3];			/* size of voxel step from center to center in x,y,z */
 
+  Minc_file
+    minc_fp;
+
   /*---------------------------------------------------------------------------------*/
   /*             start by setting up the raw data.                                   */
   /*---------------------------------------------------------------------------------*/
+
+
 
   get_volume_sizes(data, sizes);          /* rows,cols,slices */
   get_volume_separations(data, steps);
@@ -99,14 +104,12 @@ public Status gradient3D_volume(FILE *ifd,
   status = io_binary_data(ifd,READ_FILE, fdata, sizeof(float), total_voxels);
 
 
-
-
   /*--------------------------------------------------------------------------------------*/
   /*                get ready to start up the transformation.                             */
   /*--------------------------------------------------------------------------------------*/
   
   initialize_progress_report( &progress, FALSE, sizes[Z] + sizes[Z] + sizes[X] + 1,
-			     "Blurring volume" );
+			     "Gradient volume" );
 
 
   /* note data is stored by rows (along x), then by cols (along y) then slices (along z) */
@@ -174,6 +177,7 @@ public Status gradient3D_volume(FILE *ifd,
 	if (max_val<*f_ptr) max_val = *f_ptr;
 	if (min_val>*f_ptr) min_val = *f_ptr;
 
+
 	f_ptr++;
       }
       
@@ -186,37 +190,64 @@ public Status gradient3D_volume(FILE *ifd,
   free_vector(dat_vecto2, 0,2*array_size_pow2+1); 
   free_vector(kern      , 0,2*array_size_pow2+1); 
     
-/*
- *
- *  FINISH THIS FILE WRITE:
- *
- *
-*/
 
   f_ptr = fdata;
   
-  out_data->fp_min = min_val;
-  out_data->fp_max = max_val;
-  
-  printf ("dx: min = %f, max = %f\n",min_val, max_val);
-  
-  printf("Making byte volume..." );
-  for (i=0; i < total_voxels; ++i) {
-    
-    *c_ptr = get_uchar_DATA(*f_ptr,out_data);
-    
-      c_ptr++;
-    f_ptr++;
-    
+  data->value_translation = min_val;
+
+  switch( data->data_type )  {  
+  case UNSIGNED_BYTE: 
+    data->value_scale       = (max_val - min_val) / ((1<<8)-1.0); 
+    break;  
+  case SIGNED_BYTE:  
+    data->value_scale       = (max_val - min_val) / (1<<7) ;
+    break;  
+  case UNSIGNED_SHORT:  
+    data->value_scale       = (max_val - min_val) / ((1<<16)-1.0); 
+    break;  
+  case SIGNED_SHORT:  
+    data->value_scale       = (max_val - min_val) / (1<<15) ;
+    break;  
+  case UNSIGNED_LONG:  
+    data->value_scale       = (max_val - min_val) / ((1<<32)-1.0) ;
+    break;  
+  case SIGNED_LONG:  
+    data->value_scale       = (max_val - min_val) / ((1<<31)-1.0) ;
+    break;  
+  case FLOAT:  
+    data->value_translation = 0.0;
+    data->value_scale       = 1.0;
+   break;  
+  case DOUBLE:  
+    data->value_translation = 0.0;
+    data->value_scale       = 1.0;
+    break;  
   }
-  printf("done\n");
   
-  
-  sprintf(full_outfilename,"%s_dx.iff",outfile);
-  status = write_new_iff_file(out_data,full_outfilename);
-  if (status != OK) 
-    PRINT("problems writing dx gradient data...");
-  
+  printf("Making byte volume dx..." );
+  for_less( slice, 0, sizes[Z])
+    for_less( row, 0, sizes[Y])
+      for_less( col, 0, sizes[X]) {
+	tmp = CONVERT_VALUE_TO_VOXEL(data, *f_ptr);
+ 	SET_VOXEL_3D( data, col, row, slice, tmp);
+	*f_ptr++;
+      }
+
+
+  sprintf(full_outfilename,"%s_dx.mnc",outfile);
+
+  minc_fp = initialize_minc_output(full_outfilename, 3, data->dimension_names, sizes, 
+				   data->nc_data_type, FALSE, (Real)min_val, (Real)max_val,
+				   &(data->voxel_to_world_transform));
+
+  status = output_minc_volume(minc_fp, data);
+
+  if (status == OK)
+    close_minc_output(minc_fp);
+  else
+    print_error("problems writing dx gradient data..."__FILE__, __LINE__, 0, 0,0,0,0);
+
+
   
   /*--------------------------------------------------------------------------------------*/
   /*                 now do cols - i.e. the d/dy volume                                   */
@@ -305,37 +336,61 @@ public Status gradient3D_volume(FILE *ifd,
   free_vector(dat_vecto2, 0,2*array_size_pow2+1); 
   free_vector(kern      , 0,2*array_size_pow2+1); 
   
-/*
- *
- *  FINISH THIS FILE WRITE:
- *
- *
-*/
-
   f_ptr = fdata;
-  c_ptr = out_data->voxels;
   
-  out_data->fp_min = min_val;
-  out_data->fp_max = max_val;
-  
-  printf ("dy: min = %f, max = %f\n",min_val, max_val);
-  
-  printf("Making byte volume..." );
-  for (i=0; i < total_voxels; ++i) {
-    
-    *c_ptr = get_uchar_DATA(*f_ptr,out_data);
-    
-    c_ptr++;
-    f_ptr++;
-    
+  data->value_translation = min_val;
+
+  switch( data->data_type )  {  
+  case UNSIGNED_BYTE: 
+    data->value_scale       = (max_val - min_val) / ((1<<8)-1.0); 
+    break;  
+  case SIGNED_BYTE:  
+    data->value_scale       = (max_val - min_val) / (1<<7) ;
+    break;  
+  case UNSIGNED_SHORT:  
+    data->value_scale       = (max_val - min_val) / ((1<<16)-1.0); 
+    break;  
+  case SIGNED_SHORT:  
+    data->value_scale       = (max_val - min_val) / (1<<15) ;
+    break;  
+  case UNSIGNED_LONG:  
+    data->value_scale       = (max_val - min_val) / ((1<<32)-1.0) ;
+    break;  
+  case SIGNED_LONG:  
+    data->value_scale       = (max_val - min_val) / ((1<<31)-1.0) ;
+    break;  
+  case FLOAT:  
+    data->value_translation = 0.0;
+    data->value_scale       = 1.0;
+   break;  
+  case DOUBLE:  
+    data->value_translation = 0.0;
+    data->value_scale       = 1.0;
+    break;  
   }
-  printf("done\n");
   
-  sprintf(full_outfilename,"%s_dy.iff",outfile);
-   status = write_new_iff_file(out_data,full_outfilename);
-  if (status != OK) 
-    PRINT("problems writing dy gradient data...");
-  
+  printf("Making byte volume dy..." );
+  for_less( slice, 0, sizes[Z])
+    for_less( row, 0, sizes[Y])
+      for_less( col, 0, sizes[X]) {
+	tmp = CONVERT_VALUE_TO_VOXEL(data, *f_ptr);
+ 	SET_VOXEL_3D( data, col, row, slice, tmp);
+	*f_ptr++;
+      }
+
+
+  sprintf(full_outfilename,"%s_dy.mnc",outfile);
+
+  minc_fp = initialize_minc_output(full_outfilename, 3, data->dimension_names, sizes, 
+				   data->nc_data_type, FALSE, (Real)min_val, (Real)max_val,
+				   &(data->voxel_to_world_transform));
+
+  status = output_minc_volume(minc_fp, data);
+
+  if (status == OK)
+    close_minc_output(minc_fp);
+  else
+    print_error("problems writing dy gradient data..."__FILE__, __LINE__, 0, 0,0,0,0);
   
   
   /*--------------------------------------------------------------------------------------*/
@@ -380,34 +435,31 @@ public Status gradient3D_volume(FILE *ifd,
       
       for (row = 0; row < sizes[Y]; row++) {           /* for each row   */
 	
-	if (data->bytes_per_voxel==1) {
-	  /*	    f_ptr = fdata + col*col_size + row*sizeof(float); */
-	  f_ptr = fdata + col*col_size + row;
+	f_ptr = fdata + col*col_size + row;
+	
+	memset(dat_vector,0,(2*array_size_pow2+1)*sizeof(float));
+	
+	for (slice=0; slice< sizes[Z]; slice++) {        /* extract the slice vector */
+	  dat_vector[1 +2*(slice+data_offset) ] = *f_ptr;
+	  f_ptr += slice_size;
+	}
+	
+	four1(dat_vector,array_size_pow2,1);
+	muli_vects(dat_vecto2,dat_vector,kern,array_size_pow2);
+	four1(dat_vecto2,array_size_pow2,-1);
+	
+	f_ptr = fdata + col*col_size + row;
+	
+	for (slice=0; slice< sizes[Z]; slice++) {        /* put the vector back */
 	  
-	  memset(dat_vector,0,(2*array_size_pow2+1)*sizeof(float));
+	  vindex = 1 + 2*(slice+data_offset);
 	  
-	  for (slice=0; slice< sizes[Z]; slice++) {        /* extract the slice vector */
-	    dat_vector[1 +2*(slice+data_offset) ] = *f_ptr;
-	    f_ptr += slice_size;
-	  }
+	  *f_ptr = dat_vecto2[vindex]/array_size_pow2;
 	  
-	  four1(dat_vector,array_size_pow2,1);
-	  muli_vects(dat_vecto2,dat_vector,kern,array_size_pow2);
-	  four1(dat_vecto2,array_size_pow2,-1);
+	  if (max_val<*f_ptr) max_val = *f_ptr;
+	  if (min_val>*f_ptr) min_val = *f_ptr;
 	  
-	  f_ptr = fdata + col*col_size + row;
-	  
-	  for (slice=0; slice< sizes[Z]; slice++) {        /* put the vector back */
-	    
-	    vindex = 1 + 2*(slice+data_offset);
-	    
-	    *f_ptr = dat_vecto2[vindex]/array_size_pow2;
-	    
-	    if (max_val<*f_ptr) max_val = *f_ptr;
-	    if (min_val>*f_ptr) min_val = *f_ptr;
-	    
-	    f_ptr += slice_size;
-	  }
+	  f_ptr += slice_size;
 	}
 	
 	
@@ -438,44 +490,61 @@ public Status gradient3D_volume(FILE *ifd,
   
 /* set up the correct info to copy the data back out in mnc */
 
+  f_ptr = fdata;
+  
+  data->value_translation = min_val;
 
-/*
-  *
-  *
-  *   FINISH THESE WRITE ROUTINES:
-  *
-  *
-  *
-*/
+  switch( data->data_type )  {  
+  case UNSIGNED_BYTE: 
+    data->value_scale       = (max_val - min_val) / ((1<<8)-1.0); 
+    break;  
+  case SIGNED_BYTE:  
+    data->value_scale       = (max_val - min_val) / (1<<7) ;
+    break;  
+  case UNSIGNED_SHORT:  
+    data->value_scale       = (max_val - min_val) / ((1<<16)-1.0); 
+    break;  
+  case SIGNED_SHORT:  
+    data->value_scale       = (max_val - min_val) / (1<<15) ;
+    break;  
+  case UNSIGNED_LONG:  
+    data->value_scale       = (max_val - min_val) / ((1<<32)-1.0) ;
+    break;  
+  case SIGNED_LONG:  
+    data->value_scale       = (max_val - min_val) / ((1<<31)-1.0) ;
+    break;  
+  case FLOAT:  
+    data->value_translation = 0.0;
+    data->value_scale       = 1.0;
+   break;  
+  case DOUBLE:  
+    data->value_translation = 0.0;
+    data->value_scale       = 1.0;
+    break;  
+  }
+  
+  printf("Making byte volume dz..." );
+  for_less( slice, 0, sizes[Z])
+    for_less( row, 0, sizes[Y])
+      for_less( col, 0, sizes[X]) {
+	tmp = CONVERT_VALUE_TO_VOXEL(data, *f_ptr);
+ 	SET_VOXEL_3D( data, col, row, slice, tmp);
+	*f_ptr++;
+      }
 
-   f_ptr = fdata;
-   c_ptr = out_data->voxels;
 
-   out_data->fp_min = min_val;
-   out_data->fp_max = max_val;
+  sprintf(full_outfilename,"%s_dz.mnc",outfile);
 
-   printf ("dz: min = %f, max = %f\n",min_val, max_val);
+  minc_fp = initialize_minc_output(full_outfilename, 3, data->dimension_names, sizes, 
+				   data->nc_data_type, FALSE, (Real)min_val, (Real)max_val,
+				   &(data->voxel_to_world_transform));
 
-   printf("Making byte volume..." );
-   for (i=0; i < total_voxels; ++i) {
+  status = output_minc_volume(minc_fp, data);
 
-      if (ndim>2)
-	 *c_ptr = get_uchar_DATA(*f_ptr,out_data);
-      else
-	 *c_ptr = get_uchar_DATA(0.0,out_data);
-	 
-
-      c_ptr++;
-      f_ptr++;
-
-   }
-   printf("done\n");
-
-   sprintf(full_outfilename,"%s_dz.iff",outfile);
-   status = write_new_iff_file(out_data,full_outfilename);
-   if (status != OK) 
-      PRINT("problems writing dz gradient data...");
-
+  if (status == OK)
+    close_minc_output(minc_fp);
+  else
+    print_error("problems writing dz gradient data..."__FILE__, __LINE__, 0, 0,0,0,0);
 
   terminate_progress_report( &progress );
 
