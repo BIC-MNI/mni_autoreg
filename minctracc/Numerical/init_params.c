@@ -17,14 +17,17 @@
 @CREATED    : Thu May 27 16:50:50 EST 1993
                   
 @MODIFIED   :  $Log: init_params.c,v $
-@MODIFIED   :  Revision 1.13  1995-09-11 12:37:16  louis
-@MODIFIED   :  changes to init_transformation(): I not ensure that the principal
-@MODIFIED   :  axes returned from cov_to_praxes form a righ-handed coordinate sytem.
+@MODIFIED   :  Revision 1.14  1996-02-22 09:47:08  louis
+@MODIFIED   :  Fixed loop limits for i and j when norming the principal axes (line 613)
 @MODIFIED   :
-@MODIFIED   :  All refs to numerical recipes routines have been replaced.
-@MODIFIED   :
-@MODIFIED   :  this is an updated working version - corresponds to mni_reg-0.1g
-@MODIFIED   :
+ * Revision 1.13  1995/09/11  12:37:16  louis
+ * changes to init_transformation(): I not ensure that the principal
+ * axes returned from cov_to_praxes form a righ-handed coordinate sytem.
+ *
+ * All refs to numerical recipes routines have been replaced.
+ *
+ * this is an updated working version - corresponds to mni_reg-0.1g
+ *
  * Revision 1.12  1995/03/17  10:59:35  louis
  * corrected a memory bug - I was freeing two centroid vectors that were
  * not supposed to be freed in init_transformation.  These variables are
@@ -64,7 +67,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 1.13 1995-09-11 12:37:16 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 1.14 1996-02-22 09:47:08 louis Exp $";
 #endif
 
 
@@ -545,7 +548,7 @@ private  BOOLEAN init_transformation(
   if (flags->estimate_rots || flags->estimate_scale) {
 
 				/* get the principal axes, returned in
-				   cols of print_axes{1,2} */
+				   cols of prin_axes{1,2} */
 
     cov_to_praxes(3, cov1, prin_axes1);   
     cov_to_praxes(3, cov2, prin_axes2);
@@ -561,7 +564,6 @@ private  BOOLEAN init_transformation(
 	print ("\n\n");
       }
     }
-
     
 				/* make sure that both sets of
 				   principal axes represent
@@ -612,17 +614,17 @@ private  BOOLEAN init_transformation(
     
     
 				/* normalize the principal axes lengths */
-    for (j=1; i<=3; ++i) {	
+    for (j=1; j<=3; ++j) {	
       norm = sqrt( prin_axes1[1][j]*prin_axes1[1][j] + 
 		   prin_axes1[2][j]*prin_axes1[2][j] + 
 		   prin_axes1[3][j]*prin_axes1[3][j]);
-      for (i=1; j<=3; ++j)
+      for (i=1; i<=3; ++i)
 	R1[i][j] /= norm;
       
       norm = sqrt( prin_axes2[1][j]*prin_axes2[1][j] + 
 		   prin_axes2[2][j]*prin_axes2[2][j] + 
 		   prin_axes2[3][j]*prin_axes2[3][j]);
-      for (i=1; j<=3; ++j)
+      for (i=1; i<=3; ++i)
 	R2[i][j] /= norm;
     }
     
@@ -632,7 +634,7 @@ private  BOOLEAN init_transformation(
     
     
     if (verbose > 1) {
-      print ("r1:                   r2:                  r:\n");
+      print ("r1:                         r2:                        r:\n");
       for (i=1; i<=3; i++) {
 	for (j=1; j<=3; j++)
 	  print ("%8.3f ", R1[i][j]);
