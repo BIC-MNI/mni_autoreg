@@ -8,7 +8,7 @@ static char *default_dim_names[N_DIMENSIONS] =
 char *prog_name;
 
 
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
   int 
     i,j,k, p,r,s, flag,

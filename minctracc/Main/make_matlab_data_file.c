@@ -23,7 +23,10 @@
 
 @CREATED    : Mon Oct  4 13:06:17 EST 1993 Louis
 @MODIFIED   : $Log: make_matlab_data_file.c,v $
-@MODIFIED   : Revision 96.1  1999-10-25 19:52:18  louis
+@MODIFIED   : Revision 96.2  2000-02-15 19:02:07  stever
+@MODIFIED   : Add tests for param2xfm, minctracc -linear.
+@MODIFIED   :
+@MODIFIED   : Revision 96.1  1999/10/25 19:52:18  louis
 @MODIFIED   : final checkin before switch to CVS
 @MODIFIED   :
  * Revision 96.0  1996/08/21  18:21:51  louis
@@ -60,7 +63,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/make_matlab_data_file.c,v 96.1 1999-10-25 19:52:18 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/make_matlab_data_file.c,v 96.2 2000-02-15 19:02:07 stever Exp $";
 #endif
 
 
@@ -216,9 +219,6 @@ public void make_matlab_data_file(Volume d1,
       globals->trans_info.shears[i] = 0.0;
     }
     break;
-				/* collapsed because PROCRUSTES and LSQ7 are 
-				   the same */
-  case TRANS_PROCRUSTES: 
   case TRANS_LSQ7: 
     for_less(i,7,12) globals->trans_info.weights[i] = 0.0;
     for_less(i,0,3) {

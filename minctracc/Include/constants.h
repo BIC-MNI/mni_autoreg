@@ -21,7 +21,6 @@
 #define ERROR_STATUS    1
 
 
-#define TRANS_PROCRUSTES  0
 #define TRANS_LSQ         1
 #define TRANS_LSQ3        2
 #define TRANS_LSQ6        3

@@ -1,0 +1,23 @@
+exec > minctracc-linear.log 2>&1
+
+echo
+echo '***** Test 1 *****'
+echo
+minctracc -debug -clobber -lsq3 ellipse0.mnc ellipse1.mnc output.xfm \
+	&& cmpxfm -linear_tolerance 0.0001 -translation_tolerance 0.0001 \
+	   output.xfm test1.xfm
+
+echo
+echo '***** Test 2 *****'
+echo
+minctracc -debug -clobber -lsq6 ellipse0.mnc ellipse2.mnc output.xfm \
+	&& cmpxfm -linear_tolerance 0.001 -translation_tolerance 0.1 \
+	   output.xfm test2.xfm
+
+echo
+echo '***** Test 3 *****'
+echo
+minctracc -debug -clobber -lsq7 ellipse0.mnc ellipse3.mnc output.xfm \
+	&& cmpxfm -linear_tolerance 0.1 -translation_tolerance 0.8 \
+	   output.xfm test3.xfm
+

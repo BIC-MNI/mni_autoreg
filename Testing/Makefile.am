@@ -1,6 +1,68 @@
+# Run some checks.  
+
+# The checks use programs built elsewhere.  One must run
+# 'make check' from the top-level directory, to ensure these are built.
+minctraccdir = $(top_builddir)/minctracc/Main
+extradir = $(top_builddir)/minctracc/Extra_progs
+built_PATH = $(minctraccdir):$(extradir)
+
+# The tests are shell scripts, so the environment ends with the
+# path to the shell interpreter.
+TESTS_ENVIRONMENT = PATH=$(built_PATH):$(PATH) $(SHELL)
+
+TESTS = minctracc-linear
+
+EXTRA_DIST = $(TESTS)
+
+
+# Objects used in testing
+aux_testfiles = \
+	ellipse0.mnc \
+	ellipse1.mnc \
+	ellipse2.mnc \
+	ellipse3.mnc \
+	test1.xfm \
+	test2.xfm \
+	test3.xfm
+
+$(TESTS): $(aux_testfiles)
+CLEANFILES = $(aux_testfiles)
+
+ellipse0.mnc: Makefile.am
+	../make_phantom/make_phantom -clobber -ellipse \
+	-nele 64 64 64 -step 2 2 2 -start -64 -64 -64 \
+	-center 0 0 0 $@
+
+test1.xfm: Makefile.am
+	$(extradir)/param2xfm -clobber -translation 10 20 50 $@
+
+# This could be done by resampling ellipse0, or simply
+# by making a phantom with a different centre.
+ellipse1.mnc: Makefile.am
+	../make_phantom/make_phantom -clobber -ellipse \
+	-nele 64 64 64 -step 2 2 2 -start -64 -64 -64 \
+	-center 10 20 50 $@
+
+test2.xfm: Makefile.am
+	$(extradir)/param2xfm -clobber -translation 5 2 -6 -rotation -4 7 10 $@
+
+ellipse2.mnc: Makefile.am ellipse0.mnc test2.xfm
+	mincresample -clobber -transformation test2.xfm \
+	-like ellipse0.mnc ellipse0.mnc $@
+
+test3.xfm: Makefile.am
+	$(extradir)/param2xfm -clobber -translation 5 2 -6 -rotation -4 7 10 \
+	-scales 1.7 1.7 1.7 $@
+
+ellipse3.mnc: Makefile.am ellipse0.mnc test3.xfm
+	mincresample -clobber -transformation test3.xfm \
+	-like ellipse0.mnc ellipse0.mnc $@
+
+
+
 # --------------------------------------------------------------------
 # 
-# Makefile to build tests
+# (old) Makefile to build tests
 #
 TEST_LIST = \
 	param2xfm.test \
@@ -15,11 +77,11 @@ TEST_LIST = \
 
 
 
-check-local: banner $(TEST_LIST)
+old-checks: banner $(TEST_LIST)
 	@echo "Tests completed successfully."
 
 clean-local:
-	rm -f *.test *.act *.mnc *.xfm *reals
+	rm -f *.test *.act *.mnc *.xfm
 
 # -------banner message------------------
 banner:

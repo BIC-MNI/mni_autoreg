@@ -1,3 +1,20 @@
+2000-02-15  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* Testing/Makefile.am (TESTS): new set of automated tests; try
+	to recover a known (linear) transformation, with some tolerance for
+	roundoff.
+
+	* NEWS: note procrustes bug fix.
+
+2000-02-14  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* minctracc/Main/Makefile.am (LDADD):
+	* minctracc/Extra_progs/Makefile.am (LDADD):
+	* mincblur/Makefile.am (LDADD): 
+	* mincbbox/Makefile.am (LDADD): 
+	* make_phantom/Makefile.am (LDADD): remove explicit -lvolume_io,
+	etc; these are already included in @LIBDIRS@
+
 2000-02-09  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* INSTALL: removed.  MNI_AutoReg now supports all the 

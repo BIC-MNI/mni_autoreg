@@ -1,11 +1,12 @@
 CHANGES to the MNI_AutoReg package...
 
-
 Release 0.98h
 -------------
 
 * Build process revamped: supports non source-directory builds; no
-  environment variables required to specify library locations.
+  environment variables are required to specify library locations.
+* Fixed bug that caused PROCRUSTES transformations to optimize only
+  the x-scale, rather than a global scale (as LSQ7 does).
 
 
 Release 0.98g

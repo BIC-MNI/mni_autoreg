@@ -1,11 +1,9 @@
 INCLUDES = -I$(srcdir)/../Include -I$(top_srcdir)/Proglib @INCLUDEDIRS@
-LDADD = \
-	../Optimize/libminctracc_optimize.a \
+LDADD = ../Optimize/libminctracc_optimize.a \
 	../Numerical/libminctracc_numerical.a \
 	../Volume/libminctracc_volume.a \
 	../../Proglib/libProglib.a \
-	@LIBDIRS@ \
-	-lvolume_io -lminc -lnetcdf -lm
+	@LIBDIRS@ -lm
 
 bin_PROGRAMS = \
 	check_scale \
@@ -16,7 +14,14 @@ bin_PROGRAMS = \
 	xfm2param \
 	zscore_vol
 
-EXTRA_DIST = #$(oddities)
+check_PROGRAMS = cmpxfm
+
+EXTRA_DIST = $(TESTS)
+CLEANFILES = test1.xfm test2.xfm
+
+# The tests are all shell scripts.
+TESTS_ENVIRONMENT = $(SHELL)
+TESTS = param2xfm.tests
 
 oddities = \
 	avg_voxel_vol.c \

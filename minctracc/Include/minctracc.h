@@ -17,7 +17,10 @@
 
 @CREATED    : Thu May 20 14:20:21 EST 1993 Louis Collins
 @MODIFIED   : $Log: minctracc.h,v $
-@MODIFIED   : Revision 96.2  1999-10-25 19:52:16  louis
+@MODIFIED   : Revision 96.3  2000-02-15 19:02:06  stever
+@MODIFIED   : Add tests for param2xfm, minctracc -linear.
+@MODIFIED   :
+@MODIFIED   : Revision 96.2  1999/10/25 19:52:16  louis
 @MODIFIED   : final checkin before switch to CVS
 @MODIFIED   :
  * Revision 96.1  1997/11/03  19:52:55  louis
@@ -204,12 +207,12 @@ Arg_Data main_args = {
     2,				/*   use super sampling of deformation field  */
     FALSE,			/* use local smoothing       */
     TRUE,			/* use isotropic smoothing */
-    "",			/*   filename */
+    "",			        /*   filename */
     NULL,			/*   file_contents */
     0,                          /* buffer_length   */
     (General_transform *)NULL,	/*   General transform */
     (General_transform *)NULL,	/*   General transform copy of input */
-    TRANS_PROCRUSTES,		/*   default type      */
+    TRANS_LSQ7,		        /*   default type      */
     {-DBL_MAX, -DBL_MAX, -DBL_MAX},		/*   center            */
     {1.0, 1.0, 1.0},		/*   scale             */
     {0.0, 0.0, 0.0},		/*   shears            */

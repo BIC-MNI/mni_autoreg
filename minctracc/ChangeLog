@@ -1,3 +1,32 @@
+2000-02-15  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* Extra_progs/Makefile.am (TESTS): add param2xfm.tests.
+	(check_PROGRAMS): add cmpxfm.
+
+	* Extra_progs/param2xfm.tests: new.  Test param2xfm by comparing
+	output to known answer.
+
+	* Extra_progs/cmpxfm.c: new.  Compare two `linear' transforms; exit
+	with zero if they are identical to within a specified tolerance.
+
+	* Extra_progs/xcorr_vol.c (main): set return type to 'int'.
+
+2000-02-14  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* Include/constants.h (TRANS_LSQ): remove TRANS_PROCRUSTES define.
+	This set of transformations is supposed to be the same as LSQ7.
+	However, in a couple of places (Optimize/optimize.c) only
+	TRANS_LSQ7 was being checked for.  The result was that
+	PROCRUSTES's 7th parameter was the x-scale, rather than the global
+	scale.
+
+	* Optimize/optimize.c (optimize_linear_transformation, measure_fit): 
+	* Main/make_matlab_data_file.c (make_matlab_data_file): remove TRANS_PROCRUSTES case.
+
+	* Include/minctracc.h (main_args): default transform type is LSQ7.
+
+	* Optimize/optimize.c (in_limits): add inline qualifier.
+
 2000-02-07  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* Optimize/extras.c (report_time): 

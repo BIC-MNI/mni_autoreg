@@ -14,7 +14,10 @@
               express or implied warranty.
 
 @MODIFIED   : $Log: optimize.c,v $
-@MODIFIED   : Revision 96.2  1997-11-12 21:07:43  louis
+@MODIFIED   : Revision 96.3  2000-02-15 19:02:08  stever
+@MODIFIED   : Add tests for param2xfm, minctracc -linear.
+@MODIFIED   :
+@MODIFIED   : Revision 96.2  1997/11/12 21:07:43  louis
 @MODIFIED   : no changes, other than rcsid...
 @MODIFIED   :
  * Revision 96.1  1997/11/03  15:06:29  louis
@@ -111,7 +114,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 96.2 1997-11-12 21:07:43 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 96.3 2000-02-15 19:02:08 stever Exp $";
 #endif
 
 #include <config.h>
@@ -230,7 +233,7 @@ private void vector_to_parameters(double *trans,
   if (weights[11] != 0.0) { shears[2]= op_vector[i] * weights[11];     }
 }
 
-private BOOLEAN in_limits(double x,double lower,double upper)
+private BOOLEAN inline in_limits(double x,double lower,double upper)
 {
 
   if ( x>=lower && x <= upper ) 
@@ -736,9 +739,6 @@ public BOOLEAN optimize_linear_transformation(Volume d1,
       globals->trans_info.shears[i] = 0.0;
     }
     break;
-				/* collapsed because PROCRUSTES and LSQ7 are 
-				   the same */
-  case TRANS_PROCRUSTES:	
   case TRANS_LSQ7: 
     for_less(i,7,12) globals->trans_info.weights[i] = 0.0;
     for_less(i,0,3) {
@@ -991,12 +991,6 @@ public float measure_fit(Volume d1,
     for_less(i,6,12) globals->trans_info.weights[i] = 0.0;
     for_less(i,0,3) {
       globals->trans_info.scales[i] = 1.0;
-      globals->trans_info.shears[i] = 0.0;
-    }
-    break;
-  case TRANS_PROCRUSTES: 
-    for_less(i,7,12) globals->trans_info.weights[i] = 0.0;
-    for_less(i,0,3) {
       globals->trans_info.shears[i] = 0.0;
     }
     break;

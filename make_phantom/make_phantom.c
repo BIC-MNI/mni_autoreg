@@ -20,7 +20,10 @@
               express or implied warranty.
    @CREATED    : Wed Mar 16 20:20:50 EST 1994  Louis Collins
    @MODIFIED   : $Log: make_phantom.c,v $
-   @MODIFIED   : Revision 1.2  2000-02-02 20:10:13  stever
+   @MODIFIED   : Revision 1.3  2000-02-15 19:01:59  stever
+   @MODIFIED   : Add tests for param2xfm, minctracc -linear.
+   @MODIFIED   :
+   @MODIFIED   : Revision 1.2  2000/02/02 20:10:13  stever
    @MODIFIED   : * minctracc/Testing was a copy of Testing with one extra test only;
    @MODIFIED   :   folded the extra test into Testing, and removed minctracc/Testing
    @MODIFIED   : * minor source changes to placate GCC's -Wall option
@@ -48,7 +51,9 @@ void  set_min_max(Real *voxel,
 			  int *minz, int *maxz)
 {
   int x,y,z;
-  
+
+  /* If voxel[X] = 0.6, then *minx will be set to 1.
+     Is that correct, or do we want *minx = 0 ? */
   x = ROUND(voxel[X]);
   y = ROUND(voxel[Y]);
   z = ROUND(voxel[Z]);
@@ -144,11 +149,7 @@ public BOOLEAN is_inside_ellipse(Volume data, Real center[], Real r2[], int i, i
   for_less(m,0,3) coord[m] = center[m] - coord[m];
   for_less(m,0,3) coord[m] = coord[m]*coord[m] / r2[m];
   
-  if ( (coord[X] + coord[Y] + coord[Z]) <= 1.0000001 )  
-    return(TRUE);
-  else
-    return(FALSE);
-	
+  return (coord[X] + coord[Y] + coord[Z]) <= 1.0000001;
 }
 
 
@@ -164,7 +165,7 @@ int main (int argc, char *argv[] )
   Volume
     data;
   Real
-    fraction,zero, one, value,
+    fraction,zero, one,
     r2[3],
     coord[3],
     voxel[3];
@@ -231,12 +232,17 @@ int main (int argc, char *argv[] )
   set_volume_translation(data, voxel, start);
   alloc_volume_data(data);
 
+  zero = CONVERT_VALUE_TO_VOXEL(data, background);
+  one = CONVERT_VALUE_TO_VOXEL(data, fill_value);
+
+  if (debug) print ("zero: real = %f, voxel = %f\n", background, zero);
+  if (debug) print ("one: real = %f, voxel = %f\n", fill_value, one);
+
 
   /******************************************************************************/
   /*             write out background value                                     */
   /******************************************************************************/
 
-  zero = CONVERT_VALUE_TO_VOXEL(data, background);
   for_less(i,0,count[X])
     for_less(j,0,count[Y])
       for_less(k,0,count[Z]){
@@ -337,25 +343,14 @@ int main (int argc, char *argv[] )
 
 
   if (debug) print ("mins, maxs: %3d %3d %3d %3d %3d %3d\n", minx, maxx, miny, maxy, minz, maxz);
-  if (debug) print ("one = %f\n",one);
 
   if (object==RECTANGLE) {
     for_inclusive(i, minx, maxx)
       for_inclusive(j, miny, maxy)
 	for_inclusive(k, minz, maxz) {
-	  convert_3D_voxel_to_world(data, 
-				    (Real)i, (Real)j, (Real)k, 
-				    &coord[X], &coord[Y], &coord[Z]);
-	  value = fill_value;
-    
-	  one = CONVERT_VALUE_TO_VOXEL(data, value);
 	  SET_VOXEL_3D(data, i,j,k, one);
 	}
-  } 
-  else {			/* ellipsoid */
-
-    value = fill_value;
-    one = CONVERT_VALUE_TO_VOXEL(data, value);
+  } else {			/* ellipsoid */
 
     for_less(m,0,3) 
       r2[m] = width[m]*width[m]/4.0;
@@ -379,6 +374,7 @@ int main (int argc, char *argv[] )
 	    if (in1 || in2 || in3 || in4 || in5 || in6 || in7) {
 
 	      if (partial_flag) {
+		Real value;
 		fraction = partial_elliptical(data, center, r2, step, i,  j,  k);
 		fraction = fraction*edge_value;
 		value = CONVERT_VALUE_TO_VOXEL(data, fraction);

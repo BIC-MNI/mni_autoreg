@@ -1,13 +1,11 @@
 INCLUDES = -I$(srcdir)/../Include -I$(top_srcdir)/Proglib @INCLUDEDIRS@
 
-LDADD = \
-	../Files/libminctracc_files.a \
+LDADD = ../Files/libminctracc_files.a \
 	../Optimize/libminctracc_optimize.a \
 	../Numerical/libminctracc_numerical.a \
 	../Volume/libminctracc_volume.a \
 	../../Proglib/libProglib.a \
-	@LIBDIRS@ \
-	-lvolume_io -lminc -lnetcdf -lm
+	@LIBDIRS@ -lm
 
 bin_PROGRAMS = minctracc
 minctracc_SOURCES = \
