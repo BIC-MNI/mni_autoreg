@@ -1,5 +1,8 @@
 2000-05-12  Steve ROBBINS  <stever@bic.mni.mcgill.ca>
 
+	* Testing/Makefile.am (ellipse4.mnc): make sure we look
+	in $(srcdir) for tps.xfm.
+
 	* INSTALL.quick: point to README.CVS.
 
 	* README: note current version; add pointers to INSTALL.quick and

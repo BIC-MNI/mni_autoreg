@@ -68,7 +68,7 @@ ellipse3.mnc: Makefile.am ellipse0.mnc test3.xfm
 	-like ellipse0.mnc ellipse0.mnc $@
 
 ellipse4.mnc: Makefile.am ellipse0.mnc
-	mincresample -clobber -transformation tps.xfm \
+	mincresample -clobber -transformation $(srcdir)/tps.xfm \
 	-like ellipse0.mnc ellipse0.mnc $@
 
 ellipse0_dxyz.mnc: ellipse0.mnc
