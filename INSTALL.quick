@@ -37,19 +37,27 @@ for example using
 	PERL=/usr/strange/bin/perl ./configure ...
 
 If configure does not find the required libraries, give optional flags
-on the configure command line.  The simplest case is when all the
-optional stuff is in the same hierarchy: the --prefix option suffices.
-At the MNI, for instance, we keep home-grown software under
-/usr/local/mni, so here we run `configure' like this:
+on the configure command line.  This is relatively easy to do if
+everything has been installed into a common hierarchy.  Here at the
+MNI, we put all the libs into /usr/local/mni/lib, and their associated
+include files into /usr/local/mni/include.  In this case, mni_autoreg can
+be configured using
 
-         ./configure --prefix=/usr/local/mni
+        ./configure --prefix=/usr/local/mni --with-build-path=/usr/local/mni
 
-and the MINC and Volume_IO files will be found in various directories
-under /usr/local/mni.  (NetCDF is *not* home-grown, so we keep it
-under /usr/local.  Luckily, GCC looks in /usr/local by default.)
+If the required libraries are in several different hierarchies, no problem:
+the argument to build path is a colon-separated list of locations to check.
+For example, if you need to look in /usr/local/lib as well as 
+/usr/local/mni/lib, then
 
-If the prefix is not enough, you can specify the location of the libraries
-and their headers using configure's --with-* options, such as
+        ./configure --with-build-path=/usr/local/mni:/usr/local
+
+will do the trick.
+
+If you have a more complicated setup, and, e.g. need to choose among
+multiple installed versions of some library (it happens!), you can
+specify the location of the libraries and their headers using
+configure's --with-* options, such as
 
 	--with-netcdf-library=/usr/strange/lib
   	--with-netcdf-includes=/usr/strange/include

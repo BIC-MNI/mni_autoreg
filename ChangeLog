@@ -1,3 +1,7 @@
+2001-01-28  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* INSTALL.quick: Updated to account for changes to configure.
+
 2001-01-25  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* configure.in: Do not automatically add lib and include
