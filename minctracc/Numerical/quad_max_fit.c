@@ -15,9 +15,17 @@
 
 @CREATED    : Mon May 22 14:14:50 MET DST 1995
 @MODIFIED   : $Log: quad_max_fit.c,v $
-@MODIFIED   : Revision 1.1  1995-06-12 14:30:23  louis
-@MODIFIED   : Initial revision
+@MODIFIED   : Revision 1.2  1995-08-21 11:31:14  louis
+@MODIFIED   : This version of the quadratic fit seems to work reasonably well in 3D
+@MODIFIED   : and compares favorably to the simplex optimization for hoge/jacob fitting
+@MODIFIED   : at 16mm.
 @MODIFIED   :
+@MODIFIED   : The use of quadratic fitting is twice as fast as simplex (6.4 vs 15.2 min)
+@MODIFIED   : for the 16mm fit (again with {hoge,jacob}_16_dxyz.mnc and -step 8 8 8.
+@MODIFIED   :
+ * Revision 1.1  1995/06/12  14:30:23  louis
+ * Initial revision
+ *
 
 ---------------------------------------------------------------------------- */
 
@@ -65,15 +73,22 @@ public BOOLEAN return_3D_disp_from_quad_fit(Real r[3][3][3],
 {
   deriv_3D_struct 
     d;			/* the 1st and second order derivatives */
+  deriv_2D_struct 
+    d2;
   Real
+    du,dv,dw,
     inv[3][3],A[3][3],
     a[3][3],
     detA;
   int 
+    try_2d_def,
+    count_u, count_v, count_w,
     i,j,k,return_flag;
+  char
+    res;
 
+  try_2d_def = FALSE;
   *dispu = *dispv = *dispw = 0.0;
-
   estimate_3D_derivatives(r,&d);
 
   /*    /          \    the values that form the matrix A come from the  */
@@ -83,9 +98,9 @@ public BOOLEAN return_3D_disp_from_quad_fit(Real r[3][3][3],
   /*    \          /                                                     */
 
 
+
   if ( !negative_3D_definite(&d) )  {
-print ("+");
-    return(FALSE);		/* no disp can be calculated */
+    try_2d_def = TRUE; res = '+'; /* no 3D disp can be calculated */
   }
   else {			/* otherwise, I have the derivatives, now get the 
 				   displacements that correspond to a maximum
@@ -96,8 +111,7 @@ print ("+");
 	   d.uw * (d.uv*d.vw - d.vv*d.uw) ;	       
 						       
     if ( ABS( detA ) <= MINIMUM_DET_ALLOWED ) {
-print ("0");
-      return(FALSE);
+      try_2d_def = TRUE; res = '0';
     }
     else {
 				/* a = inv(A) */
@@ -121,38 +135,83 @@ print ("0");
 
 /*
    debug test to see if a * A = identity
-*/
-      A[0][0] = d.uu ; A[0][1] = d.uv ; A[0][2] = d.uw ;
-      A[1][0] = d.uv ; A[1][1] = d.vv ; A[1][2] = d.vw ;
-      A[2][0] = d.uw ; A[2][1] = d.vw ; A[2][2] = d.ww ;
 
-      for_less(i,0,3)
-	for_less(j,0,3) {
-	  inv[i][j] = 0.0;
-	  for_less(k,0,3)
-	    inv[i][j] += a[i][k] * A[k][j];
-	}
+   A[0][0] = d.uu ; A[0][1] = d.uv ; A[0][2] = d.uw ;
+   A[1][0] = d.uv ; A[1][1] = d.vv ; A[1][2] = d.vw ;
+   A[2][0] = d.uw ; A[2][1] = d.vw ; A[2][2] = d.ww ;
+   
+   for_less(i,0,3)
+      for_less(j,0,3) {
+         inv[i][j] = 0.0;
+	 for_less(k,0,3)
+	   inv[i][j] += a[i][k] * A[k][j];
+      }
 
       
-      for_less(i,0,3)
-	for_less(j,0,3) {
-	  if (((i==j) && ABS( 1.0 - inv[i][j] ) > 0.000001) ||
-	      ((i!=j) && ABS( inv[i][j] ) > 0.000001)) {
+   for_less(i,0,3)
+     for_less(j,0,3) {
+        if (((i==j) && ABS( 1.0 - inv[i][j] ) > 0.000001) ||
+            ((i!=j) && ABS( inv[i][j] ) > 0.000001)) {
 	    print ("error in inverse for return_3D_disp_from_quad_fit\n");
 	    print ("%8.5f %8.5f %8.5f\n",  inv[0][0],inv[0][1],inv[0][2]);
 	    print ("%8.5f %8.5f %8.5f\n",  inv[1][0],inv[1][1],inv[1][2]);
 	    print ("%8.5f %8.5f %8.5f\n\n",inv[2][0],inv[2][1],inv[2][2]);
 	    i=3; j=3;
-	  }
-	}
+        }
+     }
 
-
-
+*/
       
+      if ( ABS( *dispu ) < 2.0 && ABS( *dispv ) < 2.0 && ABS( *dispw ) < 2.0 ) {	
+	print ("!"); return (TRUE);
+      }
+      else {
+	try_2d_def = TRUE; res = '2';
+      }
+    }
+  }
 
-      if ( ABS( *dispu ) > 2.0 || ABS( *dispv ) > 2.0 || ABS( *dispw ) > 2.0 ) {	
-
-      print ("%8.5f %8.5f %8.5f  %8.5f %8.5f %8.5f  %8.5f %8.5f %8.5f\n",
+	
+  if (try_2d_def) {
+    
+    *dispu = *dispv = *dispw = 0.0;
+    count_u = count_v = count_w = 0;
+    
+    for_less(i,0,3)
+      for_less(j,0,3)
+	a[i][j] = r[1][i][j];
+    
+    if (return_2D_disp_from_quad_fit(a, &dv, &dw) ) {
+      *dispv += dv;
+      *dispw += dw;
+      count_v++;
+      count_w++;
+    }
+    
+    for_less(i,0,3)
+      for_less(j,0,3)
+	a[i][j] = r[i][1][j];
+    
+    if (return_2D_disp_from_quad_fit(a, &du, &dw) ) {
+      *dispu += du;
+      *dispw += dw;
+      count_u++;
+      count_w++;
+    }
+    
+    for_less(i,0,3)
+      for_less(j,0,3)
+	a[i][j] = r[i][j][1];
+    
+    if (return_2D_disp_from_quad_fit(a, &du, &dv) ) {
+      *dispu += du;
+      *dispv += dv;
+      count_u++;
+      count_v++;
+    }
+    
+    if (count_u == 0 && count_v == 0 && count_w ==0) {
+/*      print ("\n%8.5f %8.5f %8.5f  %8.5f %8.5f %8.5f  %8.5f %8.5f %8.5f\n",
 	     r[0][0][0],r[1][0][0],r[2][0][0], 
 	     r[0][0][1],r[1][0][1],r[2][0][1], r[0][0][2],r[1][0][2],r[2][0][2]);
       print ("%8.5f %8.5f %8.5f  %8.5f %8.5f %8.5f  %8.5f %8.5f %8.5f\n",
@@ -161,27 +220,41 @@ print ("0");
       print ("%8.5f %8.5f %8.5f  %8.5f %8.5f %8.5f  %8.5f %8.5f %8.5f\n",
 	     r[0][2][0],r[1][2][0],r[2][2][0], 
 	     r[0][2][1],r[1][2][1],r[2][2][1], r[0][2][2],r[1][2][2],r[2][2][2]);
-
-
-      print ("detA = %f\n", detA);
+      
       print ("/%8.5f %8.5f %8.5f\\  /%8.5f %8.5f %8.5f\\  /%8.5f\\  ->  du = %8.5f\n",  
 	     d.uu, d.uv, d.uw, a[0][0],a[0][1],a[0][2], d.u, *dispu);
       print ("|%8.5f %8.5f %8.5f|  |%8.5f %8.5f %8.5f|  |%8.5f|  ->  dv = %8.5f\n",  
 	     d.uv, d.vv, d.vw, a[1][0],a[1][1],a[1][2], d.v, *dispv);
       print ("\\%8.5f %8.5f %8.5f/  \\%8.5f %8.5f %8.5f/  \\%8.5f/  ->  dw = %8.5f\n\n",
 	     d.uw, d.vw, d.ww, a[2][0],a[2][1],a[2][2], d.w, *dispw);
+  */
+
+      print ("%c",res);
+      count_u=1;count_v=1;count_w=1;
+      for_less(i,0,3)
+	for_less(j,0,3)
+	  for_less(k,0,3)
+	    if (r[i][j][k]>r[count_u][count_v][count_w]) {
+	      count_u=i; count_v=j; count_w=k;
+	    }
+
+      *dispu = (count_u - 1.0) /2.0;
+      *dispv = (count_v - 1.0) /2.0;
+      *dispw = (count_w - 1.0) /2.0;
+
+      return(TRUE);
+    }
+    else {
+      if (count_u != 0) *dispu / count_u ;
+      if (count_v != 0) *dispv / count_v ;
+      if (count_w != 0) *dispw / count_w ;
       
+      print ("*");
       
-	*dispu = *dispv = *dispw = 0.0;
-	return(FALSE);
-      }
-      else {
-print ("!");
-	return(TRUE);
-      }
+      return(TRUE);
     }
   }
-
+  
 }
 
 public BOOLEAN return_2D_disp_from_quad_fit(Real r[3][3], /* the values used in the quad fit */
@@ -248,7 +321,7 @@ public BOOLEAN return_2D_disp_from_quad_fit(Real r[3][3], /* the values used in 
 	d.uv, d.vv, a[0][1], a[1][1], *dispv);
 */
 
-      if ( ABS( *dispu ) > 3.0 || ABS( *dispv ) > 3.0 ) {
+      if ( ABS( *dispu ) > 1.5 || ABS( *dispv ) > 1.5 ) {
 	*dispu = *dispv = 0.0;
 	return(FALSE);
       }
