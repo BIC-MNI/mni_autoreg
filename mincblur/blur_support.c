@@ -33,16 +33,33 @@
 public void muli_vects(float *r, float *s1, float *s2, int n)
 {
   int i;
-  r++; s1++; s2++; /* all arrays start at r[1],s1[1] and s2[1], where the real
-		      part is r[1] and the imag in r[2], and so on... */
-  for (i=0; i< n; ++i) { 
-    *r = (*(s1) * *(s2))   - (*(s1+1) * *(s2+1)); 
-    r++;
-    *r = (*(s1+1) * *(s2)) + (*(s1) * *(s2+1)); 
-    r++;
-       s1++;s1++;
-    s2++;s2++;
-  } 
+  float r1,i1,r2,i2;
+
+    r++; s1++; s2++; /* all arrays start at r[1],s1[1] and s2[1], where the real
+			part is r[1] and the imag in r[2], and so on... */
+
+  if (r!=s1 && r!=s2) {		/* if separate arrays */
+    for (i=0; i< n; ++i) { 
+      *r = (*(s1) * *(s2))   - (*(s1+1) * *(s2+1)); 
+      r++;
+      *r = (*(s1+1) * *(s2)) + (*(s1) * *(s2+1)); 
+      r++;
+      s1++;s1++;
+      s2++;s2++;
+    } 
+  }
+  else {			/* if one array=result array */
+    for (i=0; i< n; ++i) { 
+      r1= *(s1); i1= *(s1+1);
+      r2= *(s2); i2= *(s2+1);
+      *r = (r1 * r2)   - (i1 * i2); 
+      r++;
+      *r = (i1 * r2) + (r1 * i2);
+      r++;
+      s1++;s1++;
+      s2++;s2++;
+    } 
+  }
 }
 
 /* ----------------------------- MNI Header -----------------------------------
