@@ -20,12 +20,20 @@
 
 @CREATED    : Tue Feb 22 08:37:49 EST 1994
 @MODIFIED   : $Log: deform_support.c,v $
-@MODIFIED   : Revision 1.9  1995-09-07 10:05:11  louis
-@MODIFIED   : All references to numerical recipes routines are being removed.  At this
-@MODIFIED   : stage, any num rec routine should be local in the file.  All memory
-@MODIFIED   : allocation calls to vector(), matrix(), free_vector() etc... have been
-@MODIFIED   : replaced with ALLOC and FREE from the volume_io library of routines.
+@MODIFIED   : Revision 1.10  1995-10-06 09:25:02  louis
+@MODIFIED   : removed references to line_data.h since it hos not been used in a while.
 @MODIFIED   :
+@MODIFIED   : included "constants.h" to have access to NONLIN_* similarity func ids.
+@MODIFIED   :
+@MODIFIED   : modified go_get_samples_with_offset to account for different similarity
+@MODIFIED   : functions.
+@MODIFIED   :
+ * Revision 1.9  1995/09/07  10:05:11  louis
+ * All references to numerical recipes routines are being removed.  At this
+ * stage, any num rec routine should be local in the file.  All memory
+ * allocation calls to vector(), matrix(), free_vector() etc... have been
+ * replaced with ALLOC and FREE from the volume_io library of routines.
+ *
  * Revision 1.8  1995/06/12  14:29:46  louis
  * working version - 2d,3d w/ simplex and -direct.
  *
@@ -74,7 +82,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 1.9 1995-09-07 10:05:11 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 1.10 1995-10-06 09:25:02 louis Exp $";
 #endif
 
 #include <limits.h>
@@ -82,9 +90,9 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #include <louis_splines.h>
 #include <print_error.h>
 
-#include "line_data.h"
 #include "point_vector.h"
 
+#include "constants.h"
 
 
 #define DERIV_FRAC      0.6
@@ -308,7 +316,7 @@ public BOOLEAN get_average_warp_vector_from_neighbours(General_transform *trans,
 
 public BOOLEAN get_average_warp_of_neighbours(General_transform *trans,
 					      int voxel[],
-					      Real *mx, Real *my, Real *mz)
+					      Real mean_pos[])
 {
   int       i;
   Real      voxel_real[MAX_DIMENSIONS],
@@ -326,13 +334,14 @@ public BOOLEAN get_average_warp_of_neighbours(General_transform *trans,
   for_less(i,0,get_volume_n_dimensions(volume) ) {
     voxel_real[i] = (Real)voxel[i];
   }
-  convert_voxel_to_world(volume, voxel_real, mx, my, mz);
+  convert_voxel_to_world(volume, voxel_real, 
+			 &(mean_pos[X]),&(mean_pos[Y]),&(mean_pos[Z]) );
 
   if ( ! get_average_warp_vector_from_neighbours(trans, voxel, 1, &dx, &dy, &dz)) {
     return(FALSE);
   }
   else {
-    *mx += dx; *my += dy; *mz += dz;
+    mean_pos[X] += dx; mean_pos[Y] += dy; mean_pos[Z] += dz;
     return(TRUE);
   }
 
@@ -530,12 +539,6 @@ public void smooth_the_warp(General_transform *smoothed,
 				/* store the current warp in wx, wy,
                                    wz */
 
-/*
-	  if (index[ xyzv[X] ]== 3 && index[ xyzv[Y] ]== 20) {
-	    print ("Hi there! value = %f %f %f\n",value[X],value[Y],value[Z]);
-	    print ("next....\n");
-	  }
-*/
 	  wx = value[X]; wy = value[Y]; wz = value[Z]; 
 
 	  index[ xyzv[Z+1]] = 0;
@@ -593,6 +596,171 @@ public void smooth_the_warp(General_transform *smoothed,
 
   terminate_progress_report( &progress );
 }
+
+
+/*
+
+   Here we must store the mean_vector location in additional_warp for
+   all nodes where there was no estimatation possible (and thus no
+   local smoothing completed).  This will achieve a homogeneous smoothing
+   throughout the entire field.
+
+*/
+
+public void extrapolate_to_unestimated_nodes(General_transform *current,
+					     General_transform *additional,
+					     Volume estimated_flag_vol) 
+{
+
+  int 
+    many,
+    total,
+    count_additional[MAX_DIMENSIONS],
+    count_current[MAX_DIMENSIONS],
+    count_flag[MAX_DIMENSIONS],
+    xyzv[MAX_DIMENSIONS],
+    xyzv_current[MAX_DIMENSIONS],
+    xyzv_flag[MAX_DIMENSIONS],
+    flag_index[MAX_DIMENSIONS],
+    index[MAX_DIMENSIONS],
+    start[MAX_DIMENSIONS], 
+    end[MAX_DIMENSIONS],
+    i;
+  Real 
+    value[3], 
+    wx, wy, wz, 
+    mx, my, mz;
+  progress_struct
+    progress;
+
+  many = total = 0;
+  
+  if (get_volume_n_dimensions(additional->displacement_volume) != 
+      get_volume_n_dimensions(current->displacement_volume)) {
+    print_error_and_line_num("extrapolate_the_warp: warp dim error",
+			     __FILE__, __LINE__);
+  }
+  
+  get_volume_sizes(additional->displacement_volume, count_additional);
+  get_volume_sizes(current->displacement_volume, count_current);
+  for_less(i,0,get_volume_n_dimensions(current->displacement_volume)) {
+    if (count_current[i] != count_additional[i]) {
+      print_error_and_line_num("extrapolate_the_warp: dim count error",
+			       __FILE__, __LINE__);
+    }
+  }
+
+  get_volume_XYZV_indices(additional->displacement_volume, xyzv);
+  get_volume_XYZV_indices(current->displacement_volume, xyzv_current);
+  for_less(i,0,get_volume_n_dimensions(current->displacement_volume)) {
+    if (xyzv_current[i] != xyzv[i]) {
+      print_error_and_line_num("extrapolate_the_warp: dim match error",
+			       __FILE__, __LINE__);
+    }
+  }
+  
+  get_volume_XYZV_indices(estimated_flag_vol, xyzv_flag);
+  get_volume_sizes(estimated_flag_vol, count_flag);
+
+  for_less(i,0,get_volume_n_dimensions(estimated_flag_vol)) {
+    if (count_current[xyzv_current[i]] != count_flag[i]) {
+      print_error_and_line_num("extrapolate_the_warp: dim count error w/flag (%d: %d != %d)\n",
+			       __FILE__, __LINE__, i, count_current[xyzv_current[i]], count_flag[i] );
+    }
+  }
+  
+  for_less(i,0,MAX_DIMENSIONS) {
+    index[i]=0;
+    start[i] = 0;
+    end[i] = 0;
+  }
+  
+  get_voxel_spatial_loop_limits(additional->displacement_volume, start, end);
+  start[Z+1] = 0;
+  end[Z+1] = 3;
+ 
+
+  initialize_progress_report( &progress, FALSE, 
+			     (end[X]-start[X])*
+			     (end[Y]-start[Y]) + 1,
+			     "Smoothing deformations" );
+
+
+  for_less(index[ xyzv[X] ], start[ X ], end[ X ]) {
+    for_less(index[ xyzv[Y] ], start[ Y ], end[ Y ]) {
+      for_less(index[ xyzv[Z] ], start[ Z ], end[ Z ]) {
+
+	for_less(i,0,get_volume_n_dimensions(estimated_flag_vol))
+	  flag_index[ xyzv_flag[i] ] = index[ xyzv[i] ];
+	
+	total++;
+
+	if (  get_volume_real_value(estimated_flag_vol, 
+				    flag_index[ X ],
+				    flag_index[ Y ],
+				    flag_index[ Z ],
+				    0, 0) < 1.0) {
+
+	  many++;
+				/* go get the current warp vector for
+                                   this node. */
+	  
+	  for_less(index[ xyzv[Z+1] ], start[ Z+1 ], end[ Z+1 ]) {
+
+	    value[index[ xyzv[Z+1] ]] = 
+	      get_volume_real_value(current->displacement_volume,
+				    index[0],index[1],index[2],
+				    index[3],index[4]);
+
+	  }
+				/* store the current warp in wx, wy,
+                                   wz */
+
+	  wx = value[X]; wy = value[Y]; wz = value[Z]; 
+
+	  index[ xyzv[Z+1]] = 0;
+
+				/* if we can get a neighbourhood mean
+				   warp vector, then we average it
+				   with the current warp vector */
+
+	  if ( get_average_warp_vector_from_neighbours(current,
+						      index, 2 ,
+						      &mx, &my, &mz) ) {
+	    
+	    value[X] = smoothing_weight*(mx - value[X]); 
+	    value[Y] = smoothing_weight*(my - value[Y]); 
+	    value[Z] = smoothing_weight*(mz - value[Z]); 
+
+	  } 
+	  else {
+	    value[X] = value[Y] = value[Z] = 0.0;
+	  }
+	  
+				/* now put the averaged vector into
+				   the additional volume */
+
+	  for_less(index[ xyzv[Z+1] ], start[ Z+1 ], end[ Z+1 ])  
+	    set_volume_real_value(additional->displacement_volume,
+				  index[0],index[1],index[2],
+				  index[3],index[4],
+				  value[index[ xyzv[Z+1] ]] );  
+	}
+	  
+      }
+      update_progress_report( &progress,
+			     ((end[ Y ]-start[ Y ])*
+			      (index[ xyzv[X]  ]-start[ X ])) +
+			     (index[ xyzv[Y] ]-start[ X ])  +    1  );
+    }
+  }
+
+  terminate_progress_report( &progress );
+
+  print ("There were %d out of %d extrapolated (%d left)\n",many,total,total-many);
+
+}
+
 
 public void clamp_warp_deriv(Volume dx, Volume dy, Volume dz)
 {
@@ -1117,11 +1285,14 @@ public void go_get_samples_in_source(Volume data,
 */
 
 public float go_get_samples_with_offset(Volume data,
-				       float *x, float *y, float *z,
-				       Real dx, Real dy, Real dz,
-				       int len, float sqrt_s1, float *a1)
+					float *x, float *y, float *z,
+					Real  dx, Real  dy, Real dz,
+					int obj_func,
+					int len, 
+					float sqrt_s1, float *a1)
 {
   float
+    tmp,
     sample, r,
     s1,s3;			/* to store the sums for f1,f2,f3 */
   int 
@@ -1174,9 +1345,25 @@ public float go_get_samples_with_offset(Volume data,
       else
 	sample = 0.0;
       
-      s1 += *a1++ * sample;
-      s3 += sample * sample;
-      
+      switch (obj_func) {
+      case NONLIN_XCORR:
+	s1 += *a1++ * sample;
+	s3 += sample * sample;
+	break;
+      case NONLIN_DIFF:
+	tmp = *a1++ - sample;
+	if (tmp<0) tmp *= -1.0;
+	s1 -= tmp;
+	break;
+      case NONLIN_LABEL:
+	tmp = *a1++ - sample;
+	if (tmp<0) tmp *= -1.0;
+	if (tmp < 0.01)
+	  s1 += 1.0;
+	break;
+      default:
+	print_error_and_line_num("Objective function %d not supported in go_get_samples_with_offset",__FILE__, __LINE__,obj_func);
+      }
 
     }
     break;
@@ -1200,8 +1387,25 @@ public float go_get_samples_with_offset(Volume data,
       else
 	sample = 0.0;
       
-      s1 += *a1++ * sample;
-      s3 += sample * sample;
+      switch (obj_func) {
+      case NONLIN_XCORR:
+	s1 += *a1++ * sample;
+	s3 += sample * sample;
+	break;
+      case NONLIN_DIFF:
+	tmp = *a1++ - sample;
+	if (tmp<0) tmp *= -1.0;
+	s1 -= tmp;
+	break;
+      case NONLIN_LABEL:
+	tmp = *a1++ - sample;
+	if (tmp<0) tmp *= -1.0;
+	if (tmp < 0.01)
+	  s1 += 1.0;
+	break;
+      default:
+	print_error_and_line_num("Objective function %d not supported in go_get_samples_with_offset",__FILE__, __LINE__,obj_func);
+      }
       
 
     }
@@ -1226,9 +1430,26 @@ public float go_get_samples_with_offset(Volume data,
       else
 	sample = 0.0;
       
-      s1 += *a1++ * sample;
-      s3 += sample * sample;
-      
+      switch (obj_func) {
+      case NONLIN_XCORR:
+	s1 += *a1++ * sample;
+	s3 += sample * sample;
+	break;
+      case NONLIN_DIFF:
+	tmp = *a1++ - sample;
+	if (tmp<0) tmp *= -1.0;
+	s1 -= tmp;
+	break;
+      case NONLIN_LABEL:
+	tmp = *a1++ - sample;
+	if (tmp<0) tmp *= -1.0;
+	if (tmp < 0.01)
+	  s1 += 1.0;
+	break;
+      default:
+	print_error_and_line_num("Objective function %d not supported in go_get_samples_with_offset",__FILE__, __LINE__,obj_func);
+      }
+            
 
     }
     break;
@@ -1238,17 +1459,30 @@ public float go_get_samples_with_offset(Volume data,
 
 
 
-  if ( sqrt_s1 < 0.001 && s3 < 0.00001) {
-    r = 1.0;
-  }
-  else {
-    if ( sqrt_s1 < 0.001 || s3 < 0.00001) {
-      r = 0.0;
+  switch (obj_func) {
+  case NONLIN_XCORR:
+    if ( sqrt_s1 < 0.001 && s3 < 0.00001) {
+      r = 1.0;
     }
     else {
-      r = s1 / (sqrt_s1*sqrt((double)s3));
+      if ( sqrt_s1 < 0.001 || s3 < 0.00001) {
+	r = 0.0;
+      }
+      else {
+	r = s1 / (sqrt_s1*sqrt((double)s3));
+      }
     }
+    
+    break;
+  case NONLIN_DIFF:
+  case NONLIN_LABEL:
+    r = s1 / sqrt_s1;		/* sqrt_s1 can't be 0, since = Glen */
+    break;
+  default:
+    print_error_and_line_num("Objective function %d not supported in go_get_samples_with_offset",__FILE__, __LINE__,obj_func);
   }
+  
+  
 
   return(r);
 }
@@ -1359,5 +1593,6 @@ public void init_the_volume_to_zero(Volume volume)
 
 }
  
+
 
 
