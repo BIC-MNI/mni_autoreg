@@ -16,17 +16,20 @@
 @CREATED    : Tue Nov 16 14:51:04 EST 1993 lc
                     based on transformations.c from fit_vol
 @MODIFIED   : $Log: transformations.c,v $
-@MODIFIED   : Revision 1.5  1994-04-06 11:48:52  louis
-@MODIFIED   : working linted version of linear + non-linear registration based on Lvv
-@MODIFIED   : operator working in 3D
+@MODIFIED   : Revision 1.6  1994-05-28 16:18:29  louis
+@MODIFIED   : working version before modification of non-linear optimiation
 @MODIFIED   :
+ * Revision 1.5  94/04/06  11:48:52  louis
+ * working linted version of linear + non-linear registration based on Lvv
+ * operator working in 3D
+ * 
  * Revision 1.4  94/02/21  16:37:02  louis
  * version before feb 22 changes
  * 
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/transformations.c,v 1.5 1994-04-06 11:48:52 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/transformations.c,v 1.6 1994-05-28 16:18:29 louis Exp $";
 #endif
 
 
@@ -278,8 +281,8 @@ public void build_default_deformation_field(Arg_Data *globals)
   ALLOC(dy,1);
   ALLOC(dz,1);
 
-  *dx = create_volume(3, default_dim_names, NC_BYTE, FALSE, 0.0, 0.0);
-  set_volume_voxel_range(*dx, 1.0, 255.0);
+  *dx = create_volume(3, default_dim_names, NC_SHORT, FALSE, 0.0, 0.0);
+  set_volume_voxel_range(*dx, 1.0, 32767.0);  
   set_volume_real_range(*dx, -2.0*globals->step[0], 2.0*globals->step[0] );
 
 /*   see below for count_extended 
@@ -336,13 +339,6 @@ public void build_default_deformation_field(Arg_Data *globals)
 				/* now make the volume four voxels larger, all around */
 
   convert_3D_voxel_to_world(*dx, -4.0, -4.0, -4.0, &point[X], &point[Y], &point[Z]);
-
-/*
-  see above to put this back in.
-
-  for_less(i,0,3)
-    count_extended[i] = count[i]+8;
-*/
 
   for_less(i,0,3)
     count_extended[i] = globals->count[i]+8;

@@ -17,10 +17,13 @@
 
 @CREATED    : Thu May 20 14:20:21 EST 1993 Louis Collins
 @MODIFIED   : $Log: minctracc.h,v $
-@MODIFIED   : Revision 1.10  1994-04-26 12:55:22  louis
-@MODIFIED   : updated with new versions of make_rots, extract2_parameters_from_matrix 
-@MODIFIED   : that include proper interpretation of skew.
+@MODIFIED   : Revision 1.11  1994-05-28 16:18:55  louis
+@MODIFIED   : working version before modification of non-linear optimiation
 @MODIFIED   :
+ * Revision 1.10  94/04/26  12:55:22  louis
+ * updated with new versions of make_rots, extract2_parameters_from_matrix 
+ * that include proper interpretation of skew.
+ * 
  * Revision 1.9  94/04/06  11:49:49  louis
  * working linted version of linear + non-linear registration based on Lvv
  * operator working in 3D

@@ -34,10 +34,13 @@
 
    @CREATED    : February 3, 1992 - louis collins
    @MODIFIED   : $Log: minctracc.c,v $
-   @MODIFIED   : Revision 1.11  1994-04-26 12:54:30  louis
-   @MODIFIED   : updated with new versions of make_rots, extract2_parameters_from_matrix 
-   @MODIFIED   : that include proper interpretation of skew.
+   @MODIFIED   : Revision 1.12  1994-05-28 16:18:54  louis
+   @MODIFIED   : working version before modification of non-linear optimiation
    @MODIFIED   :
+ * Revision 1.11  94/04/26  12:54:30  louis
+ * updated with new versions of make_rots, extract2_parameters_from_matrix 
+ * that include proper interpretation of skew.
+ * 
  * Revision 1.10  94/04/06  11:48:43  louis
  * working linted version of linear + non-linear registration based on Lvv
  * operator working in 3D
@@ -72,7 +75,7 @@ Wed May 26 13:05:44 EST 1993 lc
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 1.11 1994-04-26 12:54:30 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 1.12 1994-05-28 16:18:54 louis Exp $";
 #endif
 
 
@@ -195,11 +198,16 @@ main ( argc, argv )
   DEBUG_PRINT1 ( "Model filename      = %s\n", main_args.filenames.model);
   DEBUG_PRINT1 ( "Data mask filename  = %s\n", main_args.filenames.mask_data);
   DEBUG_PRINT1 ( "Model mask filename = %s\n", main_args.filenames.mask_model);
+  DEBUG_PRINT1 ( "Input xform name    = %s\n", main_args.trans_info.file_name);
   DEBUG_PRINT1 ( "Output filename     = %s\n", main_args.filenames.output_trans);
   if (main_args.filenames.matlab_file != NULL)
     DEBUG_PRINT1 ( "Matlab filename     = %s\n\n",main_args.filenames.matlab_file );
   if (main_args.filenames.measure_file != NULL)
     DEBUG_PRINT1 ( "Measure filename    = %s\n\n",main_args.filenames.measure_file );
+  DEBUG_PRINT3 ( "Step size           = %f %f %f\n",
+		main_args.step[0],
+		main_args.step[1],
+		main_args.step[2])
   DEBUG_PRINT  ( "Objective function  = ");
   if (main_args.obj_function == xcorr_objective) {
     DEBUG_PRINT2("cross correlation (threshold = %f %f)\n",
