@@ -35,7 +35,10 @@
       created by removing build_default_deformation_field from 
       transformations.c
 @MODIFIED   : $Log: default_def.c,v $
-@MODIFIED   : Revision 96.6  2004-01-27 00:28:03  lenezet
+@MODIFIED   : Revision 96.7  2004-02-04 20:43:46  lenezet
+@MODIFIED   :  * change the start to fix the dir cos
+@MODIFIED   :
+@MODIFIED   : Revision 96.6  2004/01/27 00:28:03  lenezet
 @MODIFIED   : change init_params to correct the COG bug when there is not input transform.
 @MODIFIED   : add the cosines director to the resampled field
 @MODIFIED   :
@@ -214,10 +217,11 @@ private void resample_the_deformation_field(Arg_Data *globals)
 
 				/* reset count and step to be in volume order */
   for_less(i,0,N_DIMENSIONS) {
-    start[ i ] = XYZstart[i ]; 
+    start[      i  ] = wstart[ i ]; 
     count[ xyzv[i] ] = XYZcount[ i ];
     step[  xyzv[i] ] = XYZstep[  i ];
   }
+
 				/* add info for the vector dimension */
   count[xyzv[Z+1]] = 3;
   step[xyzv[Z+1]] = 0.0;
