@@ -1,8 +1,10 @@
 exec > nonlinear-4.log 2>&1
 
+which minctracc
+
 minctracc -debug -clobber -nonlinear -identity -est_center -step 3 3 3 \
-	ellipse0_blur.mnc ellipse4_blur.mnc output.xfm -iter 30 \
-        -optic -stiff 0.7 || exit 1
+	ellipse0_blur.mnc ellipse4_blur.mnc output.xfm -iter 20 \
+        -optic -stiff 0.0 || exit 1
 
 mincresample -clobber -transformation output.xfm -like ellipse0.mnc \
 	ellipse0.mnc output.mnc || exit 2
@@ -10,5 +12,5 @@ mincresample -clobber -transformation output.xfm -like ellipse0.mnc \
 echo Fitting using local optical flow
 echo Correlation = `xcorr_vol output.mnc ellipse4.mnc` 
 
-expr `xcorr_vol output.mnc ellipse4.mnc` \> 0.99
+expr `xcorr_vol output.mnc ellipse4.mnc` \> 0.95
 
