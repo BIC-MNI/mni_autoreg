@@ -15,9 +15,13 @@
 
 @CREATED    : Mon May 22 14:14:50 MET DST 1995
 @MODIFIED   : $Log: quad_max_fit.c,v $
-@MODIFIED   : Revision 96.0  1996-08-21 18:21:58  louis
-@MODIFIED   : Release of MNI_AutoReg version 0.96
+@MODIFIED   : Revision 96.1  1997-11-03 19:59:49  louis
+@MODIFIED   : - now include internal_volume_io.h instead of volume_io.h
+@MODIFIED   : - now include quad_max_fit.h for prototypes and struc defs
 @MODIFIED   :
+ * Revision 96.0  1996/08/21  18:21:58  louis
+ * Release of MNI_AutoReg version 0.96
+ *
  * Revision 9.6  1996/08/21  18:21:54  louis
  * Pre-release
  *
@@ -45,24 +49,9 @@
 
 ---------------------------------------------------------------------------- */
 
-#include <volume_io.h>		
+#include <internal_volume_io.h>		
 #include <math.h>
-    /* local structures */
-
-typedef struct {
-  Real 
-    u,v,w,
-    uu,vv,ww,
-    uv,uw,vw;
-} deriv_3D_struct;
-
-
-typedef struct {
-  Real 
-    u,v,
-    uu,vv,
-    uv;
-} deriv_2D_struct;
+#include <quad_max_fit.h>
 
 #define SMALL_EPS 0.000000001
 
@@ -81,26 +70,8 @@ private BOOLEAN negative_2D_definite(deriv_2D_struct *c);
 private BOOLEAN negative_3D_definite(deriv_3D_struct *c);
 private BOOLEAN positive_3D_semidefinite(deriv_3D_struct *c);
 private BOOLEAN positive_3D_definite(deriv_3D_struct *c);
-public   void    estimate_3D_derivatives(Real r[3][3][3], 
-					deriv_3D_struct *c);	     
-public   void    estimate_3D_derivatives_new(Real r[3][3][3], 
-					     deriv_3D_struct *c);	     
-public   void    estimate_3D_derivatives_weighted(Real r[3][3][3], 
-						  deriv_3D_struct *c);	     
 private void    estimate_2D_derivatives(Real r[3][3], 
 					deriv_2D_struct *c);	     
-public BOOLEAN return_2D_disp_from_quad_fit(Real r[3][3], 
-					    Real *dispu, 
-					    Real *dispv);
-
-
-public BOOLEAN eigen(double **inputMat, 
-		     int    ndim, 
-		     double *eigen_val, 
-		     double **eigen_vec, 
-		     int    *iters);
-
-
 
 /* this procedure will return TRUE with the dx,dy,dz (offsets) that 
    correspond to the MAXIMUM value of the quadratic function fit through 
