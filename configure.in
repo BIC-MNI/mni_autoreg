@@ -1,13 +1,13 @@
 dnl Process this file with autoconf to produce a configure script
 
-AC_PREREQ(2.50)
+AC_PREREQ(2.58)
 
 AC_INIT
-AM_INIT_AUTOMAKE(mni_autoreg, 0.98j_smr)
+AM_INIT_AUTOMAKE(mni_autoreg, 0.98k)
 
 
 AC_CONFIG_SRCDIR(minctracc/Include/minctracc.h)
-AM_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADERS([config.h])
 
 # Add extra include or link directories.
 smr_WITH_BUILD_PATH
@@ -95,16 +95,16 @@ dnl handle dependency tracking with IRIX cc.
 cc_flagged=`echo "$CC $CFLAGS $CPPFLAGS" |sed 's/ +/ /;s/ *$//'`
 AC_MSG_CHECKING(that \"$cc_flagged\" has enough ANSI in it)
 AC_CACHE_VAL(autoreg_cv_cc_ansi, [
-AC_TRY_COMPILE([
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 typedef enum { RED, GREEN, BLUE, YELLOW, BLACK } colour;
-], [
+]], [[
 signed char signed_char_name;
 
 void *foo (colour C);
 colour a = GREEN;
  
 foo (a);
-], autoreg_cv_cc_ansi=yes, autoreg_cv_cc_ansi=no)])
+]])],[autoreg_cv_cc_ansi=yes],[autoreg_cv_cc_ansi=no])])
 CC_ANSI=$autoreg_cv_cc_ansi
 AC_MSG_RESULT($CC_ANSI)
  
@@ -150,7 +150,7 @@ AC_TYPE_SIZE_T
 # Checks for standard library functions.
 #------------------------------------------------------------------------
 AC_CHECK_FUNCS(strtod strtol vprintf,
-	:, AC_ERROR(Required library function not found))
+	:, AC_MSG_ERROR([Required library function not found]))
 
 
 #------------------------------------------------------------------------
@@ -176,18 +176,12 @@ old_volumeio=
 # or just data member (OLD).
 AC_MSG_CHECKING(how to access raw array of a volume)
 autoreg_test="volume->array.data"
-AC_TRY_COMPILE( [#include <volume_io.h>], 
-		[Volume v; v->array.data = NULL;],
-		AC_DEFINE(VOLIO_HAVE_VOLUME_ARRAY_DATA, 1, [Volume data stored in array.data]),
-		autoreg_test=fail )
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <volume_io.h>]], [[Volume v; v->array.data = NULL;]])],[AC_DEFINE(VOLIO_HAVE_VOLUME_ARRAY_DATA, 1, Volume data stored in array.data)],[autoreg_test=fail ])
 
 if test $autoreg_test = fail; then
     old_volumeio=yes
     autoreg_test="volume->data"
-    AC_TRY_COMPILE( [#include <volume_io.h>], 
-		    [Volume v; v->data = NULL;],
-		    AC_DEFINE(VOLIO_HAVE_VOLUME_DATA, 1, [Volume data stored in data]),
-		    autoreg_test=fail )
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <volume_io.h>]], [[Volume v; v->data = NULL;]])],[AC_DEFINE(VOLIO_HAVE_VOLUME_DATA, 1, Volume data stored in data)],[autoreg_test=fail ])
 fi
 
 AC_MSG_RESULT($autoreg_test)
@@ -203,18 +197,12 @@ fi
 #
 autoreg_test="2"
 AC_MSG_CHECKING(number of arguments of format_time)
-AC_TRY_COMPILE( [#include <volume_io.h>], 
-		[STRING s = format_time( "%g %s", 0 );],
-		AC_DEFINE( VOLIO_HAVE_2ARG_FORMAT_TIME, 1, [format_time takes 2 arguments] ),
-		autoreg_test=fail )
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <volume_io.h>]], [[STRING s = format_time( "%g %s", 0 );]])],[AC_DEFINE( VOLIO_HAVE_2ARG_FORMAT_TIME, 1, format_time takes 2 arguments )],[autoreg_test=fail ])
 
 if test $autoreg_test = fail; then
     old_volumeio=yes
     autoreg_test="3"
-    AC_TRY_COMPILE( [#include <volume_io.h>], 
-		    [STRING s; format_time( s, "%g %s", 0 );],
-		    AC_DEFINE( VOLIO_HAVE_3ARG_FORMAT_TIME, 1, [format_time takes 3 arguments] ),
-		    autoreg_test=fail )
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <volume_io.h>]], [[STRING s; format_time( s, "%g %s", 0 );]])],[AC_DEFINE( VOLIO_HAVE_3ARG_FORMAT_TIME, 1, format_time takes 3 arguments )],[autoreg_test=fail ])
 fi
 
 AC_MSG_RESULT($autoreg_test)
@@ -227,18 +215,12 @@ fi
 #
 autoreg_test="2"
 AC_MSG_CHECKING(number of arguments of delete_dimension_names)
-AC_TRY_COMPILE( [#include <volume_io.h>], 
-		[Volume v; char** names; delete_dimension_names(v,names);],
-		AC_DEFINE( VOLIO_HAVE_2ARG_DELETE_DIMENSION_NAMES, 1, [function takes 2 arguments] ),
-		autoreg_test=fail )
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <volume_io.h>]], [[Volume v; char** names; delete_dimension_names(v,names);]])],[AC_DEFINE( VOLIO_HAVE_2ARG_DELETE_DIMENSION_NAMES, 1, function takes 2 arguments )],[autoreg_test=fail ])
 
 if test $autoreg_test = fail; then
     old_volumeio=yes
     autoreg_test="1"
-    AC_TRY_COMPILE( [#include <volume_io.h>], 
-		    [Volume v; char** names; delete_dimension_names(v,names);],
-		    AC_DEFINE( VOLIO_HAVE_1ARG_DELETE_DIMENSION_NAMES, 1, [function takes 1 argument] ),
-		    autoreg_test=fail )
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <volume_io.h>]], [[Volume v; char** names; delete_dimension_names(v,names);]])],[AC_DEFINE( VOLIO_HAVE_1ARG_DELETE_DIMENSION_NAMES, 1, function takes 1 argument )],[autoreg_test=fail ])
 fi
 
 AC_MSG_RESULT($autoreg_test)
@@ -251,7 +233,7 @@ if test "$old_volumeio" = yes; then
 fi
 
 
-AC_OUTPUT(make_model
+AC_CONFIG_FILES([make_model
 Makefile
 Proglib/Makefile
 make_phantom/Makefile
@@ -267,4 +249,5 @@ minctracc/Volume/Makefile
 minctracc/Extra_progs/Makefile
 perl/Makefile
 Testing/Makefile
-)
+])
+AC_OUTPUT

@@ -1,3 +1,8 @@
+2003-07-27  Steve M. Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* mritotal.in (SetupNLFits): Specify "-lattice_diameter" options for
+	minctracc.
+
 2003-06-12  Steve ROBBINS  <stever@bic.mni.mcgill.ca>
 
 	* Startup.pm (SelfAnnounce): Remove "defined @argv", it is

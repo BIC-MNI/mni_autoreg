@@ -46,7 +46,7 @@
 # the same copyright as above.
 # --------------------------------------------------------------------
 
-# $Id: mritotal.in,v 1.11 2001-10-22 15:49:02 louis Exp $
+# $Id: mritotal.in,v 1.11.2.1 2003-11-17 06:01:15 stever Exp $
 
 require 5.001;
 
@@ -1666,7 +1666,8 @@ sub SetupNLFits
    #
    #   level      - the "level" of fit -- corresponds to "-startlevel" 
    #                and "-stoplevel" command-line options
-   #   sub_lattice- diameter (in number of nodes) of local sub-lattice 
+   #   lattice_diameter - diameter (in mm) of ellipsoidal sub-lattice 
+   #   sub_lattice- number of nodes along diameter of local sub-lattice 
    #                (default 5)
    #   optimizer  - string specifiying which optimizer to use -- either 
    #                'quadratic' (a straight quadratic fit, not really
@@ -1701,6 +1702,7 @@ sub SetupNLFits
          targetmask  => '',
          threshold   => 0.075,  # WHAT IS THIS!??!  Louis will check
          steps       => [8, 8, 8],
+         lattice_diameter => [24, 24, 24],
          sub_lattice => 6,
          optimizer   => 'simplex',
          similarity  => 0.5,
@@ -1720,6 +1722,7 @@ sub SetupNLFits
          targetmask  => '',
          threshold   => 0.075,
          steps       => [4, 4, 4],
+	 lattice_diameter => [12, 12, 12],
          sub_lattice => 6,
          optimizer   => 'simplex',
          similarity  => 0.5,
@@ -1740,6 +1743,7 @@ sub SetupNLFits
          targetmask  => "BASE_$blurs{'4a'}_mask.mnc",
          threshold   => 0.075,
          steps       => [2, 2, 2],
+	 lattice_diameter => [6, 6, 6],
          sub_lattice => 5,
          optimizer   => 'quadratic',
          similarity  => 0.5,
@@ -1760,6 +1764,7 @@ sub SetupNLFits
          targetmask  => "BASE_$blurs{'4b'}_mask.mnc",
          threshold   => 0.075,
          steps       => [2, 2, 2],
+	 lattice_diameter => [6, 6, 6],
          sub_lattice => 5,
          optimizer   => 'quadratic',
          similarity  => 0.5,
@@ -1780,6 +1785,7 @@ sub SetupNLFits
          targetmask  => "BASE_$blurs{'2'}_mask.mnc",
          threshold   => 0.075,
          steps       => [1, 1, 1],
+	 lattice_diameter => [3, 3, 3],
          sub_lattice => 5,
          optimizer   => 'quadratic',
          similarity  => 0.5,
@@ -2007,8 +2013,11 @@ sub minctracc
       {
          push (@options, '-quadratic') if $optimizer eq 'quadratic';
 
-         for my $param (qw(sub_lattice similarity 
-                        iterations weight stiffness))
+	 if (defined $fit->{lattice_diameter}) {
+	     push (@options, "-lattice_diameter", @{$fit->{lattice_diameter}});
+	 }
+
+         for my $param (qw(sub_lattice similarity iterations weight stiffness))
          {
             push (@options, "-$param", $fit->{$param})
                if defined $fit->{$param};

@@ -1,3 +1,7 @@
+2003-11-17  Steve ROBBINS  <stever@bic.mni.mcgill.ca>
+
+	* configure.in: Set version to 0.98k.
+
 2003-07-04  Steve ROBBINS  <stever@bic.mni.mcgill.ca>
 
 	* Merge all changes to main trunk in perl directory.

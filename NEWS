@@ -1,9 +1,7 @@
 CHANGES to the MNI_AutoReg package...
 
-Release 0.98j_smr
------------------
-
-**** INTERNAL REVISION --- DO NOT RELEASE!!!  ****
+Release 0.98k
+-------------
 
 * New similarity measures: correlation coefficient, sum of squared difference.
 
