@@ -1,7 +1,7 @@
 INCLUDES = -I$(srcdir)/../Include -I$(top_srcdir)/Proglib @MNI_INCLUDES@
-LDADD = ../Optimize/libminctracc_optimize.a \
-	../Numerical/libminctracc_numerical.a \
+LDADD = ../Numerical/libminctracc_numerical.a \
 	../Volume/libminctracc_volume.a \
+	../Optimize/libminctracc_optimize.a \
 	../../Proglib/libProglib.a \
 	@MNI_LIBS@ -lm
 
