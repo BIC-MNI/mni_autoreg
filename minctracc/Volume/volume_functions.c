@@ -14,7 +14,10 @@
 
 @CREATED    : Tue Jun 15 08:57:23 EST 1993 LC
 @MODIFIED   :  $Log: volume_functions.c,v $
-@MODIFIED   :  Revision 96.5  2000-05-16 19:48:09  louis
+@MODIFIED   :  Revision 96.6  2000-05-23 16:29:14  louis
+@MODIFIED   :  Fixed index ordering in the intensity normalization procedure
+@MODIFIED   :
+@MODIFIED   :  Revision 96.5  2000/05/16 19:48:09  louis
 @MODIFIED   :  adjusting code for optical flow
 @MODIFIED   :
 @MODIFIED   :  Revision 96.4  2000/05/16 15:50:01  louis
@@ -64,7 +67,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/volume_functions.c,v 96.5 2000-05-16 19:48:09 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/volume_functions.c,v 96.6 2000-05-23 16:29:14 louis Exp $";
 #endif
 
 #include <config.h>
@@ -527,11 +530,11 @@ public void normalize_data_to_match_target(Volume d1, Volume m1, Real thresh1,
       
       /* reset values in the data volume */
       
-      for_less (i,0,sizes[2])
+      for_less (i,0,sizes[0])
 	for_less (j,0,sizes[1]) {
 	  count1++;
 	  update_progress_report( &progress, count1);
-	  for_less (k,0,sizes[0]) {
+	  for_less (k,0,sizes[2]) {
 	    GET_VOXEL_3D( data_vox,  d1, i, j, k );
 	    data_val = CONVERT_VOXEL_TO_VALUE(d1, data_vox);
 	    data_val /= result;
