@@ -16,7 +16,10 @@
 @CREATED    : Tue Nov 16 14:51:04 EST 1993 lc
                     based on transformations.c from fit_vol
 @MODIFIED   : $Log: transformations.c,v $
-@MODIFIED   : Revision 1.1  1999-10-25 19:52:24  louis
+@MODIFIED   : Revision 1.2  2004-02-12 06:09:12  rotor
+@MODIFIED   :  * removed public/private defs
+@MODIFIED   :
+@MODIFIED   : Revision 1.1  1999/10/25 19:52:24  louis
 @MODIFIED   : final checkin before switch to CVS
 @MODIFIED   :
  * Revision 1.11  1995/09/11  12:37:16  collins
@@ -63,7 +66,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/Other_progs/transformations.c,v 1.1 1999-10-25 19:52:24 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/Other_progs/transformations.c,v 1.2 2004-02-12 06:09:12 rotor Exp $";
 #endif
 
 
@@ -74,7 +77,7 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 extern Arg_Data main_args;
 
 
-public General_transform *get_linear_part_of_transformation(General_transform *trans)
+General_transform *get_linear_part_of_transformation(General_transform *trans)
 {
   General_transform *result,*concated,*current_lin;
   int i;

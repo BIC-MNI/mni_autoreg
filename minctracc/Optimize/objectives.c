@@ -16,7 +16,10 @@
 
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   :  $Log: objectives.c,v $
-@MODIFIED   :  Revision 96.7  2004-02-04 20:44:13  lenezet
+@MODIFIED   :  Revision 96.8  2004-02-12 06:08:21  rotor
+@MODIFIED   :   * removed public/private defs
+@MODIFIED   :
+@MODIFIED   :  Revision 96.7  2004/02/04 20:44:13  lenezet
 @MODIFIED   :  *** empty log message ***
 @MODIFIED   :
 @MODIFIED   :  Revision 96.6  2002/11/20 21:39:16  lenezet
@@ -89,7 +92,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/objectives.c,v 96.7 2004-02-04 20:44:13 lenezet Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/objectives.c,v 96.8 2004-02-12 06:08:21 rotor Exp $";
 #endif
 
 #include <volume_io/internal_volume_io.h>
@@ -106,10 +109,10 @@ extern Arg_Data main_args;
 
 extern Segment_Table *segment_table;
 
-public int point_not_masked(Volume volume, 
+int point_not_masked(Volume volume, 
 			    Real wx, Real wy, Real wz);
 
-public int voxel_point_not_masked(Volume volume, 
+int voxel_point_not_masked(Volume volume, 
                                   Real vx, Real vy, Real vz);
 
 
@@ -176,7 +179,7 @@ public int voxel_point_not_masked(Volume volume,
                  this is an overall speed up of 73/38 = 92%
                  the new version takes only     38/73 = 52%  of the time of the previous!
 ---------------------------------------------------------------------------- */
-public float xcorr_objective(Volume d1,
+float xcorr_objective(Volume d1,
 			     Volume d2,
 			     Volume m1,
 			     Volume m2, 
@@ -305,7 +308,7 @@ public float xcorr_objective(Volume d1,
 }
 
 
-public float ssc_objective(Volume d1,
+float ssc_objective(Volume d1,
 			   Volume d2,
 			   Volume m1,
 			   Volume m2, 
@@ -533,7 +536,7 @@ public float ssc_objective(Volume d1,
   
 }
 
-public float zscore_objective(Volume d1,
+float zscore_objective(Volume d1,
 			   Volume d2,
 			   Volume m1,
 			   Volume m2, 
@@ -647,7 +650,7 @@ public float zscore_objective(Volume d1,
 
 
 
-public float vr_objective(Volume d1,
+float vr_objective(Volume d1,
 			  Volume d2,
 			  Volume m1,
 			  Volume m2, 
@@ -833,7 +836,7 @@ public float vr_objective(Volume d1,
   
 }
 
-public float stub_objective(Volume d1,
+float stub_objective(Volume d1,
 			    Volume d2,
 			    Volume m1,
 			    Volume m2, 

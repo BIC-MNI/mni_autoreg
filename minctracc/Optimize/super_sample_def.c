@@ -20,7 +20,10 @@
 
 @CREATED    : 
 @MODIFIED   : $Log: super_sample_def.c,v $
-@MODIFIED   : Revision 96.9  2004-02-04 20:44:13  lenezet
+@MODIFIED   : Revision 96.10  2004-02-12 06:08:21  rotor
+@MODIFIED   :  * removed public/private defs
+@MODIFIED   :
+@MODIFIED   : Revision 96.9  2004/02/04 20:44:13  lenezet
 @MODIFIED   : *** empty log message ***
 @MODIFIED   :
 @MODIFIED   : Revision 96.8  2003/02/26 00:56:38  lenezet
@@ -84,7 +87,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/super_sample_def.c,v 96.9 2004-02-04 20:44:13 lenezet Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/super_sample_def.c,v 96.10 2004-02-12 06:08:21 rotor Exp $";
 #endif
 
 #include <config.h>
@@ -95,12 +98,12 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 
 				/* prototypes called: */
 
-public void get_volume_XYZV_indices(Volume data, int xyzv[]);
-public void init_the_volume_to_zero(Volume volume);
-public void interpolate_deformation_slice(Volume volume, 
+void get_volume_XYZV_indices(Volume data, int xyzv[]);
+void init_the_volume_to_zero(Volume volume);
+void interpolate_deformation_slice(Volume volume, 
 					  Real wx,Real wy,Real wz,
 					  Real def[]);
-public void set_up_lattice(Volume data, 
+void set_up_lattice(Volume data, 
 			   double *user_step, 
 			   double *start,     
 			   double *wstart,     
@@ -108,14 +111,14 @@ public void set_up_lattice(Volume data,
 			   double *step,      
 			   VectorR directions[]);
 
-private void interpolate_super_sampled_data_by2_dim2(General_transform *orig_deformation,
+static void interpolate_super_sampled_data_by2_dim2(General_transform *orig_deformation,
 						     General_transform *super_sampled,
 						     int i);
-private void interpolate_super_sampled_data_by2_dim2_X(General_transform *orig_deformation,
+static void interpolate_super_sampled_data_by2_dim2_X(General_transform *orig_deformation,
 						       General_transform *super_sampled);
-private void interpolate_super_sampled_data_by2_dim2_Y(General_transform *orig_deformation,
+static void interpolate_super_sampled_data_by2_dim2_Y(General_transform *orig_deformation,
 						       General_transform *super_sampled);
-private void interpolate_super_sampled_data_by2_dim2_Z(General_transform *orig_deformation,
+static void interpolate_super_sampled_data_by2_dim2_Z(General_transform *orig_deformation,
 						       General_transform *super_sampled);
 /* build the volume structure and allocate the data space to store
    a super-sampled GRID_TRANSFORM.
@@ -125,7 +128,7 @@ private void interpolate_super_sampled_data_by2_dim2_Z(General_transform *orig_d
 
    super_step specifies the number of times to super-sample the data.
  */
-public void create_super_sampled_data_volumes(General_transform *orig_deformation,
+void create_super_sampled_data_volumes(General_transform *orig_deformation,
 					      General_transform *super_sampled,
 					      int super_step)
 
@@ -223,7 +226,7 @@ public void create_super_sampled_data_volumes(General_transform *orig_deformatio
 
 
 */
-public void interpolate_super_sampled_data(General_transform *orig_deformation,
+void interpolate_super_sampled_data(General_transform *orig_deformation,
 					   General_transform *super_sampled)
 {
   Volume
@@ -311,7 +314,7 @@ public void interpolate_super_sampled_data(General_transform *orig_deformation,
 
  */
 
-public void create_super_sampled_data_volumes_by2(General_transform *orig_deformation,
+void create_super_sampled_data_volumes_by2(General_transform *orig_deformation,
 						  General_transform *super_sampled)
 
 {
@@ -429,7 +432,7 @@ public void create_super_sampled_data_volumes_by2(General_transform *orig_deform
 #define MY_CUBIC_05(a1,a2,a3,a4)  \
    ( ( -(a1) + 9*(a2) + 9*(a3) -(a4) ) / 16.0 )
 
-private void interpolate_super_sampled_data_by2_dim3( 
+static void interpolate_super_sampled_data_by2_dim3( 
     General_transform *orig_deformation,
     General_transform *super_sampled )
 {
@@ -1330,7 +1333,7 @@ private void interpolate_super_sampled_data_by2_dim3(
 }
 
 
-public void interpolate_super_sampled_data_by2(
+void interpolate_super_sampled_data_by2(
     General_transform *orig_deformation,
     General_transform *super_sampled)
 {
@@ -1378,7 +1381,7 @@ public void interpolate_super_sampled_data_by2(
 }
 
 
-private void interpolate_super_sampled_data_by2_dim2(General_transform *orig_deformation,
+static void interpolate_super_sampled_data_by2_dim2(General_transform *orig_deformation,
 						     General_transform *super_sampled,
 						     int i)
 {
@@ -1396,7 +1399,7 @@ private void interpolate_super_sampled_data_by2_dim2(General_transform *orig_def
 }
 
 
-private void interpolate_super_sampled_data_by2_dim2_X( 
+static void interpolate_super_sampled_data_by2_dim2_X( 
     General_transform *orig_deformation,
     General_transform *super_sampled )
 {
@@ -1726,7 +1729,7 @@ private void interpolate_super_sampled_data_by2_dim2_X(
 }
 
 
-private void interpolate_super_sampled_data_by2_dim2_Y( 
+static void interpolate_super_sampled_data_by2_dim2_Y( 
     General_transform *orig_deformation,
     General_transform *super_sampled )
 {
@@ -2067,7 +2070,7 @@ private void interpolate_super_sampled_data_by2_dim2_Y(
 
 }
 
-private void interpolate_super_sampled_data_by2_dim2_Z( 
+static void interpolate_super_sampled_data_by2_dim2_Z( 
     General_transform *orig_deformation,
     General_transform *super_sampled )
 {

@@ -3,9 +3,12 @@
 @DESCRIPTION: routines to calculate the objective function used for local
               optimization              
 @CREATED    : Nov 4, 1997, Louis Collins
-@VERSION    : $Id: def_obj_functions.c,v 1.9 2004-02-04 20:44:11 lenezet Exp $
+@VERSION    : $Id: def_obj_functions.c,v 1.10 2004-02-12 06:08:19 rotor Exp $
 @MODIFIED   : $Log: def_obj_functions.c,v $
-@MODIFIED   : Revision 1.9  2004-02-04 20:44:11  lenezet
+@MODIFIED   : Revision 1.10  2004-02-12 06:08:19  rotor
+@MODIFIED   :  * removed public/private defs
+@MODIFIED   :
+@MODIFIED   : Revision 1.9  2004/02/04 20:44:11  lenezet
 @MODIFIED   : *** empty log message ***
 @MODIFIED   :
 @MODIFIED   : Revision 1.8  2003/02/26 00:56:37  lenezet
@@ -59,16 +62,16 @@ extern double
   similarity_cost_ratio;
 extern Real     
   Gcost_radius;                 /* from do_nonlinear.c */
-public int 
+int 
   nearest_neighbour_interpolant(Volume volume, 
                                 PointR *coord, double *result);
 
-public void from_param_to_grid_weights(
+void from_param_to_grid_weights(
    Real p[],
    Real grid[]);
 
 
-public float go_get_samples_with_offset(Volume data,
+float go_get_samples_with_offset(Volume data,
 					float *x, float *y, float *z,
 					Real  dx, Real  dy, Real dz,
 					int obj_func,
@@ -80,7 +83,7 @@ public float go_get_samples_with_offset(Volume data,
 /* This is the COST FUNCTION TO BE MINIMIZED.
    so that very large displacements are impossible */
 
-private Real cost_fn(float x, float y, float z, Real max_length)
+static Real cost_fn(float x, float y, float z, Real max_length)
 {
   Real v2,v,d;
 
@@ -113,7 +116,7 @@ private Real cost_fn(float x, float y, float z, Real max_length)
          D[3] stores the zdisp
 */
 
-private Real similarity_fn(float *d)
+static Real similarity_fn(float *d)
 {
   int i;
   Real
@@ -171,7 +174,7 @@ private Real similarity_fn(float *d)
    this is the objective function that needs to be minimized 
    to give a local deformation
 */
-public Real local_objective_function(float *d)
+Real local_objective_function(float *d)
      
 {
   Real
@@ -193,7 +196,7 @@ public Real local_objective_function(float *d)
 /*  
     amoeba_NL_obj_function() is minimized in the amoeba() optimization function
 */
-public Real amoeba_NL_obj_function(void * dummy, float d[])
+Real amoeba_NL_obj_function(void * dummy, float d[])
 {
   int i;
   float p[4];

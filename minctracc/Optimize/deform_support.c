@@ -20,7 +20,10 @@
 
 @CREATED    : Tue Feb 22 08:37:49 EST 1994
 @MODIFIED   : $Log: deform_support.c,v $
-@MODIFIED   : Revision 96.9  2004-02-04 20:44:11  lenezet
+@MODIFIED   : Revision 96.10  2004-02-12 06:08:19  rotor
+@MODIFIED   :  * removed public/private defs
+@MODIFIED   :
+@MODIFIED   : Revision 96.9  2004/02/04 20:44:11  lenezet
 @MODIFIED   : *** empty log message ***
 @MODIFIED   :
 @MODIFIED   : Revision 96.8  2002/12/13 21:18:20  lenezet
@@ -199,7 +202,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 96.9 2004-02-04 20:44:11 lenezet Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 96.10 2004-02-12 06:08:19 rotor Exp $";
 #endif
 
 #include <config.h>
@@ -221,19 +224,19 @@ extern Arg_Data main_args;
 extern double smoothing_weight;
 extern char *my_XYZ_dim_names;
 
-public void get_volume_XYZV_indices(Volume data, int xyzv[]);
+void get_volume_XYZV_indices(Volume data, int xyzv[]);
 
-public int trilinear_interpolant(Volume volume, 
+int trilinear_interpolant(Volume volume, 
                                  PointR *coord, double *result);
  
-public int nearest_neighbour_interpolant(Volume volume, 
+int nearest_neighbour_interpolant(Volume volume, 
                                          PointR *coord, double *result);
 
-public void init_the_volume_to_zero(Volume volume);
+void init_the_volume_to_zero(Volume volume);
 
-public Real get_volume_maximum_real_value(Volume volume);
+Real get_volume_maximum_real_value(Volume volume);
 
-public Real get_coeff_from_neighbours(General_transform *trans,
+Real get_coeff_from_neighbours(General_transform *trans,
 				      int voxel[],
 				      int avg_type); 
 
@@ -243,7 +246,7 @@ public Real get_coeff_from_neighbours(General_transform *trans,
 				   'start' and 'end' are returned in
 				   XYZ order.  */
 
-public void  get_voxel_spatial_loop_limits(Volume volume,
+void  get_voxel_spatial_loop_limits(Volume volume,
 					   int start[],	
 					   int end[])
 {
@@ -277,7 +280,7 @@ public void  get_voxel_spatial_loop_limits(Volume volume,
     
 }
 
-public BOOLEAN get_average_warp_vector_from_neighbours(General_transform *trans,
+BOOLEAN get_average_warp_vector_from_neighbours(General_transform *trans,
 						       int voxel[],
 						       int avg_type,
 						       Real *mx, Real *my, Real *mz)
@@ -431,7 +434,7 @@ public BOOLEAN get_average_warp_vector_from_neighbours(General_transform *trans,
 }
 
 
-public BOOLEAN get_average_warp_of_neighbours(General_transform *trans,
+BOOLEAN get_average_warp_of_neighbours(General_transform *trans,
 					      int voxel[],
 					      Real mean_pos[])
 {
@@ -473,7 +476,7 @@ public BOOLEAN get_average_warp_of_neighbours(General_transform *trans,
    order and same length along each dimension.
 */
 
-public void add_additional_warp_to_current(General_transform *additional,
+void add_additional_warp_to_current(General_transform *additional,
 					   General_transform *current,
 					   Real weight)
 {
@@ -559,7 +562,7 @@ public void add_additional_warp_to_current(General_transform *additional,
 		 def  = estimate def for current node
 */
 
-public void smooth_the_warp(General_transform *smoothed,
+void smooth_the_warp(General_transform *smoothed,
 			    General_transform *current,
 			    Volume warp_mag, Real thres) 
 {
@@ -750,7 +753,7 @@ public void smooth_the_warp(General_transform *smoothed,
 
       */
 
-public void extrapolate_to_unestimated_nodes(General_transform *current,
+void extrapolate_to_unestimated_nodes(General_transform *current,
 					     General_transform *additional,
 					     Volume estimated_flag_vol) 
 {
@@ -972,7 +975,7 @@ public void extrapolate_to_unestimated_nodes(General_transform *current,
 }
 
 
-public Real get_value_of_point_in_volume(Real xw, Real yw, Real zw, 
+Real get_value_of_point_in_volume(Real xw, Real yw, Real zw, 
 					  Volume data)
      
 {
@@ -1005,7 +1008,7 @@ public Real get_value_of_point_in_volume(Real xw, Real yw, Real zw,
    total = all_until_last + last_warp 
 */
 
-public void split_up_the_transformation(General_transform *total,
+void split_up_the_transformation(General_transform *total,
 					General_transform **all_until_last,
 					General_transform **last_warp) 
 {
@@ -1038,7 +1041,7 @@ public void split_up_the_transformation(General_transform *total,
 
 /*   return the maximum value stored in the data volume */
 
-private Real get_maximum_magnitude(Volume dxyz)
+static Real get_maximum_magnitude(Volume dxyz)
 {
 
   Real max;
@@ -1053,7 +1056,7 @@ private Real get_maximum_magnitude(Volume dxyz)
 /*    set the threshold to be 10% of the maximum gradient magnitude        */
 /*    for each source and target volumes                                   */
 
-public void  set_feature_value_threshold(Volume d1, 
+void  set_feature_value_threshold(Volume d1, 
 					 Volume d2,
 					 Real *global_thres1, 
 					 Real *global_thres2, 
@@ -1074,7 +1077,7 @@ public void  set_feature_value_threshold(Volume d1,
 
 
 
-public void build_two_perpendicular_vectors(Real orig[], 
+void build_two_perpendicular_vectors(Real orig[], 
 					     Real p1[], 
 					     Real p2[])
 {
@@ -1106,7 +1109,7 @@ public void build_two_perpendicular_vectors(Real orig[],
 		__FILE__, __LINE__);
 }
 
-public float xcorr_objective_with_def(Volume d1,
+float xcorr_objective_with_def(Volume d1,
                                       Volume d2,
                                       Volume m1,
                                       Volume m2, 

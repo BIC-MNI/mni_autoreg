@@ -21,7 +21,10 @@
 
 @CREATED    : Tue Mar 12 09:37:44 MET 1996
 @MODIFIED   : $Log: obj_fn_mutual_info.c,v $
-@MODIFIED   : Revision 96.5  2002-03-26 14:15:44  stever
+@MODIFIED   : Revision 96.6  2004-02-12 06:08:21  rotor
+@MODIFIED   :  * removed public/private defs
+@MODIFIED   :
+@MODIFIED   : Revision 96.5  2002/03/26 14:15:44  stever
 @MODIFIED   : Update includes to <volume_io/foo.h> style.
 @MODIFIED   :
 @MODIFIED   : Revision 96.4  2000/03/15 08:42:47  stever
@@ -59,7 +62,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/obj_fn_mutual_info.c,v 96.5 2002-03-26 14:15:44 stever Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/obj_fn_mutual_info.c,v 96.6 2004-02-12 06:08:21 rotor Exp $";
 #endif
 
 #include <volume_io/internal_volume_io.h>
@@ -76,8 +79,8 @@ extern Real            **prob_hash_table;
 extern Real            *prob_fn1;         
 extern Real            *prob_fn2;         
 
-public int point_not_masked(Volume volume, Real wx, Real wy, Real wz);
-public int voxel_point_not_masked(Volume volume, 
+int point_not_masked(Volume volume, Real wx, Real wy, Real wz);
+int voxel_point_not_masked(Volume volume, 
                                   Real vx, Real vy, Real vz);
 
 				
@@ -101,7 +104,7 @@ public int voxel_point_not_masked(Volume volume,
 @CREATED    : Tue Mar 12 09:37:44 MET 1996
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public BOOLEAN partial_volume_interpolation(Volume data,
+BOOLEAN partial_volume_interpolation(Volume data,
 					    Real coord[],
 					    Real intensity_vals[],
 					    Real fractional_vals[],
@@ -185,7 +188,7 @@ public BOOLEAN partial_volume_interpolation(Volume data,
 }
 	
 
-private void blur_pdf( Real *pdf, int blur_size, int pdf_length) {
+static void blur_pdf( Real *pdf, int blur_size, int pdf_length) {
 
     Real *temp_pdf;
     int  i,j,blur_by2;
@@ -256,7 +259,7 @@ private void blur_pdf( Real *pdf, int blur_size, int pdf_length) {
 
 
 
-private void blur_jpdf (Real **hist, int blur_size, int pdf_length) {
+static void blur_jpdf (Real **hist, int blur_size, int pdf_length) {
 
     Real **temp_hist, *temp_col;
     int i,j;
@@ -309,7 +312,7 @@ private void blur_jpdf (Real **hist, int blur_size, int pdf_length) {
 
 */
 
-public float mutual_information_objective(Volume d1,
+float mutual_information_objective(Volume d1,
 					  Volume d2,
 					  Volume m1,
 					  Volume m2, 

@@ -28,7 +28,10 @@
 
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   :  $Log: init_lattice.c,v $
-@MODIFIED   :  Revision 96.7  2004-02-04 20:44:42  lenezet
+@MODIFIED   :  Revision 96.8  2004-02-12 06:04:52  rotor
+@MODIFIED   :   * removed public/private defs
+@MODIFIED   :
+@MODIFIED   :  Revision 96.7  2004/02/04 20:44:42  lenezet
 @MODIFIED   :  *** empty log message ***
 @MODIFIED   :
 @MODIFIED   :  Revision 96.6  2003/02/26 00:50:25  lenezet
@@ -94,7 +97,7 @@ made change to init lattice to not change start when there is only 1 slice.
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/init_lattice.c,v 96.7 2004-02-04 20:44:42 lenezet Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/init_lattice.c,v 96.8 2004-02-12 06:04:52 rotor Exp $";
 #endif
 
 #include <config.h>
@@ -113,13 +116,13 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 extern Arg_Data main_args;
 
 	/* prototype from interpolation.c */
-public int point_not_masked(Volume volume, 
+int point_not_masked(Volume volume, 
 			    Real wx, Real wy, Real wz);
 
 
 
 
-public void get_volume_XYZV_indices(Volume data, int xyzv[])
+void get_volume_XYZV_indices(Volume data, int xyzv[])
 {
   
   int 
@@ -171,7 +174,7 @@ public void get_volume_XYZV_indices(Volume data, int xyzv[])
 
 */
 
-public void set_up_lattice(Volume data,       /* in: volume  */
+void set_up_lattice(Volume data,       /* in: volume  */
 			   double *user_step, /* in: user requested spacing for lattice */
 			   double *start,     /* out: starting position of lattice in volume-dircos coords*/
 			   double *wstart,     /* out:world starting position of lattice */
@@ -379,7 +382,7 @@ public void set_up_lattice(Volume data,       /* in: volume  */
 */
 
 
-public void init_lattice(Volume d1,
+void init_lattice(Volume d1,
 			 Volume d2,
 			 Volume m1,
 			 Volume m2, 

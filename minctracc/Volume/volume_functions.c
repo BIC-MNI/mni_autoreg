@@ -14,7 +14,10 @@
 
 @CREATED    : Tue Jun 15 08:57:23 EST 1993 LC
 @MODIFIED   :  $Log: volume_functions.c,v $
-@MODIFIED   :  Revision 96.9  2002-03-26 14:15:47  stever
+@MODIFIED   :  Revision 96.10  2004-02-12 06:04:53  rotor
+@MODIFIED   :   * removed public/private defs
+@MODIFIED   :
+@MODIFIED   :  Revision 96.9  2002/03/26 14:15:47  stever
 @MODIFIED   :  Update includes to <volume_io/foo.h> style.
 @MODIFIED   :
 @MODIFIED   :  Revision 96.8  2001/01/17 14:26:07  louis
@@ -79,7 +82,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/volume_functions.c,v 96.9 2002-03-26 14:15:47 stever Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/volume_functions.c,v 96.10 2004-02-12 06:04:53 rotor Exp $";
 #endif
 
 #include <config.h>
@@ -90,13 +93,13 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #include <arg_data.h>		/* definition of the global data struct      */
 #include "local_macros.h"
 
-public int point_not_masked(Volume volume, 
+int point_not_masked(Volume volume, 
 			    Real wx, Real wy, Real wz);
-public Real get_value_of_point_in_volume(Real xw, Real yw, Real zw, 
+Real get_value_of_point_in_volume(Real xw, Real yw, Real zw, 
 	  Volume data);
 
 
-public void  set_feature_value_threshold(Volume d1, 
+void  set_feature_value_threshold(Volume d1, 
 					 Volume d2,
 					 Real *global_thres1, 
 					 Real *global_thres2, 
@@ -107,7 +110,7 @@ public void  set_feature_value_threshold(Volume d1,
 #define MIN_ZRANGE -5.0
 #define MAX_ZRANGE  5.0
 
-public void make_zscore_volume(Volume d1, Volume m1, 
+void make_zscore_volume(Volume d1, Volume m1, 
 			       Real *threshold)
 {
   unsigned long
@@ -269,7 +272,7 @@ public void make_zscore_volume(Volume d1, Volume m1,
   
 }
 
-public void add_speckle_to_volume(Volume d1, 
+void add_speckle_to_volume(Volume d1, 
 				  float speckle,
 				  double  *start, int *count, VectorR directions[])
 {
@@ -343,7 +346,7 @@ public void add_speckle_to_volume(Volume d1,
 }
 
 
-public void save_volume(Volume d, char *filename)
+void save_volume(Volume d, char *filename)
 {
   Status status;
 
@@ -356,7 +359,7 @@ public void save_volume(Volume d, char *filename)
 }
 
 
-private int compare(Real  *a, Real *b)
+static int compare(Real  *a, Real *b)
 {
   if ( *a > *b)  return(1);
   else if ( *a < *b) return (-1);
@@ -392,7 +395,7 @@ void qs_list(float *item2, int left, int right)
 }
 
 
-public void normalize_data_to_match_target(Volume d1, Volume m1, Real thresh1,
+void normalize_data_to_match_target(Volume d1, Volume m1, Real thresh1,
 					   Volume d2, Volume m2, Real thresh2,
 					   Arg_Data *globals)
 {

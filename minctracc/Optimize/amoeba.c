@@ -17,7 +17,10 @@
 
 @CREATED    : 
 @MODIFIED   : $Log: amoeba.c,v $
-@MODIFIED   : Revision 96.6  2004-02-04 20:44:11  lenezet
+@MODIFIED   : Revision 96.7  2004-02-12 06:08:19  rotor
+@MODIFIED   :  * removed public/private defs
+@MODIFIED   :
+@MODIFIED   : Revision 96.6  2004/02/04 20:44:11  lenezet
 @MODIFIED   : *** empty log message ***
 @MODIFIED   :
 @MODIFIED   : Revision 96.5  2002/03/26 14:15:43  stever
@@ -124,7 +127,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/amoeba.c,v 96.6 2004-02-04 20:44:11 lenezet Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/amoeba.c,v 96.7 2004-02-12 06:08:19 rotor Exp $";
 #endif
 
 
@@ -153,7 +156,7 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 
 #if 0
 /** call to this function is commented out, so we don't need to compile it **/
-private  BOOLEAN  numerically_close(
+static  BOOLEAN  numerically_close(
     Real  n1,
     Real  n2,
     Real  threshold_ratio )
@@ -196,7 +199,7 @@ private  BOOLEAN  numerically_close(
 @CREATED    :         1993    David MacDonald
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private  Real  get_function_value(
+static  Real  get_function_value(
     amoeba_struct  *amoeba,
     float          parameters[] )
 {
@@ -220,7 +223,7 @@ private  Real  get_function_value(
 @CREATED    :         1993    David MacDonald
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public  void  initialize_amoeba(
+ void  initialize_amoeba(
     amoeba_struct     *amoeba,
     int               n_parameters,
     Real              initial_parameters[],
@@ -271,7 +274,7 @@ public  void  initialize_amoeba(
 @CREATED    :         1993    David MacDonald
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public  Real  get_amoeba_parameters(
+ Real  get_amoeba_parameters(
     amoeba_struct  *amoeba,
     Real           parameters[] )
 {
@@ -303,7 +306,7 @@ public  Real  get_amoeba_parameters(
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-public  void  terminate_amoeba(
+ void  terminate_amoeba(
     amoeba_struct  *amoeba )
 {
     FREE2D( amoeba->parameters );
@@ -329,7 +332,7 @@ public  void  terminate_amoeba(
 @CREATED    :         1993    David MacDonald
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-private  Real  try_amoeba(
+static  Real  try_amoeba(
     amoeba_struct  *amoeba,
     Real           sum[],
     int            high,
@@ -383,7 +386,7 @@ private  Real  try_amoeba(
 @CREATED    :         1993    David MacDonald
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public  BOOLEAN  perform_amoeba(
+ BOOLEAN  perform_amoeba(
     amoeba_struct  *amoeba, int *num_funks )
 {
     int     i, j, low, high, next_high;

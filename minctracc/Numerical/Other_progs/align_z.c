@@ -1,7 +1,7 @@
 /* return the angle (limited between -pi and pi) between the x axis and 
    the vector (x,y)*/
 #define PI 3.1415927
-private float getang(float x,float y)
+static float getang(float x,float y)
 {
   float ang;
 
@@ -78,7 +78,7 @@ private float getang(float x,float y)
               align the local y in the YZ plane.
 */
 
-private BOOLEAN align_z(float **S, float **R)
+static BOOLEAN align_z(float **S, float **R)
 {
   
   BOOLEAN result;

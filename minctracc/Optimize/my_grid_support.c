@@ -2,13 +2,13 @@
 #include <louis_splines.h>
 #include <print_error.h>
 
-public void get_volume_XYZV_indices(Volume data, int xyzv[]);
+void get_volume_XYZV_indices(Volume data, int xyzv[]);
 
-public void interpolate_deformation_slice(Volume volume, 
+void interpolate_deformation_slice(Volume volume, 
 					  Real wx,Real wy,Real wz,
 					  Real def[]);
 
-public  void  grid_transform_point_in_trans_plane(
+ void  grid_transform_point_in_trans_plane(
     General_transform   *transform,
     Real                x,
     Real                y,
@@ -17,7 +17,7 @@ public  void  grid_transform_point_in_trans_plane(
     Real                *y_transformed,
     Real                *z_transformed );
 
-public  void  grid_inverse_transform_point_in_trans_plane(
+ void  grid_inverse_transform_point_in_trans_plane(
     General_transform   *transform,
     Real                x,
     Real                y,
@@ -26,7 +26,7 @@ public  void  grid_inverse_transform_point_in_trans_plane(
     Real                *y_transformed,
     Real                *z_transformed );
 
-private void transform_or_inverse_point_in_trans_plane(General_transform *transform,
+static void transform_or_inverse_point_in_trans_plane(General_transform *transform,
 					  BOOLEAN           inverse_flag,
 					  Real              x, 
 					  Real              y, 
@@ -35,7 +35,7 @@ private void transform_or_inverse_point_in_trans_plane(General_transform *transf
 					  Real              *y_transformed,  
 					  Real              *z_transformed);
 
-public  void  general_transform_point_in_trans_plane(
+ void  general_transform_point_in_trans_plane(
     General_transform   *transform,
     Real                x,
     Real                y,
@@ -44,7 +44,7 @@ public  void  general_transform_point_in_trans_plane(
     Real                *y_transformed,
     Real                *z_transformed );
 
-public  void  general_inverse_transform_point_in_trans_plane(
+ void  general_inverse_transform_point_in_trans_plane(
     General_transform   *transform,
     Real                x,
     Real                y,
@@ -63,7 +63,7 @@ public  void  general_inverse_transform_point_in_trans_plane(
   this routine will use interpolation on the 2D deformation
   field to calculate the inverse position */
 
-private void transform_or_inverse_point_in_trans_plane(General_transform *transform,
+static void transform_or_inverse_point_in_trans_plane(General_transform *transform,
 					  BOOLEAN           inverse_flag,
 					  Real              x, 
 					  Real              y, 
@@ -176,7 +176,7 @@ private void transform_or_inverse_point_in_trans_plane(General_transform *transf
     }
 }
 
-public  void  general_transform_point_in_trans_plane(
+ void  general_transform_point_in_trans_plane(
     General_transform   *transform,
     Real                x,
     Real                y,
@@ -211,7 +211,7 @@ public  void  general_transform_point_in_trans_plane(
 @MODIFIED   : 1995 louis
 ---------------------------------------------------------------------------- */
 
-public  void  general_inverse_transform_point_in_trans_plane(
+ void  general_inverse_transform_point_in_trans_plane(
     General_transform   *transform,
     Real                x,
     Real                y,
@@ -230,7 +230,7 @@ public  void  general_inverse_transform_point_in_trans_plane(
 
 
 
-public  void  grid_transform_point_in_trans_plane(
+ void  grid_transform_point_in_trans_plane(
     General_transform   *transform,
     Real                x,
     Real                y,
@@ -258,7 +258,7 @@ public  void  grid_transform_point_in_trans_plane(
 
 #define  NUMBER_TRIES  10
 
-public  void  grid_inverse_transform_point_in_trans_plane(
+ void  grid_inverse_transform_point_in_trans_plane(
     General_transform   *transform,
     Real                x,
     Real                y,
@@ -324,7 +324,7 @@ public  void  grid_inverse_transform_point_in_trans_plane(
     *z_transformed = best_z;
 }
 
-public void interpolate_deformation_slice(Volume volume, 
+void interpolate_deformation_slice(Volume volume, 
 					  Real wx,Real wy,Real wz,
 					  Real def[])
 {
@@ -455,7 +455,7 @@ public void interpolate_deformation_slice(Volume volume,
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-private  void   my_interpolate_volume(
+static  void   my_interpolate_volume(
     int      n_dims,
     Real     parameters[],
     int      n_values,
@@ -513,7 +513,7 @@ private  void   my_interpolate_volume(
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-public  int   my_evaluate_volume(
+ int   my_evaluate_volume(
     Volume         volume,
     Real           voxel[],
     BOOLEAN        interpolating_dimensions[],
@@ -761,7 +761,7 @@ public  int   my_evaluate_volume(
   return( n_values );
 }
 
-public  void   my_evaluate_volume_in_world(
+ void   my_evaluate_volume_in_world(
     Volume         volume,
     Real           x,
     Real           y,

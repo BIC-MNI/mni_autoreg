@@ -16,7 +16,10 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 96.20  2004-02-04 20:44:13  lenezet
+@MODIFIED   : Revision 96.21  2004-02-12 06:08:20  rotor
+@MODIFIED   :  * removed public/private defs
+@MODIFIED   :
+@MODIFIED   : Revision 96.20  2004/02/04 20:44:13  lenezet
 @MODIFIED   : *** empty log message ***
 @MODIFIED   :
 @MODIFIED   : Revision 96.19  2003/02/26 01:20:34  lenezet
@@ -316,7 +319,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.20 2004-02-04 20:44:13 lenezet Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.21 2004-02-12 06:08:20 rotor Exp $";
 #endif
 
 #include <config.h>		/* MAXtype and MIN defs                      */
@@ -467,8 +470,8 @@ static Real
 
         /* prototypes function definitions */
 
-public  BOOLEAN  perform_amoeba(amoeba_struct  *amoeba, int *num_funks );
-public  void  initialize_amoeba(amoeba_struct     *amoeba,
+ BOOLEAN  perform_amoeba(amoeba_struct  *amoeba, int *num_funks );
+ void  initialize_amoeba(amoeba_struct     *amoeba,
 				int               n_parameters,
 				Real              initial_parameters[],
 				Real              parameter_delta,
@@ -476,18 +479,18 @@ public  void  initialize_amoeba(amoeba_struct     *amoeba,
 				void              *function_data,
 				Real              tolerance );
 
-public  Real  get_amoeba_parameters(amoeba_struct  *amoeba,
+ Real  get_amoeba_parameters(amoeba_struct  *amoeba,
 				    Real           parameters[] );
 
-public  void  terminate_amoeba( amoeba_struct  *amoeba );
+ void  terminate_amoeba( amoeba_struct  *amoeba );
 
-public  Real amoeba_NL_obj_function(void * dummy, float d[]);
+ Real amoeba_NL_obj_function(void * dummy, float d[]);
 
 #define AMOEBA_ITERATION_LIMIT  400 /* max number of iterations for amoeba */
 
-public  Real local_objective_function(float *x);
+ Real local_objective_function(float *x);
 
-private Real get_deformation_vector_for_node(Real spacing, Real threshold1, 
+static Real get_deformation_vector_for_node(Real spacing, Real threshold1, 
 					     Real source_coord[],
 					     Real mean_target[],
 					     Real def_vector[],
@@ -497,7 +500,7 @@ private Real get_deformation_vector_for_node(Real spacing, Real threshold1,
 					     int ndim,
 					     BOOLEAN sub_lattice_needed);
 
-private double return_locally_smoothed_def(int  isotropic_smoothing,
+static double return_locally_smoothed_def(int  isotropic_smoothing,
 					 int  ndim,
 					 Real smoothing_wght,
 					 Real iteration_wght,
@@ -510,7 +513,7 @@ private double return_locally_smoothed_def(int  isotropic_smoothing,
 
 
 
-private BOOLEAN get_best_start_from_neighbours(
+static BOOLEAN get_best_start_from_neighbours(
 					       Real threshold1, 
 					       Real source[],
 					       Real mean_target[],
@@ -519,7 +522,7 @@ private BOOLEAN get_best_start_from_neighbours(
 
   
 
-public  void  general_transform_point_in_trans_plane(
+ void  general_transform_point_in_trans_plane(
     General_transform   *transform,
     Real                x,
     Real                y,
@@ -528,7 +531,7 @@ public  void  general_transform_point_in_trans_plane(
     Real                *y_transformed,
     Real                *z_transformed );
 
-public  void  general_inverse_transform_point_in_trans_plane(
+ void  general_inverse_transform_point_in_trans_plane(
     General_transform   *transform,
     Real                x,
     Real                y,
@@ -537,18 +540,18 @@ public  void  general_inverse_transform_point_in_trans_plane(
     Real                *y_transformed,
     Real                *z_transformed );
 
-public void get_volume_XYZV_indices(Volume data, int xyzv[]);
+void get_volume_XYZV_indices(Volume data, int xyzv[]);
 
-public int point_not_masked(Volume volume, 
+int point_not_masked(Volume volume, 
 			    Real wx, Real wy, Real wz);
 
-public int nearest_neighbour_interpolant(Volume volume, 
+int nearest_neighbour_interpolant(Volume volume, 
                                  PointR *coord, double *result);
 
-private BOOLEAN is_a_sub_lattice_needed (char obj_func[],
+static BOOLEAN is_a_sub_lattice_needed (char obj_func[],
 					 int  number_of_features);
 
-private BOOLEAN build_lattices(Real spacing, 
+static BOOLEAN build_lattices(Real spacing, 
 			       Real threshold, 
 			       Real source_coord[],
 			       Real mean_target[],
@@ -556,17 +559,17 @@ private BOOLEAN build_lattices(Real spacing,
 			       Real def_vector[],
 			       int ndim);
 
-public void    build_target_lattice(float px[], float py[], float pz[],
+void    build_target_lattice(float px[], float py[], float pz[],
 				    float tx[], float ty[], float tz[],
 				     int len, int dim);
 
-public void    build_target_lattice_using_super_sampled_def(
+void    build_target_lattice_using_super_sampled_def(
                                      float px[], float py[], float pz[],
 				     float tx[], float ty[], float tz[],
 				     int len, int dim);
 
 
-private Real get_optical_flow_vector(Real threshold1, 
+static Real get_optical_flow_vector(Real threshold1, 
 				     Real source_coord[],
 				     Real mean_target[],
 				     Real def_vector[],
@@ -575,7 +578,7 @@ private Real get_optical_flow_vector(Real threshold1,
 				     Volume model,
 				     int ndim);
 
-private Real get_chamfer_vector(Real threshold1, 
+static Real get_chamfer_vector(Real threshold1, 
 				Real source_coord[],
 				Real mean_target[],
 				Real def_vector[],
@@ -584,20 +587,20 @@ private Real get_chamfer_vector(Real threshold1,
 				Volume chamfer,
 				int ndim);
 
-public void from_param_to_grid_weights(Real p[],
+void from_param_to_grid_weights(Real p[],
 				       Real grid[]);
 
-public void from_grid_weights_to_param(Real grid[],
+void from_grid_weights_to_param(Real grid[],
 				       Real p[]);
 
-public void map_def_to_grid_space(Real dx,
+void map_def_to_grid_space(Real dx,
 				  Real dy,
 				  Real dz,
 				  Real *g0,
 				  Real *g1,
 				  Real *g2);
 
-public void map_def_from_grid_space(Real g0,
+void map_def_from_grid_space(Real g0,
 				    Real g1,
 				    Real g2,
 				    Real *dx,
@@ -607,7 +610,7 @@ public void map_def_from_grid_space(Real g0,
 
 
 /**************************************************************************/
-public Status do_non_linear_optimization(Arg_Data *globals)
+Status do_non_linear_optimization(Arg_Data *globals)
 {
    General_transform
       *all_until_last,		/* will contain the first (linear) part of the xform  */
@@ -1581,7 +1584,7 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
      and set is_a_sub_lattice_needed=TRUE if any obj function
      is used other than Optical Flow
 */
-private BOOLEAN is_a_sub_lattice_needed (char obj_func[],
+static BOOLEAN is_a_sub_lattice_needed (char obj_func[],
 					 int  number_of_features) {
   BOOLEAN needed;
   int i;
@@ -1656,7 +1659,7 @@ private BOOLEAN is_a_sub_lattice_needed (char obj_func[],
 
 /* return a value representing confidence, with the value between 0 and 1 */
 
-private double confidence_function(double x) {
+static double confidence_function(double x) {
 
   
   double t;
@@ -1690,7 +1693,7 @@ private double confidence_function(double x) {
 
 }
 
-private double return_locally_smoothed_def(int isotropic_smoothing,
+static double return_locally_smoothed_def(int isotropic_smoothing,
 					   int  ndim,
 					   Real smoothing_wght,
 					   Real iteration_wght,
@@ -1885,7 +1888,7 @@ private double return_locally_smoothed_def(int isotropic_smoothing,
 		      the best starting target.
 */
 
-private BOOLEAN get_best_start_from_neighbours(
+static BOOLEAN get_best_start_from_neighbours(
 			   Real threshold1, 
 			   Real source[],
 			   Real mean_target[],
@@ -1950,7 +1953,7 @@ Based on Horn and Schunck Artificial Intell 17 (1981) 185-203
 
 #define Min_deriv  0.02
 
-private Real get_optical_flow_vector(Real threshold1, 
+static Real get_optical_flow_vector(Real threshold1, 
 				     Real source_coord[],
 				     Real mean_target[],
 				     Real def_vector[],
@@ -2052,7 +2055,7 @@ private Real get_optical_flow_vector(Real threshold1,
 
 #define MAX_CAPTURE 3.8		
 
-private Real get_chamfer_vector(Real capture_limit, 
+static Real get_chamfer_vector(Real capture_limit, 
 				Real source_coord[],
 				Real mean_target[],
 				Real def_vector[],
@@ -2218,7 +2221,7 @@ print ("%5.3f: %7.2f %7.2f %7.2f -> %7.2f %7.2f %7.2f [%7.2f %7.2f %7.2f ]",
   return(result);
 }
 
-private BOOLEAN build_lattices(Real spacing, 
+static BOOLEAN build_lattices(Real spacing, 
 			       Real threshold, 
 			       Real source_coord[],
 			       Real mean_target[],
@@ -2450,7 +2453,7 @@ private BOOLEAN build_lattices(Real spacing,
 */
 
 
-private Real get_deformation_vector_for_node(Real spacing, 
+static Real get_deformation_vector_for_node(Real spacing, 
 					     Real threshold1, 
 					     Real source_coord[],
 					     Real mean_target[],
@@ -2800,7 +2803,7 @@ private Real get_deformation_vector_for_node(Real spacing,
 Procedure from_param_to_grid_weights() will map the optimized parameter vector to the correct grid weights, depending on count[0..2].
 */
 
-public void from_param_to_grid_weights(
+void from_param_to_grid_weights(
    Real p[],
    Real grid[])
 
@@ -2827,7 +2830,7 @@ public void from_param_to_grid_weights(
 Procedure from_grid_weights_to_param() will inverse the procedure from_param_to_grid_weights
 */
 
-public void from_grid_weights_to_param(
+void from_grid_weights_to_param(
     Real grid[],
     Real p[])
 {
@@ -2847,7 +2850,7 @@ public void from_grid_weights_to_param(
 Procedure map_def_to_grid_space() will map a world-space deformation vector (dx,dy,dz) to the coordinate system of the grid (g0,g1,g2) 
 */
 
-public void map_def_to_grid_space( Real dx,
+void map_def_to_grid_space( Real dx,
 				   Real dy,
 				   Real dz,
 				   Real *g0,
@@ -2877,7 +2880,7 @@ public void map_def_to_grid_space( Real dx,
 Procedure map_def_from_grid_space() will map the deformation in the grid coordinate system on to the world coordinate system.
 */
 
-public void map_def_from_grid_space(Real g0,
+void map_def_from_grid_space(Real g0,
 				    Real g1,
 				    Real g2,
 				    Real *dx,

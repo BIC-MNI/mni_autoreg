@@ -3,7 +3,7 @@
 
 #include "segment_table.h"
 
-public BOOLEAN build_segment_table(Segment_Table **s_table, Volume d1, int groups)
+BOOLEAN build_segment_table(Segment_Table **s_table, Volume d1, int groups)
 {
 
   float
@@ -63,7 +63,7 @@ public BOOLEAN build_segment_table(Segment_Table **s_table, Volume d1, int group
 }
 
 
-public BOOLEAN free_segment_table(Segment_Table *s_table)
+BOOLEAN free_segment_table(Segment_Table *s_table)
 {
 
   int *p;
@@ -77,7 +77,7 @@ public BOOLEAN free_segment_table(Segment_Table *s_table)
 
 }
 
-public int     get_segment_LUT_value(int value, Segment_Table *s_table)
+int     get_segment_LUT_value(int value, Segment_Table *s_table)
 {
 
   if ((value>=s_table->min) && (value<=s_table->max))

@@ -5,7 +5,7 @@
                procedures.               
 @CREATED    : Mon Nov  3, 1997 , Louis Collins
 @MODIFIED   : not yet!
-@VERSION    : $Id: extras.c,v 1.5 2002-12-13 21:18:20 lenezet Exp $
+@VERSION    : $Id: extras.c,v 1.6 2004-02-12 06:08:20 rotor Exp $
 #-----------------------------------------------------------------------------
 */
 
@@ -14,7 +14,7 @@
 #include <volume_io/internal_volume_io.h>	
 #include <time.h>
 
-public void report_time(long start_time, STRING text) 
+void report_time(long start_time, STRING text) 
 {
 
   Real 
@@ -50,7 +50,7 @@ public void report_time(long start_time, STRING text)
 }
 
 
-public void init_the_volume_to_zero(Volume volume)
+void init_the_volume_to_zero(Volume volume)
 {
     int             v0, v1, v2, v3, v4;
     Real            zero;
@@ -66,7 +66,7 @@ public void init_the_volume_to_zero(Volume volume)
 
 }
 
-public Real get_volume_maximum_real_value(Volume volume)
+Real get_volume_maximum_real_value(Volume volume)
 {
     int             v0, v1, v2, v3, v4;
     Real            val,max;
@@ -88,7 +88,7 @@ public Real get_volume_maximum_real_value(Volume volume)
 /*************************************************************************/
 /* debug procedure called to save the deformation at each iterative step */
 
-public void save_data(char *basename, int i, int j,
+void save_data(char *basename, int i, int j,
 		      General_transform *transform)
 {
 

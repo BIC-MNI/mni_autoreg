@@ -14,9 +14,12 @@
                                     to create a sublattice defined on the target.
      
 @CREATED    : Mon Nov  3, 1997 , Louis Collins
-@VERSION    : $Id: sub_lattice.c,v 1.9 2003-02-26 00:56:38 lenezet Exp $
+@VERSION    : $Id: sub_lattice.c,v 1.10 2004-02-12 06:08:21 rotor Exp $
 @MODIFIED   : $Log: sub_lattice.c,v $
-@MODIFIED   : Revision 1.9  2003-02-26 00:56:38  lenezet
+@MODIFIED   : Revision 1.10  2004-02-12 06:08:21  rotor
+@MODIFIED   :  * removed public/private defs
+@MODIFIED   :
+@MODIFIED   : Revision 1.9  2003/02/26 00:56:38  lenezet
 @MODIFIED   : for 2D : now computes all 3 coordinates for the "start" (to take into account the slice position).
 @MODIFIED   : simplification of build_lattices.
 @MODIFIED   : bug correction in amoeba_NL_obj_function.
@@ -70,7 +73,7 @@ extern General_transform
 extern float
   *SX, *SY, *SZ;
 
-public  void  general_transform_point_in_trans_plane(
+ void  general_transform_point_in_trans_plane(
     General_transform   *transform,
     Real                x,
     Real                y,
@@ -98,7 +101,7 @@ public  void  general_transform_point_in_trans_plane(
    volume (and hence the grid transform volume) and NOT the world
    coordinate axis! */
 
-public void    build_source_lattice(Real x, Real y, Real z,
+void    build_source_lattice(Real x, Real y, Real z,
 				    float PX[], float PY[], float PZ[],
 				    Real width_x, Real width_y, Real width_z, 
 				    int nx, int ny, int nz,
@@ -201,7 +204,7 @@ public void    build_source_lattice(Real x, Real y, Real z,
    use the world coordinates stored in x[],y[],z[] to interpolate len
    samples from the volume 'data' */
 
-public void go_get_samples_in_source(Volume data,
+void go_get_samples_in_source(Volume data,
 				     float x[], float y[], float z[],
 				     float samples[],
 				     int len,
@@ -258,7 +261,7 @@ public void go_get_samples_in_source(Volume data,
 
 */
 
-public float go_get_samples_with_offset(
+float go_get_samples_with_offset(
      Volume data,                  /* The volume of data */
      float *x, float *y, float *z, /* the positions of the sub-lattice */
      Real  dx, Real  dy, Real dz,  /* the local displacement to apply  */
@@ -790,7 +793,7 @@ public float go_get_samples_with_offset(
    WORLD COORDINATES
 
 */
-public void    build_target_lattice(float px[], float py[], float pz[],
+void    build_target_lattice(float px[], float py[], float pz[],
 				    float tx[], float ty[], float tz[],
 				    int len, int dim)
 {
@@ -819,7 +822,7 @@ public void    build_target_lattice(float px[], float py[], float pz[],
    WORLD COORDINATES
 
 */
-public void    build_target_lattice_using_super_sampled_def(
+void    build_target_lattice_using_super_sampled_def(
                                      float px[], float py[], float pz[],
 				     float tx[], float ty[], float tz[],
 				     int len, int dim)

@@ -16,7 +16,10 @@
 @CREATED    : Wed May 26 13:05:44 EST 1993 LC using routines from NEELIN's
               mincresample.
 @MODIFIED   :  $Log: interpolation.c,v $
-@MODIFIED   :  Revision 96.3  2002-03-26 14:15:47  stever
+@MODIFIED   :  Revision 96.4  2004-02-12 06:04:53  rotor
+@MODIFIED   :   * removed public/private defs
+@MODIFIED   :
+@MODIFIED   :  Revision 96.3  2002/03/26 14:15:47  stever
 @MODIFIED   :  Update includes to <volume_io/foo.h> style.
 @MODIFIED   :
 @MODIFIED   :  Revision 96.2  2000/03/17 01:11:31  stever
@@ -53,7 +56,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/interpolation.c,v 96.3 2002-03-26 14:15:47 stever Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/interpolation.c,v 96.4 2004-02-12 06:04:53 rotor Exp $";
 #endif
 
 #include <volume_io/internal_volume_io.h>
@@ -77,7 +80,7 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 @MODIFIED   : Fri May 28 09:06:12 EST 1993 Louis Collins
                mod to use david's volume_struct
 ---------------------------------------------------------------------------- */
-public int nearest_neighbour_interpolant(Volume volume, 
+int nearest_neighbour_interpolant(Volume volume, 
                                          PointR *coord, double *result)
 {
    long 
@@ -130,7 +133,7 @@ public int nearest_neighbour_interpolant(Volume volume,
 @MODIFIED   : Fri May 28 09:06:12 EST 1993 Louis Collins
                mod to use david's volume_struct
 ---------------------------------------------------------------------------- */
-public int trilinear_interpolant(Volume volume, 
+int trilinear_interpolant(Volume volume, 
                                  PointR *coord, double *result)
 {
   long ind0, ind1, ind2, max[3];
@@ -223,7 +226,7 @@ public int trilinear_interpolant(Volume volume,
 @MODIFIED   : Fri May 28 09:06:12 EST 1993 Louis Collins
                mod to use david's volume_struct
 ---------------------------------------------------------------------------- */
-public void do_Ncubic_interpolation(Volume volume, 
+void do_Ncubic_interpolation(Volume volume, 
                                     long index[], int cur_dim, 
                                     double frac[], double *result)
 {
@@ -301,7 +304,7 @@ public void do_Ncubic_interpolation(Volume volume,
 @MODIFIED   : Fri May 28 09:06:12 EST 1993 Louis Collins
                mod to use david's volume_struct
 ---------------------------------------------------------------------------- */
-public int tricubic_interpolant(Volume volume, 
+int tricubic_interpolant(Volume volume, 
                                 PointR *coord, double *result)
 {
    long ind0, ind1, ind2, max[3], index[VOL_NDIMS];
@@ -358,7 +361,7 @@ public int tricubic_interpolant(Volume volume,
    If the mask volume is NULL, we consider all points.
    Otherwise, consider a point if the mask volume value is > 0.
 */
-public int point_not_masked( Volume volume, 
+int point_not_masked( Volume volume, 
 			     Real wx, Real wy, Real wz)
 {
     double result;
@@ -379,7 +382,7 @@ public int point_not_masked( Volume volume,
 }
 
 
-public int voxel_point_not_masked( Volume volume, 
+int voxel_point_not_masked( Volume volume, 
                                    Real vx, Real vy, Real vz)
 {
     double result;

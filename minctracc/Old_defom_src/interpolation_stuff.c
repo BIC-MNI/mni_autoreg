@@ -267,7 +267,7 @@ void interpolate_from_nn_closest (row,col,cx,cy, nn, slice, dx,dy,dz)
       deform_dx and deform_dy will return with interpolated values.
 
 */
-public void interpolate_deform_slice(deform_dx,deform_dy,deform_dz)
+void interpolate_deform_slice(deform_dx,deform_dy,deform_dz)
      DATA 
 	*deform_dx,*deform_dy,*deform_dz;
 {
@@ -369,7 +369,7 @@ public void interpolate_deform_slice(deform_dx,deform_dy,deform_dz)
    In this routine, the deformation value for these voxels will be estimated
    from its N_NEIGHBOURS nearest neighbors.
 */
-public void interpolate_deform_volume(deform_dx,deform_dy,deform_dz,labels,ndim)
+void interpolate_deform_volume(deform_dx,deform_dy,deform_dz,labels,ndim)
      DATA 
 	*deform_dx,*deform_dy,*deform_dz,*labels;
      int ndim;

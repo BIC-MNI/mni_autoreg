@@ -12,7 +12,7 @@
 
 #@CREATED    : Wed Jun 25, 1997, Louis Collins
 #@MODIFIED   : not yet!
-#@VERSION    : $Id: vox_space.c,v 1.6 2002-11-20 21:39:17 lenezet Exp $
+#@VERSION    : $Id: vox_space.c,v 1.7 2004-02-12 06:08:21 rotor Exp $
 #----------------------------------------------------------------------------- */
 
 #include <volume_io/internal_volume_io.h>
@@ -21,7 +21,7 @@
 #include "vox_space.h"
 #include "local_macros.h"
 
-public Voxel_space_struct* new_voxel_space_struct(void) {
+Voxel_space_struct* new_voxel_space_struct(void) {
 
    Voxel_space_struct *vox_space;
 
@@ -34,7 +34,7 @@ public Voxel_space_struct* new_voxel_space_struct(void) {
    return(vox_space);
 }
 
-public void delete_voxel_space_struct( Voxel_space_struct *vox_space) {
+void delete_voxel_space_struct( Voxel_space_struct *vox_space) {
 
    delete_general_transform(vox_space->voxel_to_voxel_space);
    FREE(vox_space->voxel_to_voxel_space);
@@ -43,7 +43,7 @@ public void delete_voxel_space_struct( Voxel_space_struct *vox_space) {
 
 }
 
-public void build_reorder_matrix_vox2xyz(General_transform *trans, Volume volume) {
+void build_reorder_matrix_vox2xyz(General_transform *trans, Volume volume) {
    
    int axis;
    Transform *lin;
@@ -71,7 +71,7 @@ public void build_reorder_matrix_vox2xyz(General_transform *trans, Volume volume
    
 }
 
-public void build_reorder_matrix_xyz2vox(General_transform *trans, Volume volume) {
+void build_reorder_matrix_xyz2vox(General_transform *trans, Volume volume) {
    
    int axis;
    Transform *lin;
@@ -99,7 +99,7 @@ public void build_reorder_matrix_xyz2vox(General_transform *trans, Volume volume
    
 }
 
-public void get_into_voxel_space(Arg_Data *globals,
+void get_into_voxel_space(Arg_Data *globals,
                                  Voxel_space_struct *vox,
                                  Volume v1, Volume v2) {
    Transform 
@@ -258,7 +258,7 @@ public void get_into_voxel_space(Arg_Data *globals,
    }
 }
 
-public  void  my_homogenous_transform_point(
+ void  my_homogenous_transform_point(
     Transform  *transform,
     Real       x,
     Real       y,

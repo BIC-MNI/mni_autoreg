@@ -17,7 +17,10 @@
 
 @CREATED    : January 29, 1992 (Peter Neelin)
 @MODIFIED   :  $Log: procrustes.c,v $
-@MODIFIED   :  Revision 1.1  1999-10-25 19:52:24  louis
+@MODIFIED   :  Revision 1.2  2004-02-12 06:09:12  rotor
+@MODIFIED   :   * removed public/private defs
+@MODIFIED   :
+@MODIFIED   :  Revision 1.1  1999/10/25 19:52:24  louis
 @MODIFIED   :  final checkin before switch to CVS
 @MODIFIED   :
  * Revision 1.9  1995/09/11  12:37:16  collins
@@ -53,7 +56,7 @@ and moved them to matrix_basics!
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/Other_progs/procrustes.c,v 1.1 1999-10-25 19:52:24 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/Other_progs/procrustes.c,v 1.2 2004-02-12 06:09:12 rotor Exp $";
 #endif
 
 #include <volume_io.h>
@@ -63,7 +66,7 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 void svdcmp(float **, int, int, float *, float **);
 
 /* Routines defined in this file */
-public void procrustes(int npoints, int ndim, 
+void procrustes(int npoints, int ndim, 
                        float **Apoints, float **Bpoints,
                        float *translation, float *centre_of_rotation,
                        float **rotation, float *scale);
@@ -126,7 +129,7 @@ public void procrustes(int npoints, int ndim,
                  - complete rewrite for roughly NIL-abiding code. Modified
                  name and calling parameters.
 ---------------------------------------------------------------------------- */
-public void procrustes(int npoints, int ndim, 
+void procrustes(int npoints, int ndim, 
                        float **Apoints, float **Bpoints,
                        float *translation, float *centre_of_rotation,
                        float **rotation, float *scale)

@@ -14,7 +14,10 @@
               express or implied warranty.
 
 @MODIFIED   : $Log: optimize.c,v $
-@MODIFIED   : Revision 96.11  2004-02-04 20:44:13  lenezet
+@MODIFIED   : Revision 96.12  2004-02-12 06:08:21  rotor
+@MODIFIED   :  * removed public/private defs
+@MODIFIED   :
+@MODIFIED   : Revision 96.11  2004/02/04 20:44:13  lenezet
 @MODIFIED   : *** empty log message ***
 @MODIFIED   :
 @MODIFIED   : Revision 96.10  2003/02/04 06:08:46  stever
@@ -140,7 +143,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 96.11 2004-02-04 20:44:13 lenezet Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 96.12 2004-02-12 06:08:21 rotor Exp $";
 #endif
 
 #include <config.h>
@@ -173,8 +176,8 @@ extern   Real     initial_corr, final_corr;
 
 /* external calls: */
 
-public  BOOLEAN  perform_amoeba(amoeba_struct  *amoeba, int *num_funks );
-public  void  initialize_amoeba(
+ BOOLEAN  perform_amoeba(amoeba_struct  *amoeba, int *num_funks );
+ void  initialize_amoeba(
     amoeba_struct     *amoeba,
     int               n_parameters,
     Real              initial_parameters[],
@@ -183,30 +186,30 @@ public  void  initialize_amoeba(
     void              *function_data,
     Real              tolerance );
 
-public  Real  get_amoeba_parameters(
+ Real  get_amoeba_parameters(
     amoeba_struct  *amoeba,
     Real           parameters[] );
 
-public  void  terminate_amoeba(
+ void  terminate_amoeba(
     amoeba_struct  *amoeba );
 
 
-public void make_zscore_volume(Volume d1, Volume m1, 
+void make_zscore_volume(Volume d1, Volume m1, 
 			       Real *threshold); 
 
-public void add_speckle_to_volume(Volume d1, 
+void add_speckle_to_volume(Volume d1, 
 				  float speckle,
 				  double  *start, int *count, 
 				  VectorR directions[]);
 
-public Status do_non_linear_optimization(Arg_Data *globals);
+Status do_non_linear_optimization(Arg_Data *globals);
 
-public void normalize_data_to_match_target(Volume d1, Volume m1, Real thresh1,
+void normalize_data_to_match_target(Volume d1, Volume m1, Real thresh1,
                                            Volume d2, Volume m2, Real thresh2,
                                            Arg_Data *globals);
 
 
-public void parameters_to_vector_quater(double *trans, 
+void parameters_to_vector_quater(double *trans, 
 					double *quats,
 					double *scales,
 					double *shears,
@@ -237,7 +240,7 @@ public void parameters_to_vector_quater(double *trans,
 }
 
 
-public void parameters_to_vector(double *trans, 
+void parameters_to_vector(double *trans, 
 				 double *rots,
 				 double *scales,
 				 double *shears,
@@ -271,7 +274,7 @@ public void parameters_to_vector(double *trans,
 
 
 
-private void vector_to_parameters(double *trans, 
+static void vector_to_parameters(double *trans, 
 				  double *rots, 
 				  double *scales,
 				  double *shears,
@@ -301,7 +304,7 @@ private void vector_to_parameters(double *trans,
 
 
 
-private void vector_to_parameters_quater(double *trans, 
+static void vector_to_parameters_quater(double *trans, 
 					 double *quats, 
 					 double *scales,
 					 double *shears,
@@ -333,7 +336,7 @@ private void vector_to_parameters_quater(double *trans,
 }
 
 
-inline private BOOLEAN in_limits(double x,double lower,double upper)
+inline static BOOLEAN in_limits(double x,double lower,double upper)
 {
     return lower <= x && x <= upper;
 }
@@ -352,7 +355,7 @@ inline private BOOLEAN in_limits(double x,double lower,double upper)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-public float fit_function(float *params) 
+float fit_function(float *params) 
 {
 
   Transform *mat;
@@ -434,7 +437,7 @@ public float fit_function(float *params)
 }
 
 
-public Real amoeba_obj_function(void *dummy, float d[])
+Real amoeba_obj_function(void *dummy, float d[])
 {
   int i;
   float p[13];
@@ -459,7 +462,7 @@ public Real amoeba_obj_function(void *dummy, float d[])
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-public float fit_function_quater(float *params) 
+float fit_function_quater(float *params) 
 {
 
   Transform *mat;
@@ -543,7 +546,7 @@ public float fit_function_quater(float *params)
 }
 
 
-public Real amoeba_obj_function_quater(void *dummy, float d[])
+Real amoeba_obj_function_quater(void *dummy, float d[])
 {
   int i;
   float p[13];
@@ -577,7 +580,7 @@ public Real amoeba_obj_function_quater(void *dummy, float d[])
 @CREATED    : Fri Jun 11 11:16:25 EST 1993 LC
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public BOOLEAN optimize_simplex(Volume d1,
+BOOLEAN optimize_simplex(Volume d1,
 				Volume d2,
 				Volume m1,
 				Volume m2, 
@@ -743,7 +746,7 @@ public BOOLEAN optimize_simplex(Volume d1,
 @CREATED    : Fri Jun 11 11:16:25 EST 1993 LC
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public BOOLEAN optimize_simplex_quater(Volume d1,
+BOOLEAN optimize_simplex_quater(Volume d1,
 				       Volume d2,
 				       Volume m1,
 				       Volume m2, 
@@ -899,7 +902,7 @@ public BOOLEAN optimize_simplex_quater(Volume d1,
 }
 
 
-public BOOLEAN replace_volume_data_with_ubyte(Volume data)
+BOOLEAN replace_volume_data_with_ubyte(Volume data)
 {
   Volume tmp_vol;
   int sizes[MAX_DIMENSIONS];
@@ -983,7 +986,7 @@ public BOOLEAN replace_volume_data_with_ubyte(Volume data)
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public BOOLEAN optimize_linear_transformation(Volume d1,
+BOOLEAN optimize_linear_transformation(Volume d1,
 					      Volume d2,
 					      Volume m1,
 					      Volume m2, 
@@ -1275,7 +1278,7 @@ public BOOLEAN optimize_linear_transformation(Volume d1,
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   : Wed May  1              2002 PL
 ---------------------------------------------------------------------------- */
-public BOOLEAN optimize_linear_transformation_quater(Volume d1,
+BOOLEAN optimize_linear_transformation_quater(Volume d1,
 						     Volume d2,
 						     Volume m1,
 						     Volume m2, 
@@ -1570,7 +1573,7 @@ public BOOLEAN optimize_linear_transformation_quater(Volume d1,
 @CREATED    : Tue Jul 13 11:15:57 EST 1993 LC
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public float measure_fit(Volume d1,
+float measure_fit(Volume d1,
 			 Volume d2,
 			 Volume m1,
 			 Volume m2, 
@@ -1899,7 +1902,7 @@ if(globals->trans_info.rotation_type == TRANS_ROT)
 @CREATED    : Tue Nov 16 14:27:10 EST 1993 LC
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public BOOLEAN optimize_non_linear_transformation(Arg_Data *globals)
+BOOLEAN optimize_non_linear_transformation(Arg_Data *globals)
 {
   BOOLEAN 
     stat;
