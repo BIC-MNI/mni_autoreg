@@ -1,5 +1,19 @@
 CHANGES to the MNI_AutoReg package...
 
+Release 0.98j_smr
+-----------------
+
+**** INTERNAL REVISION --- DO NOT RELEASE!!!  ****
+
+* New option for minctracc: -lattice_diameter
+  Previous releases used to set the sub-lattice diameter to be step*3*2, which
+  is pretty big when step = 8mm.  A lattice size 3 times the step size is
+  recommended.  If not set, the default is = 24mm.
+
+* mritotal will now interpret the Site Tables as well as the Protocol.  This
+  allows the user to define the -model and -modeldir in the protocol file.
+
+
 Release 0.98j
 -------------
 

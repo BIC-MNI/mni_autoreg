@@ -1,3 +1,13 @@
+2003-07-04  Steve ROBBINS  <stever@bic.mni.mcgill.ca>
+
+	* configure.in: Set VERSION to 0.98j_smr.
+
+	* minctracc/ChangeLog:
+	* perl/ChangeLog: Add entries for Louis' changes, taken from the CVS
+	commit messages.
+
+	* Branch CVS at date 2002-08-01.
+
 2002-03-26  Steve M. Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* configure.in: Updated to conform to autoconf 2.5x.  Use the BIC

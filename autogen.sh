@@ -6,7 +6,7 @@ The required m4 files were not found.
 You need to check these out from their repository
 using
 
-    cvs -d /software/source/libraries checkout -d m4 mni-acmacros
+    cvs -d /software/source checkout -d m4 libraries/mni-acmacros
 
 (yes, two '-d' options)
 Then re-run autogen.sh.

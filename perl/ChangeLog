@@ -1,15 +1,19 @@
-2003-06-12  Steve ROBBINS  <stever@bic.mni.mcgill.ca>
+2001-10-22  Louis COLLINS  <louis@bic.mni.mcgill.ca>
 
-	* Startup.pm (SelfAnnounce): Remove "defined @argv", it is
-	deprecated construct and perl warns noisily about it.
+	* mritotal.in: Modified the ReadProtocol so that it can interpret
+	the Protocol AND the Site tables.  (before it only read the
+	Protocol file).  this allows the user to define the -model and
+	-modeldir in the protocol file.  It also allows recursive
+	-protocol calls.  while this could be dangerous, the users should
+	be responsible...
 
 2001-02-16  Steve ROBBINS  <stever@bic.mni.mcgill.ca>
 
 	* Makefile.am (install-exec-local): Need "install-exec-local" rule
- 	in both clauses of the conditional.  Otherwise, the Makefile may
- 	be generated without the rule, which is referenced by other rules
+	in both clauses of the conditional.  Otherwise, the Makefile may
+	be generated without the rule, which is referenced by other rules
  	(install-exec-am).  This upsets some makes.  Reported by Helmut
- 	Lucht <Helmut.Lucht@pet.mpin-koeln.mpg.de>.
+	Lucht <Helmut.Lucht@pet.mpin-koeln.mpg.de>.
 
 2000-05-25  Louis COLLINS  <louis@bic.mni.mcgill.ca>
 
