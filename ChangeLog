@@ -1,3 +1,12 @@
+2000-05-11  Louis COLLINS  <louis@bic.mni.mcgill.ca>
+
+	* AUTHORS (contact): changed the contact list to include Steve and
+	  myself.
+
+	* README:  added reference to the nonlinear registration procedure
+
+	* COPYING: added reference to the nonlinear registration procedure
+
 2000-04-07  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* configure.in: consistently quote variables in `test "$var" = val'

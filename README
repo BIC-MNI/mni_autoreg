@@ -44,6 +44,12 @@ procedure has appeared in:
 	in Standardized Talairach Space,
    Journal of Computer Assisted Tomography, 18(2) p192-205, 1994
 
+The nonlinear registration procedure is described in:
+
+   DL Collins, CJ Holmes, TM Peters and AC Evans",
+   Automatic 3D model-based neuro-anatomical segmentation
+   Human Brain Mapping, 3(3) p 190-208, 1995
+
 
 GETTING MNI_AUTOREG
 -------------------

@@ -1,7 +1,7 @@
 
 
 	                     MNI_AutoReg:
-  Montreal Neurological Institute Automated Linear Registration Package
+    Montreal Neurological Institute Automated Registration Package
 
   Copyright (C) 1993-1997 Louis Collins and Greg Ward, McConnell Brain
   Imaging Centre, Montreal Neurological Institute, McGill University.
@@ -28,9 +28,9 @@
   that you will be provided with future updated versions of the
   software. The authors disclaim all liability for direct or indirect
   damages resulting from your use of Montreal Neurological Institute
-  Automated Linear Registration Package.
+  Automated Registration Package.
 
-  We would appreciate that at least the following article be
+  We would appreciate that the following two articles be
   referenced to describe the registration method in all publications
   of data analyzed using the MNI_AutoReg package:
 
@@ -38,3 +38,7 @@
       Automatic 3D Inter-Subject Registration of MR Volumetric 
       Data in Standardized Talairach Space,
       Journal of Computer Assisted Tomography, 18(2) p192-205, 1994
+
+      DL Collins, CJ Holmes, TM Peters and AC Evans",
+      Automatic 3D model-based neuro-anatomical segmentation
+      Human Brain Mapping, 3(3) p 190-208, 1995
