@@ -100,8 +100,4 @@ oddities = $(matlab) $(notes) \
 	Numerical/c2p.c \
 	Numerical/procrustes.c \
 	Numerical/random_numbers.c \
-	Numerical/transformations.c \
-	Optimize/amoeba2.c \
-	Optimize/d.c \
-	Optimize/m.c \
-	Optimize/old_methods.c
+	Numerical/transformations.c
