@@ -16,13 +16,25 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 1.18  1995-08-17 12:17:59  louis
-@MODIFIED   : bug fixed for warping problems at the scalp region.  This was
-@MODIFIED   : caused by adding a deoformation vector to the field, even when
-@MODIFIED   : it was not estimated.  In this case, the deformation vector was
-@MODIFIED   : an average of the neighbourhood warp and caused an amplification
-@MODIFIED   : of the deformation field where the field should be simply smoothed.
+@MODIFIED   : Revision 1.19  1995-08-21 11:36:43  louis
+@MODIFIED   : This version of get_deformation_vector_for_node with the 3x3x3 weights
+@MODIFIED   : of 1.0, 1.0, 1.0, 1.0 for all nodes used in the quadratic fit and works
+@MODIFIED   : well with return_3D_disp_from_quad_fit() in ver 1.2 of quad_max_fit.c
 @MODIFIED   :
+@MODIFIED   : This version of the quadratic fit seems to work reasonably well in 3D
+@MODIFIED   : and compares favorably to the simplex optimization for hoge/jacob fitting
+@MODIFIED   : at 16mm.
+@MODIFIED   :
+@MODIFIED   : The use of quadratic fitting is twice as fast as simplex (6.4 vs 15.2 min)
+@MODIFIED   : for the 16mm fit (again with {hoge,jacob}_16_dxyz.mnc and -step 8 8 8.
+@MODIFIED   :
+ * Revision 1.18  1995/08/17  12:17:59  louis
+ * bug fixed for warping problems at the scalp region.  This was
+ * caused by adding a deoformation vector to the field, even when
+ * it was not estimated.  In this case, the deformation vector was
+ * an average of the neighbourhood warp and caused an amplification
+ * of the deformation field where the field should be simply smoothed.
+ *
  * Revision 1.17  1995/06/12  14:28:57  louis
  * working version - 2d,3d w/ simplex and -direct.
  *
@@ -125,7 +137,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 1.18 1995-08-17 12:17:59 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 1.19 1995-08-21 11:36:43 louis Exp $";
 #endif
 
 #include <volume_io.h>		/* structs & tools to deal with volumes data */
@@ -217,10 +229,22 @@ extern Real       initial_corr;	         /* value of correlation before
                   (DIAMETER_OF_LOCAL_LATTICE+1)
 
 				/* weighting for 3D quadratic fitting */
+/*
 #define CENTER_WEIGHT        1.00
 #define CENTER_FACE_WEIGHT   0.99
 #define CENTER_EDGE_WEIGHT   0.975
 #define CORNER_WEIGHT        0.90
+
+#define CENTER_WEIGHT        1.00
+#define CENTER_FACE_WEIGHT   0.99
+#define CENTER_EDGE_WEIGHT   0.9875
+#define CORNER_WEIGHT        0.95
+*/
+
+#define CENTER_WEIGHT        1.00
+#define CENTER_FACE_WEIGHT   1.0
+#define CENTER_EDGE_WEIGHT   1.0
+#define CORNER_WEIGHT        1.0
 
 				/* weighting for 2D quadratic fitting */
 #define CENTER_WEIGHT_2D     1.00
@@ -1241,9 +1265,9 @@ private Real get_deformation_vector_for_node(Real spacing,
 	for_inclusive(i,-1,1)
 	  for_inclusive(j,-1,1)
 	    for_inclusive(k,-1,1) {
-	      pos_vector[1] = (float) i * Gsimplex_size;
-	      pos_vector[2] = (float) j * Gsimplex_size;
-	      pos_vector[3] = (float) k * Gsimplex_size;
+	      pos_vector[1] = (float) i * Gsimplex_size/2.0;
+	      pos_vector[2] = (float) j * Gsimplex_size/2.0;
+	      pos_vector[3] = (float) k * Gsimplex_size/2.0;
 	      local_corr3D[i+1][j+1][k+1] = similarity_fn(pos_vector); 
 	    }
 	*num_functions = 27;
@@ -1315,8 +1339,8 @@ private Real get_deformation_vector_for_node(Real spacing,
 	
 	for_inclusive(i,-1,1)
 	  for_inclusive(j,-1,1) {
-	    pos_vector[1] = (float) i * Gsimplex_size;
-	    pos_vector[2] = (float) j * Gsimplex_size;
+	    pos_vector[1] = (float) i * Gsimplex_size/2.0;
+	    pos_vector[2] = (float) j * Gsimplex_size/2.0;
 	    pos_vector[3] = 0.0;
 	    local_corr2D[i+1][j+1] = similarity_fn(pos_vector); 
 	  }
@@ -1343,9 +1367,9 @@ private Real get_deformation_vector_for_node(Real spacing,
       }
 
       if ( flag ) {
-	voxel_displacement[0] = dw * Gsimplex_size;
-	voxel_displacement[1] = dv * Gsimplex_size;
-	voxel_displacement[2] = du * Gsimplex_size;
+	voxel_displacement[0] = dw * Gsimplex_size/2.0;
+	voxel_displacement[1] = dv * Gsimplex_size/2.0;
+	voxel_displacement[2] = du * Gsimplex_size/2.0;
       }
       else {
 	result = -DBL_MAX;
@@ -1448,6 +1472,17 @@ private Real get_deformation_vector_for_node(Real spacing,
     *def_z += pos[Z]-tz;
     
     result = sqrt((*def_x * *def_x) + (*def_y * *def_y) + (*def_z * *def_z)) ;      
+    if (result > 50.0) {
+      print ("??? displacement too big: %f\n",result);
+      print ("vox_disp %f %f %f\n",
+	     voxel_displacement[0],
+	     voxel_displacement[1],
+	     voxel_displacement[2]);
+      print ("deform   %f %f %f\n", def_x, def_y, def_z);
+      print ("Gsimplex_size = %f\n",Gsimplex_size);
+    }
+
+
   }
   
   return(result);
