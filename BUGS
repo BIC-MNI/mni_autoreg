@@ -9,6 +9,7 @@ KNOWN BUGS
 
   known ok:
     - IRIX 5.3 with IRIX cc
+    - IRIX 6.5 with egcs 2.91.66
     - linux with gcc 2.95.2
 
   * No known workaround.  If you discover one, let us know.

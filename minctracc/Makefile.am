@@ -20,6 +20,8 @@ includes = \
 	Include/deform_support.h \
 	Include/extras.h \
 	Include/globals.h \
+	Include/init_lattice.h \
+	Include/interpolation.h \
 	Include/local_macros.h \
 	Include/make_rots.h \
 	Include/matrix_basics.h \
@@ -31,5 +33,6 @@ includes = \
 	Include/segment_table.h \
 	Include/stats.h \
 	Include/sub_lattice.h \
+	Include/super_sample_def.h \
 	Include/vox_space.h
 

@@ -14,9 +14,12 @@
                                     to create a sublattice defined on the target.
      
 @CREATED    : Mon Nov  3, 1997 , Louis Collins
-@VERSION    : $Id: sub_lattice.c,v 1.3 1998-03-13 20:22:22 louis Exp $
+@VERSION    : $Id: sub_lattice.c,v 1.4 2000-03-15 08:42:47 stever Exp $
 @MODIFIED   : $Log: sub_lattice.c,v $
-@MODIFIED   : Revision 1.3  1998-03-13 20:22:22  louis
+@MODIFIED   : Revision 1.4  2000-03-15 08:42:47  stever
+@MODIFIED   : Code cleanup: all functions prototyped (except ParseArgs.c), no useless declarations, etc
+@MODIFIED   :
+@MODIFIED   : Revision 1.3  1998/03/13 20:22:22  louis
 @MODIFIED   : Modified the loops over the nodes of the sublattice so that no interpolation
 @MODIFIED   : in the target volume is done in go_get_samples_with_offset() when the
 @MODIFIED   : objective function == NONLIN_CHAMFER and there is no sulci (*a1==0)
@@ -31,8 +34,12 @@
 
 #include <config.h>		
 #include <internal_volume_io.h>	
+
+#include <Proglib.h>
 #include "constants.h"
-#include <arg_data.h>		/* definition of the global data struct      */
+#include "arg_data.h"		/* definition of the global data struct      */
+#include "sub_lattice.h"
+#include "init_lattice.h"
 
 
 extern Arg_Data *Gglobals;      /* defined in do_nonlinear.c */

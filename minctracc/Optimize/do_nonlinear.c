@@ -16,7 +16,10 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 96.7  2000-01-18 18:53:37  louis
+@MODIFIED   : Revision 96.8  2000-03-15 08:42:46  stever
+@MODIFIED   : Code cleanup: all functions prototyped (except ParseArgs.c), no useless declarations, etc
+@MODIFIED   :
+@MODIFIED   : Revision 96.7  2000/01/18 18:53:37  louis
 @MODIFIED   : final checkin before switch to CVS
 @MODIFIED   :
  * Revision 96.6  1999/10/25  19:59:07  louis
@@ -264,7 +267,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.7 2000-01-18 18:53:37 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.8 2000-03-15 08:42:46 stever Exp $";
 #endif
 
 #include <config.h>		/* MAXtype and MIN defs                      */
@@ -278,7 +281,8 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 				   from deformation procedures.              */
 
 #include "constants.h"		/* internal constant definitions             */
-
+#include "interpolation.h"
+#include "super_sample_def.h"
 #include <sys/types.h>		/* for timing the deformations               */
 #include <time.h>
 time_t time(time_t *tloc);
@@ -524,13 +528,9 @@ public Status do_non_linear_optimization(Arg_Data *globals)
   
    long
       iteration_start_time,	/* variables to time each iteration                   */
-      iteration_end_time,
       temp_start_time,
-      temp_end_time,
       timer1,timer2,
       nfunk_total;
-   Real 
-      time_total;
 
    int 
       additional_count[MAX_DIMENSIONS], /* size (in voxels) of  additional_vol  */
@@ -579,8 +579,6 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 
    progress_struct		/* to print out program progress report */
       progress;
-   STRING 
-      filenamestring;
 
   /*******************************************************************************/
 
@@ -2398,18 +2396,15 @@ private Real get_deformation_vector_for_node(Real spacing,
     other_partial_weight,
     total_weight,
     du,dv,dw,
-    xt, yt, zt,
     local_corr3D[3][3][3],
     local_corr2D[3][3],
     optical_def_vector[3],
     optical_voxel_displacement[3],
     voxel[3],
-    val[MAX_DIMENSIONS],
     pos[3],
     simplex_size,
     result,
-    target_coord[3],
-    xp,yp,zp;
+    target_coord[3];
   float 
     pos_vector[4];
   int 
@@ -2420,7 +2415,6 @@ private Real get_deformation_vector_for_node(Real spacing,
     the_amoeba;
   Real
     *parameters;
-  FILE *tmp_fp;
 
 				/* initialize for no deformation */
   result = 0.0;			

@@ -20,7 +20,10 @@
 
 @CREATED    : Tue Feb 22 08:37:49 EST 1994
 @MODIFIED   : $Log: deform_support.c,v $
-@MODIFIED   : Revision 96.4  2000-02-07 19:33:05  stever
+@MODIFIED   : Revision 96.5  2000-03-15 08:42:45  stever
+@MODIFIED   : Code cleanup: all functions prototyped (except ParseArgs.c), no useless declarations, etc
+@MODIFIED   :
+@MODIFIED   : Revision 96.4  2000/02/07 19:33:05  stever
 @MODIFIED   : replaced HAVE_RECENT_VOLUME_IO with more specific feature tests.
 @MODIFIED   :
 @MODIFIED   : Revision 96.3  1999/10/25 19:59:06  louis
@@ -181,7 +184,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 96.4 2000-02-07 19:33:05 stever Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 96.5 2000-03-15 08:42:45 stever Exp $";
 #endif
 
 #include <config.h>
@@ -191,6 +194,7 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #include <print_error.h>
 #include "local_macros.h"
 #include "constants.h"
+#include "interpolation.h"
 
 extern Arg_Data main_args;
 
@@ -949,89 +953,6 @@ public void extrapolate_to_unestimated_nodes(General_transform *current,
   print ("There were %d out of %d extrapolated (%d left) (%d extrapolated)\n",many,total,total-many, extrapolated);
 
 }
-
-
-/* copied from tricubic_interpolant in interpolation.c */
-
-private int tricubic_slice_interpolant(Volume volume, 
-				      PointR *coord, double *result)
-{
-  Real
-    v00,v01,v02,v03, 
-    v10,v11,v12,v13, 
-    v20,v21,v22,v23, 
-    v30,v31,v32,v33;
-   long 
-     ind0, ind1, ind2, max[3];
-   double 
-     frac[3];
-   int 
-     sizes[3];
-   int 
-     flag;
-   double temp_result;
-
-   /* Check that the coordinate is inside the volume */
-
-   get_volume_sizes(volume, sizes);
-   max[0] = sizes[0];
-   max[1] = sizes[1];
-   max[2] = sizes[2];
-   
-   if ((Point_y( *coord ) < 0) || (Point_y( *coord ) >= max[1]-1) ||
-       (Point_z( *coord ) < 0) || (Point_z( *coord ) >= max[2]-1)) {
-
-     flag = nearest_neighbour_interpolant(volume, coord, &temp_result) ;
-     *result = temp_result;
-     return(flag);
-   }
-
-
-   /* Get the whole and fractional part of the coordinate */
-   ind0 = (long) Point_x( *coord );
-   ind1 = (long) Point_y( *coord );
-   ind2 = (long) Point_z( *coord );
-   frac[1] = Point_y( *coord ) - ind1;
-   frac[2] = Point_z( *coord ) - ind2;
-   ind1--;
-   ind2--;
-
-   /* Check for edges - do linear interpolation at edges */
-   if ((ind1 >= max[1]-3) || (ind1 < 0) ||
-       (ind2 >= max[2]-3) || (ind2 < 0)) {
-      return trilinear_interpolant(volume, coord, result);
-   }
-   
-   GET_VOXEL_3D(v00, volume, ind0, ind1, ind2);
-   GET_VOXEL_3D(v01, volume, ind0, ind1, ind2+1);
-   GET_VOXEL_3D(v02, volume, ind0, ind1, ind2+2);
-   GET_VOXEL_3D(v03, volume, ind0, ind1, ind2+3);
-
-   GET_VOXEL_3D(v10, volume, ind0, ind1+1, ind2);
-   GET_VOXEL_3D(v11, volume, ind0, ind1+1, ind2+1);
-   GET_VOXEL_3D(v12, volume, ind0, ind1+1, ind2+2);
-   GET_VOXEL_3D(v13, volume, ind0, ind1+1, ind2+3);
-
-   GET_VOXEL_3D(v20, volume, ind0, ind1+2, ind2);
-   GET_VOXEL_3D(v21, volume, ind0, ind1+2, ind2+1);
-   GET_VOXEL_3D(v22, volume, ind0, ind1+2, ind2+2);
-   GET_VOXEL_3D(v23, volume, ind0, ind1+2, ind2+3);
-
-   GET_VOXEL_3D(v30, volume, ind0, ind1+3, ind2);
-   GET_VOXEL_3D(v31, volume, ind0, ind1+3, ind2+1);
-   GET_VOXEL_3D(v32, volume, ind0, ind1+3, ind2+2);
-   GET_VOXEL_3D(v33, volume, ind0, ind1+3, ind2+3);
-
-   CUBIC_BIVAR( v00,v01,v02,v03, v10,v11,v12,v13, v20,v21,v22,v23, v30,v31,v32,v33, frac[1],frac[2], temp_result);
-
-
-  *result = CONVERT_VOXEL_TO_VALUE(volume,temp_result);
-
-   return(TRUE);
-
-}
-
-
 
 
 public Real get_value_of_point_in_volume(Real xw, Real yw, Real zw, 

@@ -16,7 +16,10 @@
 
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   :  $Log: objectives.c,v $
-@MODIFIED   :  Revision 96.2  1997-11-12 21:07:43  louis
+@MODIFIED   :  Revision 96.3  2000-03-15 08:42:47  stever
+@MODIFIED   :  Code cleanup: all functions prototyped (except ParseArgs.c), no useless declarations, etc
+@MODIFIED   :
+@MODIFIED   :  Revision 96.2  1997/11/12 21:07:43  louis
 @MODIFIED   :  no changes, other than rcsid...
 @MODIFIED   :
  * Revision 96.1  1997/11/03  15:06:29  louis
@@ -72,13 +75,13 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/objectives.c,v 96.2 1997-11-12 21:07:43 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/objectives.c,v 96.3 2000-03-15 08:42:47 stever Exp $";
 #endif
 
 #include <internal_volume_io.h>
 #include "constants.h"
 #include "arg_data.h"
-
+#include "interpolation.h"
 #include "segment_table.h"
 #include "local_macros.h"
 #include <print_error.h>
@@ -176,8 +179,6 @@ public float xcorr_objective(Volume d1,
     pos2,
     voxel;
 
-  double
-    tx,ty,tz;
   int
     r,c,s;
 
@@ -303,8 +304,6 @@ public float ssc_objective(Volume d1,
     pos2,
     voxel;
 
-  double
-    tx,ty,tz;
   int
     r,c,s;
 
@@ -533,8 +532,6 @@ public float zscore_objective(Volume d1,
     pos2,
     voxel;
 
-  double
-    tx,ty,tz;
   int
     r,c,s;
 
@@ -649,8 +646,6 @@ public float vr_objective(Volume d1,
     pos2,
     voxel;
 
-  double
-    tx,ty,tz;
   int
     r,c,s;
 
@@ -836,8 +831,6 @@ public float stub_objective(Volume d1,
     col,
     pos2,
     voxel;
-  double
-    tx,ty,tz;
   int
     r,c,s;
   Real

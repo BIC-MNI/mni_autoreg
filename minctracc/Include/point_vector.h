@@ -1,3 +1,6 @@
+#ifndef MINCTRACC_POINT_VECTOR_H
+#define MINCTRACC_POINT_VECTOR_H
+
 				/* redefine Point and Vector */
 
 #define N_DIMENSIONS 3
@@ -13,3 +16,4 @@ typedef  struct
 } VectorR;
 
 
+#endif

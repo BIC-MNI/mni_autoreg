@@ -17,7 +17,10 @@
 
 @CREATED    : Thu May 20 14:20:21 EST 1993 Louis Collins
 @MODIFIED   : $Log: minctracc.h,v $
-@MODIFIED   : Revision 96.3  2000-02-15 19:02:06  stever
+@MODIFIED   : Revision 96.4  2000-03-15 08:42:39  stever
+@MODIFIED   : Code cleanup: all functions prototyped (except ParseArgs.c), no useless declarations, etc
+@MODIFIED   :
+@MODIFIED   : Revision 96.3  2000/02/15 19:02:06  stever
 @MODIFIED   : Add tests for param2xfm, minctracc -linear.
 @MODIFIED   :
 @MODIFIED   : Revision 96.2  1999/10/25 19:52:16  louis
@@ -84,20 +87,7 @@
 
 /*  ------------------------ Function prototypes  ------------------------ */
 
-public int trilinear_interpolant(Volume volume, 
-                                 PointR *coord, double *result);
-
-public int tricubic_interpolant(Volume volume, 
-                                PointR *coord, double *result);
-
-public void do_Ncubic_interpolation(Volume volume, 
-                                    long index[], int cur_dim, 
-                                    double frac[], double *result);
-
-public int nearest_neighbour_interpolant(Volume volume, 
-                                         PointR *coord, double *result);
-public int point_not_masked(Volume volume,
-                            Real wx, Real wy, Real wz);
+#include "interpolation.h"
 
 public int get_transformation(char *dst, char *key, char *nextArg);
 

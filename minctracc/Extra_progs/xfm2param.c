@@ -6,12 +6,13 @@
 #include <config.h>
 #include <Proglib.h>
 
-
-
 #include "constants.h"
 #include "matrix_basics.h"
 #include "make_rots.h"
 #include "point_vector.h"
+#include "interpolation.h"
+
+
 
 #define DO_TRANSFORM(result, transformation, coord) \
    general_transform_point(transformation, \
@@ -47,8 +48,7 @@ BOOLEAN vol_to_cov(Volume d1, Volume m1, float centroid[4], float covar[4][4], d
     voxel;
 
   Real
-    tx,ty,tz,
-    voxel_value;
+    tx,ty,tz;
   int
     i,r,c,s,
     limits[VOL_NDIMS];
@@ -64,8 +64,7 @@ BOOLEAN vol_to_cov(Volume d1, Volume m1, float centroid[4], float covar[4][4], d
     sizes[3];
 
   Real
-    true_value,
-    position[3];
+    true_value;
 
   get_volume_separations(d1, thickness);
   get_volume_sizes(d1, sizes);
@@ -206,7 +205,6 @@ BOOLEAN get_cog(char *file, double *c1)
   Volume vol;
   float cov[4][4], cog[4];
   double step[3];
-  Real x,y,z,r,s,c;
 
   input_volume(file,3,default_dim_names /*(char **)NULL*/, NC_UNSPECIFIED, FALSE, 0.0,0.0,
 	       TRUE, &vol, (minc_input_options *)NULL);
@@ -228,10 +226,8 @@ BOOLEAN get_cog(char *file, double *c1)
 }
 
 
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
-  float
-    c1[4];
   static double 
     cent[3],
     rots[3],
@@ -244,7 +240,6 @@ main(int argc, char *argv[])
     gt;
   char *xfmfile;
   int i;
-  Volume data;
 
     
   static ArgvInfo argTable[] = {

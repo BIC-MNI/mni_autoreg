@@ -9,7 +9,10 @@
 @CALLS      : 
 @CREATED    : Mon Nov 29 11:01:47 EST 1993 Louis
 @MODIFIED   : $Log: check_scale.c,v $
-@MODIFIED   : Revision 96.1  1999-10-25 19:52:05  louis
+@MODIFIED   : Revision 96.2  2000-03-15 08:42:36  stever
+@MODIFIED   : Code cleanup: all functions prototyped (except ParseArgs.c), no useless declarations, etc
+@MODIFIED   :
+@MODIFIED   : Revision 96.1  1999/10/25 19:52:05  louis
 @MODIFIED   : final checkin before switch to CVS
 @MODIFIED   :
  * Revision 96.0  1996/08/21  18:21:36  louis
@@ -65,6 +68,7 @@ static char rcsid[]="";
 #include "matrix_basics.h"
 #include "make_rots.h"
 #include "point_vector.h"
+#include "interpolation.h"
 
 #define INTERPOLATE_TRUE_VALUE(volume, coord, result) \
    trilinear_interpolant(volume, coord, result)
@@ -96,8 +100,7 @@ BOOLEAN vol_to_cov(Volume d1, Volume m1, float *centroid, float **covar, double 
     voxel;
 
   Real
-    tx,ty,tz,
-    voxel_value;
+    tx,ty,tz;
   int
     i,r,c,s,
     limits[VOL_NDIMS];
@@ -113,8 +116,7 @@ BOOLEAN vol_to_cov(Volume d1, Volume m1, float *centroid, float **covar, double 
     sizes[3];
 
   Real
-    true_value,
-    position[3];
+    true_value;
 
   get_volume_separations(d1, thickness);
   get_volume_sizes(d1, sizes);
@@ -255,7 +257,6 @@ BOOLEAN get_cog(char *file, double *c1)
   Volume vol;
   float **cov, *cog;
   double step[3];
-  Real x,y,z,r,s,c;
 
   input_volume(file,3,default_dim_names /*(char **)NULL*/, NC_UNSPECIFIED, FALSE, 0.0,0.0,
 	       TRUE, &vol, (minc_input_options *)NULL);

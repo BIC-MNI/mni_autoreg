@@ -21,7 +21,10 @@
 
 @CREATED    : Tue Mar 12 09:37:44 MET 1996
 @MODIFIED   : $Log: obj_fn_mutual_info.c,v $
-@MODIFIED   : Revision 96.3  1999-10-25 19:59:08  louis
+@MODIFIED   : Revision 96.4  2000-03-15 08:42:47  stever
+@MODIFIED   : Code cleanup: all functions prototyped (except ParseArgs.c), no useless declarations, etc
+@MODIFIED   :
+@MODIFIED   : Revision 96.3  1999/10/25 19:59:08  louis
 @MODIFIED   : final checkin before switch to CVS
 @MODIFIED   :
  * Revision 96.2  1997/11/12  21:07:43  louis
@@ -53,7 +56,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/obj_fn_mutual_info.c,v 96.3 1999-10-25 19:59:08 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/obj_fn_mutual_info.c,v 96.4 2000-03-15 08:42:47 stever Exp $";
 #endif
 
 #include <internal_volume_io.h>
@@ -328,8 +331,6 @@ public float mutual_information_objective(Volume d1,
     r,c,s;
   
   Real
-    *temp_pdf,
-    **temp_hist,
     min_range1, max_range1, range1,
     min_range2, max_range2, range2,
     intensity_vals1[8],		/* voxel values to index into histogram */

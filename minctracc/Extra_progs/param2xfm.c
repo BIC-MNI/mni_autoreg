@@ -9,7 +9,10 @@
 @CALLS      : 
 @CREATED    : Mon Nov 29 11:01:47 EST 1993 Louis
 @MODIFIED   : $Log: param2xfm.c,v $
-@MODIFIED   : Revision 96.2  2000-02-20 04:01:02  stever
+@MODIFIED   : Revision 96.3  2000-03-15 08:42:37  stever
+@MODIFIED   : Code cleanup: all functions prototyped (except ParseArgs.c), no useless declarations, etc
+@MODIFIED   :
+@MODIFIED   : Revision 96.2  2000/02/20 04:01:02  stever
 @MODIFIED   : * use new history_string() function to generate history strings
 @MODIFIED   :   when outputting MNI files (.mnc, .xfm)
 @MODIFIED   : * removed unused vax routines from Proglib
@@ -69,6 +72,8 @@ static char rcsid[]="";
 #include <internal_volume_io.h>
 #include <config.h>
 #include <Proglib.h>
+#include "make_rots.h"
+
 
 char *prog_name;
 
@@ -77,7 +82,7 @@ char *prog_name;
 
 int main(int argc, char *argv[])
 {
-   General_transform transform, new_transform;
+   General_transform new_transform;
    Transform
      lt;
    char* history = history_string( argc, argv );

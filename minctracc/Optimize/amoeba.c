@@ -17,7 +17,10 @@
 
 @CREATED    : 
 @MODIFIED   : $Log: amoeba.c,v $
-@MODIFIED   : Revision 96.3  1999-10-25 19:59:06  louis
+@MODIFIED   : Revision 96.4  2000-03-15 08:42:45  stever
+@MODIFIED   : Code cleanup: all functions prototyped (except ParseArgs.c), no useless declarations, etc
+@MODIFIED   :
+@MODIFIED   : Revision 96.3  1999/10/25 19:59:06  louis
 @MODIFIED   : final checkin before switch to CVS
 @MODIFIED   :
  * Revision 96.2  1997/11/03  20:05:41  louis
@@ -115,7 +118,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/amoeba.c,v 96.3 1999-10-25 19:59:06 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/amoeba.c,v 96.4 2000-03-15 08:42:45 stever Exp $";
 #endif
 
 
@@ -142,6 +145,8 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
+#if 0
+/** call to this function is commented out, so we don't need to compile it **/
 private  BOOLEAN  numerically_close(
     Real  n1,
     Real  n2,
@@ -168,6 +173,7 @@ private  BOOLEAN  numerically_close(
 
     return( (diff / avg) <= (double) threshold_ratio );
 }
+#endif
 
 
 /* ----------------------------- MNI Header -----------------------------------

@@ -12,7 +12,7 @@
 
 #@CREATED    : Wed Jun 25, 1997, Louis Collins
 #@MODIFIED   : not yet!
-#@VERSION    : $Id: vox_space.c,v 1.3 1997-11-03 17:00:31 louis Exp $
+#@VERSION    : $Id: vox_space.c,v 1.4 2000-03-15 08:42:48 stever Exp $
 #----------------------------------------------------------------------------- */
 
 #include <internal_volume_io.h>
@@ -21,7 +21,7 @@
 #include "vox_space.h"
 #include "local_macros.h"
 
-public Voxel_space_struct* new_voxel_space_struct() {
+public Voxel_space_struct* new_voxel_space_struct(void) {
 
    Voxel_space_struct *vox_space;
 
@@ -45,7 +45,7 @@ public void delete_voxel_space_struct( Voxel_space_struct *vox_space) {
 
 public void build_reorder_matrix_vox2xyz(General_transform *trans, Volume volume) {
    
-   int c, axis;
+   int axis;
    Transform *lin;
 
    lin = get_linear_transform_ptr(trans);
@@ -73,7 +73,7 @@ public void build_reorder_matrix_vox2xyz(General_transform *trans, Volume volume
 
 public void build_reorder_matrix_xyz2vox(General_transform *trans, Volume volume) {
    
-   int c, axis;
+   int axis;
    Transform *lin;
 
    lin = get_linear_transform_ptr(trans);
@@ -107,7 +107,6 @@ public void get_into_voxel_space(Arg_Data *globals,
    General_transform 
       *reorder,
       *w2v;
-   Real x,y,z;
    Real tx,ty,tz;
    PointR pnt,tmp_pt;
    Real 
@@ -115,7 +114,6 @@ public void get_into_voxel_space(Arg_Data *globals,
       s_voxel_xyz[MAX_DIMENSIONS],
       s_voxel[MAX_DIMENSIONS],
       s_world[N_DIMENSIONS],
-      t_voxel_xyz[MAX_DIMENSIONS],
       t_voxel[MAX_DIMENSIONS],
       t_world[N_DIMENSIONS];
    int i;

@@ -1,3 +1,31 @@
+2000-03-15  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* */*: ensure all functions properly prototyped.  Compiles cleanly
+	(on linux) using CFLAGS='-Dlint -Wall -Wpointer-arith
+	-Wstrict-prototypes'.
+
+	* Include/super_saple_def.h:
+	* Include/interpolation.h: 
+	* Include/init_lattice.h: new.  Prototype public functions for
+	corresponding C file.
+	
+	* Extra_progs/zscore_vol.c:
+	* Extra_progs/volume_cog.c: 
+	* Extra_progs/param2xfm.c:
+	* Extra_progs/check_scale.c: 
+	* Optimize/do_nonlinear.c:
+	* Optimize/obj_fn_mutual_info.c:
+	* Optimize/objectives.c:
+	* Optimize/vox_space.c: 
+	* Optimize/def_obj_functions.c (similarity_fn): remove
+	declarations of unused variables.
+
+	* Include/quad_max_fit.h: removed useless `static' declarations.
+
+	* Optimize/deform_support.c (tricubic_slice_interpolant): 
+	* Numerical/quad_max_fit.c (get_disp_from_positive_semidefinite):
+	removed; functions were defined but not used.
+
 2000-03-08  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* Doc/minctracc.doc: removed; appears to be old version of Doc/doc.

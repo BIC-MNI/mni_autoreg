@@ -13,7 +13,10 @@
 
    @CREATED    : February 3, 1992 - louis collins
    @MODIFIED   : $Log: minctracc.c,v $
-   @MODIFIED   : Revision 96.2  2000-02-20 04:01:03  stever
+   @MODIFIED   : Revision 96.3  2000-03-15 08:42:41  stever
+   @MODIFIED   : Code cleanup: all functions prototyped (except ParseArgs.c), no useless declarations, etc
+   @MODIFIED   :
+   @MODIFIED   : Revision 96.2  2000/02/20 04:01:03  stever
    @MODIFIED   : * use new history_string() function to generate history strings
    @MODIFIED   :   when outputting MNI files (.mnc, .xfm)
    @MODIFIED   : * removed unused vax routines from Proglib
@@ -88,7 +91,7 @@ Wed May 26 13:05:44 EST 1993 lc
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.2 2000-02-20 04:01:03 stever Exp $";
+static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.3 2000-03-15 08:42:41 stever Exp $";
 #endif
 
 #include <config.h>
@@ -102,12 +105,8 @@ static char *default_dim_names[N_DIMENSIONS] =
 
 
 /*************************************************************************/
-int main ( argc, argv )
-     int argc;
-     char *argv[];
-{   /* main */
-  
-
+int main ( int argc, char* argv[] )
+{
   Status 
     status;
   General_transform

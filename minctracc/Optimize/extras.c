@@ -5,13 +5,14 @@
                procedures.               
 @CREATED    : Mon Nov  3, 1997 , Louis Collins
 @MODIFIED   : not yet!
-@VERSION    : $Id: extras.c,v 1.2 2000-02-07 19:33:06 stever Exp $
+@VERSION    : $Id: extras.c,v 1.3 2000-03-15 08:42:46 stever Exp $
 #-----------------------------------------------------------------------------
 */
 
 
 #include <config.h>		
 #include <internal_volume_io.h>	
+#include <time.h>
 
 public void report_time(long start_time, STRING text) 
 {

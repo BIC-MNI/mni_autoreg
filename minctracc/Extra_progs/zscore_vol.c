@@ -1,6 +1,7 @@
 
 #include <internal_volume_io.h>
 #include <config.h>
+#include "interpolation.h"
 
 static char *default_dim_names[N_DIMENSIONS] =
    { MIzspace, MIyspace, MIxspace };
@@ -12,16 +13,16 @@ public void get_zscore_values(Volume d1, Volume m1,
 			      Real threshold, Real *mean, Real *std); 
 
 
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
   int 
     count,
     i,j,k, p,r,s, flag,
     sizes1[3],sizes2[3], sizes3[3];
   Real
-    thresh, mean, std;
+    thresh;
   Real
-    min1,max1,min2,max2, mean1, std1, mean2, std2,
+    mean1, std1, mean2, std2,
     corr, v1, v2, v3, s1, s2, s12,
     u,v,w,  x,y,z;
   Status status;

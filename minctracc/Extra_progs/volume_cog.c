@@ -1,7 +1,5 @@
 #include <internal_volume_io.h>
-
-static char *default_dim_names[N_DIMENSIONS] =
-   { MIzspace, MIyspace, MIxspace };
+#include "interpolation.h"
 
 
 BOOLEAN vol_cog(Volume d1, Volume m1, float *centroid)
@@ -57,11 +55,10 @@ BOOLEAN vol_cog(Volume d1, Volume m1, float *centroid)
 
 char *prog_name;
 
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
   Volume vol,mask;
   float cog[3];
-  double step[3];
 
   prog_name = argv[0];
 

@@ -8,7 +8,7 @@
 #@CALLS      : 
 #@CREATED    : Wed Jun 25, 1997, Louis Collins
 #@MODIFIED   : not yet!
-#@VERSION    : $Id: vox_space.h,v 1.1 1997-11-03 19:52:55 louis Exp $
+#@VERSION    : $Id: vox_space.h,v 1.2 2000-03-15 08:42:40 stever Exp $
 #-----------------------------------------------------------------------------
 */
 
@@ -18,7 +18,7 @@ typedef struct {
    General_transform *voxel_to_voxel_space;
 } Voxel_space_struct;
 
-public Voxel_space_struct* new_voxel_space_struct() ;
+public Voxel_space_struct* new_voxel_space_struct(void);
 
 public void delete_voxel_space_struct( Voxel_space_struct *vox_space);
 

@@ -3,9 +3,12 @@
 @DESCRIPTION: routines to calculate the objective function used for local
               optimization              
 @CREATED    : Nov 4, 1997, Louis Collins
-@VERSION    : $Id: def_obj_functions.c,v 1.4 1999-06-10 12:51:23 louis Exp $
+@VERSION    : $Id: def_obj_functions.c,v 1.5 2000-03-15 08:42:45 stever Exp $
 @MODIFIED   : $Log: def_obj_functions.c,v $
-@MODIFIED   : Revision 1.4  1999-06-10 12:51:23  louis
+@MODIFIED   : Revision 1.5  2000-03-15 08:42:45  stever
+@MODIFIED   : Code cleanup: all functions prototyped (except ParseArgs.c), no useless declarations, etc
+@MODIFIED   :
+@MODIFIED   : Revision 1.4  1999/06/10 12:51:23  louis
 @MODIFIED   : update with optical flow working in addition to xcorr, label, and diff
 @MODIFIED   : sub-lattice computed only if needed
 @MODIFIED   :
@@ -18,6 +21,7 @@
 #include <internal_volume_io.h>	
 #include "constants.h"
 #include <arg_data.h>           /* definition of the global data struct      */
+#include <Proglib.h>
 
 
 /* GLOBALS used within these functions: */
@@ -96,10 +100,7 @@ private Real similarity_fn(float *d)
   int i;
   Real
     norm,
-    val[MAX_DIMENSIONS],
-    voxel[MAX_DIMENSIONS],
-    xw,yw,zw, 
-    s, s1, s2, func_sim;
+    s, func_sim;
    
   /* note: here the displacement order for go_get_samples_with_offset
      is 3,2,1 (=Z,Y,X) since the source and target volumes are stored in

@@ -15,7 +15,10 @@
 
 @CREATED    : Mon May 22 14:14:50 MET DST 1995
 @MODIFIED   : $Log: quad_max_fit.c,v $
-@MODIFIED   : Revision 96.1  1997-11-03 19:59:49  louis
+@MODIFIED   : Revision 96.2  2000-03-15 08:42:43  stever
+@MODIFIED   : Code cleanup: all functions prototyped (except ParseArgs.c), no useless declarations, etc
+@MODIFIED   :
+@MODIFIED   : Revision 96.1  1997/11/03 19:59:49  louis
 @MODIFIED   : - now include internal_volume_io.h instead of volume_io.h
 @MODIFIED   : - now include quad_max_fit.h for prototypes and struc defs
 @MODIFIED   :
@@ -246,65 +249,6 @@ public BOOLEAN return_3D_disp_from_quad_fit(Real r[3][3][3],
     return(FALSE);
 }
 
-/*
-   This procedure will return the displacements corresponding to the
-   'closest minimum' of the quadratic function represented by the
-   positive semi-definite covariance matrix stored in 'd'.
-
-   Essentially:  
-      1-calculate the eigen-vectors/eigen values
-      2-find the minimum along the eigen-vectors that
-        have non-null eigen vectors.
-      3-return dispu, dispv, dispw.
-*/
-#define INV_SQRT2 0.70710678
-
-
-private void get_disp_from_positive_semidefinite(deriv_3D_struct *d, 
-						 Real *dispu, 
-						 Real *dispv, 
-						 Real *dispw)
-{
-  Real **eigvec, *eigval, **covar, **proj_deriv_on_eigvec;
-  int i,j,eigflag, iters;
-
-  ALLOC2D(eigvec,3,3);
-  ALLOC2D(covar,3,3);
-  ALLOC2D(proj_deriv_on_eigvec,6,3);
-  ALLOC(eigval,3);
-
-  covar[0][0] = d->uu;
-  covar[1][1] = d->vv;
-  covar[2][2] = d->ww;
-  covar[0][1] = covar[1][0] = d->uv;
-  covar[0][2] = covar[2][0] = d->uw;
-  covar[1][2] = covar[2][1] = d->vw;
-  
-  eigflag = eigen(covar, 3, eigval, eigvec, &iters);
-
-  /* now project the derivative information from 'd' onto the eigen vectors */
-
-  for_less(i,0,3) {
-    if (eigval[i] > 0.0) {
-      proj_deriv_on_eigvec[0][i] = d->uu * eigvec[X][i];
-      proj_deriv_on_eigvec[1][i] = d->vv * eigvec[Y][i];
-      proj_deriv_on_eigvec[2][i] = d->ww * eigvec[Z][i];
-      proj_deriv_on_eigvec[3][i] = d->uv * INV_SQRT2 * (eigvec[X][i] + eigvec[Y][i]);
-      proj_deriv_on_eigvec[4][i] = d->uw * INV_SQRT2 * (eigvec[X][i] + eigvec[Z][i]);
-      proj_deriv_on_eigvec[5][i] = d->vw * INV_SQRT2 * (eigvec[Y][i] + eigvec[Z][i]);
-    }
-    else {
-      for_less(j,0,6) proj_deriv_on_eigvec[5][i] = 0.0;
-    }
-  }
-  
-
-  FREE(eigval);
-  FREE2D(eigvec);
-  FREE2D(covar);
-  FREE2D(proj_deriv_on_eigvec);
-}
-#undef INV_SQRT2
 
 /* this procedure will return TRUE with the dx,dy,dz (offsets) that
    correspond to the MINIMUM of the quadratic function fit through

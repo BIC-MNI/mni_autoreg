@@ -3,7 +3,7 @@
 @DESCRIPTION: prototypes for Numerical/quad_max_fit.c
 @CREATED    : Mon Nov  3, 1997 , Louis Collins
 @MODIFIED   : not yet!
-@VERSION    : $Id: quad_max_fit.h,v 1.1 1997-11-03 19:52:55 louis Exp $
+@VERSION    : $Id: quad_max_fit.h,v 1.2 2000-03-15 08:42:39 stever Exp $
 -----------------------------------------------------------------------------*/
     /* local structures */
 
@@ -29,8 +29,6 @@ public   void    estimate_3D_derivatives_new(Real r[3][3][3],
 					     deriv_3D_struct *c);	     
 public   void    estimate_3D_derivatives_weighted(Real r[3][3][3], 
 						  deriv_3D_struct *c);	     
-private void    estimate_2D_derivatives(Real r[3][3], 
-					deriv_2D_struct *c);	     
 public BOOLEAN return_2D_disp_from_quad_fit(Real r[3][3], 
 					    Real *dispu, 
 					    Real *dispv);
@@ -63,9 +61,6 @@ public void estimate_3D_derivatives_weighted(Real r[3][3][3],
 
 public void estimate_3D_derivatives_new(Real r[3][3][3], 
 					deriv_3D_struct *d);
-
-private void estimate_2D_derivatives(Real r[3][3], 
-				     deriv_2D_struct *d);
 
 public BOOLEAN return_principal_directions(Real r[3][3][3],
 					   Real dir_1[3],

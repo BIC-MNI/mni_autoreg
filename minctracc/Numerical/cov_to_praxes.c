@@ -29,7 +29,10 @@
                       using numerical recipes routines jacobi() and eigsrt().  
 		      See Hotelling Transform
 @MODIFIED   : $Log: cov_to_praxes.c,v $
-@MODIFIED   : Revision 96.1  1997-11-03 19:59:49  louis
+@MODIFIED   : Revision 96.2  2000-03-15 08:42:43  stever
+@MODIFIED   : Code cleanup: all functions prototyped (except ParseArgs.c), no useless declarations, etc
+@MODIFIED   :
+@MODIFIED   : Revision 96.1  1997/11/03 19:59:49  louis
 @MODIFIED   : now include internal_volume_io.h instead of volume_io.h
 @MODIFIED   :
  * Revision 96.0  1996/08/21  18:21:58  louis
@@ -59,7 +62,7 @@
 
 ---------------------------------------------------------------------------- */
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/cov_to_praxes.c,v 96.1 1997-11-03 19:59:49 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/cov_to_praxes.c,v 96.2 2000-03-15 08:42:43 stever Exp $";
 #endif
 
 #include <internal_volume_io.h>
@@ -112,12 +115,6 @@ void cov_to_praxes(int ndim, float **covar, float **pr_axes)
 
 
 #include <math.h>
-
-void nrerror()
-{
-  print("ERROR...\n");
-  exit(-1);
-}
 
 
 #define ROTATE(a,i,j,k,l) g=a[i][j];h=a[k][l];a[i][j]=g-s*(h+g*tau);\
@@ -213,9 +210,7 @@ private BOOLEAN jacobi(double **a,
 
 #undef ROTATE
 
-void eigsrt(d,v,n)
-double d[],**v;
-int n;
+void eigsrt(double d[], double** v, int n)
 {
   int max_index,j,i;
   double max_val;

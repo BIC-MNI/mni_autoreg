@@ -15,13 +15,16 @@
 
 @CREATED    : February 23, 1996
 @MODIFIED   : $Log: stats.c,v $
-@MODIFIED   : Revision 1.1  1997-11-03 19:59:49  louis
+@MODIFIED   : Revision 1.2  2000-03-15 08:42:44  stever
+@MODIFIED   : Code cleanup: all functions prototyped (except ParseArgs.c), no useless declarations, etc
+@MODIFIED   :
+@MODIFIED   : Revision 1.1  1997/11/03 19:59:49  louis
 @MODIFIED   : Initial revision
 @MODIFIED   :
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/stats.c,v 1.1 1997-11-03 19:59:49 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/stats.c,v 1.2 2000-03-15 08:42:44 stever Exp $";
 #endif
 
 #include <internal_volume_io.h>
@@ -95,7 +98,7 @@ public void report_stats(stats_struct *stat)
   }
 }
 
-public void stat_title()
+public void stat_title(void)
 {
   print ("Statistics report:\n");
   print ("%14s %12s %12s %12s %12s %12s %12s\n","variable name","mean","std","rms","min","max","cnt");
