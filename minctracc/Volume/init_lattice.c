@@ -28,7 +28,10 @@
 
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   :  $Log: init_lattice.c,v $
-@MODIFIED   :  Revision 96.5  2002-12-13 21:18:45  lenezet
+@MODIFIED   :  Revision 96.6  2003-02-26 00:50:25  lenezet
+@MODIFIED   :  for 2D : now computes all 3 coordinates for the "start" (to take into account the slice position)
+@MODIFIED   :
+@MODIFIED   :  Revision 96.5  2002/12/13 21:18:45  lenezet
 @MODIFIED   :  nonlinear in 2D has changed. The option -2D-non-lin is no more necessary. The grid transform has been adapted to feet on the target volume whatever is size. The Optimization is done on the dimensions for which "count" is greater than 1.
 @MODIFIED   :
 @MODIFIED   :  Revision 96.4  2002/11/20 21:39:18  lenezet
@@ -88,7 +91,7 @@ made change to init lattice to not change start when there is only 1 slice.
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/init_lattice.c,v 96.5 2002-12-13 21:18:45 lenezet Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/init_lattice.c,v 96.6 2003-02-26 00:50:25 lenezet Exp $";
 #endif
 
 #include <config.h>
@@ -185,7 +188,7 @@ public void set_up_lattice(Volume data,       /* in: volume  */
   Real 
     sign,
     direction[N_DIMENSIONS],
-    starts[N_DIMENSIONS],
+    starts[MAX_DIMENSIONS],
     start_voxel[MAX_DIMENSIONS],
     start_world[MAX_DIMENSIONS],
     vect_voxel[MAX_DIMENSIONS],
@@ -199,6 +202,12 @@ public void set_up_lattice(Volume data,       /* in: volume  */
   debug  = main_args.flags.debug;
   verbose= main_args.flags.verbose;
   
+  for_less(i,0,MAX_DIMENSIONS)
+    {
+      sizes[i]=0;
+      separations[i]=0.0;
+    }
+
 				/* get the volume sizes and voxel spacing */
   get_volume_sizes(data, sizes );
   get_volume_separations(data, separations );
@@ -251,7 +260,7 @@ public void set_up_lattice(Volume data,       /* in: volume  */
     
     count[i] = 1;
     offset[xyzv[i]] = 0.0;
-    
+ 
     if (xyzv[i] >= 0 && sizes[ xyzv[i] ] > 1) {
 				/* force step to have the same SIGN as the 
 				   volume voxel spacing. */
@@ -260,7 +269,6 @@ public void set_up_lattice(Volume data,       /* in: volume  */
       
       num_steps = separations[xyzv[i]] * sizes[xyzv[i]] / step[i];
       num_steps = ABS(num_steps);
-      
       count[i] = ROUND(num_steps);
       if (count[i] == 0) count[i] = 1;
     
@@ -279,6 +287,7 @@ public void set_up_lattice(Volume data,       /* in: volume  */
   for_less(i,0,MAX_DIMENSIONS) {
     start_voxel[i] = 0.0;
     start[i] = 0.0;
+    starts[i]=0.0;
   }
   
   
@@ -293,7 +302,7 @@ public void set_up_lattice(Volume data,       /* in: volume  */
     else
       sign = -1.0;
     
-    if (xyzv[i]>=0 && sizes[xyzv[i]]>1) {
+    if (xyzv[i]>=0 && sizes[xyzv[i]]>1 ) {
       start_voxel[xyzv[i]] = sign*((-0.5)  /* to get to the edge of the voxel,
                                             since the voxel's  coordinates is 
 					    at its center */
@@ -306,13 +315,11 @@ public void set_up_lattice(Volume data,       /* in: volume  */
 
       start_world[xyzv[i]] =  starts[xyzv[i]] - separations[xyzv[i]]/2.0 - sign*offset[i] 
 	+ step[i]/2.0;
-
-
-     
-
-
     }
     
+    if(xyzv[i]>=0 && sizes[xyzv[i]]==1 ){
+      start_world[xyzv[i]]=starts[xyzv[i]];
+    }
   }
     
   /* get the absolute world starting coordinates of the origin of the lattice */
@@ -329,7 +336,8 @@ public void set_up_lattice(Volume data,       /* in: volume  */
     fill_Vector(directions[i], 
 		direction[X], direction[Y], direction[Z]);
   }
-  
+ 
+
   if (debug && verbose>1) {
     
     print ("       for lattice volume:\n");
