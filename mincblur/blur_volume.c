@@ -3,7 +3,8 @@
 @INPUT      : data - a pointer to a volume_struct of data
               fwhm - full-width-half-maximum of the gaussian blurring kernel
 	      outfile - name of the base filename to store the <name>_blur.mnc
-	      ndim - =2, do blurring in the x and y directions only,
+	      ndim - =1, do blurring in the z direction only,
+	             =2, do blurring in the x and y directions only,
                      =3, blur in all three directions.
 @OUTPUT     : creates and stores the blurred volume in an output file.
 @RETURNS    : status variable - OK or ERROR.
@@ -28,7 +29,7 @@ int ms_volume_reals_flag;
 public Status blur3D_volume(Volume data,
 			    float fwhm, 
 			    char *outfile, 
-			    int ndim)
+			    int ndim, int kernel_type)
 { 
   float 
     *fdata,			/* floating point storage for blurred volume */
@@ -95,11 +96,11 @@ public Status blur3D_volume(Volume data,
   get_volume_sizes(data, sizes);          /* rows,cols,slices */
   get_volume_separations(data, steps);
   
-  slice_size = sizes[Y] * sizes[X];    /* sizeof one slice  */
+  slice_size = sizes[X] * sizes[Y];    /* sizeof one slice  */
   col_size   = sizes[Y];               /* sizeof one column */
   row_size   = sizes[X];               /* sizeof one row    */
   
-  total_voxels = sizes[Y]*sizes[X]*sizes[Z];
+  total_voxels = sizes[X]*sizes[Y]*sizes[Z];
   
   ALLOC(fdata, total_voxels);
 
@@ -112,7 +113,7 @@ public Status blur3D_volume(Volume data,
   for_less( slice, 0, sizes[Z])
     for_less( row, 0, sizes[Y])
       for_less( col, 0, sizes[X]) {
-	GET_VOXEL_3D( tmp, data, col, row, slice);
+	GET_VOXEL_3D( tmp, data, slice, row, col);
 	*f_ptr = CONVERT_VOXEL_TO_VALUE(data, tmp);
 	if (max_val<*f_ptr) max_val = *f_ptr;
 	if (min_val>*f_ptr) min_val = *f_ptr;
@@ -154,7 +155,7 @@ public Status blur3D_volume(Volume data,
   
   /*    1st calculate kern array for gaussian kernel*/
   
-  make_kernel(kern,(float)steps[X],fwhm,array_size_pow2);
+  make_kernel(kern,(float)steps[X],fwhm,array_size_pow2,kernel_type);
   four1(kern,array_size_pow2,1);
   
   /*    calculate offset for original data to be placed in vector            */
@@ -167,11 +168,13 @@ public Status blur3D_volume(Volume data,
   /*    2nd now convolve this kernel with the rows of the dataset            */
   
   
-  if (ndim<3)
-    slice_limit = 1;
-  else
-    slice_limit = sizes[Z];
   
+  switch (ndim) {
+  case 1: slice_limit = 0; break;
+  case 2: slice_limit = sizes[Z]; break;
+  case 3: slice_limit = sizes[Z]; break;
+  }
+
   for (slice = 0; slice < slice_limit; slice++) {      /* for each slice */
     
     for (row = 0; row < sizes[Y]; row++) {           /* for each row   */
@@ -234,7 +237,7 @@ public Status blur3D_volume(Volume data,
   
   /*    1st calculate kern array for gaussian kernel*/
   
-  make_kernel(kern,(float)steps[Y],fwhm,array_size_pow2);
+  make_kernel(kern,(float)steps[Y],fwhm,array_size_pow2,kernel_type);
   four1(kern,array_size_pow2,1);
   
   /*    calculate offset for original data to be placed in vector            */
@@ -246,11 +249,12 @@ public Status blur3D_volume(Volume data,
   max_val = -100000.0;
   min_val = 100000.0;
   
-  if (ndim<3)
-    slice_limit = 1;
-  else
-    slice_limit = sizes[Z];
-  
+  switch (ndim) {
+  case 1: slice_limit = 0; break;
+  case 2: slice_limit = sizes[Z]; break;
+  case 3: slice_limit = sizes[Z]; break;
+  }
+
   for (slice = 0; slice < slice_limit; slice++) {      /* for each slice */
     
     for (col = 0; col < sizes[X]; col++) {           /* for each col   */
@@ -320,11 +324,11 @@ public Status blur3D_volume(Volume data,
   dat_vecto2 = vector(0,2*array_size_pow2+1); /* complex number for FFT, and the plus 1*/
   kern       = vector(0,2*array_size_pow2+1); /* is for Num. Rec. FFT routines         */
   
-  if (ndim>2) {
+  if (ndim==1 || ndim==3) {
     
     /*    1st calculate kern array for gaussian kernel*/
     
-    make_kernel(kern,(float)steps[Z],fwhm,array_size_pow2);
+    make_kernel(kern,(float)steps[Z],fwhm,array_size_pow2,kernel_type);
     four1(kern,array_size_pow2,1);
     
     /*    calculate offset for original data to be placed in vector            */
@@ -381,11 +385,13 @@ public Status blur3D_volume(Volume data,
     max_val = -100000.0;
     min_val = 100000.0;
     
-    for (col = 0; col < sizes[X]; col++) {      /* for each column */
-      for (row = 0; row < sizes[Y]; row++) {           /* for each row   */
-	if (max_val<*f_ptr) max_val = *f_ptr;
-	if (min_val>*f_ptr) min_val = *f_ptr;
-	f_ptr++;
+    for (slice = 0; slice < slice_limit; slice++) {      /* for each slice */
+      for (col = 0; col < sizes[X]; col++) {             /* for each column */
+	for (row = 0; row < sizes[Y]; row++) {           /* for each row   */
+	  if (max_val<*f_ptr) max_val = *f_ptr;
+	  if (min_val>*f_ptr) min_val = *f_ptr;
+	  f_ptr++;
+	}
       }
     }
   }
@@ -451,7 +457,7 @@ public Status blur3D_volume(Volume data,
     for_less( row, 0, sizes[Y])
       for_less( col, 0, sizes[X]) {
 	tmp = CONVERT_VALUE_TO_VOXEL(data, *f_ptr);
- 	SET_VOXEL_3D( data, col, row, slice, tmp);
+ 	SET_VOXEL_3D( data, slice, row, col, tmp);
 	f_ptr++;
       }
 

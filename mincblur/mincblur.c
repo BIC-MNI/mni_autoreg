@@ -51,11 +51,13 @@
 #include <ParseArgv.h>
 #include <minc.h>
 #include <mincblur.h>
+#include <def_kernel.h>
 
 char *prog_name;
 int  debug;
 int  verbose;
 int 
+  kernel_type,
   dimensions,
   gradonlyflg,
   bluronlyflg;
@@ -72,9 +74,13 @@ static ArgvInfo argTable[] = {
   {"-standarddev", ARGV_FLOAT, (char *) 0, (char *) &standard,
      "Standard deviation of gaussian kernel"},
   {"-dimensions", ARGV_INT, (char *) 0, (char *) &dimensions,
-     "Number of dimensions to blur (either 2 or 3)."},
+     "Number of dimensions to blur (either 1,2 or 3)."},
   {NULL, ARGV_HELP, NULL, NULL,
      "Program flags."},
+  {"-gaussian", ARGV_CONSTANT, (char *) KERN_GAUSSIAN, (char *) &kernel_type,
+     "Use a gaussian smoothing kernel (default)."},
+  {"-rect", ARGV_CONSTANT, (char *) KERN_RECT, (char *) &kernel_type,
+     "Use a rect (box) smoothing kernel."},
   {"-blur_only", ARGV_CONSTANT, (char *) TRUE, (char *) &bluronlyflg,
      "Create only the blurred volume."},
   {"-grad_only", ARGV_CONSTANT, (char *) TRUE, (char *) &gradonlyflg, 
@@ -92,7 +98,8 @@ static ArgvInfo argTable[] = {
   {NULL, ARGV_END, NULL, NULL, NULL}
 };
 
-  
+static String   default_dim_names[N_DIMENSIONS] = { MIzspace, MIyspace, MIxspace };
+ 
 
 
 main (int argc, char *argv[] )
@@ -127,7 +134,7 @@ main (int argc, char *argv[] )
   dimensions = 3;
   verbose = TRUE;
   debug   = FALSE;
-
+  kernel_type = KERN_GAUSSIAN;
 
   /* Call ParseArgv to interpret all command line args */
 
@@ -166,7 +173,7 @@ main (int argc, char *argv[] )
   /*             create blurred volume first                                    */
   /******************************************************************************/
   
-  status = input_volume(infilename, &data);
+  status = input_volume(infilename, default_dim_names, FALSE, &data);
   if ( status != OK )
     print_error("problems reading `%s'.\n",__FILE__, __LINE__,infilename, 0,0,0,0);
     
@@ -178,9 +185,9 @@ main (int argc, char *argv[] )
     printf ( "Data filename     = %s\n", infilename);
     printf ( "Output basename   = %s\n", outfilename);
     printf ( "Input volume      = %3d cols by %3d rows by %d slices\n",
-		  sizes[X], sizes[Y], sizes[Z]);
+		  sizes[INTERNAL_X], sizes[INTERNAL_Y], sizes[INTERNAL_Z]);
     printf ( "Input voxels are  = %8.3f %8.3f %8.3f\n", 
-		  step[X], step[Y], step[Z]);
+		  step[INTERNAL_X], step[INTERNAL_Y], step[INTERNAL_Z]);
     printf ( "min/max value     = %8.3f %8.3f\n", data->min_value, data->max_value);
   }
 
@@ -193,7 +200,7 @@ main (int argc, char *argv[] )
     status = blur3D_volume(data,
 			   fwhm,
 			   outfilename,
-			   dimensions);
+			   dimensions,kernel_type);
     
     if (status==OK) {
       status = close_file(ifd);
@@ -240,6 +247,7 @@ public void print_error(char *s, char * d1,
 			int d2, int d3, int d4, int d5, int d6, int d7)
 {
   (void) fprintf(stderr, "Error in %s in file %s, line %d\n",prog_name,d1,d2);
-  (void) fprintf(stderr, "   %s\n", s, d3,d4,d5,d6,d7);
+  (void) fprintf(stderr,  s, d3,d4,d5,d6,d7);
+  (void) fprintf(stderr,  "\n");
   exit(EXIT_FAILURE);
 }

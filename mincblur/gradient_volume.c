@@ -141,11 +141,12 @@ public Status gradient3D_volume(FILE *ifd,
 
   /*    2nd now convolve this kernel with the rows of the dataset            */  
   
-  if (ndim<3)
-    slice_limit = 1;
-  else
-    slice_limit = sizes[Z];
-  
+  switch (ndim) {
+  case 1: slice_limit = 0; break;
+  case 2: slice_limit = sizes[Z]; break;
+  case 3: slice_limit = sizes[Z]; break;
+  }
+
   for (slice = 0; slice < slice_limit; slice++) {      /* for each slice */
     
     for (row = 0; row < sizes[Y]; row++) {           /* for each row   */
@@ -223,7 +224,7 @@ public Status gradient3D_volume(FILE *ifd,
     for_less( row, 0, sizes[Y])
       for_less( col, 0, sizes[X]) {
 	tmp = CONVERT_VALUE_TO_VOXEL(data, *f_ptr);
- 	SET_VOXEL_3D( data, col, row, slice, tmp);
+ 	SET_VOXEL_3D( data, slice, row, col, tmp);
 	f_ptr++;
       }
 
@@ -280,11 +281,12 @@ public Status gradient3D_volume(FILE *ifd,
   max_val = -100000000.0;
   min_val =  100000000.0;
 
-  if (ndim<3)
-    slice_limit = 1;
-  else
-    slice_limit = sizes[Z];
-  
+  switch (ndim) {
+  case 1: slice_limit = 0; break;
+  case 2: slice_limit = sizes[Z]; break;
+  case 3: slice_limit = sizes[Z]; break;
+  }
+
   for (slice = 0; slice < slice_limit; slice++) {      /* for each slice */
     
     for (col = 0; col < sizes[X]; col++) {           /* for each col   */
@@ -368,7 +370,7 @@ public Status gradient3D_volume(FILE *ifd,
     for_less( row, 0, sizes[Y])
       for_less( col, 0, sizes[X]) {
 	tmp = CONVERT_VALUE_TO_VOXEL(data, *f_ptr);
- 	SET_VOXEL_3D( data, col, row, slice, tmp);
+ 	SET_VOXEL_3D( data, slice, row, col, tmp);
 	f_ptr++;
       }
 
@@ -409,7 +411,7 @@ public Status gradient3D_volume(FILE *ifd,
   dat_vecto2 = vector(0,2*array_size_pow2+1); /* complex number for FFT, and the plus 1*/
   kern       = vector(0,2*array_size_pow2+1); /* is for Num. Rec. FFT routines         */
   
-  if (ndim>2) {
+  if (ndim==1 || ndim==3) {
     
     /*    1st calculate kern array for FT of 1st derivitive */
     
@@ -522,7 +524,7 @@ public Status gradient3D_volume(FILE *ifd,
     for_less( row, 0, sizes[Y])
       for_less( col, 0, sizes[X]) {
 	tmp = CONVERT_VALUE_TO_VOXEL(data, *f_ptr);
- 	SET_VOXEL_3D( data, col, row, slice, tmp);
+ 	SET_VOXEL_3D( data, slice, row, col, tmp);
 	f_ptr++;
       }
 

@@ -8,7 +8,7 @@
 public Status blur3D_volume(Volume data,
 			    float kernel1, 
 			    char *outfile, 
-			    int ndim);
+			    int ndim, int kernel_type);
 
 public Status gradient3D_volume(FILE *ifd, 
 				Volume data, 
@@ -19,3 +19,7 @@ public void calc_gradient_magnitude(char *infilename);
 
 public void print_error(char *s, char * d1, 
 			int d2, int d3, int d4, int d5, int d6, int d7);
+
+#define INTERNAL_X  2
+#define INTERNAL_Y  1
+#define INTERNAL_Z  0

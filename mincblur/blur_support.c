@@ -8,6 +8,7 @@
 
 #include <math.h>
 #include <stdio.h>
+#include "def_kernel.h"
 
 #define public
 #define private static
@@ -122,6 +123,39 @@ public float normal_dist(float c, float fwhm, float mu, float x)
   return(f);
 }
 
+/* ----------------------------- MNI Header -----------------------------------
+@NAME       : rect_dist
+@INPUT      : c    - height of rect function
+              fwhm - width of rect function
+	      mu   - center of rect function
+	      x    - value of x
+@OUTPUT     : 
+@RETURNS    : value of rect function evaluated at x
+@CALLS      : 
+@CREATED    : Wed Jun 23 09:04:34 EST 1993 Louis Collins
+@MODIFIED   : 
+---------------------------------------------------------------------------- */
+/************************************************************/
+/* return the value of the normal dist at x, given c,sigma  */
+/* and mu ----   all in mm                                  */
+/************************************************************/
+public float rect_dist(float c, float fwhm, float mu, float x)
+{
+  
+  float t;
+
+  t = x-mu;
+  
+  t = t<0 ? -t : t ;
+
+  if ( t < fwhm/2 ) {
+    return(  (float) (c/fwhm) );
+  }
+  else
+    return ( (float) 0.0 );
+	   
+}
+
 
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : make_kernel_FT
@@ -152,7 +186,6 @@ public void make_kernel_FT(float *kern, int size)
 
 }
 		    
-
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : make_kernel
 @INPUT      : kern - a numerical recipes array containing real,imag,real,imag
@@ -183,7 +216,7 @@ public void make_kernel_FT(float *kern, int size)
 @CREATED    : Wed Jun 23 09:04:34 EST 1993 Louis Collins
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public void make_kernel(float *kern, float vsize, float fwhm, int size)
+public void make_kernel(float *kern, float vsize, float fwhm, int size, int type)
 {
 
   int kindex,k;
@@ -192,7 +225,19 @@ public void make_kernel(float *kern, float vsize, float fwhm, int size)
   
   for ( k = -size/2; k<size/2; ++k) {
     kindex = ((k + size) % size)*2 +1;
-    kern[kindex] = normal_dist(1.0,fwhm,0.0,(float)(vsize*k));
+
+
+    switch (type) {
+    case KERN_GAUSSIAN: kern[kindex] = normal_dist(1.0,fwhm,0.0,(float)(vsize*k)); break;
+    case KERN_RECT:     kern[kindex] = rect_dist(1.0,fwhm,0.0,(float)(vsize*k)); break;
+    default: 
+      {
+	(void) fprintf (stderr,"Illegal kernel type = %d\n",type);
+	(void) fprintf (stderr,"Impossible error in make_kernel(), line %d of %s\n",
+			__LINE__,__FILE__);
+	k = size/2;
+      }
+    }
   }
 
 }

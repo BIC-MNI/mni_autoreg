@@ -14,6 +14,12 @@
 public void  muli_vects(float *r, float *s1, float *s2, int n);
 public int   next_power_of_two(int x);
 public float normal_dist(float c, float fwhm, float mu, float x);
+public float rect_dist(float c, float fwhm, float mu, float x);
 public void  make_kernel_FT(float *kern, int size);
-public void  make_kernel(float *kern, float vsize, float fwhm, int size);
+public void  make_kernel(float *kern, float vsize, float fwhm, int size, int type);
 
+#define X  2
+#define Y  1
+#define Z  0
+
+#include "def_kernel.h"
