@@ -14,7 +14,11 @@
 
 @CREATED    : Tue Jun 15 08:57:23 EST 1993 LC
 @MODIFIED   :  $Log: volume_functions.c,v $
-@MODIFIED   :  Revision 96.2  2000-05-05 17:57:06  louis
+@MODIFIED   :  Revision 96.3  2000-05-08 17:40:45  louis
+@MODIFIED   :  addes a dummy change to Volume/volume_functions.c to test cvs and its
+@MODIFIED   :  suspected removal of all working files.
+@MODIFIED   :
+@MODIFIED   :  Revision 96.2  2000/05/05 17:57:06  louis
 @MODIFIED   :  addes volume intensity normalization code
 @MODIFIED   :
 @MODIFIED   :  Revision 96.1  1999/10/25 19:59:17  louis
@@ -52,7 +56,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/volume_functions.c,v 96.2 2000-05-05 17:57:06 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/volume_functions.c,v 96.3 2000-05-08 17:40:45 louis Exp $";
 #endif
 
 #include <config.h>
@@ -442,7 +446,9 @@ public void normalize_data_to_match_target(Volume d1,
 
   if (count2 > 0) {
 
+    if (globals->flags.debug) (void)print ("Starting qsort of ratios...");
     qsort ((char *)ratios, (size_t)count2, (size_t)sizeof(ratios[0]), compare );
+    if (globals->flags.debug) (void)print ("Done.");
 
     for_less(i, count2/2 - 100, count2/2 + 100) {
       print ("%8.3f\n",ratios[i]);

@@ -1,3 +1,8 @@
+2000-05-08  Louis COLLINS  <louis@bic.mni.mcgill.ca>
+
+	* Volume/volume_functions.c (normalize_data_to_match_target):
+ 	added a dummy change to test CVS
+
 2000-05-05  Louis COLLINS  <louis@bic.mni.mcgill.ca>
 
 	* Volume/volume_functions.c: (normalize_data_to_match_target):
