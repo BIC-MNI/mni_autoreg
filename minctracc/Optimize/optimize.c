@@ -14,11 +14,19 @@
               express or implied warranty.
 
 @MODIFIED   : $Log: optimize.c,v $
-@MODIFIED   : Revision 1.12  1995-09-07 13:02:13  louis
-@MODIFIED   : removed numerical recipes call to amoeba, the simplex optimization
-@MODIFIED   : procedure.  It has been replaced with Davids version of the simplex
-@MODIFIED   : optimization code.
+@MODIFIED   : Revision 1.13  1995-10-06 09:25:02  louis
+@MODIFIED   : removed all the volume parameters from do_non_linear_optimization() and
+@MODIFIED   : optimize_non_linear_transformation() since they are all represented in
+@MODIFIED   : globals->features struc.
 @MODIFIED   :
+@MODIFIED   : made the necesary changes to access globals->features instead of previous
+@MODIFIED   : ly used volumes in input parameters.
+@MODIFIED   :
+ * Revision 1.12  1995/09/07  13:02:13  louis
+ * removed numerical recipes call to amoeba, the simplex optimization
+ * procedure.  It has been replaced with Davids version of the simplex
+ * optimization code.
+ *
  * Revision 1.11  1995/09/07  10:05:11  louis
  * All references to numerical recipes routines are being removed.  At this
  * stage, any num rec routine should be local in the file.  All memory
@@ -56,7 +64,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 1.12 1995-09-07 13:02:13 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 1.13 1995-10-06 09:25:02 louis Exp $";
 #endif
 
 #include <volume_io.h>
@@ -113,19 +121,7 @@ public void add_speckle_to_volume(Volume d1,
 				  double  *start, int *count, 
 				  VectorR directions[]);
 
-public Status do_non_linear_optimization(Volume d1,
-					 Volume d1_dx, 
-					 Volume d1_dy, 
-					 Volume d1_dz, 
-					 Volume d1_dxyz,
-					 Volume d2,
-					 Volume d2_dx, 
-					 Volume d2_dy, 
-					 Volume d2_dz, 
-					 Volume d2_dxyz,
-					 Volume m1,
-					 Volume m2, 
-					 Arg_Data *globals);
+public Status do_non_linear_optimization(Arg_Data *globals);
 
 
 public void parameters_to_vector(double *trans, 
@@ -320,7 +316,7 @@ public Real amoeba_obj_function(void *dummy, float d[])
 @OUTPUT     : 
 @RETURNS    : TRUE if ok, FALSE if error.
 @DESCRIPTION: 
-@METHOD     : uses the ameoba simplex algorithm from numerical recipes. 
+@METHOD     : uses the simplex algorithm extracted from BICPL
 @GLOBALS    : 
 @CALLS      : 
 @CREATED    : Fri Jun 11 11:16:25 EST 1993 LC
@@ -927,19 +923,7 @@ public float measure_fit(Volume d1,
 @CREATED    : Tue Nov 16 14:27:10 EST 1993 LC
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public BOOLEAN optimize_non_linear_transformation(Volume d1,
-						  Volume d1_dx, 
-						  Volume d1_dy, 
-						  Volume d1_dz, 
-						  Volume d1_dxyz,
-						  Volume d2,
-						  Volume d2_dx, 
-						  Volume d2_dy, 
-						  Volume d2_dz, 
-						  Volume d2_dxyz,
-						  Volume m1,
-						  Volume m2, 
-						  Arg_Data *globals)
+public BOOLEAN optimize_non_linear_transformation(Arg_Data *globals)
 {
   BOOLEAN 
     stat;
@@ -949,30 +933,43 @@ public BOOLEAN optimize_non_linear_transformation(Volume d1,
   
 	     /*----------------- prepare data for optimization ------------ */
   
-  if (globals->obj_function == zscore_objective) { /* replace volume d1 and d2 by zscore volume  */
-    make_zscore_volume(d1,m1,(float)globals->threshold[0]);
-    make_zscore_volume(d2,m2,(float)globals->threshold[1]);
+  if (globals->obj_function == zscore_objective) { /* replace volumes 
+						      globals->features.data[0] and 
+						      globals->features.model[0] 
+						      by zscore volume  */
+
+    make_zscore_volume(globals->features.data[0],
+		       globals->features.data_mask[0],
+		       (float)globals->threshold[0]);
+    make_zscore_volume(globals->features.model[0],
+		       globals->features.model_mask[0],
+		       (float)globals->threshold[1]);
+
   } 
   else  if (globals->obj_function == ssc_objective) {	/* add speckle to the data set */
 
-    make_zscore_volume(d1,m1,(float)globals->threshold[0]); /* need to make data sets comparable */
-    make_zscore_volume(d2,m2,(float)globals->threshold[1]); /* in mean and sd...                 */
+    make_zscore_volume(globals->features.data[0],        /* need to make data sets comparable */
+		       globals->features.data_mask[0],   /* in mean and sd...                 */
+		       (float)globals->threshold[0]); 
+    make_zscore_volume(globals->features.model[0],
+		       globals->features.model_mask[0],
+		       (float)globals->threshold[1]); 
 
     if (globals->smallest_vol == 1)
-      add_speckle_to_volume(d1, 
+      add_speckle_to_volume(globals->features.data[0], 
 			    globals->speckle,
 			    globals->start, globals->count, globals->directions);
     else
-      add_speckle_to_volume(d2, 
+      add_speckle_to_volume(globals->features.model[0], 
 			    globals->speckle,
 			    globals->start, globals->count, globals->directions);    
   } else if (globals->obj_function == vr_objective) {
     if (globals->smallest_vol == 1) {
-      if (!build_segment_table(&segment_table, d1, globals->groups))
+      if (!build_segment_table(&segment_table, globals->features.data[0], globals->groups))
 	print_error_and_line_num("Could not build segment table for source volume\n",__FILE__, __LINE__);
     }
     else {
-      if (!build_segment_table(&segment_table, d2, globals->groups))
+      if (!build_segment_table(&segment_table, globals->features.model[0], globals->groups))
 	print_error_and_line_num("Could not build segment table for target volume\n",__FILE__, __LINE__);
 
     }
@@ -988,10 +985,7 @@ public BOOLEAN optimize_non_linear_transformation(Volume d1,
   }
 	   /* ---------------- call requested optimization strategy ---------*/
 
-  stat = (do_non_linear_optimization(d1,d1_dx, d1_dy, d1_dz, d1_dxyz,
-				    d2,d2_dx, d2_dy, d2_dz, d2_dxyz,
-				    m1,m2, 
-				    globals)==OK);
+  stat = ( do_non_linear_optimization(globals)==OK );
 
 
   
