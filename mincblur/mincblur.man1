@@ -1,0 +1,140 @@
+.\" Copyright 1995 Louis Collins, McConnell Brain Imaging Centre,
+.\" Montreal Neurological Institute, McGill University.
+.\" Permission to use, copy, modify, and distribute this
+.\" software and its documentation for any purpose and without
+.\" fee is hereby granted, provided that the above copyright
+.\" notice appear in all copies.  The author and McGill University
+.\" make no representations about the suitability of this
+.\" software for any purpose.  It is provided "as is" without
+.\" express or implied warranty.
+.\"
+.\" $Header: /private-cvsroot/registration/mni_autoreg/mincblur/Attic/mincblur.man1,v 1.1 2000-01-27 16:52:14 louis Exp $
+.\"
+.TH MINCBLUR 1
+
+.SH NAME
+mincblur - convolve an input volume with a Gaussian blurring kernel.
+
+.SH SYNOPSIS
+.B mincblur [<options>] <source> <output_basename>
+
+.SH DESCRIPTION
+.I Mincblur
+convolves an input volume with a Gaussian blurring kernel of
+user-defined width.  Convolution is accomplished by multiplication in
+the Fourier domain where the blurring kernel is calculated explicitly
+over the whole field.  Mincblur can also calculate the first partial
+derivatives and the gradient magnitude volume.
+
+The first command line argument is the name of the 3D input MINC file.
+The second argument is the basename for the output file.  The string
+"_blur.mnc" is added automatically to the basename to generate the
+blurred intensity volume; if a gradient volume is calculated (using
+the -gradient option), then "_dxyz.mnc" is added to the basename; and
+if partial derivative volumes are calculated (using the -partial
+option), then "_dx.mnc", "_dy.mnc", and "_dz.mnc" are added to name
+them.  The output volume(s) will have the same size and be of the same
+type as the input volume.
+
+Before blurring, the edges of the data volume are apodized (intensity
+reduced) to minimize edge effects.  This process can be skipped with
+the '-no_apodize' flag.
+
+.SH Specification of blurring kernel.
+One of the following options must be used to specify the size of the
+blurring kernel: -fwhm, -standarddev, -3Dfwhm, where
+.P
+.I -fwhm
+<val>: Specifies the full-width-half-maximum of the iso-tropic 3D
+Gaussian blurring kernel.
+.P
+.I -standarddev
+<val>: Specifies the sigma iso-tropic 3D Gaussian blurring kernel.
+.P
+.I -3Dfwhm
+<valx> <valy> <valz>: Specifies the full-width-half-maximum in the x,
+y and z directions of the non-isotropic 3D Gaussian blurring kernel.
+
+.SH Other options
+.P
+.I -dimensions
+<1|2|3>: Number of dimensions to blur. -dim 1 blurs only in the z
+direction, useful for simulating thick slices. -dim 2 blurs only in
+the xy plane.  -dim 3 blur all 3 dimensions and is the default.
+.P
+.I -gaussian:
+Use a gaussian smoothing kernel (default).
+.P
+.I -rect:
+Use a rect (box) smoothing kernel.
+.P
+.I -no_apodize:
+Do not apodize the data before blurring.
+.P
+.I -no_clobber:
+Do not overwrite output file (default).
+.P
+.I -clobber:
+Overwrite output file.
+.P
+.I -gradient:
+Create the gradient magnitude (_dxyz.mnc) volume as well.
+.P
+.I -partial:
+Create the partial derivative (_dx.mnc, _dy.mnc & _dz.mnc) volumes as well.
+.P
+In order to create any gradient data, it is necessary to temporarily
+store the blurred data in floating point representation.  By default,
+the temporary files are written in the current directory. If that
+directory is not available, /tmp is used.  Both of these possiblities
+can be overridden by providing an environment variable TMPDIR in the
+user's environment, whose value is the name of the desired
+temporary-file directory.  Of course, the temporary files are removed
+by mincblur after processing.
+.SH Options for logging progress.
+.P
+.I -verbose
+<val>:
+Write verbose messages indicating progress (default = 1).
+.P
+.I -quiet:
+Do not write log messages
+.P
+.I -debug:
+Print out debug info.
+.SH Generic options
+.P
+.I -help:
+Print summary of command-line options and abort.
+
+.SH EXAMPLES
+1) Blur an input volume with a 6mm fwhm isotropic Gaussian blurring
+kernel:
+
+     mincblur -fwhm 6 input.mnc out_6
+
+mincblur will create out_6_blur.mnc.
+
+2) Calculate the blurred and gradient magnitude data:
+
+     mincblur -fwhm 6 -gradient input.mnc out_6
+
+mincblur will create out_6_blur.mnc and out_6_dxyz.mnc
+
+3) Calculate the blurred data, the partial derivative volumes and the
+gradient magnitude for the same data:
+
+     mincblur -fwhm 6 -partial input.mnc out_6
+
+mincblur will create out_6_blur.mnc, out_6_dx.mnc, out_6_dy.mnc,
+out_6_dz.mnc and out_6_dxyz.mnc
+
+.SH KNOWN BUGS
+The temporary files may not be removed properly if mincblur fails
+during processing.
+
+.SH AUTHOR
+Louis Collins
+
+.SH COPYRIGHT
+Copyright (c) 1993-95 by Louis Collins
