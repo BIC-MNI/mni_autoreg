@@ -2,7 +2,7 @@ typedef  struct
 {
   Real start;
   Real step;
-  Real count;
-  Real data[20];
+  int  count;
+  Real data[30];
 } Line_data;
 
