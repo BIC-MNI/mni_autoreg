@@ -10,5 +10,7 @@
 
 * use ICBM150 data as default model?
 
+* configure probe for Getopt::Tabular
+
 
 

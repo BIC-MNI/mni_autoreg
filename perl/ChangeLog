@@ -1,3 +1,8 @@
+2000-02-26  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* string_utilities.pl: new.  Needed for xfmtool.
+	* Makefile.am (perllib_DATA): add string_utilities.pl.
+
 2000-02-10  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* mritotal.in (perform_fit): treat `animal' as a synonym

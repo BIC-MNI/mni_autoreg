@@ -19,11 +19,12 @@ configdata_in = mritotal.cfg.in mritotal.default.cfg.in mritotal.icbm.cfg.in
 man_MANS = mritotal.1 autocrop.1 mritoself.1
 
 perllib_DATA = Startup.pm JobControl.pm \
-	misc_utilities.pl \
 	file_utilities.pl \
-	path_utilities.pl \
-	numeric_utilities.pl \
 	minc_utilities.pl \
+	misc_utilities.pl \
+	numeric_utilities.pl \
+	path_utilities.pl \
+	string_utilities.pl \
 	volume_heuristics.pl
 
 
