@@ -17,7 +17,10 @@
 @CREATED    : Thu May 27 16:50:50 EST 1993
                   
 @MODIFIED   :  $Log: init_params.c,v $
-@MODIFIED   :  Revision 96.7  2004-01-27 00:28:03  lenezet
+@MODIFIED   :  Revision 96.8  2004-02-12 05:54:27  rotor
+@MODIFIED   :   * removed public/private defs
+@MODIFIED   :
+@MODIFIED   :  Revision 96.7  2004/01/27 00:28:03  lenezet
 @MODIFIED   :  change init_params to correct the COG bug when there is not input transform.
 @MODIFIED   :  add the cosines director to the resampled field
 @MODIFIED   :
@@ -102,7 +105,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 96.7 2004-01-27 00:28:03 lenezet Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 96.8 2004-02-12 05:54:27 rotor Exp $";
 #endif
 
 
@@ -122,12 +125,12 @@ extern Arg_Data main_args;
 #include "local_macros.h"
 #include <print_error.h>
 
-public BOOLEAN rotmat_to_ang(float **rot, float *ang);
+BOOLEAN rotmat_to_ang(float **rot, float *ang);
 
-public int point_not_masked(Volume volume, 
+int point_not_masked(Volume volume, 
 			    Real wx, Real wy, Real wz);
 
-public void set_up_lattice(Volume data,       /* in: volume  */
+void set_up_lattice(Volume data,       /* in: volume  */
 			   double *user_step, /* in: user requested spacing for lattice */
 			   double *start,     /* out:world starting position of lattice  in volume dircos coords*/
 			   double *wstart,     /* out:world starting position of lattice */
@@ -507,7 +510,7 @@ Wed Aug  2 12:05:39 MET DST 1995 LC
   c1 is not overwritten if it contains valid data.  ie I won't recalculate the
   COG of volume 1 if the values in C1 are not==-DBL_MAX.
 ---------------------------------------------------------------------------- */
-private  BOOLEAN init_transformation(
+static  BOOLEAN init_transformation(
 				     Volume d1, /* data for volume1 */
 				     Volume d2, /* data for volume2 */
 				     Volume m1, /* mask for volume1 */
@@ -816,7 +819,7 @@ CREATED@ 1 May 2002
 
 *********************************************************************************************************/
 
-private  BOOLEAN init_transformation_quater(
+static  BOOLEAN init_transformation_quater(
 					    Volume d1, /* data for volume1 */
 					    Volume d2, /* data for volume2 */
 					    Volume m1, /* mask for volume1 */
@@ -1119,7 +1122,7 @@ private  BOOLEAN init_transformation_quater(
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-public BOOLEAN init_params(Volume d1,
+BOOLEAN init_params(Volume d1,
 		 Volume d2,
 		 Volume m1,
 		 Volume m2, 

@@ -9,7 +9,10 @@
 @CALLS      : 
 @CREATED    : Mon Sep 30 11:35:52 EDT 1996    LC
 @MODIFIED   : $Log: def_to_scale.c,v $
-@MODIFIED   : Revision 1.2  2002-03-26 14:15:28  stever
+@MODIFIED   : Revision 1.3  2004-02-12 05:54:05  rotor
+@MODIFIED   :  * removed public/private defs
+@MODIFIED   :
+@MODIFIED   : Revision 1.2  2002/03/26 14:15:28  stever
 @MODIFIED   : Update includes to <volume_io/foo.h> style.
 @MODIFIED   :
 @MODIFIED   : Revision 1.1  1999/10/25 19:52:06  louis
@@ -29,7 +32,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/def_to_scale.c,v 1.2 2002-03-26 14:15:28 stever Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/def_to_scale.c,v 1.3 2004-02-12 05:54:05 rotor Exp $";
 #endif
 
 #include <stdlib.h>
@@ -42,10 +45,6 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #ifndef TRUE
 #  define TRUE 1
 #  define FALSE 0
-#endif
-#ifndef public
-#  define public
-#  define private static
 #endif
 
 				/* type of job to compute */
@@ -63,7 +62,7 @@ void print_usage_and_exit(char *pname);
 
 void get_volume_XYZV_indices(Volume data, int xyzv[]);
 
-public BOOLEAN get_average_scale_from_neighbours(General_transform *trans,
+BOOLEAN get_average_scale_from_neighbours(General_transform *trans,
 						 int voxel[],
 						 int avg_type,
 						 Real *scale);
@@ -330,7 +329,7 @@ void get_volume_XYZV_indices(Volume data, int xyzv[])
 }
 
 
-public BOOLEAN get_average_scale_from_neighbours(General_transform *trans,
+BOOLEAN get_average_scale_from_neighbours(General_transform *trans,
 						 int voxel[],
 						 int avg_type,
 						 Real *scale)

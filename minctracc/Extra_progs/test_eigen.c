@@ -9,7 +9,10 @@
 @CALLS      : 
 @CREATED    : Mon Sep 25 08:45:43 MET 1995
 @MODIFIED   : $Log: test_eigen.c,v $
-@MODIFIED   : Revision 1.2  2002-03-26 14:15:33  stever
+@MODIFIED   : Revision 1.3  2004-02-12 05:54:06  rotor
+@MODIFIED   :  * removed public/private defs
+@MODIFIED   :
+@MODIFIED   : Revision 1.2  2002/03/26 14:15:33  stever
 @MODIFIED   : Update includes to <volume_io/foo.h> style.
 @MODIFIED   :
 @MODIFIED   : Revision 1.1  1999/10/25 19:52:11  louis
@@ -29,7 +32,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/test_eigen.c,v 1.2 2002-03-26 14:15:33 stever Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/test_eigen.c,v 1.3 2004-02-12 05:54:06 rotor Exp $";
 #endif
 
 #include <volume_io/internal_volume_io.h>
@@ -39,31 +42,27 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #  define TRUE 1
 #  define FALSE 0
 #endif
-#ifndef public
-#  define public
-#  define private static
-#endif
 
 #define VERY_SMALL_EPS 0.0001	/* this is data dependent! */
 
-public BOOLEAN return_local_eigen(Real r[3][3][3],
+BOOLEAN return_local_eigen(Real r[3][3][3],
 				  Real dir_1[3],
 				  Real dir_2[3],
 				  Real dir_3[3],
 				  Real val[3]);
 
-public BOOLEAN return_local_eigen_from_hessian(Real r[3][3][3],
+BOOLEAN return_local_eigen_from_hessian(Real r[3][3][3],
 				  Real dir_1[3],
 				  Real dir_2[3],
 				  Real dir_3[3],
 				  Real val[3]);
 
-public BOOLEAN return_3D_disp_from_quad_fit(Real r[3][3][3], 
+BOOLEAN return_3D_disp_from_quad_fit(Real r[3][3][3], 
 					    Real *dispu, 
 					    Real *dispv, 
 					    Real *dispw);	
 
-public BOOLEAN return_3D_disp_from_min_quad_fit(Real r[3][3][3], 
+BOOLEAN return_3D_disp_from_min_quad_fit(Real r[3][3][3], 
 						Real *dispu, 
 						Real *dispv, 
 						Real *dispw);	
@@ -134,7 +133,7 @@ print_val(Real r[3][3][3])
 
 }
 
-public BOOLEAN return_principal_directions(Real r[3][3][3],
+BOOLEAN return_principal_directions(Real r[3][3][3],
 					   Real dir_1[3],
 					   Real dir_2[3],
 					   Real *r_K,

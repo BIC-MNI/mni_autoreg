@@ -14,7 +14,10 @@
               express or implied warranty.
 @CREATED    : Tue Jun  8 08:44:59 EST 1993 LC
 @MODIFIED   : $Log: make_rots.c,v $
-@MODIFIED   : Revision 96.4  2002-11-20 21:38:49  lenezet
+@MODIFIED   : Revision 96.5  2004-02-12 05:54:27  rotor
+@MODIFIED   :  * removed public/private defs
+@MODIFIED   :
+@MODIFIED   : Revision 96.4  2002/11/20 21:38:49  lenezet
 @MODIFIED   :
 @MODIFIED   : Fix the code to take in consideration the direction cosines especially in the grid transform.
 @MODIFIED   : Add an option to choose the maximum expected deformation magnitude.
@@ -68,7 +71,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/make_rots.c,v 96.4 2002-11-20 21:38:49 lenezet Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/make_rots.c,v 96.5 2004-02-12 05:54:27 rotor Exp $";
 #endif
 
 #include <volume_io/internal_volume_io.h>
@@ -219,7 +222,7 @@ void   make_shears(float **xmat,
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-public void build_transformation_matrix(Transform *trans,
+void build_transformation_matrix(Transform *trans,
 					double *center,
 					double *translations,
 					double *scales,
@@ -312,7 +315,7 @@ public void build_transformation_matrix(Transform *trans,
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-public void build_transformation_matrix_quater(Transform *trans,
+void build_transformation_matrix_quater(Transform *trans,
 					       double *center,
 					       double *translations,
 					       double *scales,
@@ -429,7 +432,7 @@ public void build_transformation_matrix_quater(Transform *trans,
 @CREATED    : Tue Jun 15 16:45:35 EST 1993 LC
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public void build_inverse_transformation_matrix(Transform *trans,
+void build_inverse_transformation_matrix(Transform *trans,
 						double *center,
 						double *translations,
 						double *scales,
@@ -534,7 +537,7 @@ public void build_inverse_transformation_matrix(Transform *trans,
 @CREATED    : Thr Apr 18 10:45:56 EST 2002 pln
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public void build_inverse_transformation_matrix_quater(Transform *trans,
+void build_inverse_transformation_matrix_quater(Transform *trans,
 						       double *center,
 						       double *translations,
 						       double *scales,
@@ -635,7 +638,7 @@ public void build_inverse_transformation_matrix_quater(Transform *trans,
       inv(R1).
 ---------------------------------------------------------------------------- */
 
-public BOOLEAN extract_parameters_from_matrix(Transform *trans,
+BOOLEAN extract_parameters_from_matrix(Transform *trans,
 					      double *center,
 					      double *translations,
 					      double *scales,
@@ -887,7 +890,7 @@ public BOOLEAN extract_parameters_from_matrix(Transform *trans,
 
 
 */
-public BOOLEAN extract2_parameters_from_matrix(Transform *trans,
+BOOLEAN extract2_parameters_from_matrix(Transform *trans,
 					       double *center,
 					       double *translations,
 					       double *scales,
@@ -1250,7 +1253,7 @@ public BOOLEAN extract2_parameters_from_matrix(Transform *trans,
 
 
 
-public BOOLEAN extract2_parameters_from_matrix_quater(Transform *trans,
+BOOLEAN extract2_parameters_from_matrix_quater(Transform *trans,
 						      double *center,
 						      double *translations,
 						      double *scales,

@@ -35,7 +35,10 @@
       created by removing build_default_deformation_field from 
       transformations.c
 @MODIFIED   : $Log: default_def.c,v $
-@MODIFIED   : Revision 96.7  2004-02-04 20:43:46  lenezet
+@MODIFIED   : Revision 96.8  2004-02-12 05:54:27  rotor
+@MODIFIED   :  * removed public/private defs
+@MODIFIED   :
+@MODIFIED   : Revision 96.7  2004/02/04 20:43:46  lenezet
 @MODIFIED   :  * change the start to fix the dir cos
 @MODIFIED   :
 @MODIFIED   : Revision 96.6  2004/01/27 00:28:03  lenezet
@@ -101,7 +104,7 @@ static char rcsid[]="";
 static  char *dim_name_vector_vol[] = 
                 { MIvector_dimension, MIzspace,MIyspace, MIxspace };
 
-public void set_up_lattice(Volume data,       /* in: volume  */
+void set_up_lattice(Volume data,       /* in: volume  */
 			   double *user_step, /* in: user requested spacing for lattice */
 			   double *start,     /* out:world starting position of lattice  in volume dircos coords*/
 			   double *wstart,     /* out:world starting position of lattice */
@@ -113,13 +116,13 @@ public void set_up_lattice(Volume data,       /* in: volume  */
 				   are in x,y,z order*/
 
 
-private void append_new_default_deformation_field(Arg_Data *globals);
+static void append_new_default_deformation_field(Arg_Data *globals);
 
-private void resample_the_deformation_field(Arg_Data *globals);
+static void resample_the_deformation_field(Arg_Data *globals);
 
-public void get_volume_XYZV_indices(Volume data, int xyzv[]);
+void get_volume_XYZV_indices(Volume data, int xyzv[]);
 
-public void build_default_deformation_field(Arg_Data *globals)
+void build_default_deformation_field(Arg_Data *globals)
 {
 
   if (get_n_concated_transforms(globals->trans_info.transformation)==1) {
@@ -143,7 +146,7 @@ public void build_default_deformation_field(Arg_Data *globals)
    new structure must be interpolated from the existing deformation field. 
 */
 
-private void resample_the_deformation_field(Arg_Data *globals)
+static void resample_the_deformation_field(Arg_Data *globals)
 {
 
   Volume
@@ -358,7 +361,7 @@ private void resample_the_deformation_field(Arg_Data *globals)
   volumes.
 */
 
-private void append_new_default_deformation_field(Arg_Data *globals)
+static void append_new_default_deformation_field(Arg_Data *globals)
 {
 
   Volume

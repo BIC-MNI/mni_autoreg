@@ -10,8 +10,6 @@
 #include "kernel.h"
 #include <string.h>
 
-#define public
-#define private static
 #define PI 3.1415927
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -33,7 +31,7 @@
 @CREATED    : Wed Jun 23 09:04:34 EST 1993 Louis Collins
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public void muli_vects(float *r, float *s1, float *s2, int n)
+void muli_vects(float *r, float *s1, float *s2, int n)
 {
   int i;
   float r1,i1,r2,i2;
@@ -81,7 +79,7 @@ public void muli_vects(float *r, float *s1, float *s2, int n)
 /* find the next highest power of 2, greater than or equal  */
 /* to x, and return 2^n, when n is the required power.      */
 /************************************************************/
-public int next_power_of_two(int x)
+int next_power_of_two(int x)
 {
   int 
     n, power_of_two;
@@ -116,7 +114,7 @@ public int next_power_of_two(int x)
 /* return the value of the normal dist at x, given c,sigma  */
 /* and mu ----   all in mm                                  */
 /************************************************************/
-public float normal_dist(float c, float fwhm, float mu, float x)
+float normal_dist(float c, float fwhm, float mu, float x)
 {
   float sigma,t1,t2,t3,f;
   
@@ -154,7 +152,7 @@ public float normal_dist(float c, float fwhm, float mu, float x)
 /* return the value of the normal dist at x, given c,sigma  */
 /* and mu ----   all in mm                                  */
 /************************************************************/
-public float rect_dist(float c, float fwhm, float mu, float x)
+float rect_dist(float c, float fwhm, float mu, float x)
 {
   
   float t;
@@ -187,7 +185,7 @@ public float rect_dist(float c, float fwhm, float mu, float x)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 /************************************************************/
-public void make_kernel_FT(float *kern, int size, float vsize)
+void make_kernel_FT(float *kern, int size, float vsize)
 {
   
   int 
@@ -239,7 +237,7 @@ public void make_kernel_FT(float *kern, int size, float vsize)
 @CREATED    : Wed Jun 23 09:04:34 EST 1993 Louis Collins
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public void make_kernel(float *kern, float vsize, float fwhm, int size, int type)
+void make_kernel(float *kern, float vsize, float fwhm, int size, int type)
 {
 
   int kindex,k;

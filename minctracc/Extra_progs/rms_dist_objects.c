@@ -9,17 +9,9 @@
 #@DESCRIPTION: 
 #@CREATED    : Tuesday, Feb 10, 1998, Louis Collins
 #@MODIFIED   : from rms_dist_lines
-#@VERSION    : $Id: rms_dist_objects.c,v 1.1 1999-10-25 19:52:10 louis Exp $
+#@VERSION    : $Id: rms_dist_objects.c,v 1.2 2004-02-12 05:54:06 rotor Exp $
 #-----------------------------------------------------------------------------
 */
-
-#ifndef  public
-#define  public
-#endif
-
-#ifndef  private
-#define  private   static
-#endif
 
 #include <bicpl.h>
 #include <config.h>

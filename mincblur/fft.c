@@ -44,7 +44,10 @@
 	      recurrence relation ) to increase speed.
 
 @MODIFIED   : $Log: fft.c,v $
-@MODIFIED   : Revision 96.1  2000-01-28 16:21:35  stever
+@MODIFIED   : Revision 96.2  2004-02-12 05:53:48  rotor
+@MODIFIED   :  * removed public/private defs
+@MODIFIED   :
+@MODIFIED   : Revision 96.1  2000/01/28 16:21:35  stever
 @MODIFIED   : Revamped configure process
 @MODIFIED   :
 @MODIFIED   : Revision 96.0  1996/08/21 18:22:24  louis
@@ -72,7 +75,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/fft.c,v 96.1 2000-01-28 16:21:35 stever Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/fft.c,v 96.2 2004-02-12 05:53:48 rotor Exp $";
 #endif
 
 
@@ -81,7 +84,7 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur
 
 #define PI2 6.28318530717959
 
-public void fft1(float *signal, int numpoints, int direction)
+void fft1(float *signal, int numpoints, int direction)
 {
   int 
     n, m, mmax, 

@@ -10,7 +10,7 @@
    super_step specifies the number of times to super-sample the data.
  */
 
-public void 
+void 
 create_super_sampled_data_volumes(General_transform *orig_deformation,
 				  General_transform *super_sampled,
 				  int super_step);
@@ -28,7 +28,7 @@ create_super_sampled_data_volumes(General_transform *orig_deformation,
    see interpolate_super_sampled_data_by2() (below) for speedy code for the
    special case when the super sampling rate is euqal to 2.
 */
-public void interpolate_super_sampled_data(General_transform *orig_deformation,
+void interpolate_super_sampled_data(General_transform *orig_deformation,
 					   General_transform *super_sampled);
 
 
@@ -50,7 +50,7 @@ public void interpolate_super_sampled_data(General_transform *orig_deformation,
    new_count = old_count*2 - 1;
 
  */
-public void create_super_sampled_data_volumes_by2(General_transform *orig_deformation,
+void create_super_sampled_data_volumes_by2(General_transform *orig_deformation,
 						  General_transform *super_sampled);
 
 
@@ -91,7 +91,7 @@ public void create_super_sampled_data_volumes_by2(General_transform *orig_deform
    'f' voxels.
    
 */
-public void interpolate_super_sampled_data_by2( General_transform *orig_deformation,
+void interpolate_super_sampled_data_by2( General_transform *orig_deformation,
 						General_transform *super_sampled);
 
 #endif

@@ -28,7 +28,10 @@
               express or implied warranty.
 
 @MODIFIED   : $Log: gradient_volume.c,v $
-@MODIFIED   : Revision 96.0  1996-08-21 18:22:24  louis
+@MODIFIED   : Revision 96.1  2004-02-12 05:53:48  rotor
+@MODIFIED   :  * removed public/private defs
+@MODIFIED   :
+@MODIFIED   : Revision 96.0  1996/08/21 18:22:24  louis
 @MODIFIED   : Release of MNI_AutoReg version 0.96
 @MODIFIED   :
  * Revision 9.6  1996/08/21  18:22:18  louis
@@ -48,7 +51,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/gradient_volume.c,v 96.0 1996-08-21 18:22:24 louis Rel $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/gradient_volume.c,v 96.1 2004-02-12 05:53:48 rotor Exp $";
 #endif
 
 #include <volume_io.h>
@@ -59,9 +62,9 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur
 extern int debug;
 
 
-public void fft1(float *signal, int numpoints, int direction);
+void fft1(float *signal, int numpoints, int direction);
 
-public Status gradient3D_volume(FILE *ifd, 
+Status gradient3D_volume(FILE *ifd, 
 				Volume data, 
 				char *infile,
 				char *outfile, 

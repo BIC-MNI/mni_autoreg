@@ -15,7 +15,10 @@
 
 @CREATED    : Wed Jun 23 09:04:34 EST 1993 Louis Collins
 @MODIFIED   : $Log: mincblur.h,v $
-@MODIFIED   : Revision 96.1  2000-01-27 18:03:52  louis
+@MODIFIED   : Revision 96.2  2004-02-12 05:53:48  rotor
+@MODIFIED   :  * removed public/private defs
+@MODIFIED   :
+@MODIFIED   : Revision 96.1  2000/01/27 18:03:52  louis
 @MODIFIED   : final checkin before switch to CVS
 @MODIFIED   :
  * Revision 96.0  1996/08/21  18:22:24  louis
@@ -32,14 +35,14 @@
  *
 ---------------------------------------------------------------------------- */
 
-public Status blur3D_volume(Volume data,
+Status blur3D_volume(Volume data,
 			    double  kernel1, double  kernel2, double  kernel3, 
 			    char *infile, 
 			    char *outfile, 
 			    FILE *reals_fp,
 			    int ndim, int kernel_type, char *history);
 
-public Status gradient3D_volume(FILE *ifd, 
+Status gradient3D_volume(FILE *ifd, 
 				Volume data, 
 				char *infile, 
 				char *outfile, 
@@ -48,17 +51,17 @@ public Status gradient3D_volume(FILE *ifd,
 				int curvature_flg);
 
 
-public void apodize_data(Volume data, 
+void apodize_data(Volume data, 
 			 double xramp1,double xramp2,
 			 double yramp1,double yramp2,
 			 double zramp1,double zramp2);
 
-public void calc_gradient_magnitude(char *infilename, 
+void calc_gradient_magnitude(char *infilename, 
 				    char *output_basename,
 				    char *history, 
 				    Real *min_value, Real *max_value);
 
-public void calc_gaussian_curvature(char *infilename, char *history,
+void calc_gaussian_curvature(char *infilename, char *history,
 				    Real min_value, Real max_value);
 
 

@@ -10,7 +10,10 @@
 @CALLS      : 
 @CREATED    : Thur Oct 5 08:45:43 MET 1995
 @MODIFIED   : $Log: make_lvv_vol.c,v $
-@MODIFIED   : Revision 1.3  2002-12-13 21:09:12  lenezet
+@MODIFIED   : Revision 1.4  2004-02-12 05:54:06  rotor
+@MODIFIED   :  * removed public/private defs
+@MODIFIED   :
+@MODIFIED   : Revision 1.3  2002/12/13 21:09:12  lenezet
 @MODIFIED   : tests added for direction cosines and for 2d nonlinear
 @MODIFIED   :
 @MODIFIED   : Revision 1.2  2002/03/26 14:15:30  stever
@@ -33,7 +36,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/make_lvv_vol.c,v 1.3 2002-12-13 21:09:12 lenezet Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/make_lvv_vol.c,v 1.4 2004-02-12 05:54:06 rotor Exp $";
 #endif
 
 #include <stdio.h>
@@ -45,10 +48,6 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #ifndef TRUE
 #  define TRUE 1
 #  define FALSE 0
-#endif
-#ifndef public
-#  define public
-#  define private static
 #endif
 
 #define VERY_SMALL_EPS 0.0001	/* this is data dependent! */
@@ -64,10 +63,10 @@ typedef struct {
 static char *default_dim_names[N_DIMENSIONS] = { MIxspace, MIyspace, MIzspace };
 
 
-public Real return_Lvv(Real r[3][3][3],
+Real return_Lvv(Real r[3][3][3],
 		       Real eps);
 
-public void init_the_volume_to_zero(Volume volume);
+void init_the_volume_to_zero(Volume volume);
 
 void get_volume_XYZV_indices(Volume data, int xyzv[]);
 
@@ -229,7 +228,7 @@ int main(int argc, char *argv[])
 
 
 
-public void init_the_volume_to_zero(Volume volume)
+void init_the_volume_to_zero(Volume volume)
 {
     int             v0, v1, v2, v3, v4;
     Real            zero;
@@ -269,7 +268,7 @@ void get_volume_XYZV_indices(Volume data, int xyzv[])
 }
 
 
-public void estimate_3D_derivatives(Real r[3][3][3], 
+void estimate_3D_derivatives(Real r[3][3][3], 
 				    deriv_3D_struct *d) 
 
 {
@@ -362,7 +361,7 @@ public void estimate_3D_derivatives(Real r[3][3][3],
 
 
 
-public Real return_Lvv(Real r[3][3][3],
+Real return_Lvv(Real r[3][3][3],
 		       Real eps)
      
 {

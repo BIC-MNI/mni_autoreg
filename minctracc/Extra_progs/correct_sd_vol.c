@@ -5,7 +5,7 @@
 #define KERN_RECT     2
 
 
-public float normal_dist(float c, float fwhm, float mu, float x)
+float normal_dist(float c, float fwhm, float mu, float x)
 {
   float sigma,t1,t2,t3,f;
   
@@ -28,7 +28,7 @@ public float normal_dist(float c, float fwhm, float mu, float x)
 }
 
 
-public float rect_dist(float c, float fwhm, float mu, float x)
+float rect_dist(float c, float fwhm, float mu, float x)
 {
   
   float t;
@@ -44,7 +44,7 @@ public float rect_dist(float c, float fwhm, float mu, float x)
 }
 
 
-public void make_kernel(float *kern, float vsize, float fwhm, int size, int type)
+void make_kernel(float *kern, float vsize, float fwhm, int size, int type)
 {
 
   int kindex,k;

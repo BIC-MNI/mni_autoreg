@@ -17,7 +17,10 @@
 
 @CREATED    : Thu May 20 14:20:21 EST 1993 Louis Collins
 @MODIFIED   : $Log: minctracc.h,v $
-@MODIFIED   : Revision 96.8  2003-02-04 06:08:44  stever
+@MODIFIED   : Revision 96.9  2004-02-12 05:54:16  rotor
+@MODIFIED   :  * removed public/private defs
+@MODIFIED   :
+@MODIFIED   : Revision 96.8  2003/02/04 06:08:44  stever
 @MODIFIED   : Add support for correlation coefficient and sum-of-squared difference.
 @MODIFIED   :
 @MODIFIED   : Revision 96.7  2002/11/20 21:38:02  lenezet
@@ -110,80 +113,80 @@
 
 #include "interpolation.h"
 
-public int get_transformation(char *dst, char *key, char *nextArg);
+int get_transformation(char *dst, char *key, char *nextArg);
 
-public int get_mask_file(char *dst, char *key, char *nextArg);
+int get_mask_file(char *dst, char *key, char *nextArg);
 
-public int get_nonlinear_objective(char *dst, char *key, char *nextArg);
+int get_nonlinear_objective(char *dst, char *key, char *nextArg);
 
-public int get_feature_volumes(char *dst, char *key, int argc, char **argv);
+int get_feature_volumes(char *dst, char *key, int argc, char **argv);
 
-public void procrustes(int npoints, int ndim, 
+void procrustes(int npoints, int ndim, 
                        float **Apoints, float **Bpoints,
                        float *translation, float *centre_of_rotation,
                        float **rotation, float *scale);
 
-public void transformations_to_homogeneous(int ndim, 
+void transformations_to_homogeneous(int ndim, 
                   float *translation, float *centre_of_rotation,
                   float **rotation, float scale,
                   float **transformation);
 
-public void translation_to_homogeneous(int ndim, float *translation,
+void translation_to_homogeneous(int ndim, float *translation,
                                        float **transformation);
 
-public void rotation_to_homogeneous(int ndim, float **rotation,
+void rotation_to_homogeneous(int ndim, float **rotation,
                                        float **transformation);
 
-public float fit_function(float *x);        /* apply cross correlation to the data sets    */
+float fit_function(float *x);        /* apply cross correlation to the data sets    */
 
-public float zscore_function(float *x);     /* calculate rms z-score difference.           */
+float zscore_function(float *x);     /* calculate rms z-score difference.           */
 
-public float check_function(float *x);      /* calculate the squared error between points2 */
+float check_function(float *x);      /* calculate the squared error between points2 */
 
-public void invertmatrix(int n, float **mat, float **mat_invert);
+void invertmatrix(int n, float **mat, float **mat_invert);
 
-public BOOLEAN init_params(Volume d1,
+BOOLEAN init_params(Volume d1,
 			   Volume d2,
 			   Volume m1,
 			   Volume m2, 
 			   Arg_Data *globals);
 
-public BOOLEAN init_params_quater(Volume d1,
+BOOLEAN init_params_quater(Volume d1,
 				  Volume d2,
 				  Volume m1,
 				  Volume m2, 
 				  Arg_Data *globals);
 
 
-public void init_lattice(Volume d1,
+void init_lattice(Volume d1,
 			 Volume d2,
 			 Volume m1,
 			 Volume m2, 
 			 Arg_Data *globals);
 
-public BOOLEAN optimize_linear_transformation(Volume d1,
+BOOLEAN optimize_linear_transformation(Volume d1,
 					      Volume d2,
 					      Volume m1,
 					      Volume m2, 
 					      Arg_Data *globals);
 
-public BOOLEAN optimize_linear_transformation_quater(Volume d1,
+BOOLEAN optimize_linear_transformation_quater(Volume d1,
 						     Volume d2,
 						     Volume m1,
 						     Volume m2, 
 						     Arg_Data *globals);
 
-public BOOLEAN optimize_non_linear_transformation(Arg_Data *globals);
+BOOLEAN optimize_non_linear_transformation(Arg_Data *globals);
 
 #include "objectives.h"
 
-public float measure_fit(Volume d1,
+float measure_fit(Volume d1,
 			 Volume d2,
 			 Volume m1,
 			 Volume m2, 
 			 Arg_Data *globals);
 
-public void make_matlab_data_file(Volume d1,
+void make_matlab_data_file(Volume d1,
 				  Volume d2,
 				  Volume m1,
 				  Volume m2, 
@@ -197,7 +200,7 @@ Status read_all_data(Volume *dblur,
 		     Volume *dxyz, 
 		     char *name);
 
-public void build_default_deformation_field(Arg_Data *globals);
+void build_default_deformation_field(Arg_Data *globals);
 
 
 int allocate_a_new_feature(Feature_volumes *features);

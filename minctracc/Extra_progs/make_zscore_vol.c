@@ -8,7 +8,7 @@ static char *default_dim_names[N_DIMENSIONS] =
 
 char *prog_name;
 
-public void make_zscore_volume(Volume d1, Volume m1, 
+void make_zscore_volume(Volume d1, Volume m1, 
 			       Real *threshold);
 
 

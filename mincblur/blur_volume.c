@@ -29,7 +29,10 @@
               express or implied warranty.
 
 @MODIFIED   : $Log: blur_volume.c,v $
-@MODIFIED   : Revision 96.1  2000-01-27 16:51:27  louis
+@MODIFIED   : Revision 96.2  2004-02-12 05:53:48  rotor
+@MODIFIED   :  * removed public/private defs
+@MODIFIED   :
+@MODIFIED   : Revision 96.1  2000/01/27 16:51:27  louis
 @MODIFIED   : working version
 @MODIFIED   :
  * Revision 96.0  1996/08/21  18:22:24  louis
@@ -68,7 +71,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/blur_volume.c,v 96.1 2000-01-27 16:51:27 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/blur_volume.c,v 96.2 2004-02-12 05:53:48 rotor Exp $";
 #endif
 
 #include <volume_io.h>
@@ -80,9 +83,9 @@ extern int debug;
 
 int ms_volume_reals_flag;
 
-public void fft1(float *signal, int numpoints, int direction);
+void fft1(float *signal, int numpoints, int direction);
 
-public Status blur3D_volume(Volume data,
+Status blur3D_volume(Volume data,
 			    double fwhmx, double fwhmy, double fwhmz, 
 			    char *infile,
 			    char *outfile, 

@@ -11,7 +11,10 @@
 @CALLS      : 
 @CREATED    : Mon May 29 09:07:14 MET DST 1995 Collins
 @MODIFIED   : $Log: reversedef.c,v $
-@MODIFIED   : Revision 1.3  2002-03-26 14:15:32  stever
+@MODIFIED   : Revision 1.4  2004-02-12 05:54:06  rotor
+@MODIFIED   :  * removed public/private defs
+@MODIFIED   :
+@MODIFIED   : Revision 1.3  2002/03/26 14:15:32  stever
 @MODIFIED   : Update includes to <volume_io/foo.h> style.
 @MODIFIED   :
 @MODIFIED   : Revision 1.2  2000/02/07 19:33:03  stever
@@ -34,7 +37,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/reversedef.c,v 1.3 2002-03-26 14:15:32 stever Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/reversedef.c,v 1.4 2004-02-12 05:54:06 rotor Exp $";
 #endif
 
 #include <config.h>
@@ -50,11 +53,6 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #  define TRUE 1
 #  define FALSE 0
 #endif
-#ifndef public
-#  define public
-#  define private static
-#endif
-
 
 void print_usage_and_exit(char *pname);
 
@@ -90,7 +88,7 @@ void get_volume_XYZV_indices(Volume data, int xyzv[])
  
 }
 
-public  void  general_transform_point_in_trans_plane(
+ void  general_transform_point_in_trans_plane(
     General_transform   *transform,
     Real                x,
     Real                y,
@@ -99,7 +97,7 @@ public  void  general_transform_point_in_trans_plane(
     Real                *y_transformed,
     Real                *z_transformed );
 
-public  void  general_inverse_transform_point_in_trans_plane(
+ void  general_inverse_transform_point_in_trans_plane(
     General_transform   *transform,
     Real                x,
     Real                y,

@@ -15,7 +15,10 @@
 @CREATED    : Wed Jun 30 13:25:33 EST 1993 Louis Collins
                 copied and modified from mincresample.h from Peter Neelin
 @MODIFIED   : $Log: gradmag_volume.h,v $
-@MODIFIED   : Revision 96.0  1996-08-21 18:22:24  louis
+@MODIFIED   : Revision 96.1  2004-02-12 05:53:48  rotor
+@MODIFIED   :  * removed public/private defs
+@MODIFIED   :
+@MODIFIED   : Revision 96.0  1996/08/21 18:22:24  louis
 @MODIFIED   : Release of MNI_AutoReg version 0.96
 @MODIFIED   :
  * Revision 9.6  1996/08/21  18:22:19  louis
@@ -121,39 +124,39 @@ typedef struct {
 
 /* Function prototypes */
 
-public void build_vol_info(char *infilename, char *outfilename,
+void build_vol_info(char *infilename, char *outfilename,
                         MincVolume *in_vol, MincVolume *out_vol, char *history);
 
-public void load_vol_info(char *infilename, MincVolume *in_vol);
+void load_vol_info(char *infilename, MincVolume *in_vol);
 
-public void get_file_info(char *filename, 
+void get_file_info(char *filename, 
                           Volume_Definition *volume_def,
                           File_Info *file_info);
 
-public void create_output_file(char *filename, 
+void create_output_file(char *filename, 
                                Volume_Definition *volume_def,
                                File_Info *in_file,
                                File_Info *out_file,
                                char *tm_stamp);
 
-public double get_default_range(char *what, nc_type datatype, int is_signed);
+double get_default_range(char *what, nc_type datatype, int is_signed);
 
-public void finish_up(MincVolume *in_vol1, 
+void finish_up(MincVolume *in_vol1, 
 		      MincVolume *in_vol2, 
 		      MincVolume *in_vol3, 
 		      MincVolume *out_vol);
 
-public void load_volume(File_Info *file, long start[], long count[], 
+void load_volume(File_Info *file, long start[], long count[], 
                         Volume_Data *volume);
 
-public void get_mag_slice(Slice_Data *result,
+void get_mag_slice(Slice_Data *result,
 			  Slice_Data *slice_dx,
 			  Slice_Data *slice_dy,
 			  Slice_Data *slice_dz,			  
 			  double *minimum, double *maximum);
 
 
-public void get_curvature_slice(Slice_Data *result,
+void get_curvature_slice(Slice_Data *result,
 				Slice_Data *slice_dx,
 				Slice_Data *slice_dy,
 				Slice_Data *slice_dz,
@@ -163,13 +166,13 @@ public void get_curvature_slice(Slice_Data *result,
 				double thresh,
 				double *minimum, double *maximum);
 
-public void make_gradmag_volumes(MincVolume *in_vol1, 
+void make_gradmag_volumes(MincVolume *in_vol1, 
 				 MincVolume *in_vol2, 
 				 MincVolume *in_vol3, 
 				 MincVolume *out_vol,
 				 double *min_value, double *max_value);
 
-public void make_curvature_volumes(MincVolume *in_vol1, 
+void make_curvature_volumes(MincVolume *in_vol1, 
 				   MincVolume *in_vol2, 
 				   MincVolume *in_vol3, 
 				   MincVolume *in_volxx, 
@@ -178,10 +181,10 @@ public void make_curvature_volumes(MincVolume *in_vol1,
 				   MincVolume *out_vol,
 				   double thresh);
 
-public void make_vol_icv(MincVolume *in_vol);
+void make_vol_icv(MincVolume *in_vol);
 
-public void calc_gradient_magnitude(char *infilename, char *history, char *output_basename,
+void calc_gradient_magnitude(char *infilename, char *history, char *output_basename,
 				    double *min_value, double *max_value);
 
-public void calc_gaussian_curvature(char *infilename, char *history,
+void calc_gaussian_curvature(char *infilename, char *history,
 				    double min_value, double max_value);

@@ -9,7 +9,7 @@ static char *default_dim_names[N_DIMENSIONS] =
 
 char *prog_name;
 
-public void get_zscore_values(Volume d1, Volume m1, 
+void get_zscore_values(Volume d1, Volume m1, 
 			      Real threshold, Real *mean, Real *std); 
 
 
@@ -150,7 +150,7 @@ int main(int argc, char *argv[])
 
 
 
-public void get_zscore_values(Volume d1, Volume m1, 
+void get_zscore_values(Volume d1, Volume m1, 
 			      Real threshold, Real *mean, Real *std)
 {
   unsigned long

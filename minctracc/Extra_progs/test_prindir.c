@@ -9,7 +9,10 @@
 @CALLS      : 
 @CREATED    : Mon Sep 25 08:45:43 MET 1995
 @MODIFIED   : $Log: test_prindir.c,v $
-@MODIFIED   : Revision 1.2  2002-03-26 14:15:34  stever
+@MODIFIED   : Revision 1.3  2004-02-12 05:54:06  rotor
+@MODIFIED   :  * removed public/private defs
+@MODIFIED   :
+@MODIFIED   : Revision 1.2  2002/03/26 14:15:34  stever
 @MODIFIED   : Update includes to <volume_io/foo.h> style.
 @MODIFIED   :
 @MODIFIED   : Revision 1.1  1999/10/25 19:52:11  louis
@@ -29,7 +32,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/test_prindir.c,v 1.2 2002-03-26 14:15:34 stever Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/test_prindir.c,v 1.3 2004-02-12 05:54:06 rotor Exp $";
 #endif
 
 #include <stdio.h>
@@ -41,22 +44,18 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #  define TRUE 1
 #  define FALSE 0
 #endif
-#ifndef public
-#  define public
-#  define private static
-#endif
 
 #define VERY_SMALL_EPS 0.0001	/* this is data dependent! */
 
 static char *default_dim_names[N_DIMENSIONS] = { MIxspace, MIyspace, MIzspace };
 
-public BOOLEAN return_local_eigen(Real r[3][3][3],
+BOOLEAN return_local_eigen(Real r[3][3][3],
 				  Real dir_1[3],
 				  Real dir_2[3],
 				  Real dir_3[3],
 				  Real val[3]);
 
-public BOOLEAN return_principal_directions(Real r[3][3][3],
+BOOLEAN return_principal_directions(Real r[3][3][3],
 					   Real dir_1[3],
 					   Real dir_2[3],
 					   Real *r_K,
@@ -67,7 +66,7 @@ public BOOLEAN return_principal_directions(Real r[3][3][3],
 					   Real *r_Lvv,
 					   Real eps);
 
-public BOOLEAN return_local_eigen_from_hessian(Real r[3][3][3],
+BOOLEAN return_local_eigen_from_hessian(Real r[3][3][3],
 				  Real dir_1[3],
 				  Real dir_2[3],
 				  Real dir_3[3],
@@ -76,7 +75,7 @@ public BOOLEAN return_local_eigen_from_hessian(Real r[3][3][3],
 void build_def_field(Volume vol,
 		     General_transform **grid_trans);
 
-public void init_the_volume_to_zero(Volume volume);
+void init_the_volume_to_zero(Volume volume);
 
 void get_volume_XYZV_indices(Volume data, int xyzv[]);
 
@@ -296,7 +295,7 @@ int main(int argc, char *argv[])
 
 
 
-public void init_the_volume_to_zero(Volume volume)
+void init_the_volume_to_zero(Volume volume)
 {
     int             v0, v1, v2, v3, v4;
     Real            zero;

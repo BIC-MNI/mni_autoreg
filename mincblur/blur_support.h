@@ -16,7 +16,10 @@
 @CREATED    : Wed Jun 23 09:04:34 EST 1993 Louis Collins
 
 @MODIFIED   : $Log: blur_support.h,v $
-@MODIFIED   : Revision 96.1  2000-01-27 18:03:51  louis
+@MODIFIED   : Revision 96.2  2004-02-12 05:53:48  rotor
+@MODIFIED   :  * removed public/private defs
+@MODIFIED   :
+@MODIFIED   : Revision 96.1  2000/01/27 18:03:51  louis
 @MODIFIED   : final checkin before switch to CVS
 @MODIFIED   :
  * Revision 96.0  1996/08/21  18:22:24  louis
@@ -33,17 +36,12 @@
  *
 ---------------------------------------------------------------------------- */
 
-#ifndef public
-   #define public
-   #define private static
-#endif
-
-public void  muli_vects(float *r, float *s1, float *s2, int n);
-public int   next_power_of_two(int x);
-public float normal_dist(float c, float fwhm, float mu, float x);
-public float rect_dist(float c, float fwhm, float mu, float x);
-public void  make_kernel_FT(float *kern, int size, float vsize);
-public void  make_kernel(float *kern, float vsize, float fwhm, int size, int type);
+void  muli_vects(float *r, float *s1, float *s2, int n);
+int   next_power_of_two(int x);
+float normal_dist(float c, float fwhm, float mu, float x);
+float rect_dist(float c, float fwhm, float mu, float x);
+void  make_kernel_FT(float *kern, int size, float vsize);
+void  make_kernel(float *kern, float vsize, float fwhm, int size, int type);
 
 
 /*

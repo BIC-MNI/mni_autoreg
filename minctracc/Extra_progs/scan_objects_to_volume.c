@@ -10,14 +10,6 @@
 @CREATED    : Feb 13, 1998
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-#ifndef  public
-#define  public
-#endif
-
-#ifndef  private
-#define  private   static
-#endif
-
 #include  <volume_io.h>
 #include  <ParseArgv.h>
 #include  <time_stamp.h>

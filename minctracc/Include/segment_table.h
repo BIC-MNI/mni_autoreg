@@ -40,10 +40,10 @@ struct Segment_Table_Struct
 
 /* ------------------------ prototypes for segment table manipulation ---------- */
 
-public BOOLEAN build_segment_table(Segment_Table **table, Volume d1, int groups);
+BOOLEAN build_segment_table(Segment_Table **table, Volume d1, int groups);
 
-public BOOLEAN free_segment_table(Segment_Table *table);
+BOOLEAN free_segment_table(Segment_Table *table);
 
-public int     get_segment_LUT_value(int value, Segment_Table *table);
+int     get_segment_LUT_value(int value, Segment_Table *table);
 
 

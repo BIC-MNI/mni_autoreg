@@ -16,5 +16,5 @@
 @CREATED    : Mon Jun  7 11:41:02 EST 1993 (LC) 
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public BOOLEAN rotmat_to_ang(float **rot, float *ang);
+BOOLEAN rotmat_to_ang(float **rot, float *ang);
 

@@ -8,7 +8,7 @@ time_t time(time_t *tloc);
 
 char *prog_name;
 
-public BOOLEAN eigen(double **inputMat, int ndim, 
+BOOLEAN eigen(double **inputMat, int ndim, 
 		     double *eigen_val, double **eigen_vec, 
 		     int    *iters);
 

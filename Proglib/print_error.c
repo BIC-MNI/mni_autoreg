@@ -1,7 +1,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-/* private  void  (*print_function) ( char [] ); */
+/* void  (*print_function) ( char [] ); */
 extern   char *prog_name;
 
 /* ----------------------------- MNI Header -----------------------------------

@@ -1,11 +1,3 @@
-#ifndef  public
-#define  public
-#endif
-
-#ifndef  private
-#define  private   static
-#endif
-
 #include <bicpl.h>
 #include <config.h>
 

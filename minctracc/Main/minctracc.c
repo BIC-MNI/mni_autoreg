@@ -13,7 +13,10 @@
 
    @CREATED    : February 3, 1992 - louis collins
    @MODIFIED   : $Log: minctracc.c,v $
-   @MODIFIED   : Revision 96.10  2004-02-04 20:42:33  lenezet
+   @MODIFIED   : Revision 96.11  2004-02-12 05:54:22  rotor
+   @MODIFIED   :  * removed public/private defs
+   @MODIFIED   :
+   @MODIFIED   : Revision 96.10  2004/02/04 20:42:33  lenezet
    @MODIFIED   : *** empty log message ***
    @MODIFIED   :
    @MODIFIED   : Revision 96.9  2003/02/04 06:08:44  stever
@@ -121,7 +124,7 @@ Wed May 26 13:05:44 EST 1993 lc
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.10 2004-02-04 20:42:33 lenezet Exp $";
+static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.11 2004-02-12 05:54:22 rotor Exp $";
 #endif
 
 #include <config.h>
@@ -719,7 +722,7 @@ int main ( int argc, char* argv[] )
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 /* ARGSUSED */
-public int get_transformation(char *dst, char *key, char *nextArg)
+int get_transformation(char *dst, char *key, char *nextArg)
 {     
    Program_Transformation *transform_info;
    General_transform *transformation;
@@ -823,7 +826,7 @@ public int get_transformation(char *dst, char *key, char *nextArg)
 
 ---------------------------------------------------------------------------- */
 /* ARGSUSED */
-public int get_mask_file(char *dst, char *key, char *nextArg)
+int get_mask_file(char *dst, char *key, char *nextArg)
 { 
 
   Status status;
@@ -873,7 +876,7 @@ public int get_mask_file(char *dst, char *key, char *nextArg)
 
 ---------------------------------------------------------------------------- */
 /* ARGSUSED */
-public int get_feature_volumes(char *dst, char *key, int argc, char **argv)
+int get_feature_volumes(char *dst, char *key, int argc, char **argv)
 { 
   int 
     i,
@@ -1007,7 +1010,7 @@ public int get_feature_volumes(char *dst, char *key, int argc, char **argv)
  * If nextArg is used to specify the objective function, return 1
  * to inform ParseArgv to skip that argument; else return 0.
  */
-public int get_nonlinear_objective(char *dst, char *key, char* nextArg)
+int get_nonlinear_objective(char *dst, char *key, char* nextArg)
 {
     main_args.trans_info.transform_type = TRANS_NONLIN;
 

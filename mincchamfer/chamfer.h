@@ -5,4 +5,4 @@
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-public Status compute_chamfer(Volume  chamfer, Real max_val);
+Status compute_chamfer(Volume  chamfer, Real max_val);

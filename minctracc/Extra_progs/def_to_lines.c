@@ -2,7 +2,7 @@
 #include <bicpl.h>
 
 
-public int point_not_masked(Volume volume, 
+int point_not_masked(Volume volume, 
 			    Real wx, Real wy, Real wz);
 
 void get_volume_XYZV_indices(Volume data, int xyzv[]);
@@ -152,7 +152,7 @@ int main(int argc, char *argv[])
   exit(EXIT_SUCCESS);
 }
 
-public int point_not_masked(Volume volume, 
+int point_not_masked(Volume volume, 
 			    Real wx, Real wy, Real wz)
 {
 

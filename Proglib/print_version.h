@@ -1,1 +1,1 @@
-public  void  print_version_info( char *version_string);
+void  print_version_info( char *version_string);

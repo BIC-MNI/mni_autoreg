@@ -17,7 +17,10 @@
 
 @CREATED    : Tue Nov 16 13:56:34 EST 1993 LC
 @MODIFIED   : $Log: read_data_files.c,v $
-@MODIFIED   : Revision 1.3  2004-02-04 20:42:02  lenezet
+@MODIFIED   : Revision 1.4  2004-02-12 05:54:11  rotor
+@MODIFIED   :  * removed public/private defs
+@MODIFIED   :
+@MODIFIED   : Revision 1.3  2004/02/04 20:42:02  lenezet
 @MODIFIED   : *** empty log message ***
 @MODIFIED   :
 @MODIFIED   : Revision 1.2  2002/03/26 14:15:36  stever
@@ -41,7 +44,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Files/read_data_files.c,v 1.3 2004-02-04 20:42:02 lenezet Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Files/read_data_files.c,v 1.4 2004-02-12 05:54:11 rotor Exp $";
 #endif
 
 #include <volume_io/internal_volume_io.h>
@@ -52,7 +55,7 @@ static char *default_dim_names[N_DIMENSIONS] =
 
 
 
-public Status read_deform_data(Volume *dx,
+Status read_deform_data(Volume *dx,
 			Volume *dy,
 			Volume *dz,
 			char *name)
@@ -114,7 +117,7 @@ public Status read_deform_data(Volume *dx,
 }
 
 
-public Status read_all_data(Volume *dblur,
+Status read_all_data(Volume *dblur,
 			     Volume *dx,
 			     Volume *dy,
 			     Volume *dz,
@@ -171,7 +174,7 @@ public Status read_all_data(Volume *dblur,
 }
 
 
-public Status save_deform_data(Volume dx,
+Status save_deform_data(Volume dx,
 			       Volume dy,
 			       Volume dz,
 			       char *name,

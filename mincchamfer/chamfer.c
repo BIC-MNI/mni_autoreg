@@ -12,7 +12,7 @@
 extern int verbose;
 extern int debug;
 
-private void build_mask(Volume vol, Real mask_f[3][3][3], Real mask_b[3][3][3]);
+static void build_mask(Volume vol, Real mask_f[3][3][3], Real mask_b[3][3][3]);
 
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       :  compute_chamfer
@@ -30,7 +30,7 @@ private void build_mask(Volume vol, Real mask_f[3][3][3], Real mask_b[3][3][3]);
 @CREATED    : Nov 2, 1998 Louis
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public Status compute_chamfer(Volume chamfer, Real max_val)
+Status compute_chamfer(Volume chamfer, Real max_val)
 {
 
    Real
@@ -164,7 +164,7 @@ public Status compute_chamfer(Volume chamfer, Real max_val)
 }
 
 
-private void build_mask(Volume vol, 
+static void build_mask(Volume vol, 
                         Real mask_f[3][3][3], 
                         Real mask_b[3][3][3])
 {

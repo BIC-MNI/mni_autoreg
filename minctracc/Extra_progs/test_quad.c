@@ -9,7 +9,10 @@
 @CALLS      : 
 @CREATED    : Mon May  8 11:29:40 MET DST 1995  LC
 @MODIFIED   : $Log: test_quad.c,v $
-@MODIFIED   : Revision 1.2  2002-03-26 14:15:34  stever
+@MODIFIED   : Revision 1.3  2004-02-12 05:54:06  rotor
+@MODIFIED   :  * removed public/private defs
+@MODIFIED   :
+@MODIFIED   : Revision 1.2  2002/03/26 14:15:34  stever
 @MODIFIED   : Update includes to <volume_io/foo.h> style.
 @MODIFIED   :
 @MODIFIED   : Revision 1.1  1999/10/25 19:52:11  louis
@@ -29,7 +32,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/test_quad.c,v 1.2 2002-03-26 14:15:34 stever Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/test_quad.c,v 1.3 2004-02-12 05:54:06 rotor Exp $";
 #endif
 
 #include <stdio.h>
@@ -40,12 +43,8 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #  define TRUE 1
 #  define FALSE 0
 #endif
-#ifndef public
-#  define public
-#  define private static
-#endif
 
-public BOOLEAN return_3D_disp_from_quad_fit(Real r[3][3][3], /* the values used in the quad fit */
+BOOLEAN return_3D_disp_from_quad_fit(Real r[3][3][3], /* the values used in the quad fit */
 					    Real *dispu, /* the displacements returned */
 					    Real *dispv, 
 					    Real *dispw);	

@@ -9,7 +9,10 @@
 @CALLS      : 
 @CREATED    : August 13, 1993 (Peter Neelin)
 @MODIFIED   : $Log: xfminvert.c,v $
-@MODIFIED   : Revision 96.2  2002-03-26 14:15:35  stever
+@MODIFIED   : Revision 96.3  2004-02-12 05:54:06  rotor
+@MODIFIED   :  * removed public/private defs
+@MODIFIED   :
+@MODIFIED   : Revision 96.2  2002/03/26 14:15:35  stever
 @MODIFIED   : Update includes to <volume_io/foo.h> style.
 @MODIFIED   :
 @MODIFIED   : Revision 96.1  1999/10/25 19:52:12  louis
@@ -65,7 +68,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/xfminvert.c,v 96.2 2002-03-26 14:15:35 stever Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/xfminvert.c,v 96.3 2004-02-12 05:54:06 rotor Exp $";
 #endif
 
 #include <stdlib.h>
@@ -78,10 +81,6 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #ifndef TRUE
 #  define TRUE 1
 #  define FALSE 0
-#endif
-#ifndef public
-#  define public
-#  define private static
 #endif
 
 /* Main program */

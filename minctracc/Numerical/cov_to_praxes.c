@@ -29,7 +29,10 @@
                       using numerical recipes routines jacobi() and eigsrt().  
 		      See Hotelling Transform
 @MODIFIED   : $Log: cov_to_praxes.c,v $
-@MODIFIED   : Revision 96.3  2002-03-26 14:15:39  stever
+@MODIFIED   : Revision 96.4  2004-02-12 05:54:27  rotor
+@MODIFIED   :  * removed public/private defs
+@MODIFIED   :
+@MODIFIED   : Revision 96.3  2002/03/26 14:15:39  stever
 @MODIFIED   : Update includes to <volume_io/foo.h> style.
 @MODIFIED   :
 @MODIFIED   : Revision 96.2  2000/03/15 08:42:43  stever
@@ -65,12 +68,12 @@
 
 ---------------------------------------------------------------------------- */
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/cov_to_praxes.c,v 96.3 2002-03-26 14:15:39 stever Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/cov_to_praxes.c,v 96.4 2004-02-12 05:54:27 rotor Exp $";
 #endif
 
 #include <volume_io/internal_volume_io.h>
 
-public BOOLEAN eigen(double **inputMat, int ndim, 
+BOOLEAN eigen(double **inputMat, int ndim, 
 		     double *eigen_val, double **eigen_vec, 
 		     int    *iters);
 
@@ -123,7 +126,7 @@ void cov_to_praxes(int ndim, float **covar, float **pr_axes)
 #define ROTATE(a,i,j,k,l) g=a[i][j];h=a[k][l];a[i][j]=g-s*(h+g*tau);\
 	a[k][l]=h+s*(g-h*tau);
 
-private BOOLEAN jacobi(double **a,
+static BOOLEAN jacobi(double **a,
 		       int n,
 		       double *d,
 		       double **v,
@@ -243,7 +246,7 @@ void eigsrt(double d[], double** v, int n)
 }
 
 
-public BOOLEAN eigen(double **inputMat, 
+BOOLEAN eigen(double **inputMat, 
 		     int    ndim, 
 		     double *eigen_val, 
 		     double **eigen_vec, 
@@ -343,7 +346,7 @@ public BOOLEAN eigen(double **inputMat,
 @MODIFIED   :
 ---------------------------------------------------------------------------- */
 
-public BOOLEAN eigen2(double **inputMat, 
+BOOLEAN eigen2(double **inputMat, 
 		     int    ndim, 
 		     double *eigen_val, 
 		     double **eigen_vec, 

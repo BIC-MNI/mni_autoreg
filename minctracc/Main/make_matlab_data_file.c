@@ -23,7 +23,10 @@
 
 @CREATED    : Mon Oct  4 13:06:17 EST 1993 Louis
 @MODIFIED   : $Log: make_matlab_data_file.c,v $
-@MODIFIED   : Revision 96.4  2002-08-14 19:54:42  lenezet
+@MODIFIED   : Revision 96.5  2004-02-12 05:54:21  rotor
+@MODIFIED   :  * removed public/private defs
+@MODIFIED   :
+@MODIFIED   : Revision 96.4  2002/08/14 19:54:42  lenezet
 @MODIFIED   :  quaternion option added for the rotation
 @MODIFIED   :
 @MODIFIED   : Revision 96.3  2002/03/26 14:15:38  stever
@@ -69,7 +72,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/make_matlab_data_file.c,v 96.4 2002-08-14 19:54:42 lenezet Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/make_matlab_data_file.c,v 96.5 2004-02-12 05:54:21 rotor Exp $";
 #endif
 
 
@@ -95,33 +98,33 @@ extern Real            *prob_fn2;
 
 extern int Matlab_num_steps;
 
-public float fit_function(float *params);
-public float fit_function_quater(float *params);
+float fit_function(float *params);
+float fit_function_quater(float *params);
 
-public void make_zscore_volume(Volume d1, Volume m1, 
+void make_zscore_volume(Volume d1, Volume m1, 
 			       Real *threshold); 
 
-public void add_speckle_to_volume(Volume d1, 
+void add_speckle_to_volume(Volume d1, 
 				  float speckle,
 				  double  *start, int *count, VectorR directions[]);
 
-public void parameters_to_vector(double *trans, 
+void parameters_to_vector(double *trans, 
 				  double *rots, 
 				  double *scales,
 				  double *shears,
 				  float  *op_vector,
 				  double *weights);
 
-public void parameters_to_vector_quater(double *trans, 
+void parameters_to_vector_quater(double *trans, 
 					double *quats, 
 					double *scales,
 					double *shears,
 					float  *op_vector,
 					double *weights);
 
-public BOOLEAN replace_volume_data_with_ubyte(Volume data);
+BOOLEAN replace_volume_data_with_ubyte(Volume data);
 
-public void make_matlab_data_file(Volume d1,
+void make_matlab_data_file(Volume d1,
 				  Volume d2,
 				  Volume m1,
 				  Volume m2, 

@@ -15,7 +15,10 @@
 
 @CREATED    : February 23, 1996
 @MODIFIED   : $Log: stats.h,v $
-@MODIFIED   : Revision 1.4  2002-12-13 21:09:45  lenezet
+@MODIFIED   : Revision 1.5  2004-02-12 05:54:16  rotor
+@MODIFIED   :  * removed public/private defs
+@MODIFIED   :
+@MODIFIED   : Revision 1.4  2002/12/13 21:09:45  lenezet
 @MODIFIED   : *** empty log message ***
 @MODIFIED   :
 @MODIFIED   : Revision 1.3  2002/03/26 14:15:37  stever
@@ -48,26 +51,26 @@ typedef  struct
   Real   min_val;
 } stats_struct;
 
-public void init_stats(stats_struct *stat,
+void init_stats(stats_struct *stat,
 		  char         title[]);
 
-public void tally_stats(stats_struct *stat,
+void tally_stats(stats_struct *stat,
 		   Real         val);
 
-public void report_stats(stats_struct *stat);
+void report_stats(stats_struct *stat);
 
-public void stat_title(void);
+void stat_title(void);
 
 
-public Real stat_get_mean(stats_struct *stat);
+Real stat_get_mean(stats_struct *stat);
 
-public Real stat_get_rms(stats_struct *stat);
+Real stat_get_rms(stats_struct *stat);
 
-public Real stat_get_standard_deviation(stats_struct *stat);
+Real stat_get_standard_deviation(stats_struct *stat);
 
-public Real stat_get_variance(stats_struct *stat);
+Real stat_get_variance(stats_struct *stat);
 
-public int stat_get_count(stats_struct *stat);
+int stat_get_count(stats_struct *stat);
 
 
 #endif

@@ -24,7 +24,10 @@
 
 @CREATED    : January 31, 1992 (Peter Neelin)
 @MODIFIED   :  $Log: matrix_basics.c,v $
-@MODIFIED   :  Revision 96.3  2002-12-13 21:16:30  lenezet
+@MODIFIED   :  Revision 96.4  2004-02-12 05:54:27  rotor
+@MODIFIED   :   * removed public/private defs
+@MODIFIED   :
+@MODIFIED   :  Revision 96.3  2002/12/13 21:16:30  lenezet
 @MODIFIED   :  nonlinear in 2D has changed. The option -2D-non-lin is no more necessary. The grid transform has been adapted to feet on the target volume whatever is size. The Optimization is done on the dimensions for which "count" is greater than 1.
 @MODIFIED   :
 @MODIFIED   :  Revision 96.2  2002/03/26 14:15:40  stever
@@ -80,7 +83,7 @@ Fri Jun  4 14:10:34 EST 1993 LC
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/matrix_basics.c,v 96.3 2002-12-13 21:16:30 lenezet Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/matrix_basics.c,v 96.4 2004-02-12 05:54:27 rotor Exp $";
 #endif
 
 #include <volume_io/internal_volume_io.h>
@@ -91,61 +94,61 @@ void   make_rots(float **xmat, float data_rot_x, float data_rot_y, float data_ro
 
 /* Routines defined in this file */
 
-public void printmatrix(int rows, int cols, float **the_matrix);
+void printmatrix(int rows, int cols, float **the_matrix);
 
-public void calc_centroid(int npoints, int ndim, float **points, 
+void calc_centroid(int npoints, int ndim, float **points, 
                           float *centroid);
 
-public void translate(int npoints, int ndim, float **points, 
+void translate(int npoints, int ndim, float **points, 
                       float *translation, float **newpoints);
 
-public void transpose(int rows, int cols, float **mat, float **mat_transpose);
+void transpose(int rows, int cols, float **mat, float **mat_transpose);
 
-public void invertmatrix(int n, float **mat, float **mat_invert);
+void invertmatrix(int n, float **mat, float **mat_invert);
 
-public void raw_matrix_multiply(int ldim, int mdim, int ndim, 
+void raw_matrix_multiply(int ldim, int mdim, int ndim, 
                                 float **Amat, float **Bmat, float **Cmat);
 
-public void matrix_multiply(int ldim, int mdim, int ndim, 
+void matrix_multiply(int ldim, int mdim, int ndim, 
                             float **Amat, float **Bmat, float **Cmat);
 
-public float trace(int size, float **the_matrix);
+float trace(int size, float **the_matrix);
 
-public void matrix_scalar_multiply(int rows, int cols, float scalar, 
+void matrix_scalar_multiply(int rows, int cols, float scalar, 
                             float **the_matrix, float **product);
 
-public void nr_identd(double **A, int m1, int m2, int n1, int n2 );
-public void nr_identf(float **A, int m1, int m2, int n1, int n2 );
+void nr_identd(double **A, int m1, int m2, int n1, int n2 );
+void nr_identf(float **A, int m1, int m2, int n1, int n2 );
 
-public void nr_copyd(double **A, int m1, int m2, int n1, int n2, double **B );
-public void nr_copyf(float  **A, int m1, int m2, int n1, int n2, float **B );
+void nr_copyd(double **A, int m1, int m2, int n1, int n2, double **B );
+void nr_copyf(float  **A, int m1, int m2, int n1, int n2, float **B );
 
-public void nr_rotxd(double **M, double a);
-public void nr_rotxf(float **M, float a);
+void nr_rotxd(double **M, double a);
+void nr_rotxf(float **M, float a);
 
-public void nr_rotyd(double **M,double a);
-public void nr_rotyf(float **M, float a);
+void nr_rotyd(double **M,double a);
+void nr_rotyf(float **M, float a);
 
-public void nr_rotzd(double **M,double a);
-public void nr_rotzf(float **M, float a);
+void nr_rotzd(double **M,double a);
+void nr_rotzf(float **M, float a);
 
-public void nr_multd(double **A, int mA1, int mA2, int nA1, int nA2,
+void nr_multd(double **A, int mA1, int mA2, int nA1, int nA2,
 		     double **B, int mB1, int mB2, int nB1, int nB2, 
 		     double **C);
-public void nr_multf(float **A, int mA1, int mA2, int nA1, int nA2,
+void nr_multf(float **A, int mA1, int mA2, int nA1, int nA2,
 		     float **B, int mB1, int mB2, int nB1, int nB2, 
 		     float **C);
 
 
-public void transformations_to_homogeneous(int ndim, 
+void transformations_to_homogeneous(int ndim, 
                   float *translation, float *centre_of_rotation,
                   float **rotation, float scale,
                   float **transformation);
 
-public void translation_to_homogeneous(int ndim, float *translation,
+void translation_to_homogeneous(int ndim, float *translation,
                                        float **transformation);
 
-public void rotation_to_homogeneous(int ndim, float **rotation,
+void rotation_to_homogeneous(int ndim, float **rotation,
                                        float **transformation);
 
 
@@ -169,7 +172,7 @@ public void rotation_to_homogeneous(int ndim, float **rotation,
 @MODIFIED   : January 31, 1992 (Peter Neelin)
                  - change to roughly NIL-abiding code
 ---------------------------------------------------------------------------- */
-public void printmatrix(int rows, int cols, float **the_matrix)
+void printmatrix(int rows, int cols, float **the_matrix)
 {
    int i,j;
    float f;
@@ -204,7 +207,7 @@ public void printmatrix(int rows, int cols, float **the_matrix)
                  - change to roughly NIL-abiding code and modified calling
                  sequence.
 ---------------------------------------------------------------------------- */
-public void calc_centroid(int npoints, int ndim, float **points, 
+void calc_centroid(int npoints, int ndim, float **points, 
                           float *centroid)
 {
    int i,j;
@@ -242,7 +245,7 @@ public void calc_centroid(int npoints, int ndim, float **points,
                  - change to roughly NIL-abiding code and modified calling
                  sequence.
 ---------------------------------------------------------------------------- */
-public void translate(int npoints, int ndim, float **points, 
+void translate(int npoints, int ndim, float **points, 
                       float *translation, float **newpoints)
 {
    int i,j;
@@ -276,7 +279,7 @@ public void translate(int npoints, int ndim, float **points,
 Fri Jun  4 14:10:34 EST 1993 LC
     added the possibility to have input and out matrices the same!
 ---------------------------------------------------------------------------- */
-public void transpose(int rows, int cols, float **mat, float **mat_transpose)
+void transpose(int rows, int cols, float **mat, float **mat_transpose)
 {
    int i,j;
 
@@ -328,7 +331,7 @@ public void transpose(int rows, int cols, float **mat, float **mat_transpose)
 @CREATED    : Fri Jun  4 14:10:34 EST 1993 Louis Collins
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public void raw_invertmatrix(int n, float **mat, float **mat_invert)
+void raw_invertmatrix(int n, float **mat, float **mat_invert)
 {
 
   int 
@@ -386,7 +389,7 @@ public void raw_invertmatrix(int n, float **mat, float **mat_invert)
 
 }
 
-public void invertmatrix(int ndim, float **mat, float **mat_invert)
+void invertmatrix(int ndim, float **mat, float **mat_invert)
 {
   float **Ctemp;
   int i,j;
@@ -438,7 +441,7 @@ public void invertmatrix(int ndim, float **mat, float **mat_invert)
                  - change to roughly NIL-abiding code and modified calling
                  sequence.
 ---------------------------------------------------------------------------- */
-public void raw_matrix_multiply(int ldim, int mdim, int ndim, 
+void raw_matrix_multiply(int ldim, int mdim, int ndim, 
                                 float **Amat, float **Bmat, float **Cmat)
 {
    int i,j,k;
@@ -478,7 +481,7 @@ public void raw_matrix_multiply(int ldim, int mdim, int ndim,
                  - Changed so that calling program can use an input matrix for
                  output.
 ---------------------------------------------------------------------------- */
-public void matrix_multiply(int ldim, int mdim, int ndim, 
+void matrix_multiply(int ldim, int mdim, int ndim, 
                             float **Amat, float **Bmat, float **Cmat)
 {
    int i,j;
@@ -517,7 +520,7 @@ public void matrix_multiply(int ldim, int mdim, int ndim,
                  - change to roughly NIL-abiding code and modified calling
                  sequence.
 ---------------------------------------------------------------------------- */
-public float trace(int size, float **the_matrix)
+float trace(int size, float **the_matrix)
 {
    float sum=0.;
    int i;
@@ -550,7 +553,7 @@ public float trace(int size, float **the_matrix)
                  - change to roughly NIL-abiding code and modified calling
                  sequence.
 ---------------------------------------------------------------------------- */
-public void matrix_scalar_multiply(int rows, int cols, float scalar, 
+void matrix_scalar_multiply(int rows, int cols, float scalar, 
                             float **the_matrix, float **product)
 {
    int i,j;
@@ -579,7 +582,7 @@ public void matrix_scalar_multiply(int rows, int cols, float scalar,
 @MODIFIED   : 
 
 ---------------------------------------------------------------------------- */
-public void nr_identd(double **A, int m1, int m2, int n1, int n2 )
+void nr_identd(double **A, int m1, int m2, int n1, int n2 )
 {
 
    int i,j;
@@ -594,7 +597,7 @@ public void nr_identd(double **A, int m1, int m2, int n1, int n2 )
    
 }
 
-public void nr_identf(float **A, int m1, int m2, int n1, int n2 )
+void nr_identf(float **A, int m1, int m2, int n1, int n2 )
 {
 
    int i,j;
@@ -625,7 +628,7 @@ public void nr_identf(float **A, int m1, int m2, int n1, int n2 )
 @MODIFIED   : 
 
 ---------------------------------------------------------------------------- */
-public void nr_copyd(double **A, int m1, int m2, int n1, int n2, double **B )
+void nr_copyd(double **A, int m1, int m2, int n1, int n2, double **B )
 {
    int i,j;
 
@@ -634,7 +637,7 @@ public void nr_copyd(double **A, int m1, int m2, int n1, int n2, double **B )
 	 B[i][j] = A[i][j];
 }
 
-public void nr_copyf(float  **A, int m1, int m2, int n1, int n2, float **B )
+void nr_copyf(float  **A, int m1, int m2, int n1, int n2, float **B )
 {
    int i,j;
 
@@ -663,7 +666,7 @@ public void nr_copyf(float  **A, int m1, int m2, int n1, int n2, float **B )
 @CREATED    : Tue Jun  1 12:49:21 EST 1993 (Louis Collins)
 @MODIFIED   : Tue Jun  8 08:44:59 EST 1993 (LC) changed to mat*vec format
 ---------------------------------------------------------------------------- */
-public void nr_rotxd(double **M, double a)
+void nr_rotxd(double **M, double a)
 {
    nr_identd(M,1,4,1,4);
 
@@ -672,7 +675,7 @@ public void nr_rotxd(double **M, double a)
 }
 
 
-public void nr_rotxf(float **M, float a)
+void nr_rotxf(float **M, float a)
 {
    nr_identf(M,1,4,1,4);
 
@@ -698,7 +701,7 @@ ry = [  cos(a)   0 sin(a)  0
 @CREATED    : Tue Jun  1 12:49:21 EST 1993 (Louis Collins)
 @MODIFIED   : Tue Jun  8 08:44:59 EST 1993 (LC) changed to mat*vec format
 ---------------------------------------------------------------------------- */
-public void nr_rotyd(double **M,double a)
+void nr_rotyd(double **M,double a)
 {
 
    nr_identd(M,1,4,1,4);
@@ -707,7 +710,7 @@ public void nr_rotyd(double **M,double a)
    M[3][1] = -sin(a);   M[3][3] = cos(a);
 }
 
-public void nr_rotyf(float **M, float a)
+void nr_rotyf(float **M, float a)
 {
 
    nr_identf(M,1,4,1,4);
@@ -734,7 +737,7 @@ rz = [cos(a)  -sin(a) 0  0
 @CREATED    : Tue Jun  1 12:49:21 EST 1993 (Louis Collins)
 @MODIFIED   : Tue Jun  8 08:44:59 EST 1993 (LC) changed to mat*vec format
 ---------------------------------------------------------------------------- */
-public void nr_rotzd(double **M,double a)
+void nr_rotzd(double **M,double a)
 {
 
    nr_identd(M,1,4,1,4);
@@ -743,7 +746,7 @@ public void nr_rotzd(double **M,double a)
    M[2][1] = sin(a);  M[2][2] = cos(a);
 }
 
-public void nr_rotzf(float **M, float a)
+void nr_rotzf(float **M, float a)
 {
 
    nr_identf(M,1,4,1,4);
@@ -774,7 +777,7 @@ public void nr_rotzf(float **M, float a)
 
 ---------------------------------------------------------------------------- */
 
-public void nr_multd(double **A, int mA1, int mA2, int nA1, int nA2, 
+void nr_multd(double **A, int mA1, int mA2, int nA1, int nA2, 
 	 double **B, int mB1, int mB2, int nB1, int nB2, 
 	 double **C )
 {
@@ -793,7 +796,7 @@ public void nr_multd(double **A, int mA1, int mA2, int nA1, int nA2,
 }
 
 
-public void nr_multf(float **A, int mA1, int mA2, int nA1, int nA2, 
+void nr_multf(float **A, int mA1, int mA2, int nA1, int nA2, 
 	 float **B, int mB1, int mB2, int nB1, int nB2, 
 	 float **C)
 {
@@ -856,7 +859,7 @@ Fri Jun  4 14:10:34 EST 1993  LC
    changed matrices, so that they must be applied by pre-multiplication:
       ie newvec = matrix * oldvec
 ---------------------------------------------------------------------------- */
-public void transformations_to_homogeneous(int ndim, 
+void transformations_to_homogeneous(int ndim, 
                   float *translation, float *centre_of_rotation,
                   float **rotation, float scale,
                   float **transformation)
@@ -934,7 +937,7 @@ Fri Jun  4 14:10:34 EST 1993  LC
    changed matrices, so that they must be applied by pre-multiplication:
       ie newvec = matrix * oldvec
 ---------------------------------------------------------------------------- */
-public void translation_to_homogeneous(int ndim, float *translation,
+void translation_to_homogeneous(int ndim, float *translation,
                                        float **transformation)
 {
    int i,j;
@@ -988,7 +991,7 @@ Fri Jun  4 14:10:34 EST 1993  LC
    changed matrices, so that they must be applied by pre-multiplication:
       ie newvec = matrix * oldvec
 ---------------------------------------------------------------------------- */
-public void rotation_to_homogeneous(int ndim, float **rotation,
+void rotation_to_homogeneous(int ndim, float **rotation,
                                        float **transformation)
 {
    int i,j;
@@ -1035,7 +1038,7 @@ public void rotation_to_homogeneous(int ndim, float **rotation,
 @CREATED    : Fri Jun  4 14:10:34 EST 1993  LC
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-public void angles_to_homogeneous(int ndim, float *angles,
+void angles_to_homogeneous(int ndim, float *angles,
 				  float **transformation)
 {
    int i,j;

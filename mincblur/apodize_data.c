@@ -18,7 +18,7 @@
 /* normalized height of 1.0,  given sigma, x and mu         */
 /*  all in mm                                               */
 /************************************************************/
-private float normal_height(float fwhm,float mu,float x)
+static float normal_height(float fwhm,float mu,float x)
 {
    float sigma,t2,f;
 
@@ -39,7 +39,7 @@ private float normal_height(float fwhm,float mu,float x)
    return(f);
 }
 
-public void apodize_data(Volume data, 
+void apodize_data(Volume data, 
 			 double xramp1,double xramp2,
 			 double yramp1,double yramp2,
 			 double zramp1,double zramp2)

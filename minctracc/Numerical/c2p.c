@@ -2,7 +2,7 @@
 #include <recipes.h>
 
 /* Routine defined in this file */
-public void cov_to_praxes(int ndim, float **covar, float **pr_axes);
+void cov_to_praxes(int ndim, float **covar, float **pr_axes);
 
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -37,7 +37,7 @@ public void cov_to_praxes(int ndim, float **covar, float **pr_axes);
                  - modified so that covar matrix is not copied (so it is
                    changed by jacobi).
 ---------------------------------------------------------------------------- */
-public void cov_to_praxes(int ndim, float **covar, float **pr_axes)
+void cov_to_praxes(int ndim, float **covar, float **pr_axes)
 {
    float *eigval;
    int nrot,i,j;
