@@ -1,3 +1,13 @@
+2000-05-02  Steve ROBBINS  <stever@bic.mni.mcgill.ca>
+
+	* mritotal.in (pad_amounts): fix for hypothetical case where more
+ 	than two blurring kernels are specified.
+
+2000-05-01  Steve ROBBINS  <stever@bic.mni.mcgill.ca>
+
+	* mritotal.in (IntensityBlur): properly remove the intermediate
+ 	file ${tmp_blur}_blur.mnc.
+
 2000-04-06  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* removed all traces of `animal' from mritotal script.

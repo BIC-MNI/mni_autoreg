@@ -46,7 +46,7 @@
 # the same copyright as above.
 # --------------------------------------------------------------------
 
-# $Id: mritotal.in,v 1.7 2000-04-07 13:53:31 stever Exp $
+# $Id: mritotal.in,v 1.8 2000-05-12 17:31:38 stever Exp $
 
 require 5.001;
 
@@ -969,7 +969,7 @@ sub pad_amounts
    {
       if ($old_pad)
       {
-         $unpad[0] = $unpad[1] = [map (-$_, @pad)]; # compatability
+         $unpad[$i] = [map (-$_, @pad)]; # compatability
       }
       else
       {
@@ -1272,7 +1272,7 @@ sub IntensityBlur
       }
       &Spawn (["autocrop", "${tmp_blur}_blur.mnc", "${blurbase}_blur.mnc",
                "-expand", @$crop]);
-      unlink "${TmpDir}/${tmp_blur}_blur.mnc";
+      unlink "${tmp_blur}_blur.mnc";
    }
    "${blurbase}_blur.mnc";
 }
