@@ -9,3 +9,4 @@ Makefile.in
 Makefile
 configure
 config.h.in
+make_model
