@@ -16,10 +16,16 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 1.9  1994-06-18 12:29:12  louis
-@MODIFIED   : temporary version.  trying to find previously working simplex
-@MODIFIED   : method.
+@MODIFIED   : Revision 1.10  1994-06-19 15:00:20  louis
+@MODIFIED   : working version with 3D simplex optimization to find local deformation
+@MODIFIED   : vector.  time for cleanup.  will remove all fft stuff from code in 
+@MODIFIED   : next version.
 @MODIFIED   :
+@MODIFIED   :
+ * Revision 1.9  94/06/18  12:29:12  louis
+ * temporary version.  trying to find previously working simplex
+ * method.
+ * 
  * Revision 1.8  94/06/17  10:29:20  louis
  * this version has both a simplex method and convolution method 
  * working to find the best local offset for a given lattice node.
@@ -85,7 +91,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 1.9 1994-06-18 12:29:12 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 1.10 1994-06-19 15:00:20 louis Exp $";
 #endif
 
 
@@ -96,6 +102,12 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #include <print_error.h>
 #include <limits.h>
 #include <recipes.h>
+
+
+#include <sys/types.h>
+#include <time.h>
+
+time_t time(time_t *tloc);
 
 
 #define BRUTE_FORCE     1
@@ -116,13 +128,14 @@ static Volume   Gd2_dz;
 static Volume   Gd2_dxyz;
 static Volume   Gm1;
 static Volume   Gm2; 
-static Real     Gspacing;
+static Real     Gsimplex_size;
+static Real     Gcost_radius;
 
 static Arg_Data *Gglobals;
 
-static float
-  *Ga1xyz,
-  *Ga2xyz,
+static float			/* these are used to communicate to the correlation */
+  *Ga1xyz,			/* functions over top the SIMPLEX optimization */
+  *Ga2xyz,			/* routine */
   *TX, *TY, *TZ,
   *SX, *SY, *SZ;
 static int
@@ -139,6 +152,7 @@ extern int    number_dimensions;
 
 int amoeba2(float **p, float y[], int ndim, float ftol, float (*funk)(), int *nfunk);
 
+
 public void muli_vects(float *r, float *s1, float *s2, int n);
 
 private void copy_data_into_fft_array(float *data, float *ffa, int numd, int numf, int dim);
@@ -146,7 +160,7 @@ private void copy_data_into_fft_array(float *data, float *ffa, int numd, int num
 private void find_max_in_fft_array(float *ffa, int num, int ndim,
 				   int *dx, int *dy, int *dz);
 
-private void find_best_offset(float *Ga1xyz, float *Ga2xyz, int n1, int n2, int dim, 
+private void find_best_offset(float *data, float *mask, int n1, int n2, int dim, 
 			      float *dx, float *dy, float *dz);
 
 public void    build_source_lattice(Real x, Real y, Real z,
@@ -159,7 +173,7 @@ public void    build_target_lattice(float px[], float py[], float pz[],
 				    float tx[], float ty[], float tz[],
 				    int len);
 
-public void go_get_samples(Volume data,
+public void go_get_samples_in_source(Volume data,
 			   float x[], float y[], float z[],
 			   float samples[],
 			   int len,
@@ -221,7 +235,6 @@ private Real optimize_3D_deformation_by_FFT(Real spacing, Real threshold1, Real 
 						     Real src_x, Real src_y, Real src_z,
 						     Real mx, Real my, Real mz,
 						     Real *def_x, Real *def_y, Real *def_z,
-						     int iteration, int total_iters,
 						     int *nfunks,
 						     int ndim);
 
@@ -308,6 +321,7 @@ public Status do_non_linear_optimization(Volume d1,
   Deform_field 
     *current;
   long
+    timer1,timer2,
     nfunk_total;
   int 
     loop_start[3], loop_end[3],
@@ -319,7 +333,7 @@ public Status do_non_linear_optimization(Volume d1,
   Real 
     min, max, sum, sum2, mag, mean_disp_mag, std, var, 
     voxel,val_x, val_y, val_z,
-    steps[3],
+    steps[3],steps_data[3],
     def_x, def_y, def_z, 
     wx,wy,wz,
     mx,my,mz,
@@ -407,7 +421,24 @@ public Status do_non_linear_optimization(Volume d1,
 
   get_volume_sizes(additional_dx, sizes);
   get_volume_separations(additional_dx, steps);
-  Gspacing= ABS(steps[0]);
+
+  get_volume_separations(d2_dxyz, steps_data);
+
+  if (steps_data[0]!=0.0) {
+    Gsimplex_size= ABS(steps[0]/steps_data[0]);
+    if (ABS(Gsimplex_size) < ABS(steps_data[0])) {
+      print ("*** WARNING ***\n");
+      print ("Simplex size will be smaller than data voxel size (%f < %f)\n",
+	     Gsimplex_size,steps_data[0]);
+    }
+  }
+  else
+    print_error("Zero step size for gradient data2: %f %f %f\n", 
+		__FILE__, __LINE__,steps_data[0],steps_data[1],steps_data[2]);
+
+
+  Gcost_radius = 8*Gsimplex_size*Gsimplex_size*Gsimplex_size;
+
 
   /*******************************************************************************/
   /*   initialize this iterations warp                                           */
@@ -470,9 +501,9 @@ public Status do_non_linear_optimization(Volume d1,
     }
   }
 
-/*
-  loop_start[0] += 9;
-  loop_end[0] -= 9;
+
+/*  loop_start[0] += 7;
+  loop_end[0] -= 7;
 */
 
   if (globals->flags.debug) {
@@ -505,6 +536,9 @@ public Status do_non_linear_optimization(Volume d1,
 			       "Estimating deformations" );
 
     for_less(i,loop_start[0],loop_end[0]) {
+
+      timer1 = time(NULL);
+
       for_less(j,loop_start[1],loop_end[1]) {
 	for_less(k,loop_start[2],loop_end[2]){
 	  
@@ -554,7 +588,6 @@ public Status do_non_linear_optimization(Volume d1,
 						      tx,ty,tz,
 						      mx, my, mz,
 						      &def_x, &def_y, &def_z, 
-						      iters, iteration_limit,
 						      &nfunks,
 						      number_dimensions);
 	    
@@ -595,6 +628,10 @@ public Status do_non_linear_optimization(Volume d1,
 	update_progress_report( &progress, 
 			       (loop_end[1]-loop_start[1])*(i-loop_start[0])+(j-loop_start[1])+1 );
       }
+      timer2 = time(NULL);
+
+print ("time: %d - %d = %d seconds\n",timer2, timer1, timer2-timer1);
+
     }
     terminate_progress_report( &progress );
 
@@ -705,7 +742,6 @@ public Status do_non_linear_optimization(Volume d1,
 							  tx,ty,tz,
 							  mx, my, mz,
 							  &def_x, &def_y, &def_z, 
-							  iters, iteration_limit,
 							  &nfunks,
 							  number_dimensions);
 		
@@ -1365,12 +1401,10 @@ private Real optimize_3D_deformation_by_FFT(Real spacing,
 					    Real src_x, Real src_y, Real src_z,
 					    Real mx, Real my, Real mz,
 					    Real *def_x, Real *def_y, Real *def_z,
-					    int iteration, int total_iters,
 					    int *num_functions,
 					    int ndim)
 {
   Real
-    simplex_size,
     result,
     tx,ty,tz, 
     xp,yp,zp, 
@@ -1380,14 +1414,12 @@ private Real optimize_3D_deformation_by_FFT(Real spacing,
   float
     step,
     dx,dy,dz,
-    *res,*f1, *f2;
+    *res;
     
     
   int 
-    dims[4],
-    nfunk,num1,num2,len1,len2,
-    numsteps,
-    i,j,k;
+    num1,num2,len1,len2,
+    i;
 
   result = 0.0;			/* assume no additional deformation */
   *num_functions = 0;		/* assume no optimization done      */
@@ -1469,8 +1501,8 @@ private Real optimize_3D_deformation_by_FFT(Real spacing,
 			 num1, num1, num1, 
 			 ndim);
     
-    go_get_samples(Gd1_dxyz, SX,SY,SZ, Ga1xyz, len1, 3);
-    go_get_samples(Gd2_dxyz, TX,TY,TZ, Ga2xyz, len2, 3);
+    go_get_samples_in_source(Gd1_dxyz, SX,SY,SZ, Ga1xyz, len1, 3);
+    go_get_samples_in_source(Gd2_dxyz, TX,TY,TZ, Ga2xyz, len2, 3);
 
     find_best_offset(Ga1xyz,Ga2xyz, num1,num2, ndim, &dx, &dy, &dz);
     
@@ -1534,6 +1566,9 @@ private Real optimize_3D_deformation_for_single_node(Real spacing,
 						     int ndim)
 {
   Real
+    voxel[3],
+    pos[3],
+    steps[3],
     simplex_size,
     result,
     tx,ty,tz, 
@@ -1621,6 +1656,18 @@ private Real optimize_3D_deformation_for_single_node(Real spacing,
 			 TX,TY,TZ,
 			 len);
 
+    for_inclusive(i,1,len) {
+      convert_3D_world_to_voxel(Gd2_dxyz, 
+				(Real)TX[i],(Real)TY[i],(Real)TZ[i], 
+				&pos[0], &pos[1], &pos[2]);
+      TX[i] = pos[0] -1.0 + 2.0*drand48(); /* jiggle the point off center. */
+      TY[i] = pos[1] -1.0 + 2.0*drand48();
+      if (ndim>2)
+	TZ[i] = pos[2] -1.0 + 2.0*drand48();
+      else
+	TZ[i] = pos[2];
+    }
+
 				/* build the source lattice (without local neighbour warp),
 				   that will be used in the optimization below */
     build_source_lattice(src_x, src_y, src_z,
@@ -1628,18 +1675,13 @@ private Real optimize_3D_deformation_for_single_node(Real spacing,
 			 spacing*3, spacing*3, spacing*3, /* lattice size= 1.5*fwhm */
 			 numsteps+1,  numsteps+1,  numsteps+1,
 			 ndim);
-    
-    go_get_samples(Gd1_dxyz, SX,SY,SZ, Ga1xyz, len, 3);
+    go_get_samples_in_source(Gd1_dxyz, SX,SY,SZ, Ga1xyz, len, 1);
 
-/*
-  go_get_samples(Gd2_dxyz, TX,TY,TZ, Ga2xyz, len, 3);
-  for_inclusive(i,1,len) print ("%d: %7.2f %7.2f %7.2f %7.2f %7.2f %7.2f \n",i, 
-                                 SX[i], SY[i], SZ[i],TX[i], TY[i], TZ[i]);
 
-*/
+				/* set up SIMPLEX OPTIMIZATION */
 
-    
     ftol  = MAX(0.004,spacing/3000);
+
     nfunk = 0;
     p = matrix(1,ndim+1,1,ndim);	/* simplex */
     y = vector(1,ndim+1);        /* value of correlation at simplex vertices */
@@ -1655,12 +1697,17 @@ private Real optimize_3D_deformation_for_single_node(Real spacing,
       for (j=1; j<=ndim; ++j)
 	p[i][j] = p[1][j];
 
-    simplex_size = spacing * (0.5 + 0.5*((Real)(total_iters-iteration)/(Real)total_iters));
+    get_volume_separations(Gd2_dxyz,steps);
+
+    simplex_size = Gsimplex_size * (0.5 + 
+				    0.5*((Real)(total_iters-iteration)/(Real)total_iters));
+
+    
     p[2][1] += simplex_size;	/* set up all vertices of simplex */
     p[3][2] += simplex_size;
-    if (ndim > 2)
+    if (ndim > 2) {
       p[4][3] += simplex_size;
-    
+    }
     
     for (i=1; i<=(ndim+1); ++i)	{ /* set up value of correlation at all points of simplex */
       y[i] = xcorr_fitting_function(p[i]);
@@ -1684,10 +1731,27 @@ private Real optimize_3D_deformation_for_single_node(Real spacing,
 
       *num_functions = nfunk;
       
-      *def_x += p[i][1];
-      *def_y += p[i][2];
+
+      convert_3D_world_to_voxel(Gd2_dxyz, tx,ty,tz, &voxel[0], &voxel[1], &voxel[2]);
+
+      if (ndim>2)
+	convert_3D_voxel_to_world(Gd2_dxyz, 
+				  (Real)(voxel[0]+p[i][3]), 
+				  (Real)(voxel[1]+p[i][2]), 
+				  (Real)(voxel[2]+p[i][1]),
+				  &pos[0], &pos[1], &pos[2]);
+      else
+	convert_3D_voxel_to_world(Gd2_dxyz, 
+				  (Real)(voxel[0]), 
+				  (Real)(voxel[1]+p[i][2]), 
+				  (Real)(voxel[2]+p[i][1]),
+				  &pos[0], &pos[1], &pos[2]);
+
+
+      *def_x += pos[0]-tx;
+      *def_y += pos[1]-ty;
       if (ndim > 2)
-	*def_z += p[i][3];
+	*def_z += pos[2]-tz;
       else
 	*def_z = 0.0;
       
@@ -1808,7 +1872,6 @@ private void find_best_offset(float *data, float *mask, int n1, int n2, int dim,
   int 
     size,
     len,
-    ni,nj,nk,
     off_i,off_k,off_j,
     i,j,k;
   float 
@@ -2030,7 +2093,7 @@ private void find_max_in_fft_array(float *ffa, int num, int ndim,
 
 private void copy_data_into_fft_array(float *data, float *ffa, int numd, int numf, int dim)
 {
-  int offset,c,i,j,k;
+  int offset,i,j,k;
   
   offset = (numf - numd)/2;
 
@@ -2106,11 +2169,11 @@ public void    build_target_lattice(float px[], float py[], float pz[],
 }
 
 
-public void go_get_samples(Volume data,
-			   float x[], float y[], float z[],
-			   float samples[],
-			   int len,
-			   int inter_type) 
+public void go_get_samples_in_source(Volume data,
+				     float x[], float y[], float z[],
+				     float samples[],
+				     int len,
+				     int inter_type) 
 {
   int 
     flag, c;
@@ -2123,13 +2186,14 @@ public void go_get_samples(Volume data,
     convert_3D_world_to_voxel(data, (Real)x[c], (Real)y[c], (Real)z[c], 
 			      &Point_x(point), &Point_y(point), &Point_z(point));
 
-    if (inter_type==3)
-      flag = tricubic_interpolant(data,  &point , &val);
-    else
+    if (inter_type==0)
+	flag = nearest_neighbour_interpolant(data,  &point , &val);
+    else {
       if (inter_type==1)
 	flag = trilinear_interpolant(data,  &point , &val);
       else
-	flag = nearest_neighbour_interpolant(data,  &point , &val);
+	flag = tricubic_interpolant(data,  &point , &val);
+    }
 
     if (flag)
       samples[c] = (float)val;
@@ -2155,15 +2219,18 @@ public void go_get_samples_with_offset(Volume data,
     point;
 
   for_inclusive(c,1,len) {
-    convert_3D_world_to_voxel(data, (Real)x[c]+dx, (Real)y[c]+dy, (Real)z[c]+dz, 
-			      &Point_x(point), &Point_y(point), &Point_z(point));
+
+    Point_x(point) = x[c]+dz;
+    Point_y(point) = y[c]+dy;
+    Point_z(point) = z[c]+dx;
+    
     if (inter_type==0)
       flag = nearest_neighbour_interpolant(data,  &point , &val);
     else {
-      if (inter_type==3)
-	flag = tricubic_interpolant(data,  &point , &val);
-      else
+      if (inter_type==1)
 	flag = trilinear_interpolant(data,  &point , &val);
+      else
+	flag = tricubic_interpolant(data,  &point , &val);
     }
     if (flag)
       samples[c] = (float)val;
@@ -2203,8 +2270,6 @@ private float gauss_3d(float c,
       
       dx = mux-x;
       dy = muy-y;
-      
-      two_pi3 = 4*PI*PI;
       
       t1 = c; /* /(sigma_x*sigma_y*fsqrt(two_pi3));*/
       
@@ -2309,13 +2374,15 @@ public float calc_scalar_correlation(float *a1,float *a2, int len)
 
 private Real cost_fn(float x, float y, float z, Real max_length)
 {
-  Real v2, v,d;
+  Real v2,v,d;
 
   v2 = x*x + y*y + z*z;
   v = sqrt(v2);
 
+  v *= v2;
+
   if (v<max_length)
-    d = 0.5 * v2 / (2.25*max_length*max_length - v2);
+    d = 0.01 * v / (max_length - v);
   else
     d = FLT_MAX;
 
@@ -2327,14 +2394,15 @@ private float xcorr_fitting_function(float *d)
 {
    float
       similarity,cost, r;
-   Real 
-     pos[3],voxel;
-   int size[3],c;
+   int size[3];
 
-/*   go_get_samples_with_offset(Gd2_dxyz, TX,TY,TZ,
+   go_get_samples_with_offset(Gd2_dxyz, TX,TY,TZ,
 			      Ga2xyz, d[1], d[2], d[3],
 			      Glen, 0);
-*/
+
+/*
+   Real 
+     pos[3],voxel;
 
    get_volume_sizes(Gd2_dxyz, size);
 
@@ -2343,13 +2411,17 @@ private float xcorr_fitting_function(float *d)
      pos[0] = TX[c]+d[1];
      pos[1] = TY[c]+d[2];
      pos[2] = TZ[c]+d[3];
+
      convert_3D_world_to_voxel(Gd2_dxyz, 
 			       (Real)(TX[c]+d[1]),(Real)(TY[c]+d[2]),(Real)(TZ[c]+d[3]), 
 			       &pos[0], &pos[1], &pos[2]);
 
+
      if (pos[0]<-0.5 || pos[0]>=size[0]-0.5 ||
 	 pos[1]<-0.5 || pos[1]>=size[1]-0.5 ||
 	 pos[2]<-0.5 || pos[2]>=size[2]-0.5) {
+
+
 
        Ga2xyz[c] = 0.0;
      }
@@ -2358,18 +2430,18 @@ private float xcorr_fitting_function(float *d)
        Ga2xyz[c] = Gd2_dxyz->real_value_scale * voxel + Gd2_dxyz->real_value_translation;
      }
    }
+*/
 
 
 
 
-
-   cost = (float)cost_fn(d[1], d[2], d[3], 2*Gspacing);
+   cost = (float)cost_fn(d[1], d[2], d[3], Gcost_radius);
    similarity = calc_scalar_correlation(Ga1xyz, Ga2xyz, Glen);
 
    r = 1.0 - similarity*similarity_cost_ratio + cost*(1.0-similarity_cost_ratio);
    
 /*
-print ("s c g: %12.8f %12.8f (%6.1f)-- %6.2f %6.2f \n", similarity, cost, Gspacing, x[1], x[2]);
+print ("s c g: %12.8f %12.8f (%6.1f)-- %6.2f %6.2f \n", similarity, cost, Gsimplex_size, x[1], x[2]);
 */
 
    return(r);
