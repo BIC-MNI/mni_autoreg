@@ -4,22 +4,39 @@
 @METHOD     : 
 @GLOBALS    : 
 @CALLS      : 
+@COPYRIGHT  :
+              Copyright 1993 Louis Collins, McConnell Brain Imaging Centre, 
+              Montreal Neurological Institute, McGill University.
+              Permission to use, copy, modify, and distribute this
+              software and its documentation for any purpose and without
+              fee is hereby granted, provided that the above copyright
+              notice appear in all copies.  The author and McGill University
+              make no representations about the suitability of this
+              software for any purpose.  It is provided "as is" without
+              express or implied warranty.
+
 @CREATED    : Thu May 20 14:20:21 EST 1993 Louis Collins
 @MODIFIED   : $Log: minctracc.h,v $
-@MODIFIED   : Revision 1.7  1993-11-15 13:12:53  louis
-@MODIFIED   : working version, deform deform installation
+@MODIFIED   : Revision 1.8  1994-02-21 16:38:49  louis
+@MODIFIED   : version before feb 22 changes
 @MODIFIED   :
+ * Revision 1.7  93/11/15  13:12:53  louis
+ * working version, deform deform installation
+ * 
 ---------------------------------------------------------------------------- */
 
 #include <minc.h>
 #include <ParseArgv.h>
 #include <time_stamp.h>
 
+
 /* ------------------------  Constants used in program  -------------------- */
 
 #include "constants.h"
 
 /* ------------------------  Types used in program  ------------------------ */
+
+#include "deform_field.h"
 
 #include "arg_data.h"
 
@@ -86,6 +103,20 @@ public BOOLEAN optimize_linear_transformation(Volume d1,
 					      Volume m2, 
 					      Arg_Data *globals);
 
+public BOOLEAN optimize_non_linear_transformation(Volume d1,
+						  Volume d1_dx, 
+						  Volume d1_dy, 
+						  Volume d1_dz, 
+						  Volume d1_dxyz,
+						  Volume d2,
+						  Volume d2_dx, 
+						  Volume d2_dy, 
+						  Volume d2_dz, 
+						  Volume d2_dxyz,
+						  Volume m1,
+						  Volume m2, 
+						  Arg_Data *globals);
+
 #include "objectives.h"
 
 public float measure_fit(Volume d1,
@@ -101,7 +132,31 @@ public void make_matlab_data_file(Volume d1,
 				  char *comments,
 				  Arg_Data *globals);
 
+Status read_all_data(Volume *dblur,
+		     Volume *dx,
+		     Volume *dy,
+		     Volume *dz,
+		     Volume *dxyz, 
+		     char *name);
 
+Status read_deform_data(Volume *dx,
+			Volume *dy,
+			Volume *dz,
+			char *name,
+			char *history);
+
+Status save_deform_data(Volume dx,
+			Volume dy,
+			Volume dz,
+			char *name,
+			char *history);
+
+public  Status  output_deformation_file(
+    char                filename[],
+    char                comments[],
+    General_transform   *transform );
+
+public void build_default_deformation_field(Arg_Data *globals);
 
 /*  ------------------------ Macros used in program  ------------------------ */
 

@@ -15,20 +15,34 @@
 @DESCRIPTION: 
 @GLOBALS    : 
 @CALLS      : 
+@COPYRIGHT  :
+              Copyright 1993 Louis Collins, McConnell Brain Imaging Centre, 
+              Montreal Neurological Institute, McGill University.
+              Permission to use, copy, modify, and distribute this
+              software and its documentation for any purpose and without
+              fee is hereby granted, provided that the above copyright
+              notice appear in all copies.  The author and McGill University
+              make no representations about the suitability of this
+              software for any purpose.  It is provided "as is" without
+              express or implied warranty.
+
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   :  $Log: init_lattice.c,v $
-@MODIFIED   :  Revision 1.5  1993-11-15 16:25:43  louis
-@MODIFIED   :  working version, with new library, with RCS revision stuff,
-@MODIFIED   :  before deformations included
+@MODIFIED   :  Revision 1.6  1994-02-21 16:35:29  louis
+@MODIFIED   :  version before feb 22 changes
 @MODIFIED   :
+ * Revision 1.5  93/11/15  16:25:43  louis
+ * working version, with new library, with RCS revision stuff,
+ * before deformations included
+ * 
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/init_lattice.c,v 1.5 1993-11-15 16:25:43 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/init_lattice.c,v 1.6 1994-02-21 16:35:29 louis Exp $";
 #endif
 
 
-#include <mni.h>
+#include <volume_io.h>
 #include <recipes.h>
 
 #include "matrix_basics.h"

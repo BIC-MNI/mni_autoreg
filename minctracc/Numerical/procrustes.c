@@ -4,12 +4,26 @@
 @METHOD     : Contains routines :
                  procrustes
 @CALLS      : 
+@COPYRIGHT  :
+              Copyright 1993 Peter Neelin, McConnell Brain Imaging Centre, 
+              Montreal Neurological Institute, McGill University.
+              Permission to use, copy, modify, and distribute this
+              software and its documentation for any purpose and without
+              fee is hereby granted, provided that the above copyright
+              notice appear in all copies.  The author and McGill University
+              make no representations about the suitability of this
+              software for any purpose.  It is provided "as is" without
+              express or implied warranty.
+
 @CREATED    : January 29, 1992 (Peter Neelin)
 @MODIFIED   :  $Log: procrustes.c,v $
-@MODIFIED   :  Revision 1.5  1993-11-15 16:27:10  louis
-@MODIFIED   :  working version, with new library, with RCS revision stuff,
-@MODIFIED   :  before deformations included
+@MODIFIED   :  Revision 1.6  1994-02-21 16:36:20  louis
+@MODIFIED   :  version before feb 22 changes
 @MODIFIED   :
+ * Revision 1.5  93/11/15  16:27:10  louis
+ * working version, with new library, with RCS revision stuff,
+ * before deformations included
+ * 
 
 February 7, 1992 (Peter Neelin)
                  - added routine transformations_to_homogeneous
@@ -23,10 +37,10 @@ and moved them to matrix_basics!
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/procrustes.c,v 1.5 1993-11-15 16:27:10 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/procrustes.c,v 1.6 1994-02-21 16:36:20 louis Exp $";
 #endif
 
-#include <mni.h>
+#include <volume_io.h>
 #include <recipes.h>
 #include <matrix_basics.h>
 

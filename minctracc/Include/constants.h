@@ -28,6 +28,7 @@
 #define TRANS_LSQ9        4
 #define TRANS_LSQ12       5
 #define TRANS_PAT         6
+#define TRANS_NONLIN      7
 
 #define OPT_SIMPLEX       0
 

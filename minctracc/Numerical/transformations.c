@@ -1,416 +1,327 @@
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : transformations.c
-@DESCRIPTION: File containing routines to transform points in world
-              space using linear or non-linear transformations.
-@METHOD     : 
-@GLOBALS    : 
-@CREATED    : Wed May 26 13:05:44 EST 1993 LC (from NEELIN)
-@MODIFIED   : Tue Jun  1 09:16:46 EST 1993 
-                 separated the interpolation stuff from the transformation
-		 routines.
+@DESCRIPTION: routines to apply the forward and inverse transformations
+              of the non-linear deformation field.
+@COPYRIGHT  :
+              Copyright 1993 Louis Collins, McConnell Brain Imaging Centre, 
+              Montreal Neurological Institute, McGill University.
+              Permission to use, copy, modify, and distribute this
+              software and its documentation for any purpose and without
+              fee is hereby granted, provided that the above copyright
+              notice appear in all copies.  The author and McGill University
+              make no representations about the suitability of this
+              software for any purpose.  It is provided "as is" without
+              express or implied warranty.
 
-
+@CREATED    : Tue Nov 16 14:51:04 EST 1993 lc
+                    based on transformations.c from fit_vol
+@MODIFIED   : $Log: transformations.c,v $
+@MODIFIED   : Revision 1.4  1994-02-21 16:37:02  louis
+@MODIFIED   : version before feb 22 changes
+@MODIFIED   :
 ---------------------------------------------------------------------------- */
 
+#ifndef lint
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/transformations.c,v 1.4 1994-02-21 16:37:02 louis Exp $";
+#endif
 
-#include <def_mni.h>
-#include <recipes.h>
-#include "minctracc.h"
+#include <volume_io.h>
 
-				/* Some external functions used in this file */
+#include "arg_data.h"
+#include "local_macros.h"
 
-void lubksb(float **a, int n, int *indx, float *b);
-void ludcmp(float **a, int n, int *indx, float *d);
-
-				/* prototypes for this file: */
-
-private float return_r(double *cor1, double *cor2, int dim);
-
-private float FU(double r, int dim);
-
-private void mappingf(double **bdefor, double **INVMLY, int num_marks, 
-		      double *icor, double *rcor, int dim);
+#define NUMBER_TRIES 10
 
 
-/* ----------------------------- MNI Header -----------------------------------
-@NAME       : do_linear_transformation
-@INPUT      : trans_data - pointer to transformation data
-              coordinate - point to be transformed
-@OUTPUT     : result - resulting coordinate
-@RETURNS    : (nothing)
-@DESCRIPTION: Routine to apply a linear transformation. 
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
-@CREATED    : February 10, 1993 (Peter Neelin)
-@MODIFIED   : 
----------------------------------------------------------------------------- */
-public void do_linear_transformation(Coord_Vector *result, void *trans_data, 
-                                     Coord_Vector *coordinate)
+#include "deform_field.h"
+
+extern Arg_Data main_args;
+
+
+static char *default_dim_names[N_DIMENSIONS] =
+   { MIzspace, MIyspace, MIxspace };
+
+
+public void
+  apply_deformation_field_to_point(void *trans_data, 
+				   Real x_in, Real y_in, Real z_in, 
+				   Real *x_out, Real *y_out, Real *z_out)
 {
-   Linear_Transformation *matrx;
-   int idim, jdim;
-   double lcoord[WORLD_NDIMS], lresult[WORLD_NDIMS];
+   
+  Real
+    xv,yv,zv,
+    delta_x,
+    delta_y,
+    delta_z;
+  PointR
+    voxel;
+  Deform_field
+    *def;
 
-   /* Get linear transformation info */
-   matrx = trans_data;
+  def = (Deform_field *)trans_data;
 
-   /* Make our own coord vector */
-   lcoord[X] = coordinate->x;
-   lcoord[Y] = coordinate->y;
-   lcoord[Z] = coordinate->z;
+  if (def->dx==NULL) {
+    delta_x = 0.0;
+    delta_y = 0.0;
+    delta_z = 0.0;
+  }
+  else {
 
-   /* Calculate transformation */
-   for (idim=0; idim<WORLD_NDIMS; idim++) {
-      lresult[idim] = matrx->mat[idim][MAT_NDIMS-1];
-      for (jdim=0; jdim<WORLD_NDIMS; jdim++) {
-         lresult[idim] += matrx->mat[idim][jdim] * lcoord[jdim];
-      }
-   }
-
-   /* Save the result */
-   result->x = lresult[X];
-   result->y = lresult[Y];
-   result->z = lresult[Z];
-
-   return;
-}
-
-
-public void do_linear_transformation_point(Point *result, void *trans_data, 
-                                     Point *coordinate)
-{
-   Linear_Transformation *matrx;
-   int idim, jdim;
-   double lcoord[WORLD_NDIMS], lresult[WORLD_NDIMS];
-
-   /* Get linear transformation info */
-   matrx = trans_data;
-
-   /* Make our own coord vector */
-   lcoord[X] = Point_x( *coordinate );
-   lcoord[Y] = Point_y( *coordinate );
-   lcoord[Z] = Point_z( *coordinate );
-
-   /* Calculate transformation */
-   for (idim=0; idim<WORLD_NDIMS; idim++) {
-      lresult[idim] = matrx->mat[idim][MAT_NDIMS-1];
-      for (jdim=0; jdim<WORLD_NDIMS; jdim++) {
-         lresult[idim] += matrx->mat[idim][jdim] * lcoord[jdim];
-      }
-   }
-
-   /* Save the result */
-   Point_x( *result ) = lresult[X];
-   Point_y( *result ) = lresult[Y];
-   Point_z( *result ) = lresult[Z];
-
-   return;
-}
-
-
-/* ----------------------------- MNI Header -----------------------------------
-@NAME       : do_non_linear_transformation
-@INPUT      : trans_data - pointer to transformation data
-              coordinate - point to be transformed
-@OUTPUT     : result - resulting coordinate
-@RETURNS    : (nothing)
-@DESCRIPTION: Routine to apply a linear transformation. 
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
-@CREATED    : February 10, 1993 (Peter Neelin)
-@MODIFIED   : 
----------------------------------------------------------------------------- */
-public void do_non_linear_transformation(Coord_Vector *result, void *trans_data, 
-                                     Coord_Vector *coordinate)
-{
-  Thin_plate_spline *tps;
-  double lcoord[WORLD_NDIMS], lresult[WORLD_NDIMS];
-
-  /* Get non-linear transformation info */
-  tps = trans_data;
-
-  /* Make our own coord vector */
-  lcoord[X] = coordinate->x;
-  lcoord[Y] = coordinate->y;
-  lcoord[Z] = coordinate->z;
-
-  mappingf(tps->coords, tps->warps, tps->num_points, lcoord, lresult, tps->dim);
-  
-  /* Save the result */
-  result->x = lresult[X];
-  result->y = lresult[Y];
-  result->z = lresult[Z];
-  
-  return;
-}
-
-
-
-/* ----------------------------- MNI Header -----------------------------------
-@NAME       : invert_transformation
-@INPUT      : transformation - transformation to invert
-@OUTPUT     : result - resultant transformation
-@RETURNS    : (nothing)
-@DESCRIPTION: Routine to invert a transformation. Currently only works on
-              linear transformations.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
-@CREATED    : February 9, 1993 (Peter Neelin)
-@MODIFIED   : 
----------------------------------------------------------------------------- */
-public void invert_transformation(Transformation *result, 
-                                  Transformation *transformation)
-{
-   Linear_Transformation *matrx;
-   float **nrmatrix, **nrresult, nrd, nrcol[MAT_NDIMS+1];
-   int nrindex[MAT_NDIMS+1], idim, jdim;
-
-   /* Check that transformation is linear */
-   if (!IS_LINEAR(transformation)) {
-      (void) fprintf(stderr, "Unable to invert non-linear transformations!\n");
-      exit(EXIT_FAILURE);
-   }
-   matrx = transformation->trans_data;
-
-   /* Set up numerical recipes matrices */
-   nrmatrix = matrix(1, MAT_NDIMS, 1, MAT_NDIMS);
-   nrresult = matrix(1, MAT_NDIMS, 1, MAT_NDIMS);
-
-   for (idim=1; idim<=MAT_NDIMS; idim++) {
-      for (jdim=1; jdim<=MAT_NDIMS; jdim++) {
-         if (idim<=WORLD_NDIMS)
-            nrmatrix[idim][jdim] = matrx->mat[idim-1][jdim-1];
-         else if (jdim<=WORLD_NDIMS)
-            nrmatrix[idim][jdim] = 0.0;
-         else 
-            nrmatrix[idim][jdim] = 1.0;
-      }
-   }
-
-   /* Invert matrix */
-   ludcmp( nrmatrix, MAT_NDIMS, nrindex, &nrd );
-
-   for (jdim=1; jdim<=MAT_NDIMS; jdim++) {
-      for (idim=1; idim<=MAT_NDIMS; idim++)
-         nrcol[idim] = 0.0;
-      nrcol[jdim] = 1.0;
-      lubksb( nrmatrix, MAT_NDIMS, nrindex, nrcol );
-      for (idim=1; idim<=MAT_NDIMS; idim++)
-         nrresult[idim][jdim] = nrcol[idim];
-   }
-
-   /* Save the result */
-   if (result->trans_data != NULL) FREE(result->trans_data);
-   *result = *transformation;
-   ALLOC ( matrx , 1);  
-   result->trans_data = matrx;
-   for (idim=1; idim<=WORLD_NDIMS; idim++)
-      for (jdim=1; jdim<=MAT_NDIMS; jdim++)
-         matrx->mat[idim-1][jdim-1] = nrresult[idim][jdim];
-
-   /* free the nr matrices */
-   free_matrix(nrmatrix, 1, MAT_NDIMS, 1, MAT_NDIMS);
-   free_matrix(nrresult, 1, MAT_NDIMS, 1, MAT_NDIMS);
-
-
-   return;
-}
-
-/* ----------------------------- MNI Header -----------------------------------
-@NAME       : mult_linear_transform
-@INPUT      : transform1 - first transformation
-              transform2 - second transformation
-@OUTPUT     : result - resulting transformation
-@RETURNS    : (nothing)
-@DESCRIPTION: Routine to multiply two linear matrices.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
-@CREATED    : February 10, 1993 (Peter Neelin)
-@MODIFIED   : 
----------------------------------------------------------------------------- */
-public void mult_linear_transform(Transformation *result, 
-                                  Transformation *transform1, 
-                                  Transformation *transform2)
-{
-   int idim, jdim, kdim;
-   Linear_Transformation *matrix1, *matrix2, *result_matrix;
-
-   /* Check for linear transformations */
-   if (!IS_LINEAR(transform1) || !IS_LINEAR(transform2)) {
-      (void) fprintf(stderr, 
-                     "Unable to multiply two non-linear transformations.\n");
-      exit(EXIT_FAILURE);
-   }
-   matrix1 = transform1->trans_data;
-   matrix2 = transform2->trans_data;
-
-   /* Get space for the result */
-   ALLOC( result_matrix, 1 );
-
-   /* Multiply the matrices */
-   for (idim=0; idim < WORLD_NDIMS; idim++) {
-      for (jdim=0; jdim < MAT_NDIMS; jdim++) {
-         if (jdim < WORLD_NDIMS) 
-            result_matrix->mat[idim][jdim] = 0.0;
-         else
-            result_matrix->mat[idim][jdim] = 
-               matrix1->mat[idim][MAT_NDIMS-1];
-         for (kdim=0; kdim < WORLD_NDIMS; kdim++) {
-            result_matrix->mat[idim][jdim] += 
-               matrix1->mat[idim][kdim] * matrix2->mat[kdim][jdim];
-         }
-      }
-   }
-
-   /* Save the result */
-   if (result->trans_data != NULL) FREE(result->trans_data);
-   *result = *transform1;
-   result->trans_data = result_matrix;
-
-   return;
-}
-
-
- 
-
-/* ----------------------------- MNI Header -----------------------------------
-@NAME       : mappingf - thin plate spline mapping.
-@INPUT      : bdefor - numerical recipes array with 'num_marks' rows, and 'dim' cols,
-                       contains the list of landmarks points in the 'source' volume
-	      INVMLY - numerical recipes array with 'num_marks+dim+1' rows, and 'dim' cols,
-	               contains the deformation vectors that define the thin plate spline
-	      num_marks - number of landmark points
-              icor   - array of float [1..dim] for the input coordinate in the
-                       'source' volume space.
-	      dim    - number of dimensions (either 2 or 3).
-@OUTPUT     : rcor   - array of float [1..dim] of the output coordinate in the 
-                       'target' volume.
-@RETURNS    : nothing
-@DESCRIPTION: 
-              INVMLY to 'in' to get 'out'
-@METHOD     : 
-@GLOBALS    : none
-@CALLS      : return_r, vector, free_vector
-@CREATED    : Mon Apr  5 09:00:54 EST 1993
-@MODIFIED   : 
----------------------------------------------------------------------------- */
-private void mappingf(double **bdefor, double **INVMLY, int num_marks, 
-	      double *icor, double *rcor, int dim)
-{
-
-  /*  note that :
-      INVMLY is defined from [0..num_marks+dim][0..dim-1]
-      bdefor is defined from [0..num_marks-1][0..dim-1]
-      icor[0..dim-1]
-      rcor[0..dim-1]
-      */
-
-
-  int i,j,markpoint;
-  double dist,weight,tempcor[WORLD_NDIMS];
-  
-  
-  /* f(x,y) =a_{1} + a_{x}x + a_{y}y + sum_{1}^{n}
-   *          w_{i}U(|P_{i} - (x,y)|) 
-   */
-  
-  for (i=0;i<WORLD_NDIMS;i++){
-    tempcor[i] = 0;
+    convert_3D_world_to_voxel(def->dx, x_in,y_in,z_in, &xv, &yv, &zv);
+    
+    fill_Point( voxel, xv, yv, zv ); /* build the voxel POINT */
+    
+    if ( !INTERPOLATE_TRUE_VALUE( def->dx, &voxel, &delta_x ))
+      delta_x = 0.0;
+    if ( !INTERPOLATE_TRUE_VALUE( def->dy, &voxel, &delta_y ))
+      delta_y = 0.0;
+    if ( !INTERPOLATE_TRUE_VALUE( def->dz, &voxel, &delta_z ))
+      delta_z = 0.0;
   }
 
-   for (i=0; i<num_marks; i++){
+  *x_out = x_in + delta_x;
+  *y_out = y_in + delta_y;
+  *z_out = z_in + delta_z;
+  
+}
 
-      markpoint = 1;		/* set the point as the landmark point 
-				 check the point where is landmark */
+/* apply the non-linear transformation inversely, mapping points 
+   of volume2 into  the space of volume 1   using numerical inversion.
+*/
 
-      for (j=0;(j<dim)&&(markpoint==1);j++){
-	if ((bdefor[i][j] != icor[j])){
-	  markpoint = 0;
-	}
-      }
+public void
+  apply_inv_deformation_field_to_point(void *trans_data, 
+				       Real x_in, Real y_in, Real z_in, 
+				       Real *x_out, Real *y_out, Real *z_out)
 
-      /* because the point at the landmark is not deformable, we use 
-       * the close point to the landmark.
-       */
+{
 
-      if (markpoint == 1){
-         icor[1] = icor[1] + 0.00001;
-      }
+  Real
+    xv,yv,zv,
+    delta_x,
+    delta_y,
+    delta_z;
+  PointR
+    voxel;
+  int
+    tries;
+  Real
+    ftol,
+    x,y,z,                                     /* xyz for first volume                   */
+    forward_x, forward_y, forward_z,           /* xyz mapped forward into second volume. */
+    best_x,best_y,best_z, smallest_e, 
+    error, error_x,  error_y,  error_z;
+  Deform_field
+    *def;
 
-      dist = return_r(bdefor[i],icor,dim); 
-      weight = FU(dist,dim);
+  def = (Deform_field *)trans_data;
+  ftol = 0.05;
+  
+  x = x_in;
+  y = y_in;
+  z = z_in;
 
-      for (j=0;j<dim;j++){
-         tempcor[j] = INVMLY[i][j]*weight + tempcor[j];
-      }
-   } 
+  if (def->dx!=NULL)  {
+    
+    convert_3D_world_to_voxel(def->dx, x,y,z, &xv, &yv, &zv);
+    
+    fill_Point( voxel, xv, yv, zv ); /* build the voxel POINT */
+    
+    /* if there is a deformation for this point,
+       subtract it to form the first guess... */
+    if ( !INTERPOLATE_TRUE_VALUE( def->dx, &voxel, &delta_x ))
+      delta_x = 0.0;
+    if ( !INTERPOLATE_TRUE_VALUE( def->dy, &voxel, &delta_y ))
+      delta_y = 0.0;
+    if ( !INTERPOLATE_TRUE_VALUE( def->dz, &voxel, &delta_z ))
+      delta_z = 0.0;
+    
+    x -= delta_x;
+    y -= delta_y;
+    z -= delta_z;
+  }
 
-   for (j=0;j<dim;j++){
-      rcor[j] = INVMLY[num_marks][j]+tempcor[j];
+   				/* map the guess forward into the second volume            */
+
+  apply_deformation_field_to_point(trans_data, x,y,z,&forward_x,&forward_y,&forward_z);
+
+				/* test it to see how close we are in the second volume    */
+  error_x = x_in - forward_x;
+  error_y = y_in - forward_y;
+  error_z = z_in - forward_z;
+  
+  /* x,y,z - stores the position in volume one of the first guess */
+
+  tries = 0;
+  
+  error = smallest_e = ABS(error_x) + ABS(error_y) + ABS(error_z);
+  best_x = x;
+  best_y = y;
+  best_z = z;
+  
+  while ((++tries<NUMBER_TRIES) && 
+	 (smallest_e > ftol) ) {
+    
+    x += 0.67*error_x;
+    y += 0.67*error_y;
+    z += 0.67*error_z;
+    
+    apply_deformation_field_to_point(trans_data, x,y,z,
+				     &forward_x,&forward_y,&forward_z);
+    
+    error_x = x_in - forward_x;
+    error_y = y_in - forward_y;
+    error_z = z_in - forward_z;
+    
+    error = ABS(error_x) + ABS(error_y) + ABS(error_z);
+    
+    if (error<smallest_e) {
+      smallest_e = error;
+      best_x = x;
+      best_y = y;
+      best_z = z;
+    }
+    
+  } 
+  
+  *x_out = best_x;
+  *y_out = best_y;
+  *z_out = best_z;
+
+
+/*
+   printf ("t=%2d %6.1f %6.1f %6.1f (%6.1f %6.1f %6.1f) %6.1f %6.1f %6.1f %8.6f)\n",
+	   tries,x1,y1,z1,
+	   forward_x,forward_y,forward_z, 
+	   *x_out, *y_out, *z_out
+	   smallest_e);
+*/
+
+}
+
+
+private General_transform *get_linear_part_of_transformation(General_transform *trans)
+{
+  General_transform *result,*concated,*current_lin;
+  int i;
+
+  ALLOC(result, 1);
+  ALLOC(concated,1 );
+  ALLOC(current_lin,1);
+
+  create_linear_transform(result, NULL); /* start with identity */
+
+  for_less(i,0,get_n_concated_transforms(trans)) {
+    if (get_transform_type( get_nth_general_transform(trans, i-0) ) == LINEAR){
+
+      copy_general_transform( get_nth_general_transform(trans, i-0), current_lin);
+      concat_general_transforms(result, current_lin, concated);
+
+      delete_general_transform(result);
+      delete_general_transform(current_lin);
+      copy_general_transform(concated, result);
+      delete_general_transform(concated);
+
    }
+  }
+
+  return(result);
+}
+
+/*
+   concatenate a zero-valued non-linear deformation field transformation 
+   to the end of the globals->trans_info.transformation
    
+   use the lattice information (in *globals) to build the deformation volumes.
+*/
+public void build_default_deformation_field(Arg_Data *globals)
+{
+  Volume *dx,*dy,*dz;
+  Real zero, voxel[3], point[3], start2[3];
+  int i,j,k;
+  Deform_field *def;
+  General_transform *trans;
+				/* build the three deformation volumes: */
+  ALLOC(dx,1);
+  ALLOC(dy,1);
+  ALLOC(dz,1);
 
-   for (j = 0; j<dim; j++){   
-      for (i = 0; i<dim; i++){
-         rcor[j] = INVMLY[num_marks+i+1][j]*icor[i] + rcor[j];
+  *dx = create_volume(3, default_dim_names, NC_BYTE, FALSE, 0.0, 0.0);
+  set_volume_voxel_range(*dx, 1.0, 255.0);
+  set_volume_real_range(*dx, -2.0*globals->step[0], 2.0*globals->step[0] );
+  set_volume_sizes(*dx, globals->count);
+  set_volume_separations(*dx,globals->step);
+
+  voxel[0] = 0.0;
+  voxel[1] = 0.0;
+  voxel[2] = 0.0;
+  if (globals->smallest_vol==1) { /* lattice was defined on volume 1 */
+    set_volume_translation(*dx, voxel, globals->start);
+  } 
+  else {			/* lattice was defined on volume 2, but it must be 
+				   mapped back into volume 1, using only the linear
+				   part of the transformation */
+    
+    trans = get_linear_part_of_transformation(globals->trans_info.transformation);
+    general_inverse_transform_point(trans,
+				    globals->start[0], globals->start[1], globals->start[2],
+				    &start2[0], &start2[1], &start2[2]);
+    set_volume_translation(*dx, voxel, start2);
+
+    general_inverse_transform_point(trans,
+				    globals->start[0]+1, globals->start[1], globals->start[2],
+				    &point[0], &point[1], &point[2]);
+    for_less(i,0,3) point[i] -= start2[i];
+    set_volume_direction_cosine(*dx, 2, point);
+    
+    general_inverse_transform_point(trans,
+				    globals->start[0], globals->start[1]+1, globals->start[2],
+				    &point[0], &point[1], &point[2]);
+    for_less(i,0,3) point[i] -= start2[i];
+    set_volume_direction_cosine(*dx, 1, point);
+    
+    general_inverse_transform_point(trans,
+				    globals->start[0], globals->start[1], globals->start[2]+1,
+				    &point[0], &point[1], &point[2]);
+    for_less(i,0,3) point[i] -= start2[i];
+    set_volume_direction_cosine(*dx, 0, point);
+
+  }
+  *dy = copy_volume_definition(*dx, NC_UNSPECIFIED, FALSE, 0.0, 0.0);
+  *dz = copy_volume_definition(*dx, NC_UNSPECIFIED, FALSE, 0.0, 0.0);
+    
+  alloc_volume_data(*dx);
+  alloc_volume_data(*dy);
+  alloc_volume_data(*dz);
+
+				/* set them to zero */
+
+  zero = CONVERT_VALUE_TO_VOXEL(*dx, 0.0);
+
+  for_less(i,0,globals->count[0])
+    for_less(j,0,globals->count[1])
+      for_less(k,0,globals->count[2]){
+	SET_VOXEL_3D(*dx, i,j,k, zero);
+	SET_VOXEL_3D(*dy, i,j,k, zero);
+	SET_VOXEL_3D(*dz, i,j,k, zero);
       }
-   }
-}
+  
+				/* put the volumes into the Deform_field */
 
-private float return_r(double *cor1, double *cor2, int dim)
-{
-   double r1,r2,r3;
+  ALLOC(def, 1);
 
-
-   if (dim == 1){
-      r1 = cor1[0] - cor2[0]; 
-      r1 = fabs(r1);
-      return(r1);
-   } else
-   if (dim == 2){
-      r1 = cor1[0] - cor2[0];
-      r2 = cor1[1] - cor2[1];
-      return(r1*r1+r2*r2);
-   } else
-   if (dim == 3){
-      r1 = cor1[0] - cor2[0];
-      r2 = cor1[1] - cor2[1];
-      r3 = cor1[2] - cor2[2];
-      return(fsqrt(r1*r1 + r2*r2 + r3*r3));
-   } 
-   else { 
-     printf(" impossible error in mapping.c (return_r)\n"); 
-     exit(-1); 
-     return(0.0);
-   }
-}
-
-private float FU(double r, int dim)
-/* This function will calculate the U(r) function.
- * if dim = 1, the function returns |r|^3 
- * if dim = 2, the function retruns r^2*log r^2
- * if dim = 3, the function returns |r|
- */ 
-{
-   double z;
-
-   if (dim==1){
-      z = r*r*r;
-      return(fabs(z));
-   } else
-   if (dim==2){/* r is stored as r^2 */
-      z = r * log(r);
-      return(z);
-   } else
-   if (dim==3){
-      return(fabs(r));
-   } else { 
-     printf(" impossible error in mapping.c (FU)\n"); 
-     exit(-1); 
-     return(0.0);
-   }
+  strcpy(def->basename,"\0");
+  strcpy(def->xfmname,"\0");
+  def->dx = *dx;
+  def->dy = *dy;
+  def->dz = *dz;
+  
+  ALLOC(trans,1);
+  
+  create_user_transform(trans, def, sizeof(*def),
+			apply_deformation_field_to_point,
+			apply_inv_deformation_field_to_point);
+  
+  concat_general_transforms(globals->trans_info.transformation, trans, 
+			    globals->trans_info.transformation);
 }

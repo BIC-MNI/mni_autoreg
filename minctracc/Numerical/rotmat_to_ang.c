@@ -55,12 +55,26 @@
 
 @GLOBALS    : 
 @CALLS      : mfmult(), rotx(),roty(),rotz(),matrix(),vector()
+@COPYRIGHT  :
+              Copyright 1993 Louis Collins, McConnell Brain Imaging Centre, 
+              Montreal Neurological Institute, McGill University.
+              Permission to use, copy, modify, and distribute this
+              software and its documentation for any purpose and without
+              fee is hereby granted, provided that the above copyright
+              notice appear in all copies.  The author and McGill University
+              make no representations about the suitability of this
+              software for any purpose.  It is provided "as is" without
+              express or implied warranty.
+
 @CREATED    : Feb 9, 1992 lc
 @MODIFIED   :  $Log: rotmat_to_ang.c,v $
-@MODIFIED   :  Revision 1.6  1993-11-15 16:27:10  louis
-@MODIFIED   :  working version, with new library, with RCS revision stuff,
-@MODIFIED   :  before deformations included
+@MODIFIED   :  Revision 1.7  1994-02-21 16:36:53  louis
+@MODIFIED   :  version before feb 22 changes
 @MODIFIED   :
+ * Revision 1.6  93/11/15  16:27:10  louis
+ * working version, with new library, with RCS revision stuff,
+ * before deformations included
+ * 
 
 Tue Jun  8 08:44:59 EST 1993 LC
    changes all vec*matrix to matrix*vec.  Std is premultiplication by matrix!
@@ -69,11 +83,11 @@ Tue Jun  8 08:44:59 EST 1993 LC
 
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/rotmat_to_ang.c,v 1.6 1993-11-15 16:27:10 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/rotmat_to_ang.c,v 1.7 1994-02-21 16:36:53 louis Exp $";
 #endif
 
 
-#include <mni.h>
+#include <volume_io.h>
 #include <recipes.h>
 #include <print_error.h>
 

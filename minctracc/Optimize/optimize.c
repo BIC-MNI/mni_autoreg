@@ -2,18 +2,32 @@
 @NAME       : optimize.c
 @DESCRIPTION: collection of routines for user-specified optimization.
 @METHOD     : now, only simplex method is used.
+@COPYRIGHT  :
+              Copyright 1993 Louis Collins, McConnell Brain Imaging Centre, 
+              Montreal Neurological Institute, McGill University.
+              Permission to use, copy, modify, and distribute this
+              software and its documentation for any purpose and without
+              fee is hereby granted, provided that the above copyright
+              notice appear in all copies.  The author and McGill University
+              make no representations about the suitability of this
+              software for any purpose.  It is provided "as is" without
+              express or implied warranty.
+
 @MODIFIED   : $Log: optimize.c,v $
-@MODIFIED   : Revision 1.5  1993-11-15 16:27:08  louis
-@MODIFIED   : working version, with new library, with RCS revision stuff,
-@MODIFIED   : before deformations included
+@MODIFIED   : Revision 1.6  1994-02-21 16:35:59  louis
+@MODIFIED   : version before feb 22 changes
 @MODIFIED   :
+ * Revision 1.5  93/11/15  16:27:08  louis
+ * working version, with new library, with RCS revision stuff,
+ * before deformations included
+ * 
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 1.5 1993-11-15 16:27:08 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 1.6 1994-02-21 16:35:59 louis Exp $";
 #endif
 
-#include <mni.h>
+#include <volume_io.h>
 #include <recipes.h>
 #include <limits.h>
 
@@ -22,8 +36,6 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #include "objectives.h"
 #include "make_rots.h"
 #include "segment_table.h"
-
-extern Arg_Data main_args;
 
 /* external calls: */
 
@@ -34,8 +46,24 @@ public void add_speckle_to_volume(Volume d1,
 				  float speckle,
 				  double  *start, int *count, VectorR directions[]);
 
-         Volume   Gdata1, Gdata2, Gmask1, Gmask2;
-         int      Ginverse_mapping_flag, Gndim;
+public Status do_non_linear_optimization(Volume d1,
+					 Volume d1_dx, 
+					 Volume d1_dy, 
+					 Volume d1_dz, 
+					 Volume d1_dxyz,
+					 Volume d2,
+					 Volume d2_dx, 
+					 Volume d2_dy, 
+					 Volume d2_dz, 
+					 Volume d2_dxyz,
+					 Volume m1,
+					 Volume m2, 
+					 Arg_Data *globals);
+
+extern Arg_Data main_args;
+
+Volume   Gdata1, Gdata2, Gmask1, Gmask2;
+int      Ginverse_mapping_flag, Gndim;
 
 extern   double   ftol ;        
 extern   double   simplex_size ;
@@ -107,8 +135,12 @@ public float fit_function(float *params)
     cent[i] = main_args.trans_info.center[i]; /* GLOBAL MAIN_ARGS USED HERE */
   
 
-  mat = get_linear_transform_ptr(main_args.trans_info.transformation);
-
+  if (get_transform_type(main_args.trans_info.transformation) == CONCATENATED_TRANSFORM) {
+    mat = get_linear_transform_ptr(get_nth_general_transform(main_args.trans_info.transformation,0));
+  }
+  else
+    mat = get_linear_transform_ptr(main_args.trans_info.transformation);
+  
   if (Ginverse_mapping_flag)
     build_inverse_transformation_matrix(mat, cent, trans, scale, shear, rots);
   else
@@ -344,7 +376,13 @@ public BOOLEAN optimize_simplex(Volume d1,
       cent[i]  = globals->trans_info.center[i];
     }
 
-    mat = get_linear_transform_ptr(globals->trans_info.transformation);
+
+    if (get_transform_type(globals->trans_info.transformation) == CONCATENATED_TRANSFORM) {
+      mat = get_linear_transform_ptr(get_nth_general_transform(globals->trans_info.transformation,0));
+    }
+    else
+      mat = get_linear_transform_ptr(globals->trans_info.transformation);
+    
     
     build_transformation_matrix(mat, cent, trans, scale, shear, rots);
 
@@ -630,5 +668,119 @@ public float measure_fit(Volume d1,
     return(y);
   else
     return(-FLT_MAX);
+}
+
+
+
+
+
+
+/* ----------------------------- MNI Header -----------------------------------
+@NAME       : optimize_non_linear_transformation
+                get the parameters necessary to map volume 1 to volume 2
+		using non-linear deformation fields.
+@INPUT      : d1,d2:
+                two volumes of data (already in memory).
+	      m1,m2:
+                two mask volumes for data (already in memory).
+	      d1_dx, d1_dy, d1_dz, d1_dxyz,
+	      d2_dx, d2_dy, d2_dz, d2_dxyz:
+	        data sets corresponding to the intensity derivative in the x,y, 
+		and z dirs.
+	      globals:
+	        a global data structure containing info from the command line,
+		including the input parameters to be optimized, the input matrix,
+		and a plethora of flags!
+@OUTPUT     : 
+@RETURNS    : TRUE if ok, FALSE if error.
+@DESCRIPTION: 
+@METHOD     :
+                1- this routine begins by initializing the volume data structures
+		to be used by the objective functions.
+
+		2- optimization function is called
+		
+		3- the optimized parameters are returned in globals...
+@GLOBALS    : 
+@CALLS      : 
+@CREATED    : Tue Nov 16 14:27:10 EST 1993 LC
+@MODIFIED   : 
+---------------------------------------------------------------------------- */
+public BOOLEAN optimize_non_linear_transformation(Volume d1,
+						  Volume d1_dx, 
+						  Volume d1_dy, 
+						  Volume d1_dz, 
+						  Volume d1_dxyz,
+						  Volume d2,
+						  Volume d2_dx, 
+						  Volume d2_dy, 
+						  Volume d2_dz, 
+						  Volume d2_dxyz,
+						  Volume m1,
+						  Volume m2, 
+						  Arg_Data *globals)
+{
+  BOOLEAN 
+    stat;
+  int i;
+
+  stat = TRUE;
+  
+	     /*----------------- prepare data for optimization ------------ */
+  
+  if (globals->obj_function == zscore_objective) { /* replace volume d1 and d2 by zscore volume  */
+    make_zscore_volume(d1,m1,(float)globals->threshold[0]);
+    make_zscore_volume(d2,m2,(float)globals->threshold[1]);
+  } 
+  else  if (globals->obj_function == ssc_objective) {	/* add speckle to the data set */
+
+    make_zscore_volume(d1,m1,(float)globals->threshold[0]); /* need to make data sets comparable */
+    make_zscore_volume(d2,m2,(float)globals->threshold[1]); /* in mean and sd...                 */
+
+    if (globals->smallest_vol == 1)
+      add_speckle_to_volume(d1, 
+			    globals->speckle,
+			    globals->start, globals->count, globals->directions);
+    else
+      add_speckle_to_volume(d2, 
+			    globals->speckle,
+			    globals->start, globals->count, globals->directions);    
+  } else if (globals->obj_function == vr_objective) {
+    if (globals->smallest_vol == 1) {
+      if (!build_segment_table(&segment_table, d1, globals->groups))
+	print_error("%s\n",__FILE__, __LINE__,"Could not build segment table for source volume");
+    }
+    else {
+      if (!build_segment_table(&segment_table, d2, globals->groups))
+	print_error("%s\n",__FILE__, __LINE__,"Could not build segment table for target volume");
+
+    }
+
+    if (globals->flags.debug && globals->flags.verbose>1) {
+      print ("groups = %d\n",segment_table->groups);
+      for_less(i, segment_table->min, segment_table->max+1) {
+	print ("%5d: table = %5d, function = %5d\n",i,segment_table->table[i],
+	       (segment_table->segment)(i,segment_table) );
+      }
+    }
+
+  }
+	   /* ---------------- call requested optimization strategy ---------*/
+
+  stat = do_non_linear_optimization(d1,d1_dx, d1_dy, d1_dz, d1_dxyz,
+				    d2,d2_dx, d2_dy, d2_dz, d2_dxyz,
+				    m1,m2, 
+				    globals);
+
+
+  
+          /* ----------------finish up parameter/matrix manipulations ------*/
+
+  if (globals->obj_function == vr_objective) {
+    stat = free_segment_table(segment_table);
+  }
+
+
+  return(stat);
 }
 

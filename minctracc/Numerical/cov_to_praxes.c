@@ -21,6 +21,17 @@
 @GLOBALS    : none
 @CALLS      : jacobi, eigsrt, matrix, vector, free_matrix, free_vector,
               fabs, sqrt
+@COPYRIGHT  :
+              Copyright 1993 Louis Collins, McConnell Brain Imaging Centre, 
+              Montreal Neurological Institute, McGill University.
+              Permission to use, copy, modify, and distribute this
+              software and its documentation for any purpose and without
+              fee is hereby granted, provided that the above copyright
+              notice appear in all copies.  The author and McGill University
+              make no representations about the suitability of this
+              software for any purpose.  It is provided "as is" without
+              express or implied warranty.
+
 @CREATED    : July 16, 1991 (Peter Neelin)
 @MODIFIED   : September 30, 1991 (P.N.)
                  - copied from calc_princ_axes and modified so that calling

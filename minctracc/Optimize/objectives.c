@@ -3,20 +3,34 @@
 @DESCRIPTION: File containing objective function routines.
 @METHOD     : 
 @GLOBALS    : 
+@COPYRIGHT  :
+              Copyright 1993 Louis Collins, McConnell Brain Imaging Centre, 
+              Montreal Neurological Institute, McGill University.
+              Permission to use, copy, modify, and distribute this
+              software and its documentation for any purpose and without
+              fee is hereby granted, provided that the above copyright
+              notice appear in all copies.  The author and McGill University
+              make no representations about the suitability of this
+              software for any purpose.  It is provided "as is" without
+              express or implied warranty.
+
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   :  $Log: objectives.c,v $
-@MODIFIED   :  Revision 1.5  1993-11-15 16:27:07  louis
-@MODIFIED   :  working version, with new library, with RCS revision stuff,
-@MODIFIED   :  before deformations included
+@MODIFIED   :  Revision 1.6  1994-02-21 16:35:56  louis
+@MODIFIED   :  version before feb 22 changes
 @MODIFIED   :
+ * Revision 1.5  93/11/15  16:27:07  louis
+ * working version, with new library, with RCS revision stuff,
+ * before deformations included
+ * 
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/objectives.c,v 1.5 1993-11-15 16:27:07 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/objectives.c,v 1.6 1994-02-21 16:35:56 louis Exp $";
 #endif
 
 
-#include <mni.h>
+#include <volume_io.h>
 #include <limits.h>
 #include <recipes.h>
 #include "constants.h"
@@ -516,8 +530,7 @@ public float vr_objective(Volume d1,
 
   Real
     value1, value2,
-    voxel_value1,
-    voxel_value2;
+    voxel_value1;
   
   float
     rat,
@@ -596,7 +609,7 @@ public float vr_objective(Volume d1,
 	      if (INTERPOLATE_TRUE_VALUE( d2, &voxel, &value2 )) {
 
 		count2++;
-		voxel_value2 = CONVERT_VALUE_TO_VOXEL(d1,value2 );
+		/* voxel_value2 = CONVERT_VALUE_TO_VOXEL(d1,value2 ); */
 
 	        if (ABS(value1) > globals->threshold[0] && ABS(value2) > globals->threshold[1] ) {
 

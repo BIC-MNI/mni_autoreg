@@ -1,4 +1,4 @@
-#include <mni.h>
+#include <volume_io.h>
 #include <recipes.h>
 
 #include "constants.h"
@@ -233,12 +233,14 @@ main(int argc, char *argv[])
   vol_to_cov(vol, NULL, cog, cov, step );
 
   (void)print ("%f %f %f\n",cog[1],cog[2],cog[3]);
+
+/*
   (void)print ("%f %f %f\n",cog[1]+75,cog[2],cog[3]);
   (void)print ("%f %f %f\n",cog[1]-75,cog[2],cog[3]);
   (void)print ("%f %f %f\n",cog[1],cog[2]+75,cog[3]);
   (void)print ("%f %f %f\n",cog[1],cog[2]-75,cog[3]);
   (void)print ("%f %f %f;\n",cog[1],cog[2],cog[3]+75);
-
+*/
 
 
 }

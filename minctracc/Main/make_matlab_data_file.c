@@ -10,22 +10,33 @@
 	      each parameter is varied in turn, one at a time, from 
 	      -simplex to +simplex around the parameter.
 	      
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@COPYRIGHT  :
+              Copyright 1993 Louis Collins, McConnell Brain Imaging Centre, 
+              Montreal Neurological Institute, McGill University.
+              Permission to use, copy, modify, and distribute this
+              software and its documentation for any purpose and without
+              fee is hereby granted, provided that the above copyright
+              notice appear in all copies.  The author and McGill University
+              make no representations about the suitability of this
+              software for any purpose.  It is provided "as is" without
+              express or implied warranty.
+
 @CREATED    : Mon Oct  4 13:06:17 EST 1993 Louis
 @MODIFIED   : $Log: make_matlab_data_file.c,v $
-@MODIFIED   : Revision 1.1  1993-11-15 16:26:47  louis
-@MODIFIED   : Initial revision
+@MODIFIED   : Revision 1.2  1994-02-21 16:35:40  louis
+@MODIFIED   : version before feb 22 changes
 @MODIFIED   :
+ * Revision 1.1  93/11/15  16:26:47  louis
+ * Initial revision
+ * 
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/make_matlab_data_file.c,v 1.1 1993-11-15 16:26:47 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/make_matlab_data_file.c,v 1.2 1994-02-21 16:35:40 louis Exp $";
 #endif
 
 
-#include <mni.h>
+#include <volume_io.h>
 #include <recipes.h>
 #include <limits.h>
 

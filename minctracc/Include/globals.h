@@ -5,7 +5,15 @@ char  *prog_name     = NULL;
 Volume  mask_data  = NULL;
 Volume  mask_model = NULL;
 Volume  model      = NULL;
+Volume  model_dx   = NULL;
+Volume  model_dy   = NULL;
+Volume  model_dz   = NULL;
+Volume  model_dxyz = NULL;
 Volume  data       = NULL;
+Volume  data_dx    = NULL;
+Volume  data_dy    = NULL;
+Volume  data_dz    = NULL;
+Volume  data_dxyz  = NULL;
 
 
 double  ftol         =  0.005;
@@ -56,6 +64,9 @@ static ArgvInfo argTable[] = {
      "full 12 parameter transformation (same as -lsq12)."},
   {"-procrustes", ARGV_CONSTANT, (char *) TRANS_PROCRUSTES, (char *) &main_args.trans_info.transform_type,
      "procrustes transformation (3 trans, 3 rots, 1 scale), same as -lsq7."},
+/*
+  {"-nonlinear", ARGV_CONSTANT, (char *) TRANS_NONLIN, (char *) &main_args.trans_info.transform_type,
+     "recover nonlinear deformation field."}, */
   {"-forward", ARGV_CONSTANT, (char *) FALSE,
      (char *) &main_args.trans_info.invert_mapping_flag,
      "Recover forward transformation (source -> model, default).\n"},
@@ -94,7 +105,7 @@ static ArgvInfo argTable[] = {
      "Use normalized difference."},
   {"-ssc", ARGV_CONSTANT, (char *) ssc_objective, 
      (char *) &main_args.obj_function,
-     "Use stocastic sign change."},
+     "Use stochastic sign change."},
   {"-vr", ARGV_CONSTANT,      (char *) vr_objective, 
      (char *) &main_args.obj_function,
      "Use variance of ratio vol1/vol2"},
@@ -112,7 +123,7 @@ static ArgvInfo argTable[] = {
      "Options for optimization."},
   {"-tol", ARGV_FLOAT, (char *) 0, 
      (char *) &ftol,
-     "Stopping criteria tolerence"},
+     "Stopping criteria tolerance"},
   {"-simplex", ARGV_FLOAT, (char *) 0, 
      (char *) &simplex_size,
      "Radius of simplex volume."},

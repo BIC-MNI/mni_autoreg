@@ -1,29 +1,37 @@
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : init_params.c
-@INPUT      : 
-@OUTPUT     : 
-@RETURNS    : 
 @DESCRIPTION: collection of routines that will calculate the parameters necessary
               from an input transformation matrix for optimization when 
 	      mapping world coordinates  of volume 1 into world coords in volume 2.
-@METHOD     : 
-@GLOBALS    : 
-@CALLS      : 
+@COPYRIGHT  :
+              Copyright 1993 Louis Collins, McConnell Brain Imaging Centre, 
+              Montreal Neurological Institute, McGill University.
+              Permission to use, copy, modify, and distribute this
+              software and its documentation for any purpose and without
+              fee is hereby granted, provided that the above copyright
+              notice appear in all copies.  The author and McGill University
+              make no representations about the suitability of this
+              software for any purpose.  It is provided "as is" without
+              express or implied warranty.
+
 @CREATED    : Thu May 27 16:50:50 EST 1993
                   
 @MODIFIED   :  $Log: init_params.c,v $
-@MODIFIED   :  Revision 1.6  1993-11-15 16:26:44  louis
-@MODIFIED   :  working version, with new library, with RCS revision stuff,
-@MODIFIED   :  before deformations included
+@MODIFIED   :  Revision 1.7  1994-02-21 16:35:36  louis
+@MODIFIED   :  version before feb 22 changes
 @MODIFIED   :
+ * Revision 1.6  93/11/15  16:26:44  louis
+ * working version, with new library, with RCS revision stuff,
+ * before deformations included
+ * 
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 1.6 1993-11-15 16:26:44 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 1.7 1994-02-21 16:35:36 louis Exp $";
 #endif
 
 
-#include <mni.h>
+#include <volume_io.h>
 #include <recipes.h>
 
 #include "constants.h"
@@ -282,7 +290,8 @@ private  BOOLEAN init_transformation(
 				     float *ang,        /* rotation angles to go from d1 to d2    */
 				     float *c1,         /* centroid of masked d1 */
 				     float *c2,         /* centroid of masked d1 */
-				     float *scale)      /* scaling from d1 to d2 */
+				     float *scale,      /* scaling from d1 to d2 */
+				     Transform_Flags *flags) /* flags for estimation */
 {
   float
     tx,ty,tz,
@@ -317,147 +326,166 @@ private  BOOLEAN init_transformation(
     print_error("%s", __FILE__, __LINE__,"Cannot calculate the COG of volume 1\n." );
     return(FALSE);
   }
-  if (! vol_to_cov(d2, m2, c2, cov2, step ) ) {
-    print_error("%s", __FILE__, __LINE__,"Cannot calculate the COG of volume 2\n." );
-    return(FALSE);
-  }
 
-  if (verbose>0) {
-    print ("COG of v1: %f %f %f\n",c1[1],c1[2],c1[3]);
-    print ("COG of v2: %f %f %f\n",c2[1],c2[2],c2[3]);
-  }
+  if (verbose>0) print ("COG of v1: %f %f %f\n",c1[1],c1[2],c1[3]);
 
-  tx = c2[1] - c1[1];    /* translations to map vol1 into vol2                  */
-  ty = c2[2] - c1[2];
-  tz = c2[3] - c1[3];
-  
-  cov_to_praxes(3, cov1, prin_axes1);   
-  cov_to_praxes(3, cov2, prin_axes2);
-  
-  nr_copyf(prin_axes1,1,3,1,3,R1);
-  nr_copyf(prin_axes2,1,3,1,3,R2);
-  
-  
-  if (verbose > 1) {
-    print ("cov1:                              cov2:\n");
-    for (i=1; i<=3; i++) {
-      for (j=1; j<=3; j++)
-	print ("%8.3f ", cov1[i][j]);
-    print ("|");
-      for (j=1; j<=3; j++)
-	print ("%8.3f ", cov2[i][j]);
-      print ("\n\n");
+  if (flags->estimate_trans || flags->estimate_rots || flags->estimate_scale) {
+    if (! vol_to_cov(d2, m2, c2, cov2, step ) ) {
+      print_error("%s", __FILE__, __LINE__,"Cannot calculate the COG of volume 2\n." );
+      return(FALSE);
     }
-  }
-
-  for (i=1; i<=3; ++i) {
-    norm = fsqrt(prin_axes1[i][1]*prin_axes1[i][1] + 
-		 prin_axes1[i][2]*prin_axes1[i][2] + 
-		 prin_axes1[i][3]*prin_axes1[i][3]);
-    for (j=1; j<=3; ++j)
-      R1[i][j] /= norm;
-    
-    norm = fsqrt(prin_axes2[i][1]*prin_axes2[i][1] + 
-		 prin_axes2[i][2]*prin_axes2[i][2] + 
-		 prin_axes2[i][3]*prin_axes2[i][3]);
-    for (j=1; j<=3; ++j)
-      R2[i][j] /= norm;
+    if (verbose>0) print ("COG of v2: %f %f %f\n",c2[1],c2[2],c2[3]);
   }
   
-  if (verbose > 1) {
-    print ("prin_axes1:                      princ_axes2:\n");
-    for (i=1; i<=3; i++) {
-      for (j=1; j<=3; j++)
-	print ("%8.3f ", prin_axes1[i][j]);
-      print ("|");
-      for (j=1; j<=3; j++)
-	print ("%8.3f ", prin_axes2[i][j]);
-      print ("\n\n");
-    }
-  }
-  
-  invertmatrix(3,R1,Rinv);
 
-  nr_multf(Rinv,1,3,1,3, R2,1,3,1,3, R);
-  
-  
-  if (verbose > 1) {
-    print ("r1:                   r2:                  r:\n");
-    for (i=1; i<=3; i++) {
-      for (j=1; j<=3; j++)
-	print ("%8.3f ", R1[i][j]);
-      print ("|");
-      for (j=1; j<=3; j++)
-	print ("%8.3f ", R2[i][j]);
-      print ("|");
-      for (j=1; j<=3; j++)
-	print ("%8.3f ", R[i][j]);
-      print ("\n");
-    }
+  if (flags->estimate_trans) {
+    tx = c2[1] - c1[1];    /* translations to map vol1 into vol2                  */
+    ty = c2[2] - c1[2];
+    tz = c2[3] - c1[3];
+  }
+  else {
+    tx = ty = tz = 0.0;
   }
 
-
-  transpose(3,3,R,R);		/* all of the princ axes stuff uses vec*mat */
-
-  if (!rotmat_to_ang(R, angles)) {
-    (void)fprintf(stderr,"Could not extract angles from:\n");
-    printmatrix(3,3,R);
-    return(FALSE);
-  }
-  
-  scale[1] = 1.0;
-  scale[2] = 1.0;
-  scale[3] = 1.0;
-
-  ang[1] = angles[1];		/* rotation about X axis                         */
-  ang[2] = angles[2];		/* rotation about Y axis                         */
-  ang[3] = angles[3];		/* rotation about Z axis                         */
-  
-  for (i=1; i<=3; ++i)		/* set rotations in matrix                       */
-    for (j=1; j<=3; ++j) {
-      rots[i][j] = R[i][j];
-    }
-  
   trans[1][4] += tx;		/* set translations in translation matrix        */
   trans[2][4] += ty;
   trans[3][4] += tz;
   
-  ndim = 3;
-  
-  if (verbose > 1) {
-    (void) print("\nFor volume 1 :");
-    (void) print("\nCentroid :");
-    for (i=1; i<=ndim; i++) (void) print("  %f",c1[i]);
-    (void) print("\n\n");
-    (void) print("Principal axes\n");
-    for (i=1; i<=ndim; i++) {
-      (void) print("Vector %d :",i);
-      for (j=1; j<=ndim; j++) {
-	(void) print("  %f",prin_axes1[i][j]);
-      }
-      (void) print("\n");
-    }
-  
-    (void) print("\n");
+  if (flags->estimate_rots || flags->estimate_scale) {
+    cov_to_praxes(3, cov1, prin_axes1);   
+    cov_to_praxes(3, cov2, prin_axes2);
     
-    (void) print("\nFor volume 2 :");
-    (void) print("\nCentroid :");
-    for (i=1; i<=ndim; i++) (void) print("  %f",c2[i]);
-    (void) print("\n\n");
-    (void) print("Principal axes\n");
-    for (i=1; i<=ndim; i++) {
-      (void) print("Vector %d :",i);
-      for (j=1; j<=ndim; j++) {
-	(void) print("  %f",prin_axes2[i][j]);
+    nr_copyf(prin_axes1,1,3,1,3,R1);
+    nr_copyf(prin_axes2,1,3,1,3,R2);
+    
+    
+    if (verbose > 1) {
+      print ("cov1:                              cov2:\n");
+      for (i=1; i<=3; i++) {
+	for (j=1; j<=3; j++)
+	  print ("%8.3f ", cov1[i][j]);
+	print ("|");
+	for (j=1; j<=3; j++)
+	  print ("%8.3f ", cov2[i][j]);
+	print ("\n\n");
       }
-      (void) print("\n");
     }
     
-    (void) print ("rotation angles are: %f %f %f\n",
-		   angles[1]*RAD_TO_DEG,
-		   angles[2]*RAD_TO_DEG,
-		   angles[3]*RAD_TO_DEG);
-    (void) print ("translation mm     : %f %f %f\n",tx,ty,tz);
+    for (i=1; i<=3; ++i) {
+      norm = fsqrt(prin_axes1[i][1]*prin_axes1[i][1] + 
+		   prin_axes1[i][2]*prin_axes1[i][2] + 
+		   prin_axes1[i][3]*prin_axes1[i][3]);
+      for (j=1; j<=3; ++j)
+	R1[i][j] /= norm;
+      
+      norm = fsqrt(prin_axes2[i][1]*prin_axes2[i][1] + 
+		   prin_axes2[i][2]*prin_axes2[i][2] + 
+		   prin_axes2[i][3]*prin_axes2[i][3]);
+      for (j=1; j<=3; ++j)
+	R2[i][j] /= norm;
+    }
+    
+    if (verbose > 1) {
+      print ("prin_axes1:                      princ_axes2:\n");
+      for (i=1; i<=3; i++) {
+	for (j=1; j<=3; j++)
+	  print ("%8.3f ", prin_axes1[i][j]);
+	print ("|");
+	for (j=1; j<=3; j++)
+	  print ("%8.3f ", prin_axes2[i][j]);
+	print ("\n\n");
+      }
+    }
+    
+    invertmatrix(3,R1,Rinv);
+    
+    nr_multf(Rinv,1,3,1,3, R2,1,3,1,3, R);
+    
+    
+    if (verbose > 1) {
+      print ("r1:                   r2:                  r:\n");
+      for (i=1; i<=3; i++) {
+	for (j=1; j<=3; j++)
+	  print ("%8.3f ", R1[i][j]);
+	print ("|");
+	for (j=1; j<=3; j++)
+	  print ("%8.3f ", R2[i][j]);
+	print ("|");
+	for (j=1; j<=3; j++)
+	  print ("%8.3f ", R[i][j]);
+	print ("\n");
+      }
+    }
+    
+    
+    transpose(3,3,R,R);		/* all of the princ axes stuff uses vec*mat */
+    
+    if (!rotmat_to_ang(R, angles)) {
+      (void)fprintf(stderr,"Could not extract angles from:\n");
+      printmatrix(3,3,R);
+      return(FALSE);
+    }
+
+    scale[1] = 1.0;
+    scale[2] = 1.0;
+    scale[3] = 1.0;
+    
+    ang[1] = angles[1];		/* rotation about X axis                         */
+    ang[2] = angles[2];		/* rotation about Y axis                         */
+    ang[3] = angles[3];		/* rotation about Z axis                         */
+    
+    for (i=1; i<=3; ++i)		/* set rotations in matrix                       */
+      for (j=1; j<=3; ++j) {
+	rots[i][j] = R[i][j];
+      }
+    
+    ndim = 3;
+    
+    if (verbose > 1) {
+      (void) print("\nFor volume 1 :");
+      (void) print("\nCentroid :");
+      for (i=1; i<=ndim; i++) (void) print("  %f",c1[i]);
+      (void) print("\n\n");
+      (void) print("Principal axes\n");
+      for (i=1; i<=ndim; i++) {
+	(void) print("Vector %d :",i);
+	for (j=1; j<=ndim; j++) {
+	  (void) print("  %f",prin_axes1[i][j]);
+	}
+	(void) print("\n");
+      }
+      
+      (void) print("\n");
+      
+      (void) print("\nFor volume 2 :");
+      (void) print("\nCentroid :");
+      for (i=1; i<=ndim; i++) (void) print("  %f",c2[i]);
+      (void) print("\n\n");
+      (void) print("Principal axes\n");
+      for (i=1; i<=ndim; i++) {
+	(void) print("Vector %d :",i);
+	for (j=1; j<=ndim; j++) {
+	  (void) print("  %f",prin_axes2[i][j]);
+	}
+	(void) print("\n");
+      }
+      
+      (void) print ("rotation angles are: %f %f %f\n",
+		    angles[1]*RAD_TO_DEG,
+		    angles[2]*RAD_TO_DEG,
+		    angles[3]*RAD_TO_DEG);
+      (void) print ("translation mm     : %f %f %f\n",tx,ty,tz);
+    }
+    
+  }
+  else {
+    scale[1] = 1.0;
+    scale[2] = 1.0;
+    scale[3] = 1.0;
+    
+    ang[1] = 0.0;
+    ang[2] = 0.0;
+    ang[3] = 0.0;
   }
 
   free_matrix(cov1,      1,3,1,3); 
@@ -552,8 +580,13 @@ public BOOLEAN init_params(Volume d1,
     c2 = vector(1,3);
     sc = vector(1,3);
     
+				/* get cog of data1 before extracting parameters
+				   from matrix, if estimate requested on command line */
+
+
+
     if (!init_transformation(d1,d2,m1,m2, globals->step, globals->flags.verbose,
-			     trans,rots,ang,c1,c2,sc))
+			     trans,rots,ang,c1,c2,sc, &(globals->trans_flags)))
       return(FALSE);
     
     for_less( i, 0, 3 ) {
@@ -588,7 +621,11 @@ public BOOLEAN init_params(Volume d1,
   }
   else { /*  we have an input matrix, we now have to extract the proper parameters from it */
 
-    lt = get_linear_transform_ptr(globals->trans_info.transformation);
+    if (get_transform_type(globals->trans_info.transformation) == CONCATENATED_TRANSFORM) {
+      lt = get_linear_transform_ptr(get_nth_general_transform(globals->trans_info.transformation,0));
+    }
+    else
+      lt = get_linear_transform_ptr(globals->trans_info.transformation);
 
 				/* get cog of data1 before extracting parameters
 				   from matrix, if estimate requested on command line */
@@ -633,7 +670,7 @@ public BOOLEAN init_params(Volume d1,
       sc = vector(1,3);
     
       if (!init_transformation(d1,d2,m1,m2, globals->step, globals->flags.verbose,
-			       trans,rots,ang,c1,c2,sc))
+			       trans,rots,ang,c1,c2,sc, &(globals->trans_flags)))
 	return(FALSE);      
       
       for_less( i, 0, 3 ) {
@@ -668,7 +705,12 @@ public BOOLEAN init_params(Volume d1,
 
   }
 
-  lt = get_linear_transform_ptr(globals->trans_info.transformation);
+  if (get_transform_type(globals->trans_info.transformation) == CONCATENATED_TRANSFORM) {
+    lt = get_linear_transform_ptr(get_nth_general_transform(globals->trans_info.transformation,0));
+  }
+  else
+    lt = get_linear_transform_ptr(globals->trans_info.transformation);
+  
     
   build_transformation_matrix(lt,
 			      globals->trans_info.center,

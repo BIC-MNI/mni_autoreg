@@ -11,12 +11,26 @@
                  matrix_scalar_multiply
 		 invertmatrix
 @CALLS      : 
+@COPYRIGHT  :
+              Copyright 1993 Peter Neelin, McConnell Brain Imaging Centre, 
+              Montreal Neurological Institute, McGill University.
+              Permission to use, copy, modify, and distribute this
+              software and its documentation for any purpose and without
+              fee is hereby granted, provided that the above copyright
+              notice appear in all copies.  The author and McGill University
+              make no representations about the suitability of this
+              software for any purpose.  It is provided "as is" without
+              express or implied warranty.
+
 @CREATED    : January 31, 1992 (Peter Neelin)
 @MODIFIED   :  $Log: matrix_basics.c,v $
-@MODIFIED   :  Revision 1.5  1993-11-15 16:27:04  louis
-@MODIFIED   :  working version, with new library, with RCS revision stuff,
-@MODIFIED   :  before deformations included
+@MODIFIED   :  Revision 1.6  1994-02-21 16:35:44  louis
+@MODIFIED   :  version before feb 22 changes
 @MODIFIED   :
+ * Revision 1.5  93/11/15  16:27:04  louis
+ * working version, with new library, with RCS revision stuff,
+ * before deformations included
+ * 
 
 Tue Jun  1 12:46:44 EST 1993 LC
      added routines to make identity matrices, copy matrices, make rotation matrices
@@ -31,10 +45,10 @@ Fri Jun  4 14:10:34 EST 1993 LC
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/matrix_basics.c,v 1.5 1993-11-15 16:27:04 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/matrix_basics.c,v 1.6 1994-02-21 16:35:44 louis Exp $";
 #endif
 
-#include <mni.h>
+#include <volume_io.h>
 #include <recipes.h>
 
 /* external calls: */
@@ -287,8 +301,8 @@ public void transpose(int rows, int cols, float **mat, float **mat_transpose)
 public void raw_invertmatrix(int n, float **mat, float **mat_invert)
 {
 
+/*
   void svdcmp(float **a, int m, int n, float w[], float **v);
-
   float 
     wmax,wmin,
     **ut,**u,*w,**v,**wd;
@@ -301,7 +315,7 @@ public void raw_invertmatrix(int n, float **mat, float **mat_invert)
   w=vector(1,n);
   v=matrix(1,n,1,n);
 
-  for (i=1; i<=n; ++i)		/* copy the input matrix */
+  for (i=1; i<=n; ++i)		/ * copy the input matrix * /
     for (j=1; j<=n; ++j)
       u[i][j] = mat[i][j];
 
@@ -311,9 +325,9 @@ public void raw_invertmatrix(int n, float **mat, float **mat_invert)
   wmax=0.0;
   for (j=1; j<=n; ++j) if (w[j]>wmax) wmax=w[j];
 
-				/* this is where the threshold is set for editing
+				/ * this is where the threshold is set for editing
 				   singular values.  The constant must be experimented
-				   with. */
+				   with. * /
   wmin = wmax*1.0e-6;
 
   for (j=1; j<=n; ++j) 
@@ -322,7 +336,7 @@ public void raw_invertmatrix(int n, float **mat, float **mat_invert)
     else 
       w[j] = 1.0/w[j];  
 
-  for (i=1; i<=n; ++i) {		/* multiply v by a matrix with diag=w */
+  for (i=1; i<=n; ++i) {		/ * multiply v by a matrix with diag=w * /
     for (j=1; j<=n; ++j) 
       wd[i][j] = 0.0;
     wd[i][i] = w[i];
@@ -337,7 +351,32 @@ public void raw_invertmatrix(int n, float **mat, float **mat_invert)
   free_matrix(wd,1,n,1,n);
   free_matrix(v,1,n,1,n);
   free_vector(w,1,n);
-  
+*/
+
+  float 
+    d, **u, *col;
+  int 
+    i,j,*indx;
+
+  u=matrix(1,n,1,n);
+  col=vector(1,n);
+  indx=ivector(1,n);
+
+  for (i=1; i<=n; ++i)		/* copy the input matrix */
+    for (j=1; j<=n; ++j)
+      u[i][j] = mat[i][j];
+
+  ludcmp(u,n,indx,&d);
+  for(j=1; j<=n; ++j) {
+    for(i=1; i<=n; ++i) col[i] = 0.0;
+    col[j]=1.0;
+    lubksb(u,n,indx,col);
+    for(i=1; i<=n; ++i) mat_invert[i][j]=col[i];
+  }
+
+  free_matrix(u,1,n,1,n);
+  free_vector(col,1,n);
+  free_ivector(indx,1,n);
 }
 
 public void invertmatrix(int ndim, float **mat, float **mat_invert)

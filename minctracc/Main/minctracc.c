@@ -21,12 +21,26 @@
 
    @GLOBALS    : 
    @CALLS      : 
+   @COPYRIGHT  :
+              Copyright 1993 Collins Collins, McConnell Brain Imaging Centre, 
+              Montreal Neurological Institute, McGill University.
+              Permission to use, copy, modify, and distribute this
+              software and its documentation for any purpose and without
+              fee is hereby granted, provided that the above copyright
+              notice appear in all copies.  The author and McGill University
+              make no representations about the suitability of this
+              software for any purpose.  It is provided "as is" without
+              express or implied warranty.
+
    @CREATED    : February 3, 1992 - louis collins
    @MODIFIED   : $Log: minctracc.c,v $
-   @MODIFIED   : Revision 1.8  1993-11-15 16:27:06  louis
-   @MODIFIED   : working version, with new library, with RCS revision stuff,
-   @MODIFIED   : before deformations included
+   @MODIFIED   : Revision 1.9  1994-02-21 16:35:51  louis
+   @MODIFIED   : version before feb 22 changes
    @MODIFIED   :
+ * Revision 1.8  93/11/15  16:27:06  louis
+ * working version, with new library, with RCS revision stuff,
+ * before deformations included
+ * 
  * Revision 1.7  93/11/15  13:12:10  louis
  * working version, before deform installation
  * 
@@ -50,13 +64,13 @@ Wed May 26 13:05:44 EST 1993 lc
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 1.8 1993-11-15 16:27:06 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 1.9 1994-02-21 16:35:51 louis Exp $";
 #endif
 
 
 
 
-#include <mni.h>
+#include <volume_io.h>
 #include <recipes.h>
 #include <limits.h>
 #include <print_error.h>
@@ -66,6 +80,7 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 
 static char *default_dim_names[N_DIMENSIONS] =
    { MIzspace, MIyspace, MIxspace };
+
 
 
 /*************************************************************************/
@@ -96,12 +111,13 @@ main ( argc, argv )
 
   Real thickness[3];
 
+  Deform_field *def_data;
 
 
 
 
   prog_name     = argv[0];	
-
+  def_data = (Deform_field *)NULL;
 
   comments = time_stamp(argc, argv); /* build comment history line for below */
 
@@ -243,51 +259,69 @@ main ( argc, argv )
 
   ALLOC( data, 1 );		/* read in source data and target model */
   ALLOC( model, 1 );
-  status = input_volume( main_args.filenames.data, 3, default_dim_names, 
-			NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-			TRUE, &data, (minc_input_options *)NULL );
-  if (status != OK)
-    print_error("Cannot input volume '%s'",__FILE__, __LINE__,main_args.filenames.data);
+
+  if (main_args.trans_info.transform_type != TRANS_NONLIN) {
+    status = input_volume( main_args.filenames.data, 3, default_dim_names, 
+			  NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+			  TRUE, &data, (minc_input_options *)NULL );
+    if (status != OK)
+      print_error("Cannot input volume '%s'",__FILE__, __LINE__,main_args.filenames.data);
+    
+    
+    status = input_volume( main_args.filenames.model, 3, default_dim_names, 
+			  NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+			  TRUE, &model, (minc_input_options *)NULL );
+    if (status != OK)
+      print_error("Cannot input volume '%s'",
+		  __FILE__, __LINE__,main_args.filenames.model);
+  }
+  else {
+    ALLOC(data_dx, 1); ALLOC(data_dy,   1);
+    ALLOC(data_dz, 1); ALLOC(data_dxyz, 1);
+    ALLOC(model_dx,1); ALLOC(model_dy,  1);
+    ALLOC(model_dz,1); ALLOC(model_dxyz,1);
+    status = read_all_data(&data, &data_dx, &data_dy, &data_dz, &data_dxyz,
+			   main_args.filenames.data );
+    if (status!=OK)
+      print_error("Cannot input gradient volumes for  '%s'",
+		  __FILE__, __LINE__,main_args.filenames.data);
+
+    status = read_all_data(&model, &model_dx, &model_dy, &model_dz, &model_dxyz,
+			   main_args.filenames.model );
+    if (status!=OK)
+      print_error("Cannot input gradient volumes for  '%s'",
+		  __FILE__, __LINE__,main_args.filenames.model);
+  }
+
   get_volume_separations(data, step);
   get_volume_sizes(data, sizes);
   get_volume_voxel_range(data, &min_value, &max_value);
-
   DEBUG_PRINT3 ( "Source volume %3d cols by %3d rows by %d slices\n",
-		 sizes[X], sizes[Y], sizes[Z]);
+		sizes[X], sizes[Y], sizes[Z]);
   DEBUG_PRINT3 ( "Source voxel = %8.3f %8.3f %8.3f\n", 
-		 step[X], step[Y], step[Z]);
+		step[X], step[Y], step[Z]);
   DEBUG_PRINT2 ( "min/max value= %8.3f %8.3f\n", min_value, max_value);
   get_volume_voxel_range(data, &min_value, &max_value);
   DEBUG_PRINT2 ( "min/max voxel= %8.3f %8.3f\n\n", min_value, max_value);
 
-
-
-  status = input_volume( main_args.filenames.model, 3, default_dim_names, 
-			NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-			TRUE, &model, (minc_input_options *)NULL );
-  if (status != OK)
-    print_error("Cannot input volume '%s'",
-		__FILE__, __LINE__,main_args.filenames.model);
   get_volume_separations(model, step);
   get_volume_sizes(model, sizes);
   get_volume_voxel_range(model, &min_value, &max_value);
-
   DEBUG_PRINT3 ( "Target volume %3d cols by %3d rows by %d slices\n",
-		 sizes[X], sizes[Y], sizes[Z]);
+		sizes[X], sizes[Y], sizes[Z]);
   DEBUG_PRINT3 ( "Target voxel = %8.3f %8.3f %8.3f\n", 
-		 step[X], step[Y], step[Z]);
+		step[X], step[Y], step[Z]);
   DEBUG_PRINT2 ( "min/max value= %8.3f %8.3f\n", min_value, max_value);
   get_volume_voxel_range(model, &min_value, &max_value);
   DEBUG_PRINT2 ( "min/max voxel= %8.3f %8.3f\n\n", min_value, max_value);
-
   
-  if (data->n_dimensions!=3) {
-    print_error ("File %s has %d dimensions.  Only 3 dims supported.", 
-		 __FILE__, __LINE__, main_args.filenames.data, data->n_dimensions);
+  if (get_volume_n_dimensions(data)!=3) {
+    print_error ("Data file %s has %d dimensions.  Only 3 dims supported.", 
+		 __FILE__, __LINE__, main_args.filenames.data, get_volume_n_dimensions(data));
   }
-  if (model->n_dimensions!=3) {
-    print_error ("File %s has %d dimensions.  Only 3 dims supported.", 
-		 __FILE__, __LINE__, main_args.filenames.model, model->n_dimensions);
+  if (get_volume_n_dimensions(model)!=3) {
+    print_error ("Model file %s has %d dimensions.  Only 3 dims supported.", 
+		 __FILE__, __LINE__, main_args.filenames.model, get_volume_n_dimensions(model));
   }
 
 
@@ -332,7 +366,7 @@ main ( argc, argv )
 		main_args.trans_info.rotations[0],
 		main_args.trans_info.rotations[1],
 		main_args.trans_info.rotations[2] );
-  DEBUG_PRINT3 ( "Transform scale    = %8.3f %8.3f %8.3f\n\n", 
+   DEBUG_PRINT3 ( "Transform scale    = %8.3f %8.3f %8.3f\n\n", 
 		main_args.trans_info.scales[0],
 		main_args.trans_info.scales[1],
 		main_args.trans_info.scales[2] );
@@ -370,12 +404,32 @@ main ( argc, argv )
     DEBUG_PRINT3 ( "Lattice count      = %8d %8d %8d\n\n",
 		  main_args.count[0],main_args.count[1],main_args.count[2]);
 
-    if (!optimize_linear_transformation( data, model, mask_data, mask_model, &main_args )) {
-      (void)fprintf(stderr, 
-		     "\n%s: Error in optimization\n", 
-		     prog_name);
-      exit(EXIT_FAILURE);
-   }
+
+
+				/* calculate the actual transformation now. */
+
+    if (main_args.trans_info.transform_type == TRANS_NONLIN) {
+
+      build_default_deformation_field(&main_args);
+
+      if (!optimize_non_linear_transformation(data_dxyz, data_dx, data_dy, data_dz, data, 
+					      model_dxyz, model_dx, model_dy, model_dz, model, 
+					      mask_data, mask_model, &main_args )) {
+	print_error("Error in optimization of non-linear transformation\n",
+		    __FILE__, __LINE__);
+	exit(EXIT_FAILURE);
+      }
+
+    }
+    else {
+
+      if (!optimize_linear_transformation( data, model, mask_data, mask_model, &main_args )) {
+	print_error("Error in optimization of linear transformation\n",
+		    __FILE__, __LINE__);
+	exit(EXIT_FAILURE);
+      }
+
+    }
   }
 
 
@@ -384,6 +438,8 @@ main ( argc, argv )
 
 				/* if I have internally inverted the transform,
 				   than flip it back forward before the save.   */
+
+  status = OK;
 
   if (main_args.trans_info.invert_mapping_flag) {
 
@@ -395,25 +451,36 @@ main ( argc, argv )
 
   }
 				/* note: - I use the comment string built above! */
-				/* open file */
+				/* save transformation */
 
-  status = open_file(  main_args.filenames.output_trans, WRITE_FILE, BINARY_FORMAT,  &ofd );
-  if ( status != OK ) 
-    print_error ("filename `%s' cannot be opened.", 
-		 __FILE__, __LINE__, main_args.filenames.output_trans);
-  
-  				/* save transformation */
+  if (main_args.trans_info.transform_type == TRANS_NONLIN) {
 
-  status = output_transform(ofd, comments, main_args.trans_info.transformation );
+    def_data = get_nth_general_transform(
+		   main_args.trans_info.transformation,
+		   get_n_concated_transforms(
+                           main_args.trans_info.transformation)-1)->user_data;
 
-				/* close file */
-  if (status == OK)
-    status = close_file(ofd);
-  else
-    print_error ("Problems writing  `%s'.",
-		 __FILE__, __LINE__, main_args.filenames.output_trans);
+    status = save_deform_data(def_data->dx,def_data->dy,def_data->dz,
+			      def_data->basename,comments);
+  }
 
-  
+  if (status==OK)
+    status = output_deformation_file(main_args.filenames.output_trans,
+				     comments,
+				     main_args.trans_info.transformation);
+  else {
+    print_error("Error saving deformation field data.\n",
+		__FILE__, __LINE__);
+    exit(EXIT_FAILURE);
+  }
+
+
+  if (status!=OK) {
+    print_error("Error saving transformation file.`\n",
+		__FILE__, __LINE__);
+    exit(EXIT_FAILURE);
+  }
+
   return( status );
 }
 
@@ -480,35 +547,37 @@ public int get_transformation(char *dst, char *key, char *nextArg)
       }
    }
 
+
    /* Read in the file for later use */
    if (transform_info->file_contents == NULL) {
-      ALLOC(transform_info->file_contents,TRANSFORM_BUFFER_INCREMENT);
-      transform_info->buffer_length = TRANSFORM_BUFFER_INCREMENT;
+     ALLOC(transform_info->file_contents,TRANSFORM_BUFFER_INCREMENT);
+     transform_info->buffer_length = TRANSFORM_BUFFER_INCREMENT;
    }
    for (index = 0; (ch=getc(fp)) != EOF; index++) {
-      if (index >= transform_info->buffer_length-1) {
-         transform_info->buffer_length += TRANSFORM_BUFFER_INCREMENT;
-	 REALLOC(transform_info->file_contents, 
-		 transform_info->buffer_length);
-      }
-      transform_info->file_contents[index] = ch;
+     if (index >= transform_info->buffer_length-1) {
+       transform_info->buffer_length += TRANSFORM_BUFFER_INCREMENT;
+       REALLOC(transform_info->file_contents, 
+	       transform_info->buffer_length);
+     }
+     transform_info->file_contents[index] = ch;
    }
    transform_info->file_contents[index] = '\0';
    rewind(fp);
-
+   
    /* Read the file */
-   if (input_transform(fp, &input_transformation)!=OK) {
-      (void)fprintf(stderr, "Error reading transformation file.\n");
-      exit(EXIT_FAILURE);
+   if (input_deformation(fp, &input_transformation)!=OK) {
+     (void)fprintf(stderr, "Error reading transformation file.\n");
+     exit(EXIT_FAILURE);
    }
    (void) fclose(fp);
+
+
+
+   copy_general_transform(&input_transformation,transformation);
 
    /* set a GLOBAL flag, to show that a transformation has been read in */
 
    main_args.trans_info.use_default = FALSE;
-
-
-   copy_general_transform(&input_transformation,transformation);
 
    return TRUE;
 }

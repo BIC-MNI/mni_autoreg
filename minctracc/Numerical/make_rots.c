@@ -2,18 +2,32 @@
 @NAME       : make_rots.c
 @DESCRIPTION: collection of routines to build transformation matrices
               from parameters and to extract parameters from matrices.
+@COPYRIGHT  :
+              Copyright 1993 Louis Collins, McConnell Brain Imaging Centre, 
+              Montreal Neurological Institute, McGill University.
+              Permission to use, copy, modify, and distribute this
+              software and its documentation for any purpose and without
+              fee is hereby granted, provided that the above copyright
+              notice appear in all copies.  The author and McGill University
+              make no representations about the suitability of this
+              software for any purpose.  It is provided "as is" without
+              express or implied warranty.
+@CREATED    : Tue Jun  8 08:44:59 EST 1993 LC
 @MODIFIED   : $Log: make_rots.c,v $
-@MODIFIED   : Revision 1.6  1993-11-15 16:27:02  louis
-@MODIFIED   : working version, with new library, with RCS revision stuff,
-@MODIFIED   : before deformations included
+@MODIFIED   : Revision 1.7  1994-02-21 16:35:42  louis
+@MODIFIED   : version before feb 22 changes
 @MODIFIED   :
+ * Revision 1.6  93/11/15  16:27:02  louis
+ * working version, with new library, with RCS revision stuff,
+ * before deformations included
+ * 
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/make_rots.c,v 1.6 1993-11-15 16:27:02 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/make_rots.c,v 1.7 1994-02-21 16:35:42 louis Exp $";
 #endif
 
-#include <mni.h>
+#include <volume_io.h>
 #include <recipes.h>
 
 #include "matrix_basics.h"
@@ -399,6 +413,7 @@ public BOOLEAN extract_parameters_from_matrix(Transform *trans,
 
   FILL_NR_COLVEC( center_of_rotation, center[0], center[1], center[2] );
 
+
   invertmatrix(4, xmat, TMP1);	/* get inverse of the matrix */
 
   raw_matrix_multiply( 4, 4, 1, TMP1, center_of_rotation, result);
@@ -421,14 +436,16 @@ public BOOLEAN extract_parameters_from_matrix(Transform *trans,
     tmp[i+1] = -center[i];
   translation_to_homogeneous(3, tmp, Cinv); 
 
+
   matrix_multiply(4,4,4, Cinv, xmat, TMP1);    /* get scaling*rotation matrix */
 
+
   matrix_multiply(4,4,4, TMP1, C, TMP1);
+
 
   matrix_multiply(4,4,4, TMP1, Tinv,    SR);
 
   invertmatrix(4, SR, SRinv);	/* get inverse of scaling*rotation */
-
 
 				/* find each scale by mapping a unit vector backwards,
 				   and finding the magnitude of the result. */
