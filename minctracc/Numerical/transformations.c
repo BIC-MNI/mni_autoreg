@@ -16,13 +16,18 @@
 @CREATED    : Tue Nov 16 14:51:04 EST 1993 lc
                     based on transformations.c from fit_vol
 @MODIFIED   : $Log: transformations.c,v $
-@MODIFIED   : Revision 1.8  1994-06-06 09:37:56  louis
-@MODIFIED   : modifed the voxel and real range calls, in build_default_deformation_field
-@MODIFIED   : where the new voxel range: 0.0, 32767.0, new real range: -50.0, 50.0.
+@MODIFIED   : Revision 1.9  1995-02-22 08:56:06  louis
+@MODIFIED   : Montreal Neurological Institute version.
+@MODIFIED   : compiled and working on SGI.  this is before any changes for SPARC/
+@MODIFIED   : Solaris.
 @MODIFIED   :
-@MODIFIED   : These ranges are copied for all other deformation fields created from
-@MODIFIED   : the 1st scale deformation field.
-@MODIFIED   :
+ * Revision 1.8  94/06/06  09:37:56  louis
+ * modifed the voxel and real range calls, in build_default_deformation_field
+ * where the new voxel range: 0.0, 32767.0, new real range: -50.0, 50.0.
+ * 
+ * These ranges are copied for all other deformation fields created from
+ * the 1st scale deformation field.
+ * 
  * Revision 1.7  94/06/02  20:15:59  louis
  * made modifications to allow deformations to be calulated in 2D on slices. 
  * changes had to be made in set_up_lattice, init_lattice when defining
@@ -47,7 +52,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/transformations.c,v 1.8 1994-06-06 09:37:56 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/transformations.c,v 1.9 1995-02-22 08:56:06 louis Exp $";
 #endif
 
 
@@ -61,6 +66,8 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #include "constants.h"
 
 #define NUMBER_TRIES 10
+#define MY_MAX_VOX 32766.0
+#define MY_MAX_REAL 50.0
 
 public void set_up_lattice(Volume data, 
 			    double *user_step, /* user requested spacing for lattice */
@@ -309,15 +316,10 @@ public void build_default_deformation_field(Arg_Data *globals)
 
     /* build the three deformation volumes: */
     
-    *dx = create_volume(3, default_dim_names, NC_SHORT, FALSE, 0.0, 0.0);
-    set_volume_voxel_range(*dx, 0.0, 32767.0);  
-/*    set_volume_real_range(*dx, -4.0*globals->step[0], 4.0*globals->step[0] );*/
-    set_volume_real_range(*dx, -50.0, 50.0);
+    *dx = create_volume(3, default_dim_names, NC_SHORT, TRUE, 0.0, 0.0);
+    set_volume_voxel_range(*dx, -MY_MAX_VOX, MY_MAX_VOX);
+    set_volume_real_range(*dx, -MY_MAX_REAL, MY_MAX_REAL);
 
-/*
-    set_volume_voxel_range(*dx, -32767.0, 32767.0)
-    set_volume_real_range(*dx, -45.0, 45.0);
-*/
     set_volume_sizes(*dx, globals->count);
     set_volume_separations(*dx,globals->step);
     
@@ -452,22 +454,12 @@ public void build_default_deformation_field(Arg_Data *globals)
 
 
       *dx = copy_volume_definition(def->dx, NC_UNSPECIFIED, FALSE, 0.0,0.0);
+      set_volume_voxel_range(*dx, -MY_MAX_VOX, MY_MAX_VOX);  
+      set_volume_real_range(*dx, -MY_MAX_REAL, MY_MAX_REAL);
 
 				/* now redefine the new volume, using the new STEP
 				   values stored in *globals->step along with the 
 				   existing start and count */
-
-/*
- get_volume_sizes(def->dx, count_extended);
- get_volume_separations(def->dx, step);
-
- for_less(i,0,3) {
-if(count_extended[i]==1) {
-  step[i] = 0.01;	
-}
-}
-set_volume_separations(*dx , step);
-*/
 
       for_less(i,0,3) {
 	if(globals->count[i]==1) 
@@ -476,8 +468,6 @@ set_volume_separations(*dx , step);
 	  step2[i] = globals->step[i];
       }
       
-
-/*      set_up_lattice(*dx, globals->step, start, count, step, directions);*/
       set_up_lattice(*dx, step2, start, count, step, directions);
 
       for_less(i,0,3)		/* use the sign of the step returned to set the true step size */
@@ -499,7 +489,6 @@ set_volume_separations(*dx , step);
       if (globals->flags.verbose>0)
 	initialize_progress_report( &progress, FALSE, count[0],
 				   "Interpolating new field" );
-      
     
 				/* now resample the values from the input deformation */
       for_less(i,0,count[0]) {

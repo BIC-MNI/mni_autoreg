@@ -61,3 +61,16 @@
 
 #define INTERPOLATE(volume, coord, result) \
    (*volume->interpolant) (volume, coord, result)
+
+/* These are needed if linking against (eg.) the GNU C Library, since
+ * it has only the ANSI-named functions (sqrtf, etc.) and not the 
+ * more traditional fsqrt, etc.  Added by GPW 95/2/9.
+ */
+
+#ifdef STRICT_ANSI_LIB
+# define fsqrt sqrtf
+# define fcos cosf
+# define fsin sinf
+# define facos acosf
+# define fasin asinf
+#endif

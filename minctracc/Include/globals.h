@@ -17,8 +17,9 @@ Volume  data_dxyz  = NULL;
 
 
 double  ftol                     =  0.005;
-int     iteration_limit          = 20;
-double  iteration_weight         = 0.3;
+int     iteration_limit          = 4;
+double  iteration_weight         = 0.6;
+double  smoothing_weight         = 0.5;
 double  similarity_cost_ratio    = 0.5;
 double  simplex_size             = 20.0;
 int     number_dimensions        = 3;
@@ -84,6 +85,10 @@ static ArgvInfo argTable[] = {
      "use magnitude data local deformation (default)."},
   {"-use_simplex", ARGV_CONSTANT, (char *) TRUE, (char *) &main_args.trans_info.use_simplex,
      "use 3D simplex optimization for local deformation (default)."},
+  {"-super", ARGV_CONSTANT, (char *) TRUE, (char *) &main_args.trans_info.use_super,
+     "super sample deformation field during optimization (default)."},
+  {"-no_super", ARGV_CONSTANT, (char *) FALSE, (char *) &main_args.trans_info.use_super,
+     "do not super sample deformation field during optimization."},
   {"-use_1D", ARGV_CONSTANT, (char *) FALSE, (char *) &main_args.trans_info.use_simplex,
      "use Lvv correlation for local deformation."},
   {"-forward", ARGV_CONSTANT, (char *) FALSE,
@@ -149,6 +154,9 @@ static ArgvInfo argTable[] = {
   {"-weight", ARGV_FLOAT, (char *) 0, 
      (char *) &iteration_weight,
      "Weighting factor for each iteration in nl optimization"},
+  {"-stiffness", ARGV_FLOAT, (char *) 0, 
+     (char *) &smoothing_weight,
+     "Weighting factor for smoothing between nl iterations"},
   {"-similarity_cost_ratio", ARGV_FLOAT, (char *) 0, 
      (char *) &similarity_cost_ratio,
      "Weighting factor for  r=similarity*w + cost(1*w)"},

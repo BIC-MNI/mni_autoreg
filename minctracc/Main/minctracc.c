@@ -22,7 +22,7 @@
    @GLOBALS    : 
    @CALLS      : 
    @COPYRIGHT  :
-              Copyright 1993 Collins Collins, McConnell Brain Imaging Centre, 
+              Copyright 1993 Louis Collins, McConnell Brain Imaging Centre, 
               Montreal Neurological Institute, McGill University.
               Permission to use, copy, modify, and distribute this
               software and its documentation for any purpose and without
@@ -32,11 +32,16 @@
               software for any purpose.  It is provided "as is" without
               express or implied warranty.
 
-   @CREATED    : February 3, 1992 - louis collins
+   @CREATED    : February 3, 1992 - louis louis
    @MODIFIED   : $Log: minctracc.c,v $
-   @MODIFIED   : Revision 1.12  1994-05-28 16:18:54  louis
-   @MODIFIED   : working version before modification of non-linear optimiation
+   @MODIFIED   : Revision 1.13  1995-02-22 08:56:06  louis
+   @MODIFIED   : Montreal Neurological Institute version.
+   @MODIFIED   : compiled and working on SGI.  this is before any changes for SPARC/
+   @MODIFIED   : Solaris.
    @MODIFIED   :
+ * Revision 1.12  94/05/28  16:18:54  louis
+ * working version before modification of non-linear optimiation
+ * 
  * Revision 1.11  94/04/26  12:54:30  louis
  * updated with new versions of make_rots, extract2_parameters_from_matrix 
  * that include proper interpretation of skew.
@@ -75,7 +80,7 @@ Wed May 26 13:05:44 EST 1993 lc
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 1.12 1994-05-28 16:18:54 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 1.13 1995-02-22 08:56:06 louis Exp $";
 #endif
 
 
@@ -275,27 +280,34 @@ main ( argc, argv )
 
   ALLOC( data, 1 );		/* read in source data and target model */
   ALLOC( model, 1 );
-
+  ALLOC(data_dx, 1); ALLOC(data_dy,   1);
+  ALLOC(data_dz, 1); ALLOC(data_dxyz, 1);
+  ALLOC(model_dx,1); ALLOC(model_dy,  1);
+  ALLOC(model_dz,1); ALLOC(model_dxyz,1);
+  
+/*
   if (main_args.trans_info.transform_type != TRANS_NONLIN) {
-    status = input_volume( main_args.filenames.data, 3, default_dim_names, 
-			  NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-			  TRUE, &data, (minc_input_options *)NULL );
-    if (status != OK)
-      print_error("Cannot input volume '%s'",__FILE__, __LINE__,main_args.filenames.data);
-    
-    
-    status = input_volume( main_args.filenames.model, 3, default_dim_names, 
-			  NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-			  TRUE, &model, (minc_input_options *)NULL );
-    if (status != OK)
-      print_error("Cannot input volume '%s'",
-		  __FILE__, __LINE__,main_args.filenames.model);
-  }
+*/
+
+
+  status = input_volume( main_args.filenames.data, 3, default_dim_names, 
+			NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+			TRUE, &data, (minc_input_options *)NULL );
+  if (status != OK)
+    print_error("Cannot input volume '%s'",__FILE__, __LINE__,main_args.filenames.data);
+  
+  
+  status = input_volume( main_args.filenames.model, 3, default_dim_names, 
+			NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+			TRUE, &model, (minc_input_options *)NULL );
+  if (status != OK)
+    print_error("Cannot input volume '%s'",
+		__FILE__, __LINE__,main_args.filenames.model);
+
+/*
+}
   else {
-    ALLOC(data_dx, 1); ALLOC(data_dy,   1);
-    ALLOC(data_dz, 1); ALLOC(data_dxyz, 1);
-    ALLOC(model_dx,1); ALLOC(model_dy,  1);
-    ALLOC(model_dz,1); ALLOC(model_dxyz,1);
+
     status = read_all_data(&data, &data_dx, &data_dy, &data_dz, &data_dxyz,
 			   main_args.filenames.data );
     if (status!=OK)
@@ -308,6 +320,7 @@ main ( argc, argv )
       print_error("Cannot input gradient volumes for  '%s'",
 		  __FILE__, __LINE__,main_args.filenames.model);
   }
+*/
 
   get_volume_separations(data, step);
   get_volume_sizes(data, sizes);
@@ -432,9 +445,15 @@ main ( argc, argv )
 
       build_default_deformation_field(&main_args);
 
-      if (!optimize_non_linear_transformation(data_dxyz, data_dx, data_dy, data_dz, data, 
-					     model_dxyz, model_dx, model_dy, model_dz, model, 
-					     mask_data, mask_model, &main_args ) ) {
+/*
+      if (!optimize_non_linear_transformation(data, data_dx, data_dy, data_dz, data_dxyz, 
+					      model, model_dx, model_dy, model_dz, model_dxyz, 
+					      mask_data, mask_model, &main_args ) ) {
+*/
+
+      if (!optimize_non_linear_transformation(data, data_dx, data_dy, data_dz, data, 
+					      model, model_dx, model_dy, model_dz, model, 
+					      mask_data, mask_model, &main_args ) ) {
 	print_error("Error in optimization of non-linear transformation\n",
 		    __FILE__, __LINE__);
 	exit(EXIT_FAILURE);
@@ -442,13 +461,13 @@ main ( argc, argv )
 
     }
     else {
-
+      
       if (!optimize_linear_transformation( data, model, mask_data, mask_model, &main_args )) {
 	print_error("Error in optimization of linear transformation\n",
 		    __FILE__, __LINE__);
 	exit(EXIT_FAILURE);
       }
-
+      
     }
   }
 
@@ -613,7 +632,7 @@ public int get_transformation(char *dst, char *key, char *nextArg)
 @METHOD     : 
 @GLOBALS    : 
 @CALLS      : 
-@CREATED    : Wed May 26 13:05:44 EST 1993 Collins Collins
+@CREATED    : Wed May 26 13:05:44 EST 1993 Louis Collins
 @MODIFIED   : Wed Jun 16 13:21:18 EST 1993 LC
     added: set of main_args.filenames.mask_model and .mask_data
 

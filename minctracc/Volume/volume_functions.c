@@ -14,10 +14,15 @@
 
 @CREATED    : Tue Jun 15 08:57:23 EST 1993 LC
 @MODIFIED   :  $Log: volume_functions.c,v $
-@MODIFIED   :  Revision 1.9  1994-04-26 12:54:44  louis
-@MODIFIED   :  updated with new versions of make_rots, extract2_parameters_from_matrix
-@MODIFIED   :  that include proper interpretation of skew.
+@MODIFIED   :  Revision 1.10  1995-02-22 08:56:06  louis
+@MODIFIED   :  Montreal Neurological Institute version.
+@MODIFIED   :  compiled and working on SGI.  this is before any changes for SPARC/
+@MODIFIED   :  Solaris.
 @MODIFIED   :
+ * Revision 1.9  94/04/26  12:54:44  louis
+ * updated with new versions of make_rots, extract2_parameters_from_matrix 
+ * that include proper interpretation of skew.
+ * 
  * Revision 1.8  94/04/06  11:49:00  louis
  * working linted version of linear + non-linear registration based on Lvv
  * operator working in 3D
@@ -32,7 +37,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/volume_functions.c,v 1.9 1994-04-26 12:54:44 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/volume_functions.c,v 1.10 1995-02-22 08:56:06 louis Exp $";
 #endif
 
 #include <volume_io.h>

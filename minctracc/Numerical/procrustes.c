@@ -17,10 +17,15 @@
 
 @CREATED    : January 29, 1992 (Peter Neelin)
 @MODIFIED   :  $Log: procrustes.c,v $
-@MODIFIED   :  Revision 1.7  1994-04-06 11:48:47  louis
-@MODIFIED   :  working linted version of linear + non-linear registration based on Lvv
-@MODIFIED   :  operator working in 3D
+@MODIFIED   :  Revision 1.8  1995-02-22 08:56:06  louis
+@MODIFIED   :  Montreal Neurological Institute version.
+@MODIFIED   :  compiled and working on SGI.  this is before any changes for SPARC/
+@MODIFIED   :  Solaris.
 @MODIFIED   :
+ * Revision 1.7  94/04/06  11:48:47  louis
+ * working linted version of linear + non-linear registration based on Lvv
+ * operator working in 3D
+ * 
  * Revision 1.6  94/02/21  16:36:20  louis
  * version before feb 22 changes
  * 
@@ -41,12 +46,12 @@ and moved them to matrix_basics!
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/procrustes.c,v 1.7 1994-04-06 11:48:47 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/procrustes.c,v 1.8 1995-02-22 08:56:06 louis Exp $";
 #endif
 
 #include <volume_io.h>
 #include <recipes.h>
-#include <matrix_basics.h>
+#include "matrix_basics.h"
 
 /* Routines called in this file */
 void svdcmp(float **, int, int, float *, float **);

@@ -1,5 +1,6 @@
 				/* redefine Point and Vector */
 
+#define N_DIMENSIONS 3
 
 typedef  struct
 {

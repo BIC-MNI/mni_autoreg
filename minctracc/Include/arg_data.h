@@ -40,6 +40,7 @@ typedef struct {
   int use_default;
   int use_magnitude;
   int use_simplex;
+  int use_super;
   char *file_name;
   char *file_contents;
   long buffer_length;

@@ -16,10 +16,15 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 1.13  1994-06-23 09:18:04  louis
-@MODIFIED   : working version before testing of increased cpu time when calculating
-@MODIFIED   : deformations on a particular slice.
+@MODIFIED   : Revision 1.14  1995-02-22 08:56:06  louis
+@MODIFIED   : Montreal Neurological Institute version.
+@MODIFIED   : compiled and working on SGI.  this is before any changes for SPARC/
+@MODIFIED   : Solaris.
 @MODIFIED   :
+ * Revision 1.13  94/06/23  09:18:04  louis
+ * working version before testing of increased cpu time when calculating
+ * deformations on a particular slice.
+ * 
  * Revision 1.12  94/06/21  10:58:32  louis
  * working optimized version of program.  when compiled with -O, this
  * code is approximately 60% faster than the previous version.
@@ -106,7 +111,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 1.13 1994-06-23 09:18:04 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 1.14 1995-02-22 08:56:06 louis Exp $";
 #endif
 
 
@@ -115,6 +120,7 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #include "arg_data.h"
 #include "deform_field.h"
 #include "line_data.h"
+#include "local_macros.h"
 #include <print_error.h>
 #include <limits.h>
 #include <recipes.h>
@@ -210,12 +216,6 @@ public float go_get_samples_with_offset(Volume data,
 				       Real dx, Real dy, Real dz,
 				       int len, float sqrt_s1, float *a1) ;
 
-private float gauss_3d(float c,
-		       float fwhm_x,float fwhm_y,float fwhm_z,
-		       float mux,float muy,float muz,
-		       float x,float y,float z,
-		       int ndim);
-
 public float calc_scalar_correlation(float *a1,float *a2, float sqrt_s1, int len);
 
 private Real cost_fn(float x, float y, float z, Real max_length);
@@ -268,6 +268,8 @@ private Real get_normalized_world_gradient_direction(Real xworld, Real yworld, R
 						     Volume data_x,Volume data_y,Volume data_z,
 						     Real *DX_dir, Real *DY_dir, Real *DZ_dir,
 						     Real thresh);
+private Real get_value_of_point_in_volume(Real xworld, Real yworld, Real zworld, 
+					  Volume data_x);
 
 private float interp_data_along_gradient(Real dist_from, int inter_type,
 					 Real x, Real y, Real z, 
@@ -290,7 +292,7 @@ public void add_additional_warp_to_current(Volume dx, Volume dy, Volume dz,
 					    Volume adx, Volume ady, Volume adz,
 					    Real weight);
 
-public Real get_maximum_magnitude(Volume dx, Volume dy, Volume dz);
+public Real get_maximum_magnitude(Volume dxyz);
 
 
 
@@ -382,6 +384,19 @@ public Status do_non_linear_optimization(Volume d1,
   Gm1     = m1;
   Gm2     = m2; 
   Gglobals= globals;
+
+
+  Ga1xyz = vector(1,512);	/* allocate space for the global data for */
+  Ga2xyz = vector(1,512);	/* the local neighborhood lattice values */
+  
+  SX = vector(1,512);		/* and coordinates in source volume  */
+  SY = vector(1,512);
+  SZ = vector(1,512);
+  TX = vector(1,512);		/* and coordinates in target volume  */
+  TY = vector(1,512);
+  TZ = vector(1,512);
+
+
 
 
   /*******************************************************************************/
@@ -481,11 +496,19 @@ public Status do_non_linear_optimization(Volume d1,
   /*    set the threshold to be 10% of the maximum gradient magnitude            */
   /*    for each source and target volumes                                       */
 
-  threshold1 = 0.10 * get_maximum_magnitude(d1_dx, d1_dy, d1_dz); 
-  threshold2 = 0.10 * get_maximum_magnitude(d2_dx, d2_dy, d2_dz); 
+  if (globals->threshold[0]==0.0)
+    threshold1 = 0.10 * get_maximum_magnitude(d1_dxyz);
+  else
+    threshold1 = globals->threshold[0] * get_maximum_magnitude(d1_dxyz);
+
+  if (globals->threshold[1]==0.0)
+    threshold2 = 0.10 * get_maximum_magnitude(d2_dxyz);
+  else
+    threshold2 = globals->threshold[1] * get_maximum_magnitude(d2_dxyz);
 
   if (threshold1<0.0 || threshold2<0.0) {
-    print_error("Gradient magnitude threshold error: %f %f\n", __FILE__, __LINE__, threshold1, threshold2);
+    print_error("Gradient magnitude threshold error: %f %f\n", __FILE__, __LINE__, 
+		threshold1, threshold2);
   }
   if (globals->flags.debug) {	
     print("Source vol threshold = %f\n", threshold1);
@@ -523,28 +546,28 @@ public Status do_non_linear_optimization(Volume d1,
     }
   }
 
-/*
-  loop_start[0] += 12;
-loop_start[0]=30;
-loop_end[0]=34;
-  loop_end[0] = 10;
-*/
-
-
-
   if (globals->flags.debug) {
     print("loop: (%d %d) (%d %d) (%d %d)\n",
 	  loop_start[0],loop_end[0],loop_start[1],loop_end[1],loop_start[2],loop_end[2]);
   }
 
-  make_super_sampled_data(current->dx, &Gsuper_dx,  &Gsuper_dy,  &Gsuper_dz);
-  
+  if (globals->trans_info.use_super) {
+    make_super_sampled_data(current->dx, &Gsuper_dx,  &Gsuper_dy,  &Gsuper_dz);
+  }
+  else {
+    Gsuper_dx = current->dx;
+    Gsuper_dy = current->dy;
+    Gsuper_dz = current->dz;
+  }
+
+
   for_less(iters,0,iteration_limit) {
 
-    interpolate_super_sampled_data(current->dx, current->dy, current->dz,
-				   Gsuper_dx,  Gsuper_dy,  Gsuper_dz,
-				   number_dimensions);
-
+    if (globals->trans_info.use_super)
+      interpolate_super_sampled_data(current->dx, current->dy, current->dz,
+				     Gsuper_dx,  Gsuper_dy,  Gsuper_dz,
+				     number_dimensions);
+  
     
     print("Iteration %2d of %2d\n",iters+1, iteration_limit);
 
@@ -565,7 +588,8 @@ loop_end[0]=34;
     min = 1000.0;
     max = -1000.0;
 
-    initialize_progress_report( &progress, FALSE, (loop_end[0]-loop_start[0])*(loop_end[1]-loop_start[1]) + 1,
+    initialize_progress_report( &progress, FALSE, 
+			       (loop_end[0]-loop_start[0])*(loop_end[1]-loop_start[1]) + 1,
 			       "Estimating deformations" );
 
     for_less(i,loop_start[0],loop_end[0]) {
@@ -595,7 +619,9 @@ loop_end[0]=34;
 				/* add the warp to the target lattice point */
 	  wx += val_x; wy += val_y; wz += val_z;
 
-	  if ( point_not_masked(m2, wx, wy, wz)) {
+	  if (point_not_masked(m2, wx, wy, wz) &&
+	      get_value_of_point_in_volume(wx,wy,wz, Gd2_dxyz)>threshold2) {
+
 
 				/* now get the mean warped position of the target's neighbours */
 
@@ -606,6 +632,7 @@ loop_end[0]=34;
 	    general_inverse_transform_point(globals->trans_info.transformation,
 					    wx,wy,wz,
 					    &tx,&ty,&tz);
+
 
 	    if (Gglobals->trans_info.use_simplex==TRUE)
 	      result = optimize_3D_deformation_for_single_node(steps[0], 
@@ -624,10 +651,6 @@ loop_end[0]=34;
 							       &def_x, &def_y, &def_z, 
 							       matching_type);
 	    
-/*
-if (nfunks>0)
-  printf ("%d %d %d -> %d %f\n",i,j,k,nfunks, result);
-*/
 
 	    if (result == -40.0) {
 	      nodes_tried++;
@@ -840,17 +863,26 @@ if (nfunks>0)
   }
 
 				/* free up allocated temporary deformation volumes */
-
-  (void)free_volume_data(Gsuper_dx); (void)delete_volume(Gsuper_dx);
-  (void)free_volume_data(Gsuper_dy); (void)delete_volume(Gsuper_dy);
-  (void)free_volume_data(Gsuper_dz); (void)delete_volume(Gsuper_dz);
-
+  if (globals->trans_info.use_super) {
+    (void)free_volume_data(Gsuper_dx); (void)delete_volume(Gsuper_dx);
+    (void)free_volume_data(Gsuper_dy); (void)delete_volume(Gsuper_dy);
+    (void)free_volume_data(Gsuper_dz); (void)delete_volume(Gsuper_dz);
+  }
 
   (void)free_volume_data(additional_dx); (void)delete_volume(additional_dx);
   (void)free_volume_data(additional_dy); (void)delete_volume(additional_dy);
   (void)free_volume_data(additional_dz); (void)delete_volume(additional_dz);
   (void)free_volume_data(additional_mag); (void)delete_volume(additional_mag);
 
+  free_vector(Ga1xyz ,1,512);
+  free_vector(Ga2xyz ,1,512);
+  free_vector(TX ,1,512);
+  free_vector(TY ,1,512);
+  free_vector(TZ ,1,512);
+  free_vector(SX ,1,512);
+  free_vector(SY ,1,512);
+  free_vector(SZ ,1,512);
+    
 
   return (OK);
 
@@ -1060,11 +1092,7 @@ private BOOLEAN get_best_start_from_neighbours(Real threshold1,
   
   *tx = nx; *ty = ny; *tz = nz;
   
-  mag_normal1 = 
-    get_normalized_world_gradient_direction(wx,wy,wz, 
-					    Gd1_dx, Gd1_dy, Gd1_dz, 
-					    d1x_dir, d1y_dir, d1z_dir,
-					    threshold1);
+  mag_normal1 = get_value_of_point_in_volume(wx,wy,wz, Gd1_dxyz);
 
   if (mag_normal1 < threshold1)
     return(FALSE);	
@@ -1222,6 +1250,29 @@ private BOOLEAN build_first_derivative_data(Line_data *line, int num_samples, Re
   }
   return(TRUE);
 
+}
+
+
+private Real get_value_of_point_in_volume(Real xw, Real yw, Real zw, 
+					  Volume data)
+     
+{
+
+  Real
+    mag,
+    xvox, yvox, zvox;
+  
+  PointR 
+    voxel;
+
+  convert_3D_world_to_voxel(data, xw, yw, zw,
+			    &zvox, &yvox, &xvox);
+  fill_Point( voxel, zvox, yvox, xvox );
+
+  if (!trilinear_interpolant(data, &voxel, &mag)) 
+    return(-DBL_MAX); 
+  else 
+    return(mag);
 }
 
 
@@ -1477,18 +1528,6 @@ private Real optimize_3D_deformation_for_single_node(Real spacing,
     for_less(i,1,ndim) {
       len *= (numsteps+1);
     }
-
-    
-    Ga1xyz = vector(1,len);
-    Ga2xyz = vector(1,len);
-    
-    SX = vector(1,len);
-    SY = vector(1,len);
-    SZ = vector(1,len);
-    TX = vector(1,len);
-    TY = vector(1,len);
-    TZ = vector(1,len);
-
 				/* get the node point in the source volume taking   */
 				/* into consideration the warp from neighbours      */
 
@@ -1496,12 +1535,14 @@ private Real optimize_3D_deformation_for_single_node(Real spacing,
 				    tx,  ty,  tz,
 				    &xp, &yp, &zp);
 
+
 				/* build a lattice of points, in the source volume  */
     build_source_lattice(xp, yp, zp, 
 			 SX,    SY,    SZ,
-			 spacing*3, spacing*3, spacing*3, /* lattice size= 1.5*fwhm */
+			 spacing*3, spacing*3, spacing*3, /* sub-lattice diameter= 1.5*fwhm */
 			 numsteps+1,  numsteps+1,  numsteps+1,
 			 ndim, &Glen);
+
     
 				/* map this lattice forward into the target space,
 				   using the current transformation, in order to 
@@ -1515,7 +1556,8 @@ private Real optimize_3D_deformation_for_single_node(Real spacing,
 				(Real)TX[i],(Real)TY[i],(Real)TZ[i], 
 				&pos[0], &pos[1], &pos[2]);
 
-      if (ndim>2)		/* jiggle the point off center. */
+      if (ndim>2)		/* jiggle the points off center. */
+				/* so that nearest-neighbour interpolation can be used */
 	TX[i] = pos[0] -1.0 + 2.0*drand48();
       else
 	TX[i] = pos[0];
@@ -1534,10 +1576,10 @@ private Real optimize_3D_deformation_for_single_node(Real spacing,
     go_get_samples_in_source(Gd1_dxyz, SX,SY,SZ, Ga1xyz, Glen, 1);
 
     Gsqrt_s1 = 0.0;
-    for_inclusive(i,1,len)
+    for_inclusive(i,1,Glen)
       Gsqrt_s1 += Ga1xyz[i]*Ga1xyz[i];
 
-    Gsqrt_s1 = fsqrt(Gsqrt_s1);
+    Gsqrt_s1 = sqrt((double)Gsqrt_s1);
 
 				/* set up SIMPLEX OPTIMIZATION */
 
@@ -1573,11 +1615,8 @@ private Real optimize_3D_deformation_for_single_node(Real spacing,
     }
 
 
-/*print ("corr: %12.9f %12.9f %12.9f %12.9f  \n",y[1], y[2], y[3], y[4]); */
-
     if (amoeba2(p,y,ndim,ftol,xcorr_fitting_function,&nfunk)) {    /* do optimization */
 
-    
       if ( y[1] < y[2] + 0.00001 )
 	i=1;
       else
@@ -1593,8 +1632,6 @@ private Real optimize_3D_deformation_for_single_node(Real spacing,
       
 
       convert_3D_world_to_voxel(Gd2_dxyz, tx,ty,tz, &voxel[0], &voxel[1], &voxel[2]);
-
-/* print ("corr: %12.9f %12.9f %12.9f  \n",p[i][3],p[i][2],p[i][1]); */
 
       if (ndim>2)
 	convert_3D_voxel_to_world(Gd2_dxyz, 
@@ -1618,6 +1655,117 @@ private Real optimize_3D_deformation_for_single_node(Real spacing,
 	*def_z = 0.0;
       
       result = sqrt((*def_x * *def_x) + (*def_y * *def_y) + (*def_z * *def_z)) ;      
+
+/*******begin debug stuff*************
+
+      if (result>2.0) {
+
+	p[1][1] = p[i][1];
+	p[1][2] = p[i][2];
+	if (ndim > 2)
+	  p[1][3] = p[i][3];
+	
+	print ("dx=[");
+	for_inclusive(i,-4,4) {
+	  p[2][1] = p[1][1];
+	  p[2][2] = p[1][2];
+	  if (ndim > 2)
+	    p[2][3] = p[1][3];
+	  
+	  p[2][1] += (float)i * Gsimplex_size/4.0;
+	  
+	  y[1] = xcorr_fitting_function(p[2]);
+	  print ("%9.7f ",y[1]);
+	}
+	print ("];\n");
+	
+	print ("dy=[");
+	for_inclusive(i,-4,4) {
+	  p[2][1] = p[1][1];
+	  p[2][2] = p[1][2];
+	  if (ndim > 2)
+	    p[2][3] = p[1][3];
+	  
+	  p[2][2] += (float)i * Gsimplex_size/4.0;
+	  
+	  y[1] = xcorr_fitting_function(p[2]);
+	  print ("%9.7f ",y[1]);
+	}
+	print ("];\n");
+	
+	if (ndim>2) {
+	  print ("dz=[");
+	  for_inclusive(i,-4,4) {
+	    p[2][1] = p[1][1];
+	    p[2][2] = p[1][2];
+	    if (ndim > 2)
+	      p[2][3] = p[1][3];
+	    
+	    p[2][3] += (float)i * Gsimplex_size/4.0;
+	    
+	    y[1] = xcorr_fitting_function(p[2]);
+	    print ("%9.7f ",y[1]);
+	  }
+	print ("];\n");
+	}
+	p[1][1] = 0.0;
+	p[1][2] = 0.0;
+	if (ndim > 2)
+	  p[1][3] = 0.0;
+	
+	print ("dx=[");
+	for_inclusive(i,-4,4) {
+	  p[2][1] = p[1][1];
+	  p[2][2] = p[1][2];
+	  if (ndim > 2)
+	    p[2][3] = p[1][3];
+	  
+	  p[2][1] += (float)i * Gsimplex_size/4.0;
+	  
+	  y[1] = xcorr_fitting_function(p[2]);
+	  print ("%9.7f ",y[1]);
+	}
+	print ("];\n");
+	
+	print ("dy=[");
+	for_inclusive(i,-4,4) {
+	  p[2][1] = p[1][1];
+	  p[2][2] = p[1][2];
+	  if (ndim > 2)
+	    p[2][3] = p[1][3];
+	  
+	  p[2][2] += (float)i * Gsimplex_size/4.0;
+	  
+	  y[1] = xcorr_fitting_function(p[2]);
+	  print ("%9.7f ",y[1]);
+	}
+	print ("];\n");
+	
+	if (ndim>2) {
+	  print ("dz=[");
+	  for_inclusive(i,-4,4) {
+	    p[2][1] = p[1][1];
+	    p[2][2] = p[1][2];
+	    if (ndim > 2)
+	      p[2][3] = p[1][3];
+	    
+	    p[2][3] += (float)i * Gsimplex_size/4.0;
+	    
+	    y[1] = xcorr_fitting_function(p[2]);
+	    print ("%9.7f ",y[1]);
+	  }
+	print ("];\n");
+	}
+
+	print ("\n");
+
+
+      }
+
+*******end debug stuff  *************/
+
+
+
     }
     else {
       *num_functions = 0;
@@ -1630,21 +1778,11 @@ private Real optimize_3D_deformation_for_single_node(Real spacing,
     free_matrix(p, 1,ndim+1,1,ndim);    
     free_vector(y, 1,ndim+1);  
     
-    free_vector(Ga1xyz ,1,len);
-    free_vector(Ga2xyz ,1,len);
-    free_vector(TX ,1,len);
-    free_vector(TY ,1,len);
-    free_vector(TZ ,1,len);
-    free_vector(SX ,1,len);
-    free_vector(SY ,1,len);
-    free_vector(SZ ,1,len);
-    
 
   }
   
   return(result);
 }
-
 
 public void    build_source_lattice(Real x, Real y, Real z,
 				    float PX[], float PY[], float PZ[],
@@ -1661,7 +1799,7 @@ public void    build_source_lattice(Real x, Real y, Real z,
 
   *length = 0; 
   c = 1;
-  radius_squared = 0.55 * 0.55;
+  radius_squared = 0.55 * 0.55;	/* a bit bigger than .5^2 */
   
   if (ndim==2) {
     for_less(i,0,nx)
@@ -1825,7 +1963,9 @@ public float go_get_samples_with_offset(Volume data,
   float
     f_trans, f_scale;
 
-  unsigned char ***byte_ptr;
+  unsigned char  ***byte_ptr;
+  unsigned short ***ushort_ptr;
+           short ***sshort_ptr;
   
   get_volume_sizes(data, sizes);  
   xs = sizes[0];  
@@ -1871,6 +2011,60 @@ public float go_get_samples_with_offset(Volume data,
 
     }
     break;
+  case SIGNED_SHORT:  
+
+    sshort_ptr = data->data;
+
+    ++x; ++y; ++z; 
+
+    for_inclusive(c,1,len) {
+      
+      ind0 = (int) ( *x++ + dz );
+      ind1 = (int) ( *y++ + dy );
+      ind2 = (int) ( *z++ + dx );
+      
+      if (ind0>=0 && ind0<xs &&
+	  ind1>=0 && ind1<ys &&
+	  ind2>=0 && ind2<zs) {
+	sample = sshort_ptr[ind0][ind1][ind2] * f_scale + f_trans;
+      }
+      else
+	sample = 0.0;
+      
+      s1 += *a1++ * sample;
+      s3 += sample * sample;
+      
+
+    }
+    break;
+  case UNSIGNED_SHORT:  
+
+    ushort_ptr = data->data;
+
+    ++x; ++y; ++z; 
+
+    for_inclusive(c,1,len) {
+      
+      ind0 = (int) ( *x++ + dz );
+      ind1 = (int) ( *y++ + dy );
+      ind2 = (int) ( *z++ + dx );
+      
+      if (ind0>=0 && ind0<xs &&
+	  ind1>=0 && ind1<ys &&
+	  ind2>=0 && ind2<zs) {
+	sample = ushort_ptr[ind0][ind1][ind2] * f_scale + f_trans;
+      }
+      else
+	sample = 0.0;
+      
+      s1 += *a1++ * sample;
+      s3 += sample * sample;
+      
+
+    }
+    break;
+  default:
+    print_error("Data type not supported in go_get_samples_with_offset",__FILE__, __LINE__);
   }
 
 
@@ -1883,7 +2077,7 @@ public float go_get_samples_with_offset(Volume data,
       r = 0.0;
     }
     else {
-      r = s1 / (sqrt_s1*fsqrt(s3));
+      r = s1 / (sqrt_s1*sqrt((double)s3));
     }
   }
 
@@ -1896,97 +2090,6 @@ public float go_get_samples_with_offset(Volume data,
 
 
 
-/************************************************************/
-/* return the value of the normal dist at x, given c,sigma  */
-/* and mu ----   all in mm                                  */
-/************************************************************/
-private float gauss_3d(float c,
-		       float fwhm_x,float fwhm_y,float fwhm_z,
-		       float mux,float muy,float muz,
-		       float x,float y,float z,
-		       int ndim)
-{
-  float 
-    dx,dy,dz,sigma_x,sigma_y,sigma_z,t1,t2,t3,f;
-  
-  
-  if (ndim==2) {
-    
-    if (EQUAL(fwhm_x,0.0) || EQUAL(fwhm_y,0.0) ) {
-      if ( EQUAL(x,mux) && EQUAL(y,muy)  )
-	f = c;
-      else
-	f = 0;
-    }
-    else {
-      
-      sigma_x = fwhm_x/2.0;
-      sigma_y = fwhm_y/2.0;
-      
-      dx = mux-x;
-      dy = muy-y;
-      
-      t1 = c; /* /(sigma_x*sigma_y*fsqrt(two_pi3));*/
-      
-      sigma_x = sigma_x*sigma_x;  /* square the differences and the sigmas */
-      sigma_y = sigma_y*sigma_y;
-      
-      dx = dx*dx;
-      dy = dy*dy;
-      
-      t2 = (-1.0/4.0) * 
-	(sigma_y*dx + sigma_x*dy ) / (sigma_x*sigma_y);
-      
-      t3 = fexp(t2);
-      
-      f = t1*t3;
-      
-    }
-    
-    
-  }
-  else {
-    
-    if (EQUAL(fwhm_x,0.0) || EQUAL(fwhm_y,0.0) || EQUAL(fwhm_z,0.0) ) {
-      if ( EQUAL(x,mux) && EQUAL(y,muy) && EQUAL(z,muz)  )
-	f = c;
-      else
-	f = 0;
-    }
-    else {
-      
-      sigma_x = fwhm_x/2.0;
-      sigma_y = fwhm_y/2.0;
-      sigma_z = fwhm_z/2.0;
-      
-      dx = mux-x;
-      dy = muy-y;
-      dz = muz-z;
-      
-      
-      t1 = c; /*/(sigma_x*sigma_y*sigma_z*fsqrt(two_pi3)); */
-      
-      sigma_x = sigma_x*sigma_x;  /* square the differences and the sigmas */
-      sigma_y = sigma_y*sigma_y;
-      sigma_z = sigma_z*sigma_z;
-      
-      dx = dx*dx;
-      dy = dy*dy;
-      dz = dz*dz;
-      
-      t2 = (-1.0/8.0) * 
-	(sigma_y*sigma_z*dx + sigma_x*sigma_z*dy + sigma_x*sigma_y*dz) / (sigma_x*sigma_y*sigma_z);
-      
-      t3 = fexp(t2);
-      
-      f = t1*t3;
-    }
-    
-  }
-  return(f);
-}
-
-
 private Real cost_fn(float x, float y, float z, Real max_length)
 {
   Real v2,v,d;
@@ -1997,7 +2100,7 @@ private Real cost_fn(float x, float y, float z, Real max_length)
   v *= v2;
 
   if (v<max_length)
-    d = 0.01 * v / (max_length - v);
+    d = 0.2 * v / (max_length - v);
   else
     d = FLT_MAX;
 
@@ -2020,6 +2123,8 @@ private float xcorr_fitting_function(float *d)
    
    return(r);
 }
+
+
 
 
 

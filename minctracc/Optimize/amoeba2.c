@@ -55,6 +55,7 @@ int amoeba2(float **p, float y[], int ndim, float ftol, float (*funk)(), int *nf
 		p[i][j]=psum[j];
 	      }
 	      y[i]=(*funk)(psum);
+	      ++(*nfunk);
 	    }
 	  }
 	  *nfunk += ndim;
@@ -74,10 +75,12 @@ float amotry2(float **p,float *y,float *psum,int ndim,float (*funk)(),int ihi,in
   ptry=vector(1,ndim);
   fac1=(1.0-fac)/ndim;
   fac2=fac1-fac;
-  for (j=1;j<=ndim;j++) ptry[j]=psum[j]*fac1-p[ihi][j]*fac2;
+  for (j=1;j<=ndim;j++) 
+    ptry[j]=psum[j]*fac1-p[ihi][j]*fac2;
+
   ytry=(*funk)(ptry);
-  
   ++(*nfunk);
+
   if (ytry < y[ihi]) {
     y[ihi]=ytry;
     for (j=1;j<=ndim;j++) {

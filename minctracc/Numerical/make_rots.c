@@ -14,10 +14,15 @@
               express or implied warranty.
 @CREATED    : Tue Jun  8 08:44:59 EST 1993 LC
 @MODIFIED   : $Log: make_rots.c,v $
-@MODIFIED   : Revision 1.9  1994-04-26 12:54:26  louis
-@MODIFIED   : updated with new versions of make_rots, extract2_parameters_from_matrix
-@MODIFIED   : that include proper interpretation of skew.
+@MODIFIED   : Revision 1.10  1995-02-22 08:56:06  louis
+@MODIFIED   : Montreal Neurological Institute version.
+@MODIFIED   : compiled and working on SGI.  this is before any changes for SPARC/
+@MODIFIED   : Solaris.
 @MODIFIED   :
+ * Revision 1.9  94/04/26  12:54:26  louis
+ * updated with new versions of make_rots, extract2_parameters_from_matrix 
+ * that include proper interpretation of skew.
+ * 
  * Revision 1.8  94/04/06  11:48:39  louis
  * working linted version of linear + non-linear registration based on Lvv
  * operator working in 3D
@@ -32,7 +37,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/make_rots.c,v 1.9 1994-04-26 12:54:26 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/make_rots.c,v 1.10 1995-02-22 08:56:06 louis Exp $";
 #endif
 
 #include <volume_io.h>
@@ -40,6 +45,7 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 
 #include "matrix_basics.h"
 #include "rotmat_to_ang.h"
+#include "local_macros.h"
 
 #define  FILL_NR_COLVEC( vector, x, y, z ) \
             { \
@@ -87,7 +93,7 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 		v1[3][1] * v2[3][1]) 
 
 #define  MAG_NR_COLVEC( v1 ) \
-            ( fsqrt( v1[1][1] * v1[1][1] + \
+            ( sqrt( v1[1][1] * v1[1][1] + \
 		v1[2][1] * v1[2][1] + \
 		v1[3][1] * v1[3][1] ) )
 
@@ -793,7 +799,7 @@ public BOOLEAN extract2_parameters_from_matrix(Transform *trans,
 
   scalar = DOTSUM_NR_COLVEC( y, nz ); /* project y onto z */
   magy   = MAG_NR_COLVEC(y);
-  ci = scalar / fsqrt( magy*magy - scalar*scalar) ;
+  ci = scalar / sqrt((double)( magy*magy - scalar*scalar)) ;
 				/* GET B for the skew matrix */
 
 				/*    first need a1 */
@@ -804,19 +810,19 @@ public BOOLEAN extract2_parameters_from_matrix(Transform *trans,
 				/*    now get B  */
 
   scalar = DOTSUM_NR_COLVEC( x, nz );
-  bi = scalar / fsqrt( magx*magx - scalar*scalar - a1*a1) ;
+  bi = scalar / sqrt((double)( magx*magx - scalar*scalar - a1*a1)) ;
 
 				/* GET A for skew matrix  */
 
-  ai = a1 / fsqrt( magx*magx - scalar*scalar - a1*a1);
+  ai = a1 / sqrt((double)( magx*magx - scalar*scalar - a1*a1));
 
 				/* normalize the inverse shear parameters.
 				   so that there is no scaling in the matrix 
 				   (all scaling is already accounted for 
 				   in sx,sy and sz. */
 
-  n1 = fsqrt(1 + ai*ai + bi*bi);
-  n2 = fsqrt(1 + ci*ci);
+  n1 = sqrt((double)(1 + ai*ai + bi*bi));
+  n2 = sqrt((double)(1 + ci*ci));
 
   ai = ai / n1;
   bi = bi / n1;
@@ -838,8 +844,8 @@ public BOOLEAN extract2_parameters_from_matrix(Transform *trans,
   TMP1[3][3] = 1/scales[2];
 
   nr_identf(TMP2 ,1,4,1,4);	/* make_inverse normalized shear matrix */
-  TMP2[1][1] = fsqrt(1 - ai*ai - bi*bi);
-  TMP2[2][2] = fsqrt(1 - ci*ci);
+  TMP2[1][1] = sqrt((double)(1 - ai*ai - bi*bi));
+  TMP2[2][2] = sqrt((double)(1 - ci*ci));
   TMP2[2][1] = ai;
   TMP2[3][1] = bi;
   TMP2[3][2] = ci;

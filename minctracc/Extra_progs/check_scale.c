@@ -9,9 +9,14 @@
 @CALLS      : 
 @CREATED    : Mon Nov 29 11:01:47 EST 1993 Louis
 @MODIFIED   : $Log: check_scale.c,v $
-@MODIFIED   : Revision 1.4  1994-06-06 09:30:58  louis
-@MODIFIED   : *** empty log message ***
+@MODIFIED   : Revision 1.5  1995-02-22 08:56:06  louis
+@MODIFIED   : Montreal Neurological Institute version.
+@MODIFIED   : compiled and working on SGI.  this is before any changes for SPARC/
+@MODIFIED   : Solaris.
 @MODIFIED   :
+ * Revision 1.4  94/06/06  09:30:58  louis
+ * *** empty log message ***
+ * 
  * Revision 1.3  94/04/26  12:52:49  louis
  * updated with new versions of make_rots, extract2_parameters_from_matrix 
  * that include proper interpretation of skew.

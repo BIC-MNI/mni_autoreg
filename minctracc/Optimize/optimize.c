@@ -14,10 +14,15 @@
               express or implied warranty.
 
 @MODIFIED   : $Log: optimize.c,v $
-@MODIFIED   : Revision 1.8  1994-04-26 12:54:33  louis
-@MODIFIED   : updated with new versions of make_rots, extract2_parameters_from_matrix
-@MODIFIED   : that include proper interpretation of skew.
+@MODIFIED   : Revision 1.9  1995-02-22 08:56:06  louis
+@MODIFIED   : Montreal Neurological Institute version.
+@MODIFIED   : compiled and working on SGI.  this is before any changes for SPARC/
+@MODIFIED   : Solaris.
 @MODIFIED   :
+ * Revision 1.8  94/04/26  12:54:33  louis
+ * updated with new versions of make_rots, extract2_parameters_from_matrix 
+ * that include proper interpretation of skew.
+ * 
  * Revision 1.7  94/04/06  11:48:44  louis
  * working linted version of linear + non-linear registration based on Lvv
  * operator working in 3D
@@ -32,7 +37,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 1.8 1994-04-26 12:54:33 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 1.9 1995-02-22 08:56:06 louis Exp $";
 #endif
 
 #include <volume_io.h>
@@ -80,7 +85,7 @@ extern   double   simplex_size ;
          Segment_Table  *segment_table;
 
 
-private void parameters_to_vector(double *trans, 
+public void parameters_to_vector(double *trans, 
 				  double *rots, 
 				  double *scales,
 				  double *shears,

@@ -9,10 +9,15 @@
 @CALLS      : 
 @CREATED    : Mon Nov 29 11:01:47 EST 1993 Louis
 @MODIFIED   : $Log: param2xfm.c,v $
-@MODIFIED   : Revision 1.3  1994-04-26 12:54:34  louis
-@MODIFIED   : updated with new versions of make_rots, extract2_parameters_from_matrix
-@MODIFIED   : that include proper interpretation of skew.
+@MODIFIED   : Revision 1.4  1995-02-22 08:56:06  louis
+@MODIFIED   : Montreal Neurological Institute version.
+@MODIFIED   : compiled and working on SGI.  this is before any changes for SPARC/
+@MODIFIED   : Solaris.
 @MODIFIED   :
+ * Revision 1.3  94/04/26  12:54:34  louis
+ * updated with new versions of make_rots, extract2_parameters_from_matrix 
+ * that include proper interpretation of skew.
+ * 
  * Revision 1.2  94/04/06  11:48:46  louis
  * working linted version of linear + non-linear registration based on Lvv
  * operator working in 3D
@@ -85,6 +90,13 @@ int main(int argc, char *argv[])
    if (ParseArgv(&argc, argv, argTable, 0) || (argc!=2)) {
       (void) fprintf(stderr, "Usage: %s [options] <result.xfm>\n",
                      argv[0]);
+      exit(EXIT_FAILURE);
+   }
+
+
+   if (file_exists(argv[1])) {
+      (void) fprintf(stderr, "%s: file exists already - %s\n",
+                     argv[0], argv[1]);
       exit(EXIT_FAILURE);
    }
 

@@ -68,10 +68,15 @@
 
 @CREATED    : Feb 9, 1992 lc
 @MODIFIED   :  $Log: rotmat_to_ang.c,v $
-@MODIFIED   :  Revision 1.8  1994-04-06 11:48:49  louis
-@MODIFIED   :  working linted version of linear + non-linear registration based on Lvv
-@MODIFIED   :  operator working in 3D
+@MODIFIED   :  Revision 1.9  1995-02-22 08:56:06  louis
+@MODIFIED   :  Montreal Neurological Institute version.
+@MODIFIED   :  compiled and working on SGI.  this is before any changes for SPARC/
+@MODIFIED   :  Solaris.
 @MODIFIED   :
+ * Revision 1.8  94/04/06  11:48:49  louis
+ * working linted version of linear + non-linear registration based on Lvv
+ * operator working in 3D
+ * 
  * Revision 1.7  94/02/21  16:36:53  louis
  * version before feb 22 changes
  * 
@@ -87,7 +92,7 @@ Tue Jun  8 08:44:59 EST 1993 LC
 
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/rotmat_to_ang.c,v 1.8 1994-04-06 11:48:49 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/rotmat_to_ang.c,v 1.9 1995-02-22 08:56:06 louis Exp $";
 #endif
 
 
@@ -100,6 +105,7 @@ extern char *prog_name;
 
 #define EPS  0.00000000001	/* epsilon, should be calculated */
 
+#include "local_macros.h"
 #include "matrix_basics.h"
 
 /* VARARGS */
@@ -160,10 +166,10 @@ public BOOLEAN rotmat_to_ang(float **rot, float *ang)
    }
 
    if (ABS(i)>ABS(j)) {
-      rz = ABS(fasin(j/len));
+      rz = ABS(asin((double)(j/len)));
    }
    else {
-      rz = ABS(facos(i/len));
+      rz = ABS(acos((double)(i/len)));
    }
 
    if (j>0)			/* what is the counter clockwise angle */
@@ -202,10 +208,10 @@ public BOOLEAN rotmat_to_ang(float **rot, float *ang)
    }
 
    if (ABS(i)>ABS(k)) {
-      ry = ABS(fasin(k/len));
+      ry = ABS(asin((double)(k/len)));
    }
    else {
-      ry = ABS(facos(i/len));
+      ry = ABS(acos((double)(i/len)));
    }
 
    /*    what is the counter clockwise angle necessary to bring  */
@@ -240,10 +246,10 @@ public BOOLEAN rotmat_to_ang(float **rot, float *ang)
    }
 
    if (ABS(k)>ABS(j)) {
-      rx = ABS(fasin(j/len));
+      rx = ABS(asin((double)(j/len)));
    }
    else {
-      rx = ABS(facos(k/len));
+      rx = ABS(acos((double)(k/len)));
    }
 
    if (j< 0) { 

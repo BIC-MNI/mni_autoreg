@@ -20,10 +20,16 @@
 
 @CREATED    : Tue Feb 22 08:37:49 EST 1994
 @MODIFIED   : $Log: deform_support.c,v $
-@MODIFIED   : Revision 1.4  1994-06-21 10:59:28  louis
-@MODIFIED   : working optimized version of program.  when compiled with -O, this
-@MODIFIED   : code is approximately 60% faster than the previous version.
+@MODIFIED   : Revision 1.5  1995-02-22 08:56:06  louis
+@MODIFIED   : Montreal Neurological Institute version.
+@MODIFIED   : compiled and working on SGI.  this is before any changes for SPARC/
+@MODIFIED   : Solaris.
 @MODIFIED   :
+ * Revision 1.4  94/06/21  10:59:28  louis
+ * working optimized version of program.  when compiled with -O, this
+ * code is approximately 60% faster than the previous version.
+ * 
+ * 
  * Revision 1.3  94/06/06  18:46:53  louis
  * working version: clamp and blur of deformation lattice now ensures
  * a smooth recovered deformation.  Unfortunately, the r = cost-similarity
@@ -50,11 +56,11 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 1.4 1994-06-21 10:59:28 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 1.5 1995-02-22 08:56:06 louis Exp $";
 #endif
 
 #include <volume_io.h>
-#include <splines.h>
+#include <louis_splines.h>
 
 #include <limits.h>
 #include "line_data.h"
@@ -65,6 +71,8 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #define DERIV_FRAC      0.6
 #define FRAC1           0.5
 #define FRAC2           0.0833333
+
+extern double smoothing_weight;
 
 
 public void set_up_lattice(Volume data, 
@@ -496,7 +504,7 @@ public void get_average_warp_of_neighbours(Volume dx, Volume dy, Volume dz,
   ri = (Real)i; rj = (Real)j; rk = (Real)k;
   count = 0;
 
-  if (sizes[0]>1) {
+  if (sizes[0]>2) {
     convert_3D_voxel_to_world(dx, ri+1, rj, rk, &tx, &ty, &tz);
     GET_VOXEL_3D(voxel, dx, i+1,j,k); val_x = CONVERT_VOXEL_TO_VALUE(dx , voxel ); 
     GET_VOXEL_3D(voxel, dy, i+1,j,k); val_y = CONVERT_VOXEL_TO_VALUE(dy , voxel ); 
@@ -511,7 +519,7 @@ public void get_average_warp_of_neighbours(Volume dx, Volume dy, Volume dz,
     count += 2;
   }
 
-  if (sizes[1]>1) {
+  if (sizes[1]>2) {
     convert_3D_voxel_to_world(dy, ri, rj+1, rk, &tx, &ty, &tz);
     GET_VOXEL_3D(voxel, dx, i,j+1,k); val_x = CONVERT_VOXEL_TO_VALUE(dx , voxel ); 
     GET_VOXEL_3D(voxel, dy, i,j+1,k); val_y = CONVERT_VOXEL_TO_VALUE(dy , voxel ); 
@@ -526,7 +534,7 @@ public void get_average_warp_of_neighbours(Volume dx, Volume dy, Volume dz,
     count += 2;
   }
 
-  if (sizes[2]>1) {
+  if (sizes[2]>2) {
     convert_3D_voxel_to_world(dz, ri, rj, rk+1, &tx, &ty, &tz);
     GET_VOXEL_3D(voxel, dx, i,j,k+1); val_x = CONVERT_VOXEL_TO_VALUE(dx , voxel ); 
     GET_VOXEL_3D(voxel, dy, i,j,k+1); val_y = CONVERT_VOXEL_TO_VALUE(dy , voxel ); 
@@ -596,6 +604,100 @@ public void add_additional_warp_to_current(Volume adx, Volume ady, Volume adz,
   
 }
 					    
+
+
+/*******************************************************************************/
+/*  procedure: smooth_the_warp
+
+    desc: this procedure will smooth the current warp stored in warp_d? and 
+          return the smoothed warp in smooth_d?
+
+    meth: smoothing is accomplished by averaging the 6 neighbour of each node
+          with the value at that node.
+
+	  new_val = FRAC1*old_val + (1-FRAC1)*sum_6_neighbours(val);
+    
+*/
+public void smooth_the_warp(Volume smooth_dx, Volume smooth_dy, Volume smooth_dz, 
+			    Volume warp_dx, Volume warp_dy, Volume warp_dz,
+			    Volume warp_mag, Real thres) 
+{
+  
+  int 
+    i,j,k,loop_start[3], loop_end[3],sizes[3];
+  Real 
+    mag,
+    wx, wy, wz, mx, my, mz, tx,ty,tz,
+    voxel;
+  progress_struct
+    progress;
+
+  get_volume_sizes(warp_dx, sizes);
+  
+  for_less(i,0,3) {
+    if (sizes[i]>3) {
+      loop_start[i] = 1;
+      loop_end[i] = sizes[i]-1;
+    }
+    else {
+      loop_start[i]=0;
+      loop_end[i] = sizes[i];
+    }
+  }
+
+
+  initialize_progress_report( &progress, FALSE, 
+			     (loop_end[0]-loop_start[0])*(loop_end[1]-loop_start[1]) + 1,
+			     "Smoothing deformations" );
+
+  for_less(i,loop_start[0],loop_end[0]) {
+    for_less(j,loop_start[1],loop_end[1]) {
+      for_less(k,loop_start[2],loop_end[2]){
+
+	GET_VOXEL_3D(voxel, warp_mag, i,j,k); 
+	mag = CONVERT_VOXEL_TO_VALUE(warp_mag , voxel ); 
+	if (mag >= thres) {
+	  
+	  convert_3D_voxel_to_world(warp_dx, i, j, k, &tx, &ty, &tz);
+	  
+	  GET_VOXEL_3D(voxel, warp_dx, i,j,k); 
+	  wx = CONVERT_VOXEL_TO_VALUE( warp_dx, voxel ); 
+	  GET_VOXEL_3D(voxel, warp_dy, i,j,k); 
+	  wy = CONVERT_VOXEL_TO_VALUE( warp_dy, voxel ); 
+	  GET_VOXEL_3D(voxel, warp_dz, i,j,k); 
+	  wz = CONVERT_VOXEL_TO_VALUE( warp_dz, voxel ); 
+	  
+	  tx += wx; ty += wy; tz += wz;
+	  
+	  get_average_warp_of_neighbours(warp_dx, warp_dy, warp_dz, 
+					 i,j,k,
+					 &mx, &my, &mz);
+	  
+	  wx += smoothing_weight*(mx - tx);
+	  wy += smoothing_weight*(my - ty);
+	  wz += smoothing_weight*(mz - tz);
+	  
+	  voxel = CONVERT_VALUE_TO_VOXEL(smooth_dx, wx);
+	  SET_VOXEL_3D(smooth_dx, i,j,k, voxel); 
+	  voxel = CONVERT_VALUE_TO_VOXEL(smooth_dy, wy);
+	  SET_VOXEL_3D(smooth_dy, i,j,k, voxel); 
+	  voxel = CONVERT_VALUE_TO_VOXEL(smooth_dz, wz);
+	  SET_VOXEL_3D(smooth_dz, i,j,k, voxel); 
+	}
+	else {
+	  GET_VOXEL_3D(voxel, warp_dx, i,j,k); SET_VOXEL_3D(smooth_dx, i,j,k, voxel); 
+	  GET_VOXEL_3D(voxel, warp_dy, i,j,k); SET_VOXEL_3D(smooth_dy, i,j,k, voxel); 
+	  GET_VOXEL_3D(voxel, warp_dz, i,j,k); SET_VOXEL_3D(smooth_dz, i,j,k, voxel); 
+	}
+	  
+      }
+      update_progress_report( &progress,
+			     (loop_end[1]-loop_start[1])*(i-loop_start[0])+(j-loop_start[1])+1  );
+
+    }
+    terminate_progress_report( &progress );
+  }
+}
 
 public void clamp_warp_deriv(Volume dx, Volume dy, Volume dz)
 {
@@ -740,99 +842,6 @@ public void clamp_warp_deriv(Volume dx, Volume dy, Volume dz)
 	  new_val = FRAC1*old_val + (1-FRAC1)*sum_6_neighbours(val);
     
 */
-public void smooth_the_warp(Volume smooth_dx, Volume smooth_dy, Volume smooth_dz, 
-			    Volume warp_dx, Volume warp_dy, Volume warp_dz,
-			    Volume warp_mag, Real thres) 
-{
-  
-  int 
-    i,j,k,loop_start[3], loop_end[3],sizes[3];
-  Real 
-    mag,
-    wx, wy, wz, mx, my, mz, tx,ty,tz,
-    voxel;
-  progress_struct
-    progress;
-
-  get_volume_sizes(warp_dx, sizes);
-  
-  for_less(i,0,3) {
-    if (sizes[i]>3) {
-      loop_start[i] = 1;
-      loop_end[i] = sizes[i]-1;
-    }
-    else {
-      loop_start[i]=0;
-      loop_end[i] = sizes[i];
-    }
-  }
-
-
-  initialize_progress_report( &progress, FALSE, 
-			     (loop_end[0]-loop_start[0])*(loop_end[1]-loop_start[1]) + 1,
-			     "Smoothing deformations" );
-
-  for_less(i,loop_start[0],loop_end[0]) {
-    for_less(j,loop_start[1],loop_end[1]) {
-      for_less(k,loop_start[2],loop_end[2]){
-
-	GET_VOXEL_3D(voxel, warp_mag, i,j,k); 
-	mag = CONVERT_VOXEL_TO_VALUE(warp_mag , voxel ); 
-	if (mag >= thres) {
-	  
-	  convert_3D_voxel_to_world(warp_dx, i, j, k, &tx, &ty, &tz);
-	  
-	  GET_VOXEL_3D(voxel, warp_dx, i,j,k); 
-	  wx = CONVERT_VOXEL_TO_VALUE( warp_dx, voxel ); 
-	  GET_VOXEL_3D(voxel, warp_dy, i,j,k); 
-	  wy = CONVERT_VOXEL_TO_VALUE( warp_dy, voxel ); 
-	  GET_VOXEL_3D(voxel, warp_dz, i,j,k); 
-	  wz = CONVERT_VOXEL_TO_VALUE( warp_dz, voxel ); 
-	  
-	  tx += wx; ty += wy; tz += wz;
-	  
-	  get_average_warp_of_neighbours(warp_dx, warp_dy, warp_dz, 
-					 i,j,k,
-					 &mx, &my, &mz);
-	  
-	  wx += (1.0 - FRAC1)*(mx - tx);
-	  wy += (1.0 - FRAC1)*(my - ty);
-	  wz += (1.0 - FRAC1)*(mz - tz);
-	  
-	  voxel = CONVERT_VALUE_TO_VOXEL(smooth_dx, wx);
-	  SET_VOXEL_3D(smooth_dx, i,j,k, voxel); 
-	  voxel = CONVERT_VALUE_TO_VOXEL(smooth_dy, wy);
-	  SET_VOXEL_3D(smooth_dy, i,j,k, voxel); 
-	  voxel = CONVERT_VALUE_TO_VOXEL(smooth_dz, wz);
-	  SET_VOXEL_3D(smooth_dz, i,j,k, voxel); 
-	}
-	else {
-	  GET_VOXEL_3D(voxel, warp_dx, i,j,k); SET_VOXEL_3D(smooth_dx, i,j,k, voxel); 
-	  GET_VOXEL_3D(voxel, warp_dy, i,j,k); SET_VOXEL_3D(smooth_dy, i,j,k, voxel); 
-	  GET_VOXEL_3D(voxel, warp_dz, i,j,k); SET_VOXEL_3D(smooth_dz, i,j,k, voxel); 
-	}
-	  
-      }
-      update_progress_report( &progress,
-			     (loop_end[1]-loop_start[1])*(i-loop_start[0])+(j-loop_start[1])+1  );
-
-    }
-    terminate_progress_report( &progress );
-  }
-}
-
-/*******************************************************************************/
-/*  procedure: smooth_the_warp
-
-    desc: this procedure will smooth the current warp stored in warp_d? and 
-          return the smoothed warp in smooth_d?
-
-    meth: smoothing is accomplished by averaging the 6 neighbour of each node
-          with the value at that node.
-
-	  new_val = FRAC1*old_val + (1-FRAC1)*sum_6_neighbours(val);
-    
-*/
 public void smooth2_the_warp(Volume smooth_dx, Volume smooth_dy, Volume smooth_dz, 
 			     Volume warp_dx, Volume warp_dy, Volume warp_dz) {
 
@@ -913,29 +922,23 @@ public void smooth2_the_warp(Volume smooth_dx, Volume smooth_dy, Volume smooth_d
 
 /*   get the value of the maximum gradient magnitude */
 
-public Real get_maximum_magnitude(Volume dx, Volume dy, Volume dz)
+public Real get_maximum_magnitude(Volume dxyz)
 {
   int i,j,k,sizes[3];
-  Real vx, vy, vz, x, y, z, val, max;
+  Real voxel, val, max;
 
   max = -DBL_MAX;
-  get_volume_sizes(dx, sizes);
-
+  get_volume_sizes(dxyz, sizes);
+  
   for_less(i,0,sizes[0])
     for_less(j,0,sizes[1])
       for_less(k,0,sizes[2]){
-
-	GET_VOXEL_3D(vx, dx, i,j,k); x = CONVERT_VOXEL_TO_VALUE(dx, vx);
-	GET_VOXEL_3D(vy, dy, i,j,k); y = CONVERT_VOXEL_TO_VALUE(dy, vy);
-	GET_VOXEL_3D(vz, dz, i,j,k); z = CONVERT_VOXEL_TO_VALUE(dz, vz);
-	val = x*x + y*y + z*z;
+	
+	GET_VOXEL_3D(voxel, dxyz, i,j,k); val = CONVERT_VOXEL_TO_VALUE(dxyz, voxel);
 
 	if (val > max) max = val;
 
       }
-
-  if (max>0.0)
-    max = sqrt(max);
 
   return(max);
 
@@ -1076,8 +1079,8 @@ public void make_super_sampled_data(Volume orig_dx, Volume *dx, Volume *dy, Volu
 }
 
 public void interpolate_super_sampled_data(Volume orig_dx, Volume orig_dy, Volume orig_dz,
-				      Volume dx, Volume dy, Volume dz,
-				      int dim)
+					   Volume dx, Volume dy, Volume dz,
+					   int dim)
 
 {
 

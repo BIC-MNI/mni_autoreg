@@ -16,10 +16,15 @@
 
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   :  $Log: objectives.c,v $
-@MODIFIED   :  Revision 1.7  1994-04-06 11:48:44  louis
-@MODIFIED   :  working linted version of linear + non-linear registration based on Lvv
-@MODIFIED   :  operator working in 3D
+@MODIFIED   :  Revision 1.8  1995-02-22 08:56:06  louis
+@MODIFIED   :  Montreal Neurological Institute version.
+@MODIFIED   :  compiled and working on SGI.  this is before any changes for SPARC/
+@MODIFIED   :  Solaris.
 @MODIFIED   :
+ * Revision 1.7  94/04/06  11:48:44  louis
+ * working linted version of linear + non-linear registration based on Lvv
+ * operator working in 3D
+ * 
  * Revision 1.6  94/02/21  16:35:56  louis
  * version before feb 22 changes
  * 
@@ -30,7 +35,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/objectives.c,v 1.7 1994-04-06 11:48:44 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/objectives.c,v 1.8 1995-02-22 08:56:06 louis Exp $";
 #endif
 
 
@@ -40,8 +45,7 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #include "constants.h"
 #include "arg_data.h"
 
-#include <segment_table.h>
-
+#include "segment_table.h"
 #include "local_macros.h"
 #include <print_error.h>
 
@@ -181,7 +185,7 @@ public float xcorr_objective(Volume d1,
     } /* for r */
   } /* for s */
   
-  result = 1.0 - s1 / (fsqrt(s2)*fsqrt(s3));
+  result = 1.0 - s1 / (sqrt((double)s2)*sqrt((double)s3));
   
   if (globals->flags.debug) (void)print ("%7d %7d -> %10.8f\n",count1,count2,result);
   
@@ -498,9 +502,9 @@ public float zscore_objective(Volume d1,
   } /* for s */
 
   if (count3 > 0)
-    result = fsqrt(z2_sum) / count3;
+    result = sqrt((double)z2_sum) / count3;
   else
-    result = fsqrt(z2_sum);
+    result = sqrt((double)z2_sum);
 
   if (globals->flags.debug) (void)print ("%7d %7d %7d -> %10.8f\n",count1,count2,count3,result);
   

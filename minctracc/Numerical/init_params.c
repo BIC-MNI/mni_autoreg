@@ -17,17 +17,22 @@
 @CREATED    : Thu May 27 16:50:50 EST 1993
                   
 @MODIFIED   :  $Log: init_params.c,v $
-@MODIFIED   :  Revision 1.10  1994-06-02 20:16:01  louis
-@MODIFIED   :  made modifications to allow deformations to be calulated in 2D on slices.
-@MODIFIED   :  changes had to be made in set_up_lattice, init_lattice when defining
-@MODIFIED   :  the special case of a single slice....
-@MODIFIED   :  Build_default_deformation_field also had to reflect these changes.
-@MODIFIED   :  do_non-linear-optimization also had to check if one of dimensions had
-@MODIFIED   :  a single element.
-@MODIFIED   :  All these changes were made, and slightly tested.  Another type of
-@MODIFIED   :  deformation strategy will be necessary (to replace the deformation
-@MODIFIED   :  perpendicular to the surface, since it does not work well).
+@MODIFIED   :  Revision 1.11  1995-02-22 08:56:06  louis
+@MODIFIED   :  Montreal Neurological Institute version.
+@MODIFIED   :  compiled and working on SGI.  this is before any changes for SPARC/
+@MODIFIED   :  Solaris.
 @MODIFIED   :
+ * Revision 1.10  94/06/02  20:16:01  louis
+ * made modifications to allow deformations to be calulated in 2D on slices. 
+ * changes had to be made in set_up_lattice, init_lattice when defining
+ * the special case of a single slice....
+ * Build_default_deformation_field also had to reflect these changes.
+ * do_non-linear-optimization also had to check if one of dimensions had
+ * a single element.
+ * All these changes were made, and slightly tested.  Another type of
+ * deformation strategy will be necessary (to replace the deformation 
+ * perpendicular to the surface, since it does not work well).
+ * 
  * Revision 1.9  94/04/26  12:54:19  louis
  * updated with new versions of make_rots, extract2_parameters_from_matrix 
  * that include proper interpretation of skew.
@@ -46,7 +51,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 1.10 1994-06-02 20:16:01 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 1.11 1995-02-22 08:56:06 louis Exp $";
 #endif
 
 
@@ -392,13 +397,13 @@ private  BOOLEAN init_transformation(
     }
     
     for (i=1; i<=3; ++i) {
-      norm = fsqrt(prin_axes1[i][1]*prin_axes1[i][1] + 
+      norm = sqrt( prin_axes1[i][1]*prin_axes1[i][1] + 
 		   prin_axes1[i][2]*prin_axes1[i][2] + 
 		   prin_axes1[i][3]*prin_axes1[i][3]);
       for (j=1; j<=3; ++j)
 	R1[i][j] /= norm;
       
-      norm = fsqrt(prin_axes2[i][1]*prin_axes2[i][1] + 
+      norm = sqrt( prin_axes2[i][1]*prin_axes2[i][1] + 
 		   prin_axes2[i][2]*prin_axes2[i][2] + 
 		   prin_axes2[i][3]*prin_axes2[i][3]);
       for (j=1; j<=3; ++j)

@@ -2,7 +2,7 @@
 #include <recipes.h>
 #include <print_error.h>
 
-#include <segment_table.h>
+#include "segment_table.h"
 
 public BOOLEAN build_segment_table(Segment_Table **s_table, Volume d1, int groups)
 {

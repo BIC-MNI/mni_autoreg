@@ -28,17 +28,22 @@
 
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   :  $Log: init_lattice.c,v $
-@MODIFIED   :  Revision 1.8  1994-06-02 20:16:00  louis
-@MODIFIED   :  made modifications to allow deformations to be calulated in 2D on slices.
-@MODIFIED   :  changes had to be made in set_up_lattice, init_lattice when defining
-@MODIFIED   :  the special case of a single slice....
-@MODIFIED   :  Build_default_deformation_field also had to reflect these changes.
-@MODIFIED   :  do_non-linear-optimization also had to check if one of dimensions had
-@MODIFIED   :  a single element.
-@MODIFIED   :  All these changes were made, and slightly tested.  Another type of
-@MODIFIED   :  deformation strategy will be necessary (to replace the deformation
-@MODIFIED   :  perpendicular to the surface, since it does not work well).
+@MODIFIED   :  Revision 1.9  1995-02-22 08:56:06  louis
+@MODIFIED   :  Montreal Neurological Institute version.
+@MODIFIED   :  compiled and working on SGI.  this is before any changes for SPARC/
+@MODIFIED   :  Solaris.
 @MODIFIED   :
+ * Revision 1.8  94/06/02  20:16:00  louis
+ * made modifications to allow deformations to be calulated in 2D on slices. 
+ * changes had to be made in set_up_lattice, init_lattice when defining
+ * the special case of a single slice....
+ * Build_default_deformation_field also had to reflect these changes.
+ * do_non-linear-optimization also had to check if one of dimensions had
+ * a single element.
+ * All these changes were made, and slightly tested.  Another type of
+ * deformation strategy will be necessary (to replace the deformation 
+ * perpendicular to the surface, since it does not work well).
+ * 
 
 
 made change to init lattice to not change start when there is only 1 slice.
@@ -57,7 +62,7 @@ made change to init lattice to not change start when there is only 1 slice.
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/init_lattice.c,v 1.8 1994-06-02 20:16:00 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/init_lattice.c,v 1.9 1995-02-22 08:56:06 louis Exp $";
 #endif
 
 

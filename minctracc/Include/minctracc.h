@@ -17,11 +17,17 @@
 
 @CREATED    : Thu May 20 14:20:21 EST 1993 Louis Collins
 @MODIFIED   : $Log: minctracc.h,v $
-@MODIFIED   : Revision 1.13  1994-06-19 15:42:15  louis
-@MODIFIED   : clean working version of 3D local deformation with simplex optimization
-@MODIFIED   : (by default) on magnitude data (default).  No more FFT stuff.
-@MODIFIED   : This working version before change of deformation field in do_nonlinear.c
+@MODIFIED   : Revision 1.14  1995-02-22 08:56:06  louis
+@MODIFIED   : Montreal Neurological Institute version.
+@MODIFIED   : compiled and working on SGI.  this is before any changes for SPARC/
+@MODIFIED   : Solaris.
 @MODIFIED   :
+ * Revision 1.13  94/06/19  15:42:15  louis
+ * clean working version of 3D local deformation with simplex optimization
+ * (by default) on magnitude data (default).  No more FFT stuff.
+ * This working version before change of deformation field in do_nonlinear.c
+ * 
+ * 
  * Revision 1.12  94/06/06  09:46:52  louis
  * modified the initialization of main_args to reflect the use_magnitude
  * field in the trans_info struct.
@@ -193,14 +199,15 @@ public void build_default_deformation_field(Arg_Data *globals);
 /*  ------------------------ Global data structure for program  ------------------------ */
 
 Arg_Data main_args = {
-  {NULL,NULL,NULL,NULL,NULL,NULL,NULL},	/* filenames           */
+  {"","","","","","",""},	/* filenames           */
   {1,FALSE},			/* verbose, debug      */
   {				/* transformation info */
     TRUE,			/*   do default Principal Axis Transformation start */
     TRUE,			/*   use_mag=TRUE i.e. do not use Lvv by default    */
     TRUE,			/*   use_simplex=TRUE i.e. use 3d simplex by default      */
-    (char *)NULL,			/*   filename */
-    (char *)NULL,			/*   file_contents */
+    TRUE,			/*   use super sampling of deformation field        */
+    "",			/*   filename */
+    "",			/*   file_contents */
     0,                          /* buffer_length   */
     (General_transform *)NULL,	/*   General transform */
     (General_transform *)NULL,	/*   General transform copy of input */
@@ -219,9 +226,9 @@ Arg_Data main_args = {
   {0.0,0.0,0.0},		/* default start for lattice, reset in init_lattice */
   {0,0,0},                      /* default number of element in lattice, also reset */
 
-  {1.0,0.0,0.0},		/* default sampling lattice axes directions */
-  {0.0,1.0,0.0},
-  {0.0,0.0,1.0},
+  {{1.0,0.0,0.0},		/* default sampling lattice axes directions */
+   {0.0,1.0,0.0},
+   {0.0,0.0,1.0}},
 
   1,                            /* use first volume as default smallest volume      */
   {FALSE, FALSE, FALSE, FALSE},

@@ -16,10 +16,15 @@
 @CREATED    : Wed May 26 13:05:44 EST 1993 LC using routines from NEELIN's
               mincresample.
 @MODIFIED   :  $Log: interpolation.c,v $
-@MODIFIED   :  Revision 1.8  1994-04-06 11:48:38  louis
-@MODIFIED   :  working linted version of linear + non-linear registration based on Lvv
-@MODIFIED   :  operator working in 3D
+@MODIFIED   :  Revision 1.9  1995-02-22 08:56:06  louis
+@MODIFIED   :  Montreal Neurological Institute version.
+@MODIFIED   :  compiled and working on SGI.  this is before any changes for SPARC/
+@MODIFIED   :  Solaris.
 @MODIFIED   :
+ * Revision 1.8  94/04/06  11:48:38  louis
+ * working linted version of linear + non-linear registration based on Lvv
+ * operator working in 3D
+ * 
  * Revision 1.7  94/02/21  16:35:39  louis
  * version before feb 22 changes
  * 
@@ -30,7 +35,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/interpolation.c,v 1.8 1994-04-06 11:48:38 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/interpolation.c,v 1.9 1995-02-22 08:56:06 louis Exp $";
 #endif
 
 #include <volume_io.h>
@@ -151,35 +156,36 @@ public int trilinear_interpolant(Volume volume,
   GET_VALUE_3D( v110 ,  volume, ind0+1, ind1+1, ind2   ); 
   GET_VALUE_3D( v111 ,  volume, ind0+1, ind1+1, ind2+1 ); 
 
-   /* Get the fraction parts */
-   f0 = Point_x( *coord ) - ind0;
-   f1 = Point_y( *coord ) - ind1;
-   f2 = Point_z( *coord ) - ind2;
-   r0 = 1.0 - f0;
-   r1 = 1.0 - f1;
-   r2 = 1.0 - f2;
+  /* Get the fraction parts */
+  f0 = Point_x( *coord ) - ind0;
+  f1 = Point_y( *coord ) - ind1;
+  f2 = Point_z( *coord ) - ind2;
+  r0 = 1.0 - f0;
+  r1 = 1.0 - f1;
+  r2 = 1.0 - f2;
+  
+  /* Do the interpolation */
+  r1r2 = r1 * r2;
+  r1f2 = r1 * f2;
+  f1r2 = f1 * r2;
+  f1f2 = f1 * f2;
+  
+  *result =
+    r0 *  (r1r2 * v000 +
+	   r1f2 * v001 +
+	   f1r2 * v010 +
+	   f1f2 * v011);
+  *result +=
+    f0 *  (r1r2 * v100 +
+	   r1f2 * v101 +
+	   f1r2 * v110 +
+	   f1f2 * v111);
 
-   /* Do the interpolation */
-   r1r2 = r1 * r2;
-   r1f2 = r1 * f2;
-   f1r2 = f1 * r2;
-   f1f2 = f1 * f2;
-
-   *result =
-     r0 *  (r1r2 * v000 +
-	    r1f2 * v001 +
-	    f1r2 * v010 +
-	    f1f2 * v011);
-   *result +=
-     f0 *  (r1r2 * v100 +
-	    r1f2 * v101 +
-	    f1r2 * v110 +
-	    f1f2 * v111);
-   
-   
-   return TRUE;
-
+  
+  return TRUE;
+  
 }
+
 
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : do_Ncubic_interpolation

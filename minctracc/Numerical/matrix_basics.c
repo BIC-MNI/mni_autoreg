@@ -24,10 +24,15 @@
 
 @CREATED    : January 31, 1992 (Peter Neelin)
 @MODIFIED   :  $Log: matrix_basics.c,v $
-@MODIFIED   :  Revision 1.7  1994-04-06 11:48:41  louis
-@MODIFIED   :  working linted version of linear + non-linear registration based on Lvv
-@MODIFIED   :  operator working in 3D
+@MODIFIED   :  Revision 1.8  1995-02-22 08:56:06  louis
+@MODIFIED   :  Montreal Neurological Institute version.
+@MODIFIED   :  compiled and working on SGI.  this is before any changes for SPARC/
+@MODIFIED   :  Solaris.
 @MODIFIED   :
+ * Revision 1.7  94/04/06  11:48:41  louis
+ * working linted version of linear + non-linear registration based on Lvv
+ * operator working in 3D
+ * 
  * Revision 1.6  94/02/21  16:35:44  louis
  * version before feb 22 changes
  * 
@@ -49,11 +54,12 @@ Fri Jun  4 14:10:34 EST 1993 LC
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/matrix_basics.c,v 1.7 1994-04-06 11:48:41 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/matrix_basics.c,v 1.8 1995-02-22 08:56:06 louis Exp $";
 #endif
 
 #include <volume_io.h>
 #include <recipes.h>
+#include "local_macros.h"
 
 /* external calls: */
 void   make_rots(float **xmat, float data_rot_x, float data_rot_y, float data_rot_z);
@@ -673,8 +679,8 @@ public void nr_rotxf(float **M, float a)
 {
    nr_identf(M,1,4,1,4);
 
-   M[2][2] = fcos(a);    M[2][3] = -fsin(a);
-   M[3][2] = fsin(a);   M[3][3] = fcos(a);
+   M[2][2] = cos((double)a);    M[2][3] = -sin((double)a);
+   M[3][2] = sin((double)a);   M[3][3] = cos((double)a);
 }
 
 
@@ -709,8 +715,8 @@ public void nr_rotyf(float **M, float a)
 
    nr_identf(M,1,4,1,4);
 
-   M[1][1] = fcos(a);   M[1][3] = fsin(a);
-   M[3][1] = -fsin(a);   M[3][3] = fcos(a);
+   M[1][1] = cos((double)a);   M[1][3] = sin((double)a);
+   M[3][1] = -sin((double)a);   M[3][3] = cos((double)a);
 }
 
 
@@ -745,8 +751,8 @@ public void nr_rotzf(float **M, float a)
 
    nr_identf(M,1,4,1,4);
 
-   M[1][1] = fcos(a);   M[1][2] = -fsin(a);
-   M[2][1] = fsin(a);  M[2][2] = fcos(a);
+   M[1][1] = cos((double)a);   M[1][2] = -sin((double)a);
+   M[2][1] = sin((double)a);  M[2][2] = cos((double)a);
 }
 
 /* ----------------------------- MNI Header -----------------------------------

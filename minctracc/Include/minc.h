@@ -18,10 +18,15 @@
                  MI acquisition variable
 @CREATED    : July 24, 1992. (Peter Neelin, Montreal Neurological Institute)
 @MODIFIED   : $Log: minc.h,v $
-@MODIFIED   : Revision 1.2  1994-04-06 11:49:47  louis
-@MODIFIED   : working linted version of linear + non-linear registration based on Lvv
-@MODIFIED   : operator working in 3D
+@MODIFIED   : Revision 1.3  1995-02-22 08:56:06  louis
+@MODIFIED   : Montreal Neurological Institute version.
+@MODIFIED   : compiled and working on SGI.  this is before any changes for SPARC/
+@MODIFIED   : Solaris.
 @MODIFIED   :
+ * Revision 1.2  94/04/06  11:49:47  louis
+ * working linted version of linear + non-linear registration based on Lvv
+ * operator working in 3D
+ * 
  * Revision 1.1  93/11/15  16:28:49  louis
  * Initial revision
  * 
@@ -40,12 +45,12 @@
               make no representations about the suitability of this
               software for any purpose.  It is provided "as is" without
               express or implied warranty.
-@RCSID      : $Header: /private-cvsroot/registration/mni_autoreg/minctracc/Include/Attic/minc.h,v 1.2 1994-04-06 11:49:47 louis Exp $ MINC (MNI)
+@RCSID      : $Header: /private-cvsroot/registration/mni_autoreg/minctracc/Include/Attic/minc.h,v 1.3 1995-02-22 08:56:06 louis Exp $ MINC (MNI)
 ---------------------------------------------------------------------------- */
 
 #ifndef MINC_PRIVATE_HEADER_FILE
 #ifndef lint
-static char minc_h_rcsid[] = "$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Include/Attic/minc.h,v 1.2 1994-04-06 11:49:47 louis Exp $ MINC (MNI)";
+static char minc_h_rcsid[] = "$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Include/Attic/minc.h,v 1.3 1995-02-22 08:56:06 louis Exp $ MINC (MNI)";
 #endif
 #endif
 
