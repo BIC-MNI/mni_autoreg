@@ -20,10 +20,13 @@
 
 @CREATED    : Tue Feb 22 08:37:49 EST 1994
 @MODIFIED   : $Log: deform_support.c,v $
-@MODIFIED   : Revision 1.14  1996-04-01 09:16:29  louis
-@MODIFIED   : removed the code to super sample the deformation field,
-@MODIFIED   : and placed it in super_sample_def.c.
+@MODIFIED   : Revision 1.15  1996-06-24 13:54:58  louis
+@MODIFIED   : working version, although there may be a bug in the smoohting code.
 @MODIFIED   :
+ * Revision 1.14  1996/04/01  09:16:29  louis
+ * removed the code to super sample the deformation field,
+ * and placed it in super_sample_def.c.
+ *
  * Revision 1.13  1996/04/01  09:02:10  louis
  * added optimized code to super-sample the deformation field for the special
  * case when super_sample = 2.  interpolate_super_sampled_data_by2() is
@@ -125,9 +128,10 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 1.14 1996-04-01 09:16:29 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 1.15 1996-06-24 13:54:58 louis Exp $";
 #endif
 
+#include <config.h>             /* for VOXEL_DATA macro */
 #include <limits.h>
 #include <volume_io.h>
 #include <louis_splines.h>
@@ -482,10 +486,15 @@ public void add_additional_warp_to_current(General_transform *additional,
     desc: this procedure will smooth the current warp stored in
           current and return the smoothed warp in smoothed
 
-    meth: smoothing is accomplished by averaging the 6 neighbours of
-          each node with the value at that node.
+    meth: smoothing is accomplished by averaging the value of the 
+          node's deformation vector with the mean deformation vector
+	  of it's neighbours.
 
-	  new_val = FRAC1*old_val + (1-FRAC1)*sum_6_neighbours(val); 
+	  def'  = sw*mean  + (1-sw)*def
+
+	  where: sw   = smoothing_weight
+                 mean = neighbourhood mean deformation
+		 def  = estimate def for current node
 */
 
 public void smooth_the_warp(General_transform *smoothed,
@@ -656,7 +665,7 @@ public void smooth_the_warp(General_transform *smoothed,
    completed).  This procedure should only be called when
    Gglobals->trans_info.use_local_smoothing is true.  (When false,
    extrapolation is not needed, since it is addressed in the global
-   smoothing process.
+   smoothing process.)
 
    additional  = sw*mean    + (1-sw)current
              i          i-1                i-1 
@@ -780,7 +789,8 @@ public void extrapolate_to_unestimated_nodes(General_transform *current,
 
 	  /* then, this node has not been estimated at this iteration,
              so we have to interpolate a deformation value from
-             neighbouring nodes. */
+             neighbouring nodes, and then apply the proper local
+	     smoothing. */
 
 	  many++;
 				/* go get the current warp vector for
@@ -844,11 +854,16 @@ public void extrapolate_to_unestimated_nodes(General_transform *current,
 
 				/* if we can get a neighbourhood mean
 				   warp vector from the previous iterations, 
-				   then we average it with the previous warp vector */
+				   then we average it with the previous warp 
+				   vector */
 	  index[ xyzv[Z+1]] = 0;
 	  if ( get_average_warp_vector_from_neighbours(current,
 						       index, 2 ,
 						       &mx, &my, &mz) ) {
+
+	    /* additional_deform += sw*mean + (1-sw)*current - current
+
+	       with sw = 0.5 gives: */
 	    
 	    additional_deform[X] += (mx - current_deform[X])/2.0; 
 	    additional_deform[Y] += (my - current_deform[Y])/2.0; 
@@ -1325,7 +1340,7 @@ public float go_get_samples_with_offset(Volume data,
     switch( data_type ) {
     case UNSIGNED_BYTE:  
       
-      byte_ptr = data->data;
+      byte_ptr = VOXEL_DATA (data);
       
       ++x; ++y; ++z; 
       
@@ -1373,7 +1388,7 @@ public float go_get_samples_with_offset(Volume data,
       break;
     case SIGNED_SHORT:  
       
-      sshort_ptr = data->data;
+      sshort_ptr = VOXEL_DATA (data);
       
       ++x; ++y; ++z; 
       
@@ -1397,7 +1412,7 @@ public float go_get_samples_with_offset(Volume data,
       break;
     case UNSIGNED_SHORT:  
       
-      ushort_ptr = data->data;
+      ushort_ptr = VOXEL_DATA (data);
       
       ++x; ++y; ++z; 
       
@@ -1429,7 +1444,7 @@ public float go_get_samples_with_offset(Volume data,
     switch( data_type ) {
     case UNSIGNED_BYTE:  
       
-      byte_ptr = data->data;
+      byte_ptr = VOXEL_DATA (data);
       
       ++x; ++y; ++z; 
       
@@ -1497,13 +1512,13 @@ public float go_get_samples_with_offset(Volume data,
       break;
     case SIGNED_SHORT:  
       
-      sshort_ptr = data->data;
+      sshort_ptr = VOXEL_DATA (data);
       
       ++x; ++y; ++z; 
       
       for_inclusive(c,1,len) {
 	
-	/*  fast tri-linear interplation */
+	/*  fast tri-linear interpolation */
 	
 	v0 = (Real) ( *x++ + dx );
 	v1 = (Real) ( *y++ + dy );
@@ -1564,7 +1579,7 @@ public float go_get_samples_with_offset(Volume data,
       break;
     case UNSIGNED_SHORT:  
       
-      ushort_ptr = data->data;
+      ushort_ptr = VOXEL_DATA (data);
       
       ++x; ++y; ++z; 
       
