@@ -68,9 +68,12 @@
 
 @CREATED    : Feb 9, 1992 lc
 @MODIFIED   :  $Log: rotmat_to_ang.c,v $
-@MODIFIED   :  Revision 96.0  1996-08-21 18:21:58  louis
-@MODIFIED   :  Release of MNI_AutoReg version 0.96
+@MODIFIED   :  Revision 96.1  1997-11-03 19:59:49  louis
+@MODIFIED   :  - now include internal_volume_io.h instead of volume_io.h
 @MODIFIED   :
+ * Revision 96.0  1996/08/21  18:21:58  louis
+ * Release of MNI_AutoReg version 0.96
+ *
  * Revision 9.6  1996/08/21  18:21:55  louis
  * Pre-release
  *
@@ -108,11 +111,11 @@ Tue Jun  8 08:44:59 EST 1993 LC
 
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/rotmat_to_ang.c,v 96.0 1996-08-21 18:21:58 louis Rel $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/rotmat_to_ang.c,v 96.1 1997-11-03 19:59:49 louis Exp $";
 #endif
 
 
-#include <volume_io.h>
+#include <internal_volume_io.h>
 #include "local_macros.h"
 #include "matrix_basics.h"
 
