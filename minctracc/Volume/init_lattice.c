@@ -30,6 +30,8 @@
 
 #include "local_macros.h"
 
+#include <print_error.h>
+
 extern Arg_Data main_args;
 
 
@@ -82,8 +84,8 @@ public void init_lattice(Volume d1,
   Real
     rx,ry,rz,
     true_value,
-    mask_value,
-    position[3];
+    mask_value;
+
 
   get_volume_sizes(d1, sizes1 );
   get_volume_separations(d1, thickness1 );

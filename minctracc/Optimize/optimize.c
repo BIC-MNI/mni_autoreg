@@ -464,17 +464,12 @@ public float measure_fit(Volume d1,
   float 
     **p, y;
   int 
-    i,j, 
+    i, 
     ndim;
 
-  Transform
+/*  Transform
     *mat;
-
-  double trans[3];
-  double cent[3];
-  double rots[3];
-  double scale[3];
-  double shear[3];
+    double trans[3];  double cent[3];  double rots[3];  double scale[3];  double shear[3]; */
 
   
   stat = TRUE;

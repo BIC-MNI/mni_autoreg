@@ -27,6 +27,7 @@
 extern Arg_Data main_args;
 
 #include "local_macros.h"
+#include <print_error.h>
 
 
 
@@ -94,8 +95,8 @@ Boolean vol_to_cov(Volume d1, Volume m1, float *centroid, float **covar, double 
 
   Real
     true_value,
-    mask_value,
-    position[3];
+    mask_value;
+
 
   get_volume_separations(d1, thickness);
   get_volume_sizes(d1, sizes);

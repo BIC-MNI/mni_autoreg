@@ -63,6 +63,7 @@ Tue Jun  8 08:44:59 EST 1993 LC
 ---------------------------------------------------------------------------- */
 #include <def_mni.h>
 #include <recipes.h>
+#include <print_error.h>
 
 extern char *prog_name;
 

@@ -84,9 +84,6 @@ public Boolean optimize_linear_transformation(Volume d1,
 
 #include "objectives.h"
 
-/* VARARGS */
-public  void  print_error( char format[], char *name, int line, ... );
-
 public float measure_fit(Volume d1,
 			 Volume d2,
 			 Volume m1,

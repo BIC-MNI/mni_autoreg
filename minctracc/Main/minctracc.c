@@ -41,10 +41,12 @@ Wed May 26 13:05:44 EST 1993 lc
    ---------------------------------------------------------------------------- */
 
 #include <def_mni.h>
-#include "minctracc.h"
-#include "globals.h"
 #include <recipes.h>
 #include <limits.h>
+#include <print_error.h>
+
+#include "minctracc.h"
+#include "globals.h"
 
 static char *default_dim_names[N_DIMENSIONS] =
    { MIzspace, MIyspace, MIxspace };
@@ -65,11 +67,11 @@ main ( argc, argv )
   Transform 
     *lt, ident_trans;
   int 
-    sizes[3],msizes[3],i,j;
+    sizes[3],msizes[3],i;
   Real
     min_value, max_value, step[3];
   float 
-    obj_func_val, **the_matrix,  **inv_matrix;
+    obj_func_val;
 
   FILE *ofd;
 

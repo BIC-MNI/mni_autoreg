@@ -17,6 +17,7 @@
 #include <def_segment_table.h>
 
 #include "local_macros.h"
+#include <print_error.h>
 
 extern Arg_Data main_args;
 
@@ -85,11 +86,9 @@ public float xcorr_objective(Volume d1,
   double
     tx,ty,tz;
   int
-    xi,yi,zi,
     r,c,s;
 
   Real
-    position[3],
     value1, value2,
     voxel_value,
     mask_value;
@@ -211,11 +210,9 @@ public float ssc_objective(Volume d1,
   double
     tx,ty,tz;
   int
-    xi,yi,zi,
     r,c,s;
 
   Real
-    position[3],
     value1, value2,
     voxel_value,
     mask_value;
@@ -482,11 +479,9 @@ public float zscore_objective(Volume d1,
   double
     tx,ty,tz;
   int
-    xi,yi,zi,
     r,c,s;
 
   Real
-    position[3],
     value1, value2,
     voxel_value,
     mask_value;
@@ -611,11 +606,9 @@ public float vr_objective(Volume d1,
   double
     tx,ty,tz;
   int
-    xi,yi,zi,
     r,c,s;
 
   Real
-    position[3],
     value1, value2,
     voxel_value1,
     voxel_value2,
@@ -771,7 +764,7 @@ public float vr_objective(Volume d1,
 
   result = total_variance;
 
-  if (globals->flags.debug) printf ("%7d %7d %7d -> %10.8f\n",count1,count2,count3[1],result);
+  if (globals->flags.debug) print ("%7d %7d %7d -> %10.8f\n",count1,count2,count3[1],result);
 
   free_vector(rat_sum,  1, segment_table->groups);
   free_vector(rat2_sum, 1, segment_table->groups);

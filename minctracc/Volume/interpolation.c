@@ -39,41 +39,53 @@
 public int trilinear_interpolant(Volume volume, 
                                  PointR *coord, double *result)
 {
-   long ind0, ind1, ind2, max[3];
-   static double f0, f1, f2, r0, r1, r2, r1r2, r1f2, f1r2, f1f2;
-   static double v000, v001, v010, v011, v100, v101, v110, v111;
-
-   /* Check that the coordinate is inside the volume */
-
-   get_volume_sizes(volume, max);
-   
-   if ((Point_z( *coord ) < 0) || (Point_z( *coord ) > max[0]-1) ||
-       (Point_y( *coord ) < 0) || (Point_y( *coord ) > max[1]-1) ||
-       (Point_x( *coord ) < 0) || (Point_x( *coord ) > max[2]-1)) {
-
-      *result = 0.0;
-
-      return FALSE;
-   }
-
-
-   /* Get the whole part of the coordinate */ 
-   ind0 = (long) Point_z( *coord );
-   ind1 = (long) Point_y( *coord );
-   ind2 = (long) Point_x( *coord );
-   if (ind0 >= max[0]-1) ind0 = max[0]-1;
-   if (ind1 >= max[1]-1) ind1 = max[1]-1;
-   if (ind2 >= max[2]-1) ind2 = max[2]-1;
-
-   /* Get the relevant voxels */
-   GET_VOXEL_3D( v000 ,  volume, ind0  , ind1  , ind2   ); CONVERT_VOXEL_TO_VALUE(volume,v000);
-   GET_VOXEL_3D( v001 ,  volume, ind0  , ind1  , ind2+1 ); CONVERT_VOXEL_TO_VALUE(volume,v001);
-   GET_VOXEL_3D( v010 ,  volume, ind0  , ind1+1, ind2   ); CONVERT_VOXEL_TO_VALUE(volume,v010);
-   GET_VOXEL_3D( v011 ,  volume, ind0  , ind1+1, ind2+1 ); CONVERT_VOXEL_TO_VALUE(volume,v011);
-   GET_VOXEL_3D( v100 ,  volume, ind0+1, ind1  , ind2   ); CONVERT_VOXEL_TO_VALUE(volume,v100);
-   GET_VOXEL_3D( v101 ,  volume, ind0+1, ind1  , ind2+1 ); CONVERT_VOXEL_TO_VALUE(volume,v101);
-   GET_VOXEL_3D( v110 ,  volume, ind0+1, ind1+1, ind2   ); CONVERT_VOXEL_TO_VALUE(volume,v110);
-   GET_VOXEL_3D( v111 ,  volume, ind0+1, ind1+1, ind2+1 ); CONVERT_VOXEL_TO_VALUE(volume,v111);
+  long ind0, ind1, ind2, max[3];
+  int sizes[3];
+  static double f0, f1, f2, r0, r1, r2, r1r2, r1f2, f1r2, f1f2;
+  static double v000, v001, v010, v011, v100, v101, v110, v111;
+  
+  /* Check that the coordinate is inside the volume */
+  
+  get_volume_sizes(volume, sizes);
+  max[0]=sizes[0];
+  max[1]=sizes[1];
+  max[2]=sizes[2];
+  
+  if ((Point_z( *coord ) < 0) || (Point_z( *coord ) > max[0]-1) ||
+      (Point_y( *coord ) < 0) || (Point_y( *coord ) > max[1]-1) ||
+      (Point_x( *coord ) < 0) || (Point_x( *coord ) > max[2]-1)) {
+    
+    *result = 0.0;
+    
+    return FALSE;
+  }
+  
+  
+  /* Get the whole part of the coordinate */ 
+  ind0 = (long) Point_z( *coord );
+  ind1 = (long) Point_y( *coord );
+  ind2 = (long) Point_x( *coord );
+  if (ind0 >= max[0]-1) ind0 = max[0]-1;
+  if (ind1 >= max[1]-1) ind1 = max[1]-1;
+  if (ind2 >= max[2]-1) ind2 = max[2]-1;
+  
+  /* Get the relevant voxels */
+  GET_VOXEL_3D( v000 ,  volume, ind0  , ind1  , ind2   ); 
+  v000=CONVERT_VOXEL_TO_VALUE(volume,v000);
+  GET_VOXEL_3D( v001 ,  volume, ind0  , ind1  , ind2+1 ); 
+  v001=CONVERT_VOXEL_TO_VALUE(volume,v001);
+  GET_VOXEL_3D( v010 ,  volume, ind0  , ind1+1, ind2   ); 
+  v010=CONVERT_VOXEL_TO_VALUE(volume,v010);
+  GET_VOXEL_3D( v011 ,  volume, ind0  , ind1+1, ind2+1 ); 
+  v011=CONVERT_VOXEL_TO_VALUE(volume,v011);
+  GET_VOXEL_3D( v100 ,  volume, ind0+1, ind1  , ind2   ); 
+  v101=CONVERT_VOXEL_TO_VALUE(volume,v100);
+  GET_VOXEL_3D( v101 ,  volume, ind0+1, ind1  , ind2+1 ); 
+  v101=CONVERT_VOXEL_TO_VALUE(volume,v101);
+  GET_VOXEL_3D( v110 ,  volume, ind0+1, ind1+1, ind2   ); 
+  v110=CONVERT_VOXEL_TO_VALUE(volume,v110);
+  GET_VOXEL_3D( v111 ,  volume, ind0+1, ind1+1, ind2+1 ); 
+  v111=CONVERT_VOXEL_TO_VALUE(volume,v111);
 
    /* Get the fraction parts */
    f0 = Point_z( *coord ) - ind0;
@@ -208,10 +220,14 @@ public int tricubic_interpolant(Volume volume,
 {
    long ind0, ind1, ind2, max[3], index[VOL_NDIMS];
    double frac[VOL_NDIMS];
+   int sizes[3];
 
    /* Check that the coordinate is inside the volume */
 
-   get_volume_sizes(volume, max);
+   get_volume_sizes(volume, sizes);
+   max[0] = sizes[0];
+   max[1] = sizes[1];
+   max[2] = sizes[2];
    
    if ((Point_z( *coord ) < 0) || (Point_z( *coord ) > max[0]-1) ||
        (Point_y( *coord ) < 0) || (Point_y( *coord ) > max[1]-1) ||
@@ -273,10 +289,14 @@ public int nearest_neighbour_interpolant(Volume volume,
    long 
      ind0, ind1, ind2, 
      max[3];
+   int sizes[3];
 
    /* Check that the coordinate is inside the volume */
    
-   get_volume_sizes(volume, max);
+  get_volume_sizes(volume, sizes);
+  max[0]=sizes[0];
+  max[1]=sizes[1];
+  max[2]=sizes[2];
    
    if ((Point_z( *coord ) < -0.5) || (Point_z( *coord ) > max[0]-0.5) ||
        (Point_y( *coord ) < -0.5) || (Point_y( *coord ) > max[1]-0.5) ||

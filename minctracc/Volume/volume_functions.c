@@ -39,7 +39,6 @@ public void make_zscore_volume(Volume d1, Volume m1,
     valid_min_mvoxel, valid_max_mvoxel,
     valid_min_dvoxel, valid_max_dvoxel,
     min,max,
-    scale, offset,
     sum, sum2, mean, var, std,
     mask_vox, data_vox,data_val,
     thick[MAX_DIMENSIONS];
@@ -245,12 +244,6 @@ public void add_speckle_to_volume(Volume d1,
 
 public void save_volume(Volume d, char *filename)
 {
-  Minc_file minc_fp;
-  Real 
-    vox,val,
-    min_val,max_val,
-    min_vval,max_vval;
-  int i,j,k,sizes[3];
   Status status;
 
   status = output_volume(filename,FALSE, d, NULL);

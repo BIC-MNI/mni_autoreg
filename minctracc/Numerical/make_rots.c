@@ -178,7 +178,7 @@ public void build_transformation_matrix(Transform *trans,
 
 
 
-private void  build_homogeneous_from_parameters(float **calc_transformation,
+public void  build_homogeneous_from_parameters(float **calc_transformation,
 						int ndim, 
 						float *centre, 
 						float *translation,
