@@ -54,9 +54,12 @@
               express or implied warranty.
    @CREATED    : January 25, 1992 louis collins (Original using .iff files)
    @MODIFIED   : $Log: mincblur.c,v $
-   @MODIFIED   : Revision 1.14  1996-08-12 14:16:24  louis
-   @MODIFIED   : Pre-release
+   @MODIFIED   : Revision 9.5  1996-08-12 14:16:28  louis
+   @MODIFIED   : Release of MNI_AutoReg version 1.0
    @MODIFIED   :
+ * Revision 1.14  1996/08/12  14:16:24  louis
+ * Pre-release
+ *
  * Revision 1.13  1995/09/18  09:02:42  collins
  * new functional version of mincblur with new and improved default behavior.
  * By default, only the blurred volume is created. If you want the gradient
@@ -82,7 +85,7 @@
         rewrite using mnc files and David Macdonald's libmni.a
    ---------------------------------------------------------------------------- */
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/mincblur.c,v 1.14 1996-08-12 14:16:24 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/mincblur.c,v 9.5 1996-08-12 14:16:28 louis Rel $";
 #endif
 
 #include <volume_io.h>

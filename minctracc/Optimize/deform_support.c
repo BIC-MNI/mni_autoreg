@@ -20,9 +20,12 @@
 
 @CREATED    : Tue Feb 22 08:37:49 EST 1994
 @MODIFIED   : $Log: deform_support.c,v $
-@MODIFIED   : Revision 1.16  1996-08-12 14:15:53  louis
-@MODIFIED   : Pre-release
+@MODIFIED   : Revision 9.5  1996-08-12 14:16:03  louis
+@MODIFIED   : Release of MNI_AutoReg version 1.0
 @MODIFIED   :
+ * Revision 1.16  1996/08/12  14:15:53  louis
+ * Pre-release
+ *
  * Revision 1.14  1996/04/01  09:16:29  collins
  * removed the code to super sample the deformation field,
  * and placed it in super_sample_def.c.
@@ -128,7 +131,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 1.16 1996-08-12 14:15:53 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 9.5 1996-08-12 14:16:03 louis Rel $";
 #endif
 
 #include <config.h>             /* for VOXEL_DATA macro */

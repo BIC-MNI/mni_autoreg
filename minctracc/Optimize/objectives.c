@@ -16,9 +16,12 @@
 
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   :  $Log: objectives.c,v $
-@MODIFIED   :  Revision 1.12  1996-08-12 14:15:56  louis
-@MODIFIED   :  Pre-release
+@MODIFIED   :  Revision 9.5  1996-08-12 14:16:03  louis
+@MODIFIED   :  Release of MNI_AutoReg version 1.0
 @MODIFIED   :
+ * Revision 1.12  1996/08/12  14:15:56  louis
+ * Pre-release
+ *
  * Revision 1.11  1996/03/25  10:33:15  collins
  * removed the mutual info objective function and moved it
  * into the separate file obj_fn_mutual_info.c
@@ -52,7 +55,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/objectives.c,v 1.12 1996-08-12 14:15:56 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/objectives.c,v 9.5 1996-08-12 14:16:03 louis Rel $";
 #endif
 
 #include <volume_io.h>

@@ -29,9 +29,12 @@
                       using numerical recipes routines jacobi() and eigsrt().  
 		      See Hotelling Transform
 @MODIFIED   : $Log: cov_to_praxes.c,v $
-@MODIFIED   : Revision 1.9  1996-08-12 14:15:43  louis
-@MODIFIED   : Pre-release
+@MODIFIED   : Revision 9.5  1996-08-12 14:15:50  louis
+@MODIFIED   : Release of MNI_AutoReg version 1.0
 @MODIFIED   :
+ * Revision 1.9  1996/08/12  14:15:43  louis
+ * Pre-release
+ *
  * Revision 1.8  1995/09/11  12:32:29  collins
  * all refs to numerical recipes routines have been removed. The procedure
  * eigen() replaces calls to jacobi() and eigsrt(). eigen calculates the
@@ -47,7 +50,7 @@
 
 ---------------------------------------------------------------------------- */
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/cov_to_praxes.c,v 1.9 1996-08-12 14:15:43 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/cov_to_praxes.c,v 9.5 1996-08-12 14:15:50 louis Rel $";
 #endif
 
 #include <volume_io.h>

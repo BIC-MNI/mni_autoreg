@@ -13,9 +13,12 @@
 
    @CREATED    : February 3, 1992 - louis collins
    @MODIFIED   : $Log: minctracc.c,v $
-   @MODIFIED   : Revision 1.16  1996-08-12 14:15:40  louis
-   @MODIFIED   : Pre-release
+   @MODIFIED   : Revision 9.5  1996-08-12 14:15:42  louis
+   @MODIFIED   : Release of MNI_AutoReg version 1.0
    @MODIFIED   :
+ * Revision 1.16  1996/08/12  14:15:40  louis
+ * Pre-release
+ *
  * Revision 1.15  1995/09/28  13:24:26  collins
  * added multiple feature volume loading with get_feature_volumes()
  * to be able to correlate multiple features at the same time.
@@ -69,7 +72,7 @@ Wed May 26 13:05:44 EST 1993 lc
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 1.16 1996-08-12 14:15:40 louis Exp $";
+static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 9.5 1996-08-12 14:15:42 louis Rel $";
 #endif
 
 #include <config.h>

@@ -15,9 +15,12 @@
 @CREATED    : Wed Jun 30 13:25:33 EST 1993 Louis Collins
                 copied and modified from mincresample.h from Peter Neelin
 @MODIFIED   : $Log: gradmag_volume.h,v $
-@MODIFIED   : Revision 1.8  1996-08-12 14:16:22  louis
-@MODIFIED   : Pre-release
+@MODIFIED   : Revision 9.5  1996-08-12 14:16:28  louis
+@MODIFIED   : Release of MNI_AutoReg version 1.0
 @MODIFIED   :
+ * Revision 1.8  1996/08/12  14:16:22  louis
+ * Pre-release
+ *
 ---------------------------------------------------------------------------- */
 
 /* Constants used in program */

@@ -20,16 +20,19 @@
 
 @CREATED    : 
 @MODIFIED   : $Log: super_sample_def.c,v $
-@MODIFIED   : Revision 1.2  1996-08-12 14:15:58  louis
-@MODIFIED   : Pre-release
+@MODIFIED   : Revision 9.5  1996-08-12 14:16:03  louis
+@MODIFIED   : Release of MNI_AutoReg version 1.0
 @MODIFIED   :
+ * Revision 1.2  1996/08/12  14:15:58  louis
+ * Pre-release
+ *
  * Revision 1.1  1996/04/01  09:16:29  collins
  * Initial revision
  *
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/super_sample_def.c,v 1.2 1996-08-12 14:15:58 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/super_sample_def.c,v 9.5 1996-08-12 14:16:03 louis Rel $";
 #endif
 
 #include <limits.h>

@@ -68,9 +68,12 @@
 
 @CREATED    : Feb 9, 1992 lc
 @MODIFIED   :  $Log: rotmat_to_ang.c,v $
-@MODIFIED   :  Revision 1.11  1996-08-12 14:15:47  louis
-@MODIFIED   :  Pre-release
+@MODIFIED   :  Revision 9.5  1996-08-12 14:15:50  louis
+@MODIFIED   :  Release of MNI_AutoReg version 1.0
 @MODIFIED   :
+ * Revision 1.11  1996/08/12  14:15:47  louis
+ * Pre-release
+ *
  * Revision 1.10  1995/09/11  12:37:16  collins
  * All refs to numerical recipes routines have been replaced.
  * this is an updated working version - corresponds to mni_reg-0.1g
@@ -99,7 +102,7 @@ Tue Jun  8 08:44:59 EST 1993 LC
 
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/rotmat_to_ang.c,v 1.11 1996-08-12 14:15:47 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/rotmat_to_ang.c,v 9.5 1996-08-12 14:15:50 louis Rel $";
 #endif
 
 

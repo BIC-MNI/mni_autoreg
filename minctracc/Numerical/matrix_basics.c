@@ -24,9 +24,12 @@
 
 @CREATED    : January 31, 1992 (Peter Neelin)
 @MODIFIED   :  $Log: matrix_basics.c,v $
-@MODIFIED   :  Revision 1.10  1996-08-12 14:15:46  louis
-@MODIFIED   :  Pre-release
+@MODIFIED   :  Revision 9.5  1996-08-12 14:15:50  louis
+@MODIFIED   :  Release of MNI_AutoReg version 1.0
 @MODIFIED   :
+ * Revision 1.10  1996/08/12  14:15:46  louis
+ * Pre-release
+ *
  * Revision 1.9  1995/09/11  12:37:16  collins
  * All refs to numerical recipes routines have been replaced.
  * this is an updated working version - corresponds to mni_reg-0.1g
@@ -62,7 +65,7 @@ Fri Jun  4 14:10:34 EST 1993 LC
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/matrix_basics.c,v 1.10 1996-08-12 14:15:46 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/matrix_basics.c,v 9.5 1996-08-12 14:15:50 louis Rel $";
 #endif
 
 #include <volume_io.h>

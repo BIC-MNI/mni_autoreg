@@ -15,9 +15,12 @@
 
 @CREATED    : Mon May 22 14:14:50 MET DST 1995
 @MODIFIED   : $Log: quad_max_fit.c,v $
-@MODIFIED   : Revision 1.4  1996-08-12 14:15:47  louis
-@MODIFIED   : Pre-release
+@MODIFIED   : Revision 9.5  1996-08-12 14:15:50  louis
+@MODIFIED   : Release of MNI_AutoReg version 1.0
 @MODIFIED   :
+ * Revision 1.4  1996/08/12  14:15:47  louis
+ * Pre-release
+ *
  * Revision 1.3  1995/09/11  12:37:16  collins
  * this is a working version. While this file is not used in mni_reg-0.1g,
  * it will be part of the non-linear release.

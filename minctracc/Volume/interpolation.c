@@ -16,9 +16,12 @@
 @CREATED    : Wed May 26 13:05:44 EST 1993 LC using routines from NEELIN's
               mincresample.
 @MODIFIED   :  $Log: interpolation.c,v $
-@MODIFIED   :  Revision 1.10  1996-08-12 14:16:13  louis
-@MODIFIED   :  Pre-release
+@MODIFIED   :  Revision 9.5  1996-08-12 14:16:15  louis
+@MODIFIED   :  Release of MNI_AutoReg version 1.0
 @MODIFIED   :
+ * Revision 1.10  1996/08/12  14:16:13  louis
+ * Pre-release
+ *
  * Revision 1.9  1995/02/22  08:56:06  collins
  * Montreal Neurological Institute version.
  * compiled and working on SGI.  this is before any changes for SPARC/
@@ -38,7 +41,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/interpolation.c,v 1.10 1996-08-12 14:16:13 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/interpolation.c,v 9.5 1996-08-12 14:16:15 louis Rel $";
 #endif
 
 #include <volume_io.h>

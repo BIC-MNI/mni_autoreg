@@ -16,9 +16,12 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 1.26  1996-08-12 14:15:54  louis
-@MODIFIED   : Pre-release
+@MODIFIED   : Revision 9.5  1996-08-12 14:16:03  louis
+@MODIFIED   : Release of MNI_AutoReg version 1.0
 @MODIFIED   :
+ * Revision 1.26  1996/08/12  14:15:54  louis
+ * Pre-release
+ *
  * Revision 1.25  1996/03/25  10:33:15  collins
  * removed jiggle in do_nonlinear.c - The jiggle was causing multiple
  * local minima in the local objective function.  This in turn was the
@@ -219,7 +222,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 1.26 1996-08-12 14:15:54 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 9.5 1996-08-12 14:16:03 louis Rel $";
 #endif
 
 #include <config.h>		/* MAXtype and MIN defs                      */

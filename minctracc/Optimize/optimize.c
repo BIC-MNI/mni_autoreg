@@ -14,9 +14,12 @@
               express or implied warranty.
 
 @MODIFIED   : $Log: optimize.c,v $
-@MODIFIED   : Revision 1.17  1996-08-12 14:15:57  louis
-@MODIFIED   : Pre-release
+@MODIFIED   : Revision 9.5  1996-08-12 14:16:03  louis
+@MODIFIED   : Release of MNI_AutoReg version 1.0
 @MODIFIED   :
+ * Revision 1.17  1996/08/12  14:15:57  louis
+ * Pre-release
+ *
  * Revision 1.16  1996/05/02  19:39:12  collins
  * fixed the matrix inversion bug.  When source and target volumes were
  * swapped, the call to fit_function, to get a value for final_corr,
@@ -91,7 +94,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 1.17 1996-08-12 14:15:57 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 9.5 1996-08-12 14:16:03 louis Rel $";
 #endif
 
 #include <config.h>

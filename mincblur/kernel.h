@@ -13,9 +13,12 @@
               express or implied warranty.
 
 @MODIFIED   : $Log: kernel.h,v $
-@MODIFIED   : Revision 1.5  1996-08-12 14:16:23  louis
-@MODIFIED   : Pre-release
+@MODIFIED   : Revision 9.5  1996-08-12 14:16:28  louis
+@MODIFIED   : Release of MNI_AutoReg version 1.0
 @MODIFIED   :
+ * Revision 1.5  1996/08/12  14:16:23  louis
+ * Pre-release
+ *
 ---------------------------------------------------------------------------- */
 
 

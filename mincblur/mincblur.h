@@ -15,9 +15,12 @@
 
 @CREATED    : Wed Jun 23 09:04:34 EST 1993 Louis Collins
 @MODIFIED   : $Log: mincblur.h,v $
-@MODIFIED   : Revision 1.11  1996-08-12 14:16:24  louis
-@MODIFIED   : Pre-release
+@MODIFIED   : Revision 9.5  1996-08-12 14:16:28  louis
+@MODIFIED   : Release of MNI_AutoReg version 1.0
 @MODIFIED   :
+ * Revision 1.11  1996/08/12  14:16:24  louis
+ * Pre-release
+ *
 ---------------------------------------------------------------------------- */
 
 public Status blur3D_volume(Volume data,

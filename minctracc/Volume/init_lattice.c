@@ -28,9 +28,12 @@
 
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   :  $Log: init_lattice.c,v $
-@MODIFIED   :  Revision 1.10  1996-08-12 14:16:12  louis
-@MODIFIED   :  Pre-release
+@MODIFIED   :  Revision 9.5  1996-08-12 14:16:15  louis
+@MODIFIED   :  Release of MNI_AutoReg version 1.0
 @MODIFIED   :
+ * Revision 1.10  1996/08/12  14:16:12  louis
+ * Pre-release
+ *
  * Revision 1.9  1995/02/22  08:56:06  collins
  * Montreal Neurological Institute version.
  * compiled and working on SGI.  this is before any changes for SPARC/
@@ -65,7 +68,7 @@ made change to init lattice to not change start when there is only 1 slice.
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/init_lattice.c,v 1.10 1996-08-12 14:16:12 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/init_lattice.c,v 9.5 1996-08-12 14:16:15 louis Rel $";
 #endif
 
 #include <config.h>

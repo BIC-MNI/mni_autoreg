@@ -21,16 +21,19 @@
 
 @CREATED    : Tue Mar 12 09:37:44 MET 1996
 @MODIFIED   : $Log: obj_fn_mutual_info.c,v $
-@MODIFIED   : Revision 1.2  1996-08-12 14:15:56  louis
-@MODIFIED   : Pre-release
+@MODIFIED   : Revision 9.5  1996-08-12 14:16:03  louis
+@MODIFIED   : Release of MNI_AutoReg version 1.0
 @MODIFIED   :
+ * Revision 1.2  1996/08/12  14:15:56  louis
+ * Pre-release
+ *
  * Revision 1.1  1996/03/25  10:33:15  collins
  * Initial revision
  *
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/obj_fn_mutual_info.c,v 1.2 1996-08-12 14:15:56 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/obj_fn_mutual_info.c,v 9.5 1996-08-12 14:16:03 louis Rel $";
 #endif
 
 #include <volume_io.h>

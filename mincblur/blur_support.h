@@ -16,9 +16,12 @@
 @CREATED    : Wed Jun 23 09:04:34 EST 1993 Louis Collins
 
 @MODIFIED   : $Log: blur_support.h,v $
-@MODIFIED   : Revision 1.10  1996-08-12 14:16:19  louis
-@MODIFIED   : Pre-release
+@MODIFIED   : Revision 9.5  1996-08-12 14:16:28  louis
+@MODIFIED   : Release of MNI_AutoReg version 1.0
 @MODIFIED   :
+ * Revision 1.10  1996/08/12  14:16:19  louis
+ * Pre-release
+ *
 ---------------------------------------------------------------------------- */
 
 #ifndef public

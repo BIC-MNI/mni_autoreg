@@ -35,9 +35,12 @@
       created by removing build_default_deformation_field from 
       transformations.c
 @MODIFIED   : $Log: default_def.c,v $
-@MODIFIED   : Revision 1.4  1996-08-12 14:15:44  louis
-@MODIFIED   : Pre-release
+@MODIFIED   : Revision 9.5  1996-08-12 14:15:50  louis
+@MODIFIED   : Release of MNI_AutoReg version 1.0
 @MODIFIED   :
+ * Revision 1.4  1996/08/12  14:15:44  louis
+ * Pre-release
+ *
  * Revision 1.3  1995/09/11  12:49:12  collins
  * removed reference to get_linear_part_of_transformation(), which was no
  * longer needed or used.

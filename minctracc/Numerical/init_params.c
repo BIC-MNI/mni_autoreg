@@ -17,9 +17,12 @@
 @CREATED    : Thu May 27 16:50:50 EST 1993
                   
 @MODIFIED   :  $Log: init_params.c,v $
-@MODIFIED   :  Revision 1.15  1996-08-12 14:15:44  louis
-@MODIFIED   :  Pre-release
+@MODIFIED   :  Revision 9.5  1996-08-12 14:15:50  louis
+@MODIFIED   :  Release of MNI_AutoReg version 1.0
 @MODIFIED   :
+ * Revision 1.15  1996/08/12  14:15:44  louis
+ * Pre-release
+ *
  * Revision 1.14  1996/02/22  09:47:08  collins
  * Fixed loop limits for i and j when norming the principal axes (line 613)
  *
@@ -70,7 +73,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 1.15 1996-08-12 14:15:44 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 9.5 1996-08-12 14:15:50 louis Rel $";
 #endif
 
 

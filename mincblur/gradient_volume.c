@@ -28,9 +28,12 @@
               express or implied warranty.
 
 @MODIFIED   : $Log: gradient_volume.c,v $
-@MODIFIED   : Revision 1.13  1996-08-12 14:16:21  louis
-@MODIFIED   : Pre-release
+@MODIFIED   : Revision 9.5  1996-08-12 14:16:28  louis
+@MODIFIED   : Release of MNI_AutoReg version 1.0
 @MODIFIED   :
+ * Revision 1.13  1996/08/12  14:16:21  louis
+ * Pre-release
+ *
  * Revision 1.12  1995/09/18  06:45:42  collins
  * this file is a working version of mincblur.  All references to numerical
  * recipes routines have been removed.  This version is included in the
@@ -39,7 +42,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/gradient_volume.c,v 1.13 1996-08-12 14:16:21 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/gradient_volume.c,v 9.5 1996-08-12 14:16:28 louis Rel $";
 #endif
 
 #include <volume_io.h>

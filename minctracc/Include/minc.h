@@ -18,9 +18,12 @@
                  MI acquisition variable
 @CREATED    : July 24, 1992. (Peter Neelin, Montreal Neurological Institute)
 @MODIFIED   : $Log: minc.h,v $
-@MODIFIED   : Revision 1.4  1996-08-12 14:15:25  louis
-@MODIFIED   : Pre-release
+@MODIFIED   : Revision 9.5  1996-08-12 14:15:34  louis
+@MODIFIED   : Release of MNI_AutoReg version 1.0
 @MODIFIED   :
+ * Revision 1.4  1996/08/12  14:15:25  louis
+ * Pre-release
+ *
  * Revision 1.3  1995/02/22  08:56:06  collins
  * Montreal Neurological Institute version.
  * compiled and working on SGI.  this is before any changes for SPARC/
@@ -48,12 +51,12 @@
               make no representations about the suitability of this
               software for any purpose.  It is provided "as is" without
               express or implied warranty.
-@RCSID      : $Header: /private-cvsroot/registration/mni_autoreg/minctracc/Include/Attic/minc.h,v 1.4 1996-08-12 14:15:25 louis Exp $ MINC (MNI)
+@RCSID      : $Header: /private-cvsroot/registration/mni_autoreg/minctracc/Include/Attic/minc.h,v 9.5 1996-08-12 14:15:34 louis Rel $ MINC (MNI)
 ---------------------------------------------------------------------------- */
 
 #ifndef MINC_PRIVATE_HEADER_FILE
 #ifndef lint
-static char minc_h_rcsid[] = "$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Include/Attic/minc.h,v 1.4 1996-08-12 14:15:25 louis Exp $ MINC (MNI)";
+static char minc_h_rcsid[] = "$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Include/Attic/minc.h,v 9.5 1996-08-12 14:15:34 louis Rel $ MINC (MNI)";
 #endif
 #endif
 

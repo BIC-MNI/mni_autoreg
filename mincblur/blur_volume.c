@@ -29,9 +29,12 @@
               express or implied warranty.
 
 @MODIFIED   : $Log: blur_volume.c,v $
-@MODIFIED   : Revision 1.13  1996-08-12 14:16:19  louis
-@MODIFIED   : Pre-release
+@MODIFIED   : Revision 9.5  1996-08-12 14:16:28  louis
+@MODIFIED   : Release of MNI_AutoReg version 1.0
 @MODIFIED   :
+ * Revision 1.13  1996/08/12  14:16:19  louis
+ * Pre-release
+ *
  * Revision 1.12  1995/09/18  09:02:42  collins
  * new functional version of mincblur with new and improved default behavior.
  * By default, only the blurred volume is created. If you want the gradient
@@ -56,7 +59,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/blur_volume.c,v 1.13 1996-08-12 14:16:19 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/blur_volume.c,v 9.5 1996-08-12 14:16:28 louis Rel $";
 #endif
 
 #include <volume_io.h>

@@ -17,9 +17,12 @@
 
 @CREATED    : 
 @MODIFIED   : $Log: amoeba.c,v $
-@MODIFIED   : Revision 1.4  1996-08-12 14:15:52  louis
-@MODIFIED   : Pre-release
+@MODIFIED   : Revision 9.5  1996-08-12 14:16:03  louis
+@MODIFIED   : Release of MNI_AutoReg version 1.0
 @MODIFIED   :
+ * Revision 1.4  1996/08/12  14:15:52  louis
+ * Pre-release
+ *
  * Revision 1.3  1996/03/25  10:33:15  collins
  * changed perform_amoeba() so that it counts the actual number of
  * objective function evaluations instead of the number of calls to
@@ -89,7 +92,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/amoeba.c,v 1.4 1996-08-12 14:15:52 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/amoeba.c,v 9.5 1996-08-12 14:16:03 louis Rel $";
 #endif
 
 
