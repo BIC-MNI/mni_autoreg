@@ -3,11 +3,17 @@
 #@NAME       : vox_space.c
 #@DESCRIPTION: routines to map global lattice information from
                world coordinates to voxel coordinates.
+
+               These routines are used only for linear registration (with
+               all objective functions except mutual information.
+
+               It would be desirable to have similar functionality (and the
+               equivalent speed up) for the non-linear code.
+
 #@CREATED    : Wed Jun 25, 1997, Louis Collins
 #@MODIFIED   : not yet!
-#@VERSION    : $Id: vox_space.c,v 1.2 1997-11-03 15:06:29 louis Exp $
-#-----------------------------------------------------------------------------
-*/
+#@VERSION    : $Id: vox_space.c,v 1.3 1997-11-03 17:00:31 louis Exp $
+#----------------------------------------------------------------------------- */
 
 #include <internal_volume_io.h>
 #include "constants.h"
@@ -240,6 +246,7 @@ public void get_into_voxel_space(Arg_Data *globals,
 
    }
 }
+
 public  void  my_homogenous_transform_point(
     Transform  *transform,
     Real       x,
