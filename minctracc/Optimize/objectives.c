@@ -16,10 +16,17 @@
 
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   :  $Log: objectives.c,v $
-@MODIFIED   :  Revision 96.1  1997-11-03 15:06:29  louis
-@MODIFIED   :  working version, before creation of mni_animal package, and before inserting
-@MODIFIED   :  distance transforms
+@MODIFIED   :  Revision 96.2  1997-11-12 21:07:43  louis
+@MODIFIED   :  no changes, other than rcsid...
 @MODIFIED   :
+ * Revision 96.1  1997/11/03  15:06:29  louis
+ * working version, before creation of mni_animal package, and before inserting
+ * distance transforms
+ *
+ * Revision 96.1  1997/11/03  15:06:29  louis
+ * working version, before creation of mni_animal package, and before inserting
+ * distance transforms
+ *
  * Revision 96.0  1996/08/21  18:22:10  louis
  * Release of MNI_AutoReg version 0.96
  *
@@ -65,7 +72,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/objectives.c,v 96.1 1997-11-03 15:06:29 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/objectives.c,v 96.2 1997-11-12 21:07:43 louis Exp $";
 #endif
 
 #include <internal_volume_io.h>
