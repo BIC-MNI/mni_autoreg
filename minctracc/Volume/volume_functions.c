@@ -14,9 +14,12 @@
 
 @CREATED    : Tue Jun 15 08:57:23 EST 1993 LC
 @MODIFIED   :  $Log: volume_functions.c,v $
-@MODIFIED   :  Revision 96.0  1996-08-21 18:22:15  louis
-@MODIFIED   :  Release of MNI_AutoReg version 0.96
+@MODIFIED   :  Revision 96.1  1999-10-25 19:59:17  louis
+@MODIFIED   :  final checkin before switch to CVS
 @MODIFIED   :
+ * Revision 96.0  1996/08/21  18:22:15  louis
+ * Release of MNI_AutoReg version 0.96
+ *
  * Revision 9.5  1996/08/12  14:16:15  louis
  * Release of MNI_AutoReg version 1.0
  *
@@ -46,11 +49,11 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/volume_functions.c,v 96.0 1996-08-21 18:22:15 louis Rel $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/volume_functions.c,v 96.1 1999-10-25 19:59:17 louis Exp $";
 #endif
 
-#include <limits.h>
-#include <volume_io.h>
+#include <config.h>
+#include <internal_volume_io.h>
 #include "point_vector.h"
 #include "constants.h"
 #include <print_error.h>
@@ -251,18 +254,18 @@ public void add_speckle_to_volume(Volume d1,
   get_volume_voxel_range(d1, &valid_min_voxel, &valid_max_voxel);
   fill_Point( starting_position, start[0], start[1], start[2]);
   
-  for_inclusive(s,0,count[SLICE_IND]) {
+  for_less(s,0,count[SLICE_IND]) {
 
     SCALE_VECTOR( vector_step, directions[SLICE_IND], s);
     ADD_POINT_VECTOR( slice, starting_position, vector_step );
 
-    for_inclusive(r,0,count[ROW_IND]) {
+    for_less(r,0,count[ROW_IND]) {
 
       SCALE_VECTOR( vector_step, directions[ROW_IND], r);
       ADD_POINT_VECTOR( row, slice, vector_step );
 
       SCALE_POINT( col, row, 1.0); /* init first col position */
-      for_inclusive(c,0,count[COL_IND]) {
+      for_less(c,0,count[COL_IND]) {
 
 	convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
 

@@ -20,23 +20,43 @@
 
 @CREATED    : Tue Feb 22 08:37:49 EST 1994
 @MODIFIED   : $Log: deform_support.c,v $
-@MODIFIED   : Revision 96.2  1997-11-03 20:05:41  louis
-@MODIFIED   : reorganized deform_support...
-@MODIFIED   : putting:
-@MODIFIED   :   init_the_volume_to_zero()
-@MODIFIED   :   get_volume_maximum_real_value()
-@MODIFIED   :   save_data()
-@MODIFIED   :  into extras.c
+@MODIFIED   : Revision 96.3  1999-10-25 19:59:06  louis
+@MODIFIED   : final checkin before switch to CVS
 @MODIFIED   :
-@MODIFIED   : and putting:
-@MODIFIED   :   general_transform_point_in_trans_plane()
-@MODIFIED   :   build_source_lattice()
-@MODIFIED   :   go_get_samples_in_source()
-@MODIFIED   :   go_get_samples_with_offset()
-@MODIFIED   :   build_target_lattice()
-@MODIFIED   :   build_target_lattice_using_super_sampled_def()
-@MODIFIED   :  into sub_lattice.c
-@MODIFIED   :
+ * Revision 96.2  1997/11/03  20:05:41  louis
+ * reorganized deform_support...
+ * putting:
+ *   init_the_volume_to_zero()
+ *   get_volume_maximum_real_value()
+ *   save_data()
+ *  into extras.c
+ *
+ * and putting:
+ *   general_transform_point_in_trans_plane()
+ *   build_source_lattice()
+ *   go_get_samples_in_source()
+ *   go_get_samples_with_offset()
+ *   build_target_lattice()
+ *   build_target_lattice_using_super_sampled_def()
+ *  into sub_lattice.c
+ *
+ * Revision 96.2  1997/11/03  20:05:41  louis
+ * reorganized deform_support...
+ * putting:
+ *   init_the_volume_to_zero()
+ *   get_volume_maximum_real_value()
+ *   save_data()
+ *  into extras.c
+ *
+ * and putting:
+ *   general_transform_point_in_trans_plane()
+ *   build_source_lattice()
+ *   go_get_samples_in_source()
+ *   go_get_samples_with_offset()
+ *   build_target_lattice()
+ *   build_target_lattice_using_super_sampled_def()
+ *  into sub_lattice.c
+ *
  * Revision 96.1  1997/11/03  15:06:29  louis
  * working version, before creation of mni_animal package, and before inserting
  * distance transforms
@@ -158,7 +178,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 96.2 1997-11-03 20:05:41 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 96.3 1999-10-25 19:59:06 louis Exp $";
 #endif
 
 #include <config.h>             /* for VOXEL_DATA macro */

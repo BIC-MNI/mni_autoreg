@@ -16,10 +16,13 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 96.5  1999-06-10 12:51:23  louis
-@MODIFIED   : update with optical flow working in addition to xcorr, label, and diff
-@MODIFIED   : sub-lattice computed only if needed
+@MODIFIED   : Revision 96.6  1999-10-25 19:59:07  louis
+@MODIFIED   : final checkin before switch to CVS
 @MODIFIED   :
+ * Revision 96.5  1999/06/10  12:51:23  louis
+ * update with optical flow working in addition to xcorr, label, and diff
+ * sub-lattice computed only if needed
+ *
  * Revision 96.4  1999/06/09  13:11:08  louis
  * working version with optical flow (working by itself).
  *
@@ -258,7 +261,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.5 1999-06-10 12:51:23 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.6 1999-10-25 19:59:07 louis Exp $";
 #endif
 
 #include <config.h>		/* MAXtype and MIN defs                      */
@@ -490,6 +493,15 @@ private Real get_optical_flow_vector(Real threshold1,
 				     Volume data,
 				     Volume model,
 				     int ndim);
+
+private Real get_chamfer_vector(Real threshold1, 
+				Real source_coord[],
+				Real mean_target[],
+				Real def_vector[],
+				Real voxel_displacement[],
+				Volume data,
+				Volume chamfer,
+				int ndim);
 
 /**************************************************************************/
 public Status do_non_linear_optimization(Arg_Data *globals)
@@ -882,6 +894,8 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 
   for_less(iters,0,iteration_limit) {
 
+    iteration_start_time = time(NULL);
+
     if (globals->trans_info.use_super>0) {
 
       temp_start_time = time(NULL);
@@ -896,7 +910,7 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 				     Gsuper_sampled_warp,
 				     number_dimensions);
       if (globals->flags.debug)
-         report_time(temp_start_time, "Interpolating super-sampled data");
+         report_time(temp_start_time, "TIME:Interpolating super-sampled data");
 
     }  
 
@@ -930,11 +944,12 @@ public Status do_non_linear_optimization(Arg_Data *globals)
     init_stats(&stat_conf2,    "conf[2]");
 
 
-    iteration_start_time = time(NULL);
 
     initialize_progress_report( &progress, FALSE, 
 			       (end[X]-start[X])*(end[Y]-start[Y]) + 1,
 			       "Estimating deformations" );
+
+    temp_start_time = time(NULL);
 
     for_less(i,0,MAX_DIMENSIONS) index[i]=0;
 
@@ -1116,6 +1131,7 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 
     if (globals->flags.debug) {
 
+
        /*
           ALLOC(filenamestring,512);
           sprintf (filenamestring,"pr_axes2_%d.xfm",iters);
@@ -1166,6 +1182,7 @@ public Status do_non_linear_optimization(Arg_Data *globals)
       print ("there are %d of %d over (mean+1std) out of %d estimated.\n", 
 	     nodes_tried, nodes_done, nodes_seen);
       
+       report_time(temp_start_time, "TIME:Estimation defs");
       
     }
 
@@ -1197,7 +1214,7 @@ public Status do_non_linear_optimization(Arg_Data *globals)
                                         additional_warp,
                                         estimated_flag_vol);
        if (globals->flags.debug) 
-         report_time(temp_start_time, "Extrapolating the current warp");
+         report_time(temp_start_time, "TIME:Extrapolating the current warp");
 
 
        /* current = current + additional */
@@ -1208,7 +1225,7 @@ public Status do_non_linear_optimization(Arg_Data *globals)
                                       additional_warp,
                                       1.0);
        if (globals->flags.debug) 
-         report_time(temp_start_time, "Adding additional to current");
+         report_time(temp_start_time, "TIME:Adding additional to current");
 
 
     }
@@ -1222,7 +1239,7 @@ public Status do_non_linear_optimization(Arg_Data *globals)
                                       current_warp,
                                       iteration_weight);
        if (globals->flags.debug) 
-         report_time(temp_start_time, "Adding additional to current");
+         report_time(temp_start_time, "TIME:Adding additional to current");
        
 
 				/* smooth the warp in additional,
@@ -1237,7 +1254,7 @@ public Status do_non_linear_optimization(Arg_Data *globals)
                        additional_mag, -1.0);
       
        if (globals->flags.debug) 
-         report_time(temp_start_time, "Smoothing the current warp");
+         report_time(temp_start_time, "TIME:Smoothing the current warp");
 
     }
     
@@ -1423,13 +1440,14 @@ public Status do_non_linear_optimization(Arg_Data *globals)
     
     if (globals->flags.debug) {
 
-       report_time(iteration_start_time, "This iteration");
 
        final_corr = xcorr_objective_with_def(Gglobals->features.data[0], Gglobals->features.model[0],
                                     Gglobals->features.data_mask[0], Gglobals->features.model_mask[0],
                                     globals );
        print("initial corr %f ->  this step %f\n",
              initial_corr,final_corr);
+
+       report_time(iteration_start_time, "TIME:This iteration");
 
     }
   }
@@ -1486,7 +1504,7 @@ private BOOLEAN is_a_sub_lattice_needed (char obj_func[],
 
   needed = FALSE;
   for_less (i,0,number_of_features) {
-    if (obj_func[i] != NONLIN_OPTICALFLOW) 
+    if (obj_func[i] != NONLIN_OPTICALFLOW && obj_func[i] != NONLIN_CHAMFER) 
       needed = TRUE;
   }
   return(needed);
@@ -1849,6 +1867,7 @@ outputs:
 Based on Horn and Schunck Artificial Intell 17 (1981) 185-203
 */
 
+#define Min_deriv  0.02
 
 private Real get_optical_flow_vector(Real threshold1, 
 				     Real source_coord[],
@@ -1862,50 +1881,56 @@ private Real get_optical_flow_vector(Real threshold1,
   Real
     val[MAX_DIMENSIONS],	/* the interpolated intensity value     */
     result,			/* the magnitude of the estimated def   */
+    min,max,thresh,             /* volume real min, max and estimate on smallest
+				   derivative */
     xp, yp, zp,			/* temp storage for coordinate position */
-    d1x[MAX_DIMENSIONS],	/* derivative in X (world-coord)        */
-    d1y[MAX_DIMENSIONS],	/*     "         Y                      */
-    d1z[MAX_DIMENSIONS],	/*     "         Z                      */
+    dx[MAX_DIMENSIONS],	        /* derivative in X (world-coord)        */
+    dy[MAX_DIMENSIONS],	        /*     "         Y                      */
+    dz[MAX_DIMENSIONS],	        /*     "         Z                      */
     steps[MAX_DIMENSIONS];
   int
     i;				/* a counter                            */
 
     get_volume_separations(data, steps);
   
-    xp = mean_target[0];	/* get intensity in target volume       */
-    yp = mean_target[1];
+    xp = mean_target[0];	/* get intensity and derivatives        */
+    yp = mean_target[1];        /* in target volume                     */
     zp = mean_target[2];
     evaluate_volume_in_world(model,
 			     xp, yp, zp,
 			     0, TRUE, 0.0, val,
-			     NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
+			     dx,dy,dz,
+			     NULL,NULL,NULL,NULL,NULL,NULL);
     Gproj_d2 = val[0];
     
-    xp = source_coord[0];	/* get intensity and derivatives        */
+    xp = source_coord[0];	/* get intensity only                   */
     yp = source_coord[1];	/* in source volume                     */
     zp = source_coord[2];
     evaluate_volume_in_world(data,
 			     xp, yp, zp,
 			     0, TRUE, 0.0, val,
-                             d1x,d1y,d1z,
+                             NULL,NULL,NULL,
 			     NULL,NULL,NULL,
 			     NULL,NULL,NULL);
     Gproj_d1 = val[0];
     
 				/* compute deformations directly!       */
 
-    if (ABS(d1x[0]) > threshold1)   /* fastest (X) */
-      def_vector[0] = ((Gproj_d1 - Gproj_d2) /  d1x[0]);
+    get_volume_real_range(model, &min, &max);
+    thresh = Min_deriv * (max - min);
+
+    if (ABS(dx[0]) > thresh)   /* fastest (X) */
+      def_vector[0] = ((Gproj_d1 - Gproj_d2) /  dx[0]);
     else
       def_vector[0] = 0.0;
     
-    if (ABS(d1y[0]) > threshold1)
-      def_vector[1] = ((Gproj_d1 - Gproj_d2) /  d1y[0]);
+    if (ABS(dy[0]) > thresh)
+      def_vector[1] = ((Gproj_d1 - Gproj_d2) /  dy[0]);
     else
       def_vector[1] = 0.0;
     
-    if (ABS(d1z[0]) > threshold1 && ndim==3)  /* slowest  (Z) */
-      def_vector[2] = ((Gproj_d1 - Gproj_d2) /  d1z[0]);
+    if (ABS(dz[0]) > thresh && ndim==3)  /* slowest  (Z) */
+      def_vector[2] = ((Gproj_d1 - Gproj_d2) /  dz[0]);
     else
       def_vector[2] = 0.0;
     
@@ -1921,32 +1946,153 @@ private Real get_optical_flow_vector(Real threshold1,
 
 }
 
-private Real get_chamfer_vector(Real threshold1, 
+/* compute the deformation only if the source_coord is on a surface voxel
+
+   use the chamfer volume (an approximation for distance) to determine how
+   far (and in which direction) the mean_target is from the sync in the
+   target
+
+
+   modified 9/21/1999 LC:
+
+      compute the deformation for this node from the nearest surface.
+      ie - if there is a surface within the threshold distance (= .5
+      spacing between nodes) then figure out what displacement would
+      be applied to that coordinate, and return that value for this
+      node.
+
+*/
+
+#define MAX_CAPTURE 3.8		
+
+private Real get_chamfer_vector(Real capture_limit, 
 				Real source_coord[],
 				Real mean_target[],
 				Real def_vector[],
 				Real voxel_displacement[],
 				Volume data,
-				Volume model,
+				Volume chamfer,
 				int ndim)
 { 
-  Real 
-    result;
-  int 
-    i;
-				/* use optical flow for the target-> source 
-				   (chamfer volume -> linemask) problem, and then
-				   invert the result */
-  result = get_optical_flow_vector(0.1, 
-				   mean_target, source_coord,
-				   def_vector,  voxel_displacement,
-				   model,       data,  ndim);
+  Real
+    
+    sx,sy,sz,tx,ty,tz,          /* source and target coords             */
+    dist, thresh, min, max,
+    dist_weight,
+    zero,
+    result,			/* the magnitude of the estimated def   */
+    val[MAX_DIMENSIONS],	/* the interpolated intensity value     */
+    mag, gx,gy,gz,
+    dx[MAX_DIMENSIONS],	        /* derivative in X (world-coord)        */
+    dy[MAX_DIMENSIONS],	        /*     "         Y                      */
+    dz[MAX_DIMENSIONS],	        /*     "         Z                      */
+    steps[MAX_DIMENSIONS];      /* voxel size of data volume            */
+  int
+    i;				/* a counter                            */
 
-  if (result > 0.0) {
-    for_less(i,0,3) {
-      def_vector[i] *= -1.0;
-      voxel_displacement *= -1.0; /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1111*/
+  
+                                /* get intensity in source volume       */
+  evaluate_volume_in_world(data,
+                           source_coord[0], source_coord[1], source_coord[2],
+                           0, TRUE, 0.0, val,
+                           NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
+  
+  dist = val[0];
+
+  if (dist > MAX_CAPTURE*capture_limit) { /* we are not near a surface */
+    result = 0.0;
+  }
+  else {     
+
+    if (dist < capture_limit) {
+      dist_weight = 1.0;
     }
+    else {
+      dist_weight = 1.0 - ((dist - capture_limit) / MAX_CAPTURE*capture_limit);
+    }
+
+    sx = source_coord[0];
+    sy = source_coord[1];
+    sz = source_coord[2];
+    tx = mean_target[0];
+    ty = mean_target[1];
+    tz = mean_target[2];
+    
+    zero = CONVERT_VOXEL_TO_VALUE(data, 0.0);
+
+    if (val[0]!=zero) {		/* we are not already on  the surface */
+
+
+      evaluate_volume_in_world(data,
+			       sx, sy, sz,
+			       0, TRUE, 0.0, val,
+			       dx,dy,dz,
+			       NULL,NULL,NULL,
+			       NULL,NULL,NULL);
+      
+      mag = sqrt (dx[0]*dx[0] + dy[0]*dy[0] + dz[0]*dz[0]);
+      if (mag > 0.0) {
+	
+	gx = dx[0] / mag;
+	gy = dy[0] / mag;
+	gz = dz[0] / mag;
+
+	/* use derivative info to find nearest surface point.   */
+
+	sx += -1.0 * t  * gx;
+	sy += -1.0 * t  * gy;
+	sz += -1.0 * t  * gz;
+      
+	/* sx,sy,sz is now on the closest surface in the data volume,
+	   we now need the equivalent target coord */
+
+	general_transform_point(Gglobals->trans_info.transformation, 
+			      sx,sy,sz,  &tx,&ty,&tz);
+
+	/*
+	print ("%6.4f   %6.4f %6.4f %6.4f ->",t, -t*gx, -t*gy, -t*gz);
+	print ("%6.4f %6.4f %6.4f - %6.4f %6.4f %6.4f\n",
+	  mean_target[0],mean_target[1],mean_target[2],tx,ty,tz);
+	*/
+      }
+    }
+     
+     /* get intensity in target volume       */
+     evaluate_volume_in_world(chamfer,
+                              tx, ty, tz,
+                              0, TRUE, 0.0, val,
+                              dx,dy,dz,
+                              NULL,NULL,NULL,
+                              NULL,NULL,NULL);
+     
+
+     get_volume_real_range(chamfer, &min, &max);
+     thresh = Min_deriv * (max - min);
+     
+     /* compute deformations directly!       */
+     
+     if (ABS(dx[0]) > thresh)              /* fastest (X) */
+        def_vector[0] = -1.0 * dist_weight * val[0] /  dx[0];
+     else
+        def_vector[0] = 0.0;
+     
+     if (ABS(dy[0]) > thresh)
+        def_vector[1] = -1.0 * dist_weight * val[0] /  dy[0];
+     else
+        def_vector[1] = 0.0;
+     
+     if (ABS(dz[0]) > thresh && ndim==3)  /* slowest  (Z) */
+        def_vector[2] = -1.0 * dist_weight * val[0] /  dz[0];
+     else
+        def_vector[2] = 0.0;
+
+     get_volume_separations(data, steps);
+     for_less(i,0,3)            /* build the real-world displacement */
+        voxel_displacement[i] = def_vector[i]  * steps[i];
+     
+     result = sqrt (def_vector[0]*def_vector[0] +
+                    def_vector[1]*def_vector[1] +
+                    def_vector[2]*def_vector[2]);
   }
   return(result);
 }
@@ -2114,7 +2260,7 @@ private BOOLEAN build_lattices(Real spacing,
 
     for_less(i,0, Gglobals->features.number_of_features) {
 
-      if (Gglobals->features.obj_func[i] != NONLIN_OPTICALFLOW)
+      if (Gglobals->features.obj_func[i] != NONLIN_OPTICALFLOW && Gglobals->features.obj_func[i] != NONLIN_CHAMFER)
 
 	go_get_samples_in_source(Gglobals->features.data[i], 
 				 SX,SY,SZ, Ga1_features[i], Glen, 
@@ -2210,6 +2356,7 @@ private Real get_deformation_vector_for_node(Real spacing,
 
   Real
     real_def[3], vox_def[3],
+    temp_total_weight,
     optical_partial_weight,
     other_partial_weight,
     total_weight,
@@ -2217,6 +2364,8 @@ private Real get_deformation_vector_for_node(Real spacing,
     xt, yt, zt,
     local_corr3D[3][3][3],
     local_corr2D[3][3],
+    optical_def_vector[3],
+    optical_voxel_displacement[3],
     voxel[3],
     val[MAX_DIMENSIONS],
     pos[3],
@@ -2258,7 +2407,8 @@ private Real get_deformation_vector_for_node(Real spacing,
 
   for_less(i,0,Gglobals->features.number_of_features) {
 
-    if (Gglobals->features.obj_func[i] == NONLIN_OPTICALFLOW) 
+    if ((Gglobals->features.obj_func[i] == NONLIN_OPTICALFLOW) || 
+        (Gglobals->features.obj_func[i] == NONLIN_CHAMFER) )
       optical_partial_weight += Gglobals->features.weight[i];
     else
       other_partial_weight += Gglobals->features.weight[i];
@@ -2451,27 +2601,57 @@ private Real get_deformation_vector_for_node(Real spacing,
 
   if (optical_partial_weight > 0.0) {
 
+    for_less(i,0,3) {		/* init optical/chamfer to zero */
+      optical_def_vector[i] = 0.0;
+      optical_voxel_displacement[i] = 0.0;
+    }
+
+    temp_total_weight = 0;
+
     for_less(i,0,Gglobals->features.number_of_features) {
       
-      if (Gglobals->features.obj_func[i] == NONLIN_OPTICALFLOW)  {
+      if (Gglobals->features.obj_func[i] == NONLIN_OPTICALFLOW ||  
+          Gglobals->features.obj_func[i] == NONLIN_CHAMFER)  {
+	
+	if (Gglobals->features.obj_func[i] == NONLIN_OPTICALFLOW)
+	  result =  get_optical_flow_vector(threshold1, 
+					    source_coord, mean_target,
+					    real_def, vox_def,
+					    Gglobals->features.data[i],
+					    Gglobals->features.model[i],
+					    ndim);
+	else                   /* must be CHAMFER */
+	  result =  get_chamfer_vector(spacing,   ,
+				       source_coord, mean_target,
+				       real_def, vox_def,
+				       Gglobals->features.data[i],
+				       Gglobals->features.model[i],
+				       ndim);
+	if (result > 0.0) {
+	  *num_functions += 1;
+                                /* add in the weighted deformations */
 
-	result =  get_optical_flow_vector(threshold1, 
-					  source_coord, mean_target,
-					  real_def, vox_def,
-					  Gglobals->features.data[i],
-					  Gglobals->features.model[i],
-					  ndim);
-	*num_functions += 1;
-				/* add in the weighted deformations */
-	for_less (j,0,3) {
-	  def_vector[j] += real_def[j]        * Gglobals->features.weight[i] / total_weight;
-	  voxel_displacement[j] += vox_def[j] * Gglobals->features.weight[i] / total_weight;
-	}
+	  temp_total_weight += Gglobals->features.weight[i];
+	  
+	  for_less (j,0,3) {
+	    optical_def_vector[j]         += real_def[j] * Gglobals->features.weight[i];
+	    optical_voxel_displacement[j] += vox_def[j]  * Gglobals->features.weight[i];
+	  }
+	} 
 
       }
+
     }
+    				/* add in the weighted defs from optical/chamfer */
+    if (temp_total_weight > 0.0) {
+      for_less (j,0,3) {
+	def_vector[j]         += optical_def_vector[j] / temp_total_weight;
+	voxel_displacement[j] += optical_voxel_displacement[j] / temp_total_weight;
+      }
+    }
+
   }
-  
+
   result = sqrt((def_vector[X] * def_vector[X]) + 
 		(def_vector[Y] * def_vector[Y]) + 
 		(def_vector[Z] * def_vector[Z])) ;      

@@ -1,0 +1,252 @@
+		***************************************
+		**********  THINGS TO DO   ************
+		***************************************
+
+
+quadratic fitting - 
+       -what are the weighting functions to ensure local concavity
+	(positive jacobian?)
+       -are these weightings necessary?
+       -when using quadratic fitting, the def vecs returned are
+	bounded by the step size. Bigger deforamtions are recoverable
+	only with multiple iterations.  Therefore, I have to determine
+	the scale for the data wrt the scale of the deformation.
+       -Why does a single 2D direct iteration recover larger (and thus
+	better) warps?  this must be do to the cost function.
+
+super sampling of the data set - now seems to take a good fraction of
+the time required to estimate the deformation field - this does not
+seem to be a good thing.  How can I make the subsampling faster?
+
+what are the weights/parameter selections for -weight, -similar,
+-stiff, -iterations ?
+
+
+
+I assume isotropic voxels for the feature volumes in the optimization
+- should mention this in doc, or test in code.
+
+How can I guarentee a monotonically decreasing error function?
+
+	in the estimation of the non-linear deformation, I should
+	always be able to increase the correlation between two
+	volumes, given more iterations (the error should always be
+	diminishing).  this implies a balence between the amount of 
+	smoothing and the weight given to each deformation vector at
+	each iteration. How is the balence to be determined?
+
+Can I speed up the algorithm by doing fits only where the measure of
+local correlation says I should - ie skip the estimation of the def
+vector where correlation is already high?
+
+Directional smoothing - smooth in direction of uncertainty.
+
+Use projections - try to see how the projections can be incorporated
+into the algorithm for speed increase.
+
+	test projection code - why does it not give values comparable
+	to the sub-lattice correlation?
+
+	compare correlation values between real neighbourhood corr and
+	projection data.
+
+-------------------------------------
+
+
+              LINEAR:
+
+make sure that lsq3,6,9,10,12 all work!
+
+make sure that -measure works when using a subject mask.
+
+
+		NON-LINEAR:
+
+-------------------------------------------------------------
+0) 
+-------------------------------------------------------------
+0) neighberhoos smoothing (averaging) before estimation of
+deformation?  how to do when 3D correlation?
+
+-------------------------------------------------------------
+0) deformation cost does not seem to behave properly.... check it with
+matlab?  
+
+-------------------------------------------------------------
+0) cost function must be worked out... right now, -similar 0.95
+weighting is too high - should change the function to have weight at 0.5.
+
+-------------------------------------------------------------
+0)  speed up - check for last nodes moved, see if their nieghbourhood
+needs to be redone.
+
+-------------------------------------------------------------
+0) new features in non-linear matching? radial vs tangential matching
+
+-------------------------------------------------------------
+0) check estimatation of displacement at edges of data set. I was
+setting them to zero, however, maybe they should be set to -DBL_MAX
+and I should check for that in match.c
+
+
+-------------------------------------------------------------
+0) need to set up some kind of hierarchy of gradient edges that are to
+be matched.   
+
+
+-------------------------------------------------------------
+1) need to test against different phantoms.  Maybe need a program to
+create phantoms easily.  See Olivier and Yilong.
+
+-------------------------------------------------------------
+2) what happens when the node to be estimated falls along a ridge line
+(in one data set or the other?)  The direction of maximum gradient
+can or cannot be estimated at these points?
+
+where is the gradient pointing?
+
+is there a way to detect it, and avoid it, thus getting the value by
+smoothing from the neighbours.
+
+-------------------------------------------------------------
+3) for the deformation volume returned at the end of processing, some
+voxels appear to be spurious - results in one of the three deformation
+volumes...
+
+could be due to:
+	-errors in estimation of gradient direction.
+	-quantization error in gradient magnitude OR
+	-quantization error in intensity magnitude.
+
+-------------------------------------------------------------
+4) need a def_invert program to invert and store the inverted
+transformation.  (this will make the resampling faster) - need to
+check to see if INVERSE_FLAG is set,stored, or used for user
+transforms.
+
+note that the inverted deformation volume is defined on
+(approximatedly) the same volume as the forward deformation, so that
+the inverted deformation should be easy to create.
+
+Actually, the inverted deformation is defined on a volume that is
+slightly larger (by the min/max value stored in the volume).
+
+-------------------------------------------------------------
+5) need to have a def_concat to concatenate a group of non-linear
+transformations - when concatenated, we should get a bit of a speed up
+in the resample process both in minctracc and in mincresample. 
+
+------------------------------------------------------------
+6) should probably pre-blur the MRI data, since there is an inherent blur
+within the target MRI average volume.
+
+-------------------------------------------------------------
+7) I must guarantee that the optimization process stays in the global
+minima at each step. I must not introduce false-matches at one scale,
+since they will be maintained throughout the deformation process.
+This might be achieved using stiffness parameters from a physical model ...
+
+-------------------------------------------------------------
+8) Physical model:  
+
+  springs between nodes to control distance to move between structures 
++ stiffness parameters at the node
+
+A bit like a rubber jack, where each of the arms can be stretched and
+bent with respect to each other.
+
+           1   6  
+           #  #              N - node under consideration
+           | /               # - 6-neighbours of N
+           |/ 
+      3#---N---#4            a) constraint on distance between N and #
+          /|                 b) constraint on angle <#N# for each of the
+         / |                    six angles.  <1N2 or <1N4 to be used?
+        #  #                    <1N2 should be ~= 180'
+       5   2                    <1N4 should be ~= 90'
+
+
+
+-------------------------------------------------------------
+when getting points from the target volume, I should use the current
+total deformation to map the current points through the non-linear
+deformation.  This way, the data being matched is much more realistic
+- in the sense the warped source is truly being matched to the  target
+- instead of warping only the node itself (this will also warp the
+neighbourhood!).
+ 
+
+
+
+================================================================
+LINEAR MINCTRACC:
+
+
+in ssc - I have to model the difference in intensity between the
+two volumes: the two volumes have to have the same mean (and std)
+for the algorithm to be efficient.  Otherwise, It is only fitting 
+background volume between the two data sets.
+
+------------------------------------
+parameter equivalence:
+
+woods uses 55.84 mm/radian to account for different units when comparing
+derivitives.
+
+woods uses 0.0057/mm and 0.005/radian for threshold values on derivitives.
+
+---------------------
+
+grep for fill_value in *c
+   is fill_value a voxel value?
+   if so, should it be = -1 if there is no fill value in the minc file?
+----------------------
+
+
+if args.obj_function == vr_objective,
+  force volume read to be bytes or shorts, all slices normalized to the same max/min.
+  so that the segmentation can be done on voxel values!
+
+
+
+
+
+===========================================================================
+===========================================================================
+===========================================================================
+============================== DONE =======================================
+===========================================================================
+===========================================================================
+===========================================================================
+
+-------------------------------------------------------------
+9) Interpolation mode tied to volume of data:
+
+should see (local_macros) if there is a possibility to tie cubic
+interpolation to the deformation model.... maybe directly in
+transformations.c 
+
+modified transformations.c to use tri-cubic interpolation at all
+times!
+
+-------------------------------------------------------------
+* there seems to be some trouble when stepping from one scale to the
+next.   This may be due to resampling (interpolating) on the
+deformation field.  see point 9 below.
+
+Both mincresample and minctracc are using tri-cubic interpolation for
+the non-linear deformation volumes.
+
+-------------------------------------------------------------
+
+I need to remove the possibility of edge effects, both from the volume
+of data and the deformation field.
+
+for the volume of data: must make sure that there is a sufficient
+`band' around the edge of the data so that there is no aliasing of the
+gradients (done). 
+
+for the deformation field: must create a band of data, at least as
+wide as the current step size.  (two times the current step would
+probably be safest!). (done - in build_default_def in transformations.c)
+

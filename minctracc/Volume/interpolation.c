@@ -16,9 +16,12 @@
 @CREATED    : Wed May 26 13:05:44 EST 1993 LC using routines from NEELIN's
               mincresample.
 @MODIFIED   :  $Log: interpolation.c,v $
-@MODIFIED   :  Revision 96.0  1996-08-21 18:22:15  louis
-@MODIFIED   :  Release of MNI_AutoReg version 0.96
+@MODIFIED   :  Revision 96.1  1999-10-25 19:59:17  louis
+@MODIFIED   :  final checkin before switch to CVS
 @MODIFIED   :
+ * Revision 96.0  1996/08/21  18:22:15  louis
+ * Release of MNI_AutoReg version 0.96
+ *
  * Revision 9.5  1996/08/12  14:16:15  louis
  * Release of MNI_AutoReg version 1.0
  *
@@ -44,10 +47,10 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/interpolation.c,v 96.0 1996-08-21 18:22:15 louis Rel $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/interpolation.c,v 96.1 1999-10-25 19:59:17 louis Exp $";
 #endif
 
-#include <volume_io.h>
+#include <internal_volume_io.h>
 #include "point_vector.h"
 
 #define VOL_NDIMS 3
@@ -344,6 +347,7 @@ public int tricubic_interpolant(Volume volume,
 
 }
 
+
 public int point_not_masked(Volume volume, 
 			    Real wx, Real wy, Real wz)
 {
@@ -367,5 +371,31 @@ public int point_not_masked(Volume volume,
   }
   else
     return(TRUE) ;
+}
+
+
+public int voxel_point_not_masked(Volume volume, 
+                                  Real vx, Real vy, Real vz)
+{
+
+  double result;
+  PointR coord;
+  
+
+  if (volume!=(Volume)NULL) {
+     fill_Point(coord, vx, vy, vz);
+    
+     if ( nearest_neighbour_interpolant(volume,&coord,&result) ) {
+      
+        if (result>0.0)
+           return(TRUE);
+        else
+           return(FALSE);
+     }
+     else
+        return(FALSE) ;
+  }
+  else
+     return(TRUE) ;
 }
 

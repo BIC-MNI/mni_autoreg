@@ -1,0 +1,358 @@
+.\" Copyright 1995 Louis Collins, McConnell Brain Imaging Centre,
+.\" Montreal Neurological Institute, McGill University.
+.\" Permission to use, copy, modify, and distribute this
+.\" software and its documentation for any purpose and without
+.\" fee is hereby granted, provided that the above copyright
+.\" notice appear in all copies.  The author and McGill University
+.\" make no representations about the suitability of this
+.\" software for any purpose.  It is provided "as is" without
+.\" express or implied warranty.
+.\"
+.\" $Header: /private-cvsroot/registration/mni_autoreg/minctracc/Attic/minctracc.man1,v 1.1 1999-10-25 19:59:18 louis Exp $
+.\"
+.TH MINCTRACC 1
+
+.SH NAME
+minctracc - estimates the spatial transformation required to register two volumes together.
+
+.SH SYNOPSIS
+.B minctracc [<options>] <source> <target> <output>
+
+.B minctracc [-help]
+
+
+.SH DESCRIPTION
+.I Minctracc
+will estimate the best linear spatial transformation required to
+register two 3D volumes.  The program uses optimization over a user
+selectable number of parameters to identify the best (according to a
+user identified objective function) transformation that maps voxel
+values of the first data set into the second.  The objective function
+is evaluated on a 3D lattice with user-specified spacing. 
+
+.SH OVERVIEW 
+
+You need to specify two MINC data files on the command line, the first
+is the source volume and the second is the target volume.  The
+third item on the command line is the name of the output
+transformation file, specifying where the program will store the
+results (in .xfm format).  Note that the output is 
+.I not
+a new MINC volume; you must use mincresample to resample the data
+according to the transform output by minctracc if you wish to see the
+transformed image data.
+
+Using flags on the command line, the user can specify:
+
+ - the type of transformation to be optimized and
+   saved, 
+ - mask files to be used with the source or target 
+   volumes, 
+ - a transformation file to specify the initial 
+   starting condition, 
+ - the type of objective function to be minimized, 
+ - the type of interpolation function to use, 
+ - and the definition of the sampling matrix used 
+   to measure the objective function.
+
+Internally, the program optimizes the transformation parameters of
+translations, rotations, scaling(s) and possibly shear(s).  These
+parameters are used to create a homogeneous transformation matrix that
+maps the data in the world space of the first volume to the world
+space of the second volume.  It is this matrix that is saved in the
+output transformation file.  The program 'xfm2param' can be used to
+extract the transformation parameters from the .xfm file.
+
+.SH Specifying the initial starting position:
+
+There are a number of methods available to get an initial
+transformation to start the optimization process.  The first is the
+default if there is no input transformation information on the command
+line.  In this case, a principal axes transformation (PAT) is used as
+the starting transformation.  When the PAT is used, the center of
+rotation and scaling is automatically estimated from the center of
+gravity (COG) of the source data set.  The initial translation
+parameters are those needed to align the COGs of the two data sets.
+The rotations are those need to align the principal axes of the two
+volumes.  This method is not always robust when the two data sets do
+not represent the same volume (ie source is 10cm thick slice of brain,
+and the target is a whole head), so other initialization methods are
+available.
+
+In the second method, with the '-transformation' option the user
+specifies a transform (.xfm) file that contains a linear
+transformation used to map points of volume one (source) into volume
+two (target).  This transformation file can be the result of a rough
+manual registration accomplished with 'register', or the previous
+result of an application of minctracc, for example.
+
+The third option is used when the two volumes are already fairly
+closely aligned (eg., if they were acquired in the same scanning
+session).  Here, '-identity' is used to specify an identity matrix to
+the used to initialize the transformation matrix.
+
+Once the matrix is specified, the program extracts the transformation
+parameters (translations, rotations, scales and shears) and optimizes
+these parameters when trying to find the best transformation.
+
+When the user specifies a transformation matrix (other than PAT), the
+default center is 0,0,0.  The user can can change this in two ways: 1)
+the '-center <cx> <cy> <cz>' option permits direct input of the center
+to be used, 2) the '-est_center' option tells the program to estimate
+and use the center of gravity of the source volume.  Note that it is a
+good idea to have a reasonable guess for the center of rotation and
+scaling since it makes the parameters more orthogonal to each other
+(e.g.  a small change in rotation will not grossly affect the
+translations).
+
+.SH OPTIONS
+Note that options can be specified in abbreviated form (as long as
+they are unique) and can be given anywhere on the command line.
+
+.SH Initial transformation information.
+These are the options used to specify the initial starting conditions
+for the optimization of the transformation parameters.
+.P
+.I -transformation
+<filename.xfm>:
+Specify a file giving the world coordinate transformation mapping
+points from the source into the target space.
+.P
+.I -identity:
+Use identity transformation for starting point.
+.P
+.I -est_center:
+Use only the center estimated from Principal axis trans.
+.P
+.I -est_scales:
+Use only the scales estimated from Principal axis trans.
+.P
+.I -est_rotations:
+Use only the rotations estimated from Principal axis trans.
+.P
+.I -est_translations:
+Use only the translations estimated from Principal axis trans.
+.P
+Note that the four previous options (-est_*) are not mutually exclusive. You
+can, for example, use '-est_center -est_translations' to estimate the
+center of rotation and scaling, as well as the initial translation
+componant required to register the centers of gravity of the two
+volumes.
+.P
+.I -center
+<xcent> <ycent> <zcent>: Force the center of rotation and scale.
+.P
+.I -no_clobber:
+Do not overwrite output file (default).
+.P
+.I -clobber:
+Overwrite output file.
+.SH Output transformation type. 
+The type of output file can be constrained depending on the type of
+registration required.  For example, intra-subject registration can be
+completed with only 6 parameters if rigid body assumptions hold.
+.P
+.I -pat:
+Return the principal axis transformation matrix (input matrix
+ignored), no optimization done.
+.P
+.I -lsq3:
+Return a 3 parameter transformation (3 translations only).
+.P
+.I -lsq6:
+Return a 6 parameter rigid-body transformation (3 translation, 3 rotation, scale=1.0).
+.P
+.I -lsq7:
+Return a 7 parameter transformation (lsq6 + 1 global scale; this is
+the same as -procrustes, and is the default).
+.P
+.I -lsq9:
+Return a 9 parameter transformation (lsq6 + 3 scales).
+.P
+.I -lsq10:
+Return a 10 parameter transformation (lsq9 + 1 shear).
+.P
+.I -lsq12:
+Return a full 12 parameter transformation (lsq9 + 3 shears).
+.P
+.I 
+-lsq:
+Return a full 12 parameter transformation (same as -lsq12).
+.P
+.I -procrustes:
+Return a procrustes transformation (3 trans, 3 rots, 1 scale), same as
+-lsq7.  This is the default.
+.P
+.I -forward:
+Recover forward transformation (source -> model, default).
+.P
+.I -invert:
+Recover inverted transformation (model -> source).
+.SH Options for mask volumes.
+.P
+.I -model_mask
+<filename>:
+Specifies a binary mask file for the target.  Any data voxel whose
+world coordinate falls in a zero-valued voxel in the mask is ignored
+in the calculation of the objective function.
+.P
+.I -source_mask
+<filename>:
+Specifies a binary mask file for the source.
+.SH Interpolation options.
+.P
+.I -trilinear:
+Do a tri-linear interpolation between voxels when estimating the value
+for a node in the 3D lattice.  This is the default.
+.P
+.I -tricubic:
+Do a tri-cubic interpolation between voxels.
+.P
+.I -nearest_neighbour:
+Do nearest neighbour interpolation between voxels (ie. find the voxel
+closest to the point and use its value). 
+.SH Optimization objective functions. 
+.P
+.I -xcorr:
+Use cross correlation (this is the default) [2].
+.P
+.I -zscore:
+Use normalized difference.  Before optimization, each volume is
+normalized to have the same mean, with a range of +/- 5 standard
+deviations.  The objective function is simply the difference in
+normalized values between the two volumes.
+.P
+.I -ssc:
+Use stochastic sign change [3].  This is the same as
+maximization of zero crossings. 
+.P
+.I -vr:
+Minimize the variance of the ratio vol1/vol2 [4].
+.P
+.I -mi:
+Use mutual information similarity measure [1].
+.P
+.I -groups
+<num>: Number of groups for -vr and -mi (default =  16).
+.P
+.I -threshold
+<thresh1> <thresh2>: Lower limit for voxel threshold (default = 0.0
+0.0).  Lattice nodes with voxel values below this limit are ignored in
+the objective function. The threshold applies when -xcorr, -vr, -mi or
+-zscore are used as the objective function.
+.P
+.I -speckle
+<val>: Percent speckle noise to add to source (default = 5). This option applies only when -ssc is used as the objective function.
+
+
+.SH Options for linear optimization.
+Simplex optimization is used to maximize/minimize the objective
+function to find the best transformation parameters.
+.P
+.I -tol
+<val>: Stopping criteria tolerance (default = 0.005).  The
+optimization will stop when tol> (f_max-f_min)/(f_max+f_min), where
+f_max and f_min are the maximum and minimum values of the objective
+function in the Simplex.
+.P
+.I -simplex
+<val>: Radius of simplex volume (default = 20).  This is measured in
+units of millimeters on the spatial axis, degrees of rotation or
+percentage scale on the scaling dimensions.  When the initial
+estimate is know to be relatively good, the simplex radius should be
+reduced to the level of certainty of the input parameters.
+.P
+.I -w_translations
+<w_tx> <w_ty> <w_tz>: Optimization weight of translation in x, y, z
+(default = 1.0 1.0 1.0).
+.P
+.I -w_rotations
+<w_rx> <w_ry> <w_rz>: Optimization weight of rotations around x, y, z
+(default = 0.0174533 0.0174533 0.0174533).  Internally, the rotations
+are stored as radians, although all user input is in degrees.  The
+value 0.0174533 makes one degree equivalent to 1 mm in the optimization.
+.P
+.I -w_scales
+<w_sx> <w_sy> <w_sz>: Optimization weight of scaling along x, y, z
+(default = 0.02 0.02 0.02).  This makes a 2% change in scale
+equivalent to 1mm of translation.
+.P
+.I -w_shear
+<w_sa> <w_sb> <w_sc>: Optimization weight of shears a,b and c (default
+= 0.02 0.02 0.02)
+.SH Options for 3D lattice definition.
+The objective function is estimated only on the nodes of a 3D lattice
+defined on the smallest of the two volumes.  In this way, the
+coordinates of the lattice are used to specify positions in one
+volume, and when mapped through the transformation matrix, specify
+homologous positions in the other volume.  The spacing between lattice
+samples is directly related to the resolution of the data used in the
+fit.  For example, data blurred with a 12mm fwhm gaussian kernel does
+not need to be sampled with spacing less than 6mm.
+.P
+.I -step
+<sx> <sy> <sz>: Step size (in mm) along each dimension (x, y, z).  Default
+value is 4.0 4.0 4.0.
+.P
+.I -xstep
+<sx>: Step size along the X dimension (default = 4.0).
+.P
+.I -ystep
+<sy>: Step size along the Y dimension (default = 4.0).
+.P
+.I -zstep
+<sz>: Step size along the Z dimension (default = 4.0)
+.SH Options for logging progress.
+.P
+.I -verbose
+<val>:
+Write verbose messages indicating progress (default = 1).
+.P
+.I -quiet:
+Do not write log messages
+.P
+.I -debug:
+Print out debug info.
+.SH Generic options
+.P
+.I -help:
+Print summary of command-line options and abort.
+
+.SH EXAMPLES
+
+Estimate the transformation required to map structures from an 
+individual subject to match those in a target volume:
+
+   minctracc subject.mnc target.mnc subj_to_targ.xfm 
+
+Match the same subject, scanned on two occasions with similar
+protocol: 
+
+   minctracc subj_time1.mnc subj_time2.mnc result.xfm \\
+	-lsq6 -identity -est_center
+
+
+.SH REFERENCES
+
+[1] A. Collingnon, F. Maes, D. Delaere, D. Vandermeulen, P. Suetens,
+G. Marchal, "Automated multi-modality image registration based on
+information theory", IPMI, 1995:263-274.
+
+[2] Collins DL, Neelin P, Peters TM, and Evans AC, "Automatic 3-D
+intersubject registration of MR volumetric data in standardized
+Talairach space", J. Comput. Assis. Tomogr, 18(2):192-205.
+
+[3] Minoshima S, Berger KL, Lee Ks, Mintun MA.  "An automated method
+for rotation correction and centering of 3D functional brain images",
+J. Nucl. Med., 1992;33(8):1579-1585.
+
+[4] R.P. Woods, J.C. Mazziotta, S.R. Cherry, "MRI-PET Registration
+with Automated Algorithm", J. Comput. Assis. Tomogr, 1993;17:536-546.
+
+
+.SH AUTHOR
+Louis Collins
+
+.SH COPYRIGHTS
+.ps 18
+Copyright 1993-95 by Louis Collins

@@ -21,9 +21,12 @@
 
 @CREATED    : Tue Mar 12 09:37:44 MET 1996
 @MODIFIED   : $Log: obj_fn_mutual_info.c,v $
-@MODIFIED   : Revision 96.2  1997-11-12 21:07:43  louis
-@MODIFIED   : no changes, other than rcsid...
+@MODIFIED   : Revision 96.3  1999-10-25 19:59:08  louis
+@MODIFIED   : final checkin before switch to CVS
 @MODIFIED   :
+ * Revision 96.2  1997/11/12  21:07:43  louis
+ * no changes, other than rcsid...
+ *
  * Revision 96.1  1997/11/03  15:06:29  louis
  * working version, before creation of mni_animal package, and before inserting
  * distance transforms
@@ -50,7 +53,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/obj_fn_mutual_info.c,v 96.2 1997-11-12 21:07:43 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/obj_fn_mutual_info.c,v 96.3 1999-10-25 19:59:08 louis Exp $";
 #endif
 
 #include <internal_volume_io.h>
@@ -176,7 +179,7 @@ public BOOLEAN partial_volume_interpolation(Volume data,
 }
 	
 
-private blur_pdf( Real *pdf, int blur_size, int pdf_length) {
+private void blur_pdf( Real *pdf, int blur_size, int pdf_length) {
 
     Real *temp_pdf;
     int  i,j,blur_by2;
@@ -247,7 +250,7 @@ private blur_pdf( Real *pdf, int blur_size, int pdf_length) {
 
 
 
-private blur_jpdf (Real **hist, int blur_size, int pdf_length) {
+private void blur_jpdf (Real **hist, int blur_size, int pdf_length) {
 
     Real **temp_hist, *temp_col;
     int i,j;

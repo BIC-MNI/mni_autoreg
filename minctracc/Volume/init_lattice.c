@@ -28,9 +28,12 @@
 
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   :  $Log: init_lattice.c,v $
-@MODIFIED   :  Revision 96.0  1996-08-21 18:22:15  louis
-@MODIFIED   :  Release of MNI_AutoReg version 0.96
+@MODIFIED   :  Revision 96.1  1999-10-25 19:59:16  louis
+@MODIFIED   :  final checkin before switch to CVS
 @MODIFIED   :
+ * Revision 96.0  1996/08/21  18:22:15  louis
+ * Release of MNI_AutoReg version 0.96
+ *
  * Revision 9.5  1996/08/12  14:16:15  louis
  * Release of MNI_AutoReg version 1.0
  *
@@ -71,11 +74,11 @@ made change to init lattice to not change start when there is only 1 slice.
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/init_lattice.c,v 96.0 1996-08-21 18:22:15 louis Rel $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/init_lattice.c,v 96.1 1999-10-25 19:59:16 louis Exp $";
 #endif
 
 #include <config.h>
-#include <volume_io.h>
+#include <internal_volume_io.h>
 
 #include "matrix_basics.h"
 #include "make_rots.h"
@@ -359,6 +362,10 @@ public void init_lattice(Volume d1,
     directions1[MAX_DIMENSIONS],
     directions2[MAX_DIMENSIONS];  
 
+  int voxels_found;
+
+  
+
   if (globals->flags.debug && globals->flags.verbose>1)
     print ("\n***** entering init_lattice\n");
 				/* build default sampling lattice info
@@ -388,19 +395,20 @@ public void init_lattice(Volume d1,
   min1_col = count1[COL_IND]; max1_row = 0;
   min1_row = count1[ROW_IND]; max1_col = 0;
   min1_slice=count1[SLICE_IND]; max1_slice = 0;
+  voxels_found = FALSE;
 
-  for_inclusive(s,0,count1[SLICE_IND]) {
+  for_less(s,0,count1[SLICE_IND]) {
 
     SCALE_VECTOR( vector_step, directions1[SLICE_IND], s);
     ADD_POINT_VECTOR( slice, starting_position1, vector_step );
 
-    for_inclusive(r,0,count1[ROW_IND]) {
+    for_less(r,0,count1[ROW_IND]) {
 
       SCALE_VECTOR( vector_step, directions1[ROW_IND], r);
       ADD_POINT_VECTOR( row, slice, vector_step );
 
       SCALE_POINT( col, row, 1.0); /* init first col position */
-      for_inclusive(c,0,count1[COL_IND]) {
+      for_less(c,0,count1[COL_IND]) {
 
 	convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
 	
@@ -411,6 +419,9 @@ public void init_lattice(Volume d1,
 	  if (INTERPOLATE_TRUE_VALUE( d1, &voxel, &true_value )) {
 	    
 	    if (true_value > globals->threshold[0]) {
+
+              voxels_found = TRUE;
+
 	      if (r > max1_row) max1_row = r; 
 	      if (r < min1_row) min1_row = r;
 	      if (c > max1_col) max1_col = c; 
@@ -449,6 +460,9 @@ public void init_lattice(Volume d1,
     print ("slice lim %d %d\n",min1_slice, max1_slice);
     print ("row lim   %d %d\n",min1_row, max1_row);
     print ("col lim   %d %d\n",min1_col, max1_col);
+    if (!voxels_found) 
+       print ("No voxels were found in volume 1 with value above threshold (%f).\n",
+              globals->threshold[0]);
     print_error_and_line_num("%s", __FILE__, __LINE__,"Cannot calculate size of volume 1\n.");
   }
 
@@ -483,18 +497,20 @@ public void init_lattice(Volume d1,
   min2_row = count2[ROW_IND]; max2_col = 0;
   min2_slice=count2[SLICE_IND]; max2_slice = 0;
 
-  for_inclusive(s,0,count2[SLICE_IND]) {
+  voxels_found = FALSE;
+
+  for_less(s,0,count2[SLICE_IND]) {
 
     SCALE_VECTOR( vector_step, directions2[SLICE_IND], s);
     ADD_POINT_VECTOR( slice, starting_position2, vector_step );
 
-    for_inclusive(r,0,count2[ROW_IND]) {
+    for_less(r,0,count2[ROW_IND]) {
 
       SCALE_VECTOR( vector_step, directions2[ROW_IND], r);
       ADD_POINT_VECTOR( row, slice, vector_step );
 
       SCALE_POINT( col, row, 1.0); /* init first col position */
-      for_inclusive(c,0,count2[COL_IND]) {
+      for_less(c,0,count2[COL_IND]) {
 
 	convert_3D_world_to_voxel(d2, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
 	
@@ -505,6 +521,9 @@ public void init_lattice(Volume d1,
 	  if (INTERPOLATE_TRUE_VALUE( d2, &voxel, &true_value )) {
 	    
 	    if (true_value > globals->threshold[1]) {
+
+              voxels_found = TRUE;
+
 	      if (r > max2_row) max2_row = r; 
 	      if (r < min2_row) min2_row = r;
 	      if (c > max2_col) max2_col = c; 
@@ -526,6 +545,9 @@ public void init_lattice(Volume d1,
     print ("slice lim %d %d\n",min2_slice, max2_slice);
     print ("row lim   %d %d\n",min2_row, max2_row);
     print ("col lim   %d %d\n",min2_col, max2_col);
+    if (!voxels_found) 
+       print ("No voxels were found in volume 2 with value above threshold (%f).\n",
+              globals->threshold[1]);
     print_error_and_line_num("%s", __FILE__, __LINE__,"Cannot calculate size of volume 2\n." );
   }
 
@@ -537,7 +559,14 @@ public void init_lattice(Volume d1,
   if (globals->flags.debug && globals->flags.verbose>1) 
     print ("volume =  %d\n",vol2);
 
-  if ( !(globals->trans_info.transform_type==TRANS_NONLIN) && vol1<=vol2) {
+                                /* set up the lattice on the source only when
+                                    vol1<=vol2  or
+                                    source is forced, and we are not running NONLIN 
+                                   otherwise,
+                                    the lattice should be set up on the target*/
+  if ( !(globals->trans_info.transform_type==TRANS_NONLIN) && 
+      ((vol1<=vol2)  || (main_args.force_lattice==1)) && 
+      !(main_args.force_lattice==2) ) {
     globals->smallest_vol = 1;
     globals->count[COL_IND] = max1_col - min1_col + 1;
     globals->count[ROW_IND] = max1_row - min1_row + 1;

@@ -17,9 +17,15 @@
 
 @CREATED    : 
 @MODIFIED   : $Log: amoeba.c,v $
-@MODIFIED   : Revision 96.2  1997-11-03 20:05:41  louis
-@MODIFIED   : no changes
+@MODIFIED   : Revision 96.3  1999-10-25 19:59:06  louis
+@MODIFIED   : final checkin before switch to CVS
 @MODIFIED   :
+ * Revision 96.2  1997/11/03  20:05:41  louis
+ * no changes
+ *
+ * Revision 96.2  1997/11/03  20:05:41  louis
+ * no changes
+ *
  * Revision 96.1  1997/11/03  15:04:23  louis
  * working version, before creation of mni_animal package, and before inserting
  * distance transforms
@@ -109,7 +115,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/amoeba.c,v 96.2 1997-11-03 20:05:41 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/amoeba.c,v 96.3 1999-10-25 19:59:06 louis Exp $";
 #endif
 
 
