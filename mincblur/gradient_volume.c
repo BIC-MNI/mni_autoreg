@@ -128,7 +128,7 @@ public Status gradient3D_volume(FILE *ifd,
   
   /*    1st calculate kern array for FT of 1st derivitive */
   
-  make_kernel_FT(kern,array_size_pow2);
+  make_kernel_FT(kern,array_size_pow2, steps[X]);
   
   /*    calculate offset for original data to be placed in vector            */
   
@@ -237,7 +237,7 @@ public Status gradient3D_volume(FILE *ifd,
   
   /*    1st calculate kern array for FT of 1st derivitive */
   
-  make_kernel_FT(kern,array_size_pow2);
+  make_kernel_FT(kern,array_size_pow2, steps[Y]);
   
   /*    calculate offset for original data to be placed in vector            */
   
@@ -350,7 +350,7 @@ public Status gradient3D_volume(FILE *ifd,
     
     /*    1st calculate kern array for FT of 1st derivitive */
     
-    make_kernel_FT(kern,array_size_pow2);
+    make_kernel_FT(kern,array_size_pow2, steps[Z]);
     
     /*    calculate offset for original data to be placed in vector            */
     

@@ -105,7 +105,7 @@ public float normal_dist(float c, float fwhm, float mu, float x)
 {
   float sigma,t1,t2,t3,f;
   
-  sigma = fwhm/2.36;
+  sigma = fwhm/2.35482;
   
   if (sigma==0) {
     if (x==mu)
@@ -146,9 +146,9 @@ public float rect_dist(float c, float fwhm, float mu, float x)
 
   t = x-mu;
   
-  t = t<0 ? -t : t ;
+/*  t = t<0 ? -t : t ; */
 
-  if ( t < fwhm/2 ) {
+  if ( t >= -fwhm/2  && t < fwhm/2 ) {
     return(  (float) (c/fwhm) );
   }
   else
@@ -172,7 +172,7 @@ public float rect_dist(float c, float fwhm, float mu, float x)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 /************************************************************/
-public void make_kernel_FT(float *kern, int size)
+public void make_kernel_FT(float *kern, int size, float vsize)
 {
 
    int kindex,k;
@@ -181,7 +181,7 @@ public void make_kernel_FT(float *kern, int size)
 
    for ( k = -size/2; k<size/2; ++k) {
       kindex = ((k + size) % size)*2 +1; 
-      kern[kindex+1] = (float)k*2*3.1415927;
+      kern[kindex+1] = (float)k*vsize*2*PI;
    }
 
 }
@@ -228,8 +228,8 @@ public void make_kernel(float *kern, float vsize, float fwhm, int size, int type
 
 
     switch (type) {
-    case KERN_GAUSSIAN: kern[kindex] = normal_dist(1.0,fwhm,0.0,(float)(vsize*k)); break;
-    case KERN_RECT:     kern[kindex] = rect_dist(1.0,fwhm,0.0,(float)(vsize*k)); break;
+    case KERN_GAUSSIAN: kern[kindex] = normal_dist(1.0*vsize,fwhm,0.0,(float)(vsize*k)); break;
+    case KERN_RECT:     kern[kindex] = rect_dist(1.0*vsize,fwhm,0.0,(float)(vsize*k)); break;
     default: 
       {
 	(void) fprintf (stderr,"Illegal kernel type = %d\n",type);

@@ -22,6 +22,9 @@
 #include <mni.h>
 #include <blur_support.h>
 #include <recipes.h>
+#include <limits.h>
+
+extern int debug;
 
 int ms_volume_reals_flag;
 
@@ -42,6 +45,7 @@ public Status blur3D_volume(Volume data,
 				/*  place it back into data->voxels                 */
 
   Real
+    lowest_val,
     max_val, 
     min_val;
     
@@ -97,22 +101,29 @@ public Status blur3D_volume(Volume data,
   
   ALLOC(fdata, total_voxels);
 
-
-  max_val = -100000.0;
-  min_val = 100000.0;
+  lowest_val = get_volume_voxel_min(data);
     
+  max_val = -FLT_MAX;
+  min_val = FLT_MAX;
+
   printf("Making float volume..." );
   f_ptr = fdata;
   for_less( slice, 0, sizes[Z])
     for_less( row, 0, sizes[Y])
       for_less( col, 0, sizes[X]) {
 	GET_VOXEL_3D( tmp, data, slice, row, col);
+
+	if (tmp <= lowest_val)
+	  tmp = lowest_val;
+
 	*f_ptr = CONVERT_VOXEL_TO_VALUE(data, tmp);
 	if (max_val<*f_ptr) max_val = *f_ptr;
 	if (min_val>*f_ptr) min_val = *f_ptr;
 	f_ptr++;
       }
   printf("done\n");
+
+if (debug) print("before blur min/max = %f %f\n", min_val, max_val);
   
 
   /* note data is stored by rows (along x), then by cols (along y) then slices (along z) */
@@ -129,7 +140,7 @@ public Status blur3D_volume(Volume data,
   /*             array_size_pow2 will hold the size of the arrays for FFT convolution,
 		 remember that ffts require arrays 2^n in length                          */
   
-  array_size_pow2  = next_power_of_two(vector_size_data+kernel_size_data);
+  array_size_pow2  = next_power_of_two(vector_size_data+kernel_size_data+1);
 
   dat_vector = vector(0,2*array_size_pow2+1); /* allocate 2*, since each point is a    */
   dat_vecto2 = vector(0,2*array_size_pow2+1); /* complex number for FFT, and the plus 1*/
@@ -154,9 +165,6 @@ public Status blur3D_volume(Volume data,
   /*    calculate offset for original data to be placed in vector            */
   
   data_offset = (array_size_pow2-sizes[X])/2;
-  max_val = -100000.0;
-  min_val = 100000.0;
-  
   
   /*    2nd now convolve this kernel with the rows of the dataset            */
   
@@ -202,7 +210,8 @@ public Status blur3D_volume(Volume data,
   free_vector(dat_vector, 0,2*array_size_pow2+1); 
   free_vector(dat_vecto2, 0,2*array_size_pow2+1); 
   free_vector(kern      , 0,2*array_size_pow2+1); 
-    
+
+
   
   /*--------------------------------------------------------------------------------------*/
   /*                 now do cols - i.e. the d/dy volume                                   */
@@ -223,7 +232,7 @@ public Status blur3D_volume(Volume data,
   /*             array_size_pow2 will hold the size of the arrays for FFT convolution,
 		 remember that ffts require arrays 2^n in length                          */
   
-  array_size_pow2  = next_power_of_two(vector_size_data+kernel_size_data);
+  array_size_pow2  = next_power_of_two(vector_size_data+kernel_size_data+1);
   
   dat_vector = vector(0,2*array_size_pow2+1); /* allocate 2*, since each point is a    */
   dat_vecto2 = vector(0,2*array_size_pow2+1); /* complex number for FFT, and the plus 1*/
@@ -240,14 +249,12 @@ public Status blur3D_volume(Volume data,
   
   /*    2nd now convolve this kernel with the rows of the dataset            */
   
-  max_val = -100000.0;
-  min_val = 100000.0;
-  
   switch (ndim) {
   case 1: slice_limit = 0; break;
   case 2: slice_limit = sizes[Z]; break;
   case 3: slice_limit = sizes[Z]; break;
   }
+
 
   for (slice = 0; slice < slice_limit; slice++) {      /* for each slice */
     
@@ -312,12 +319,15 @@ public Status blur3D_volume(Volume data,
   /*             array_size_pow2 will hold the size of the arrays for FFT convolution,
 		 remember that ffts require arrays 2^n in length                          */
   
-  array_size_pow2  = next_power_of_two(vector_size_data+kernel_size_data);
+  array_size_pow2  = next_power_of_two(vector_size_data+kernel_size_data+1);
   
   dat_vector = vector(0,2*array_size_pow2+1); /* allocate 2*, since each point is a    */
   dat_vecto2 = vector(0,2*array_size_pow2+1); /* complex number for FFT, and the plus 1*/
   kern       = vector(0,2*array_size_pow2+1); /* is for Num. Rec. FFT routines         */
   
+  max_val = -FLT_MAX;
+  min_val = FLT_MAX;
+    
   if (ndim==1 || ndim==3) {
     
     /*    1st calculate kern array for gaussian kernel*/
@@ -331,11 +341,6 @@ public Status blur3D_volume(Volume data,
     
     
     /*    2nd now convolve this kernel with the slices of the dataset            */
-    
-    max_val = -100000.0;
-    min_val = 100000.0;
-    
-    
     
     for (col = 0; col < sizes[X]; col++) {      /* for each column */
       
@@ -376,9 +381,7 @@ public Status blur3D_volume(Volume data,
     
   }  /* if ndim */
   else {
-    max_val = -100000.0;
-    min_val = 100000.0;
-    
+
     for (slice = 0; slice < slice_limit; slice++) {      /* for each slice */
       for (col = 0; col < sizes[X]; col++) {             /* for each column */
 	for (row = 0; row < sizes[Y]; row++) {           /* for each row   */
@@ -389,9 +392,12 @@ public Status blur3D_volume(Volume data,
       }
     }
   }
+
+
+
   terminate_progress_report( &progress );
   
-  printf ("blurred min = %f, max = %f\n",min_val, max_val);
+if (debug) print("after  blur min/max = %f %f\n", min_val, max_val);
   
   free_vector(dat_vector, 0,2*array_size_pow2+1); 
   free_vector(dat_vecto2, 0,2*array_size_pow2+1); 
@@ -417,7 +423,7 @@ public Status blur3D_volume(Volume data,
   
   set_volume_real_range(data, min_val, max_val);
 
-  printf("Making byte volume..." );
+  printf("Making byte volume...\n" );
   for_less( slice, 0, sizes[Z])
     for_less( row, 0, sizes[Y])
       for_less( col, 0, sizes[X]) {

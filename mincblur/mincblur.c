@@ -228,6 +228,7 @@ main (int argc, char *argv[] )
 
 
   if (apodize_data_flg) {
+     if (debug) print ("Apodizing data at %f",fwhm);
      apodize_data(data, fwhm, fwhm, fwhm, fwhm, fwhm, fwhm );
   }
 
