@@ -1,3 +1,8 @@
+2000-02-28  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* configure.in: check for headers math.h and stdlib.h, since we
+	test for their existence in acconfig.h!
+
 2000-02-24  Steve Robbins  <stever@bic.mni.mcgill.ca>
 
 	* Makefile.am (bin_SCRIPTS): add make_model.

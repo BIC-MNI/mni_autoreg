@@ -115,7 +115,7 @@ fi
 # Check that we have some required header files (and macros in them)
 #------------------------------------------------------------------------
 AC_HEADER_STDC
-AC_CHECK_HEADERS(float.h limits.h malloc.h)
+AC_CHECK_HEADERS(float.h limits.h malloc.h math.h stdlib.h)
 
 # We need to know extreme values for various data types
 # On POSIX systems, these are defined in <float.h> (floats, doubles,

@@ -12,5 +12,9 @@
 
 * configure probe for Getopt::Tabular
 
+* split minctracc/Optimize/super_sample_def.c
+
+* fix warnings during alpha compilation
+
 
 
