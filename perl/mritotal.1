@@ -76,8 +76,8 @@ below; here are all the others:
 .B Site-Specific Options
 
 These options can also be set in the configuration file
-(/usr/local/etc/mni_reg/mritotal.cfg).  In fact, system-wide defaults
-should be set there by the installer of the MNI Linear Registration
+(/usr/local/etc/mni_autoreg/mritotal.cfg).  In fact, system-wide defaults
+should be set there by the installer of the MNI Auto Registration
 Package.  That way, most users will never have to worry about the
 -model or -protocol options.  See the CONFIGURATION AND PROTOCOL FILES
 section below for full information.
@@ -135,8 +135,13 @@ Don't delete the temporary directory when done.
 These consist of the pre-processing options (-nosubsample,
 -guess_subsample, -isosubsample, -subsample, and similar options for
 cropping -- described in the PREPROCESSING section below), as well as:
+.IP "-linear" 5
+Choose linear mode of operation.  This is the default.
+.IP "-nonlinear" 5
+Choose the nonlinear mode of operation.
 .IP "-objective <obj> (default: xcorr)" 5
-Specify the objective function to use for fitting.  You can use any of
+Specify the objective function to use for fitting in linear steps.
+You can use any of
 the objective functions supported by minctracc (do "minctracc -help"
 for an up-to-date list); currently, these are:
 
@@ -151,6 +156,12 @@ for fitting MRI data to Talairach space with mritotal.
 .IP "-firstobj <obj> (default: none)" 5
 Specify the objective function to use for the first fit only.  The
 default is just to use the main objective, as specified by -objective.
+.IP "-startlevel <level>" 5
+In nonlinear mode, specify the level of detail to begin at.
+The default is to begin at level 16 (i.e. 16mm blur).
+.IP "-stoplevel <level>" 5
+In nonlinear mode, specify the level of detail to stop at.
+The default is level 8 (i.e. 8mm blur).
 
 .PP
 .B Other Options
@@ -342,7 +353,7 @@ the options from previous protocol files.
 
 If no protocol is specified (either in the configuration file or on
 tha command line), mritotal defaults to the same setup as is encoded
-in the "default" protocol distributed with the MNI Linear Registration
+in the "default" protocol distributed with the MNI Auto Registration
 Package.
 
 .SH SEE ALSO

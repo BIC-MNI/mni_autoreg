@@ -1,3 +1,8 @@
+2000-03-08  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* Doc/minctracc.doc: removed; appears to be old version of Doc/doc.
+	* Makefile.am: change to docs.
+
 2000-03-07  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* Makefile.am: don't advertise the oddities.

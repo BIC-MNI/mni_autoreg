@@ -3,11 +3,12 @@ CHANGES to the MNI_AutoReg package...
 Release 0.98h
 -------------
 
+* mritotal handles nonlinear as well as linear fitting.
 * Build process revamped: supports non source-directory builds; no
   environment variables are required to specify library locations.
 * Fixed bug that caused PROCRUSTES transformations to optimize only
   the x-scale, rather than a global scale (as LSQ7 does).
-* Generated files contain the long version string.
+* Generated files contain the long version string in their comment section.
 
 
 Release 0.98g

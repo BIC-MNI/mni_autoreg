@@ -9,8 +9,8 @@
 #
 
 if ( $#argv != 1 || $1 == "-help" ) then
-    echo "usage: $0 base_filename"
-    echo "   or: $0 [-version|-help]"
+    echo "usage: make_model base_filename"
+    echo "   or: make_model [-version|-help]"
     exit 1
 endif
 

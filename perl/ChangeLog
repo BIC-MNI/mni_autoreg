@@ -1,3 +1,8 @@
+2000-03-08  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* mritotal.1: document new options -nonlinear, -startlevel,
+	-stoplevel.
+
 2000-02-26  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* string_utilities.pl: new.  Needed for xfmtool.

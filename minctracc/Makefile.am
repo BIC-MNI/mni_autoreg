@@ -10,7 +10,7 @@ EXTRA_DIST = $(man_MANS) $(docs) $(includes)
 
 man_MANS = minctracc.1
 
-docs = Doc/doc Doc/minctracc.doc
+docs = Doc/doc
 
 includes = \
 	Include/amoeba.h \
