@@ -18,10 +18,12 @@
                  from code originally written for blur_grad working on .iff files.
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-#include <mni.h>
+#include <volume_io.h>
 #include <blur_support.h>
 #include <recipes.h>
+#include <limits.h>
 
+extern int debug;
 
 public Status gradient3D_volume(FILE *ifd, 
 				Volume data, 
@@ -134,8 +136,8 @@ public Status gradient3D_volume(FILE *ifd,
   
   data_offset = (array_size_pow2-sizes[X])/2;
   
-  max_val = -100000000.0;
-  min_val =  100000000.0;
+  max_val = -FLT_MAX;
+  min_val =  FLT_MAX;
 
 
   /*    2nd now convolve this kernel with the rows of the dataset            */  
@@ -145,6 +147,7 @@ public Status gradient3D_volume(FILE *ifd,
   case 2: slice_limit = sizes[Z]; break;
   case 3: slice_limit = sizes[Z]; break;
   }
+
 
   for (slice = 0; slice < slice_limit; slice++) {      /* for each slice */
     
@@ -202,6 +205,8 @@ public Status gradient3D_volume(FILE *ifd,
 
   sprintf(full_outfilename,"%s_dx.mnc",outfile);
 
+  if (debug)
+    print ("dx: min = %f, max = %f\n",min_val, max_val);
 
   status = output_modified_volume(full_outfilename, NC_UNSPECIFIED, FALSE, 
 				  min_val, max_val, data, infile, history, NULL);
@@ -221,6 +226,10 @@ public Status gradient3D_volume(FILE *ifd,
 
   set_file_position(ifd,0);
   status = io_binary_data(ifd,READ_FILE, fdata, sizeof(float), total_voxels);
+
+
+
+
   
   f_ptr = fdata;
 
@@ -245,8 +254,8 @@ public Status gradient3D_volume(FILE *ifd,
   
   /*    2nd now convolve this kernel with the rows of the dataset            */
   
-  max_val = -100000000.0;
-  min_val =  100000000.0;
+  max_val = -FLT_MAX;
+  min_val =  FLT_MAX;
 
   switch (ndim) {
   case 1: slice_limit = 0; break;
@@ -316,6 +325,9 @@ public Status gradient3D_volume(FILE *ifd,
 
   sprintf(full_outfilename,"%s_dy.mnc",outfile);
 
+  if (debug)
+    print ("dy: min = %f, max = %f\n",min_val, max_val);
+
   status = output_modified_volume(full_outfilename, NC_UNSPECIFIED, FALSE, 
 				  min_val, max_val, data, infile, history, NULL);
 
@@ -330,7 +342,8 @@ public Status gradient3D_volume(FILE *ifd,
   
   /*-----------------------------------------------------------------------------*/
   /*             determine   size of data structures needed                      */
-  
+
+
   set_file_position(ifd,0);
   status = io_binary_data(ifd,READ_FILE, fdata, sizeof(float), total_voxels);
   f_ptr = fdata;
@@ -358,8 +371,8 @@ public Status gradient3D_volume(FILE *ifd,
     
     /*    2nd now convolve this kernel with the slices of the dataset            */
     
-    max_val = -100000000.0;
-    min_val =  100000000.0;
+    max_val = -FLT_MAX;
+    min_val =  FLT_MAX;
     
     
     for (col = 0; col < sizes[X]; col++) {      /* for each column */
@@ -412,7 +425,6 @@ public Status gradient3D_volume(FILE *ifd,
     }
   }
   
-  printf ("dz: min = %f, max = %f\n",min_val, max_val);
   
   free_vector(dat_vector, 0,2*array_size_pow2+1); 
   free_vector(dat_vecto2, 0,2*array_size_pow2+1); 
@@ -438,11 +450,16 @@ public Status gradient3D_volume(FILE *ifd,
 
   sprintf(full_outfilename,"%s_dz.mnc",outfile);
 
+  if (debug)
+    print ("dz: min = %f, max = %f\n",min_val, max_val);
+
   status = output_modified_volume(full_outfilename, NC_UNSPECIFIED, FALSE, 
 				  min_val, max_val, data, infile, history, NULL);
 
   if (status != OK)
     print_error("problems writing dz gradient data...",__FILE__, __LINE__);
+
+
 
   terminate_progress_report( &progress );
 

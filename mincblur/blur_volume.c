@@ -19,7 +19,7 @@
                  from code originally written for blur_grad working on .iff files.
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-#include <mni.h>
+#include <volume_io.h>
 #include <blur_support.h>
 #include <recipes.h>
 #include <limits.h>
@@ -103,10 +103,15 @@ public Status blur3D_volume(Volume data,
 
   lowest_val = get_volume_voxel_min(data);
     
+
+  get_volume_real_range(data, &min_val, &max_val);
+
+  if (debug) 
+    print("Volume def min and max: = %f %f\n", min_val, max_val);
+
   max_val = -FLT_MAX;
   min_val = FLT_MAX;
 
-  printf("Making float volume..." );
   f_ptr = fdata;
   for_less( slice, 0, sizes[Z])
     for_less( row, 0, sizes[Y])
@@ -117,11 +122,10 @@ public Status blur3D_volume(Volume data,
 	  tmp = lowest_val;
 
 	*f_ptr = CONVERT_VOXEL_TO_VALUE(data, tmp);
-	if (max_val<*f_ptr) max_val = *f_ptr;
-	if (min_val>*f_ptr) min_val = *f_ptr;
+	if (max_val < *f_ptr) max_val = *f_ptr;
+	if (min_val > *f_ptr) min_val = *f_ptr;
 	f_ptr++;
       }
-  printf("done\n");
 
 if (debug) print("before blur min/max = %f %f\n", min_val, max_val);
   

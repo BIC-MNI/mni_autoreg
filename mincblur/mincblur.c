@@ -47,7 +47,7 @@
         rewrite using mnc files and David Macdonald's libmni.a
    ---------------------------------------------------------------------------- */
 
-#include <mni.h>
+#include <volume_io.h>
 #include <ParseArgv.h>
 #include <minc.h>
 #include <mincblur.h>
@@ -172,7 +172,7 @@ main (int argc, char *argv[] )
   infilename  = argv[1];	/* set up necessary file names */
   outfilename = argv[2]; 
 
-  ALLOC(tname, strlen(outfilename)+strlen("_blur.mnc"));
+  ALLOC(tname, strlen(outfilename)+strlen("_blur.mnc")+2);
   tname = strcat(tname,outfilename);
   tname = strcat(tname,"_blur.mnc");
 
@@ -228,7 +228,7 @@ main (int argc, char *argv[] )
 
 
   if (apodize_data_flg) {
-     if (debug) print ("Apodizing data at %f",fwhm);
+     if (debug) print ("Apodizing data at %f\n",fwhm);
      apodize_data(data, fwhm, fwhm, fwhm, fwhm, fwhm, fwhm );
   }
 
