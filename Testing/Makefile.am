@@ -10,9 +10,9 @@ built_PATH = $(minctraccdir):$(extradir)
 # path to the shell interpreter.
 TESTS_ENVIRONMENT = PATH=$(built_PATH):$(PATH) $(SHELL)
 
-TESTS = linear-1 linear-2 linear-3 nonlinear-2
+TESTS = linear-1 linear-2 linear-3 nonlinear-2 nonlinear-3
 
-EXTRA_DIST = $(TESTS)
+EXTRA_DIST = $(TESTS) tps.tag
 
 
 # Objects used in testing
@@ -21,19 +21,21 @@ aux_testfiles = \
 	ellipse1.mnc \
 	ellipse2.mnc \
 	ellipse3.mnc \
+	ellipse4.mnc \
 	ellipse0_dxyz.mnc \
 	ellipse1_dxyz.mnc \
 	ellipse2_dxyz.mnc \
 	ellipse3_dxyz.mnc \
+	ellipse4_dxyz.mnc \
 	test1.xfm \
 	test2.xfm \
-	test3.xfm
+	test3.xfm 
 
 check_DATA = $(aux_testfiles)
 
 CLEANFILES = $(aux_testfiles) \
 	linear-1.log linear-2.log linear-3.log \
-	nonlinear-2.log
+	nonlinear-2.log nonlinear-3.log
 
 ellipse0.mnc: Makefile.am
 	../make_phantom/make_phantom -clobber -ellipse \
@@ -65,6 +67,10 @@ ellipse3.mnc: Makefile.am ellipse0.mnc test3.xfm
 	mincresample -clobber -transformation test3.xfm \
 	-like ellipse0.mnc ellipse0.mnc $@
 
+ellipse4.mnc: Makefile.am ellipse0.mnc
+	mincresample -clobber -transformation tps.xfm \
+	-like ellipse0.mnc ellipse0.mnc $@
+
 ellipse0_dxyz.mnc: ellipse0.mnc
 	../mincblur/mincblur -clobber -gradient -fwhm 6 ellipse0.mnc ellipse0
 
@@ -76,6 +82,9 @@ ellipse2_dxyz.mnc: ellipse2.mnc
 
 ellipse3_dxyz.mnc: ellipse3.mnc
 	../mincblur/mincblur -clobber -gradient -fwhm 6 ellipse3.mnc ellipse3
+
+ellipse4_dxyz.mnc: ellipse4.mnc
+	../mincblur/mincblur -clobber -gradient -fwhm 6 ellipse4.mnc ellipse4
 
 
 
