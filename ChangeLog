@@ -1,3 +1,11 @@
+2000-02-16  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
+
+	* Testing/Makefile.am (TESTS): Nonlinear mode does not work well
+	to recover large affine transformations; so use only test2.xfm,
+	the equivalent to the old `animal.test'.
+	(test1.xfm): z-translate by 30 rather than 50 to keep ellipse
+	inside volume.
+
 2000-02-16  Steve ROBBINS  <stever@bic.mni.mcgill.ca>
 
 	* Testing/Makefile.am (TESTS): split `minctracc-linear' test

@@ -10,7 +10,7 @@ built_PATH = $(minctraccdir):$(extradir)
 # path to the shell interpreter.
 TESTS_ENVIRONMENT = PATH=$(built_PATH):$(PATH) $(SHELL)
 
-TESTS = linear-1 linear-2 linear-3 nonlinear-1
+TESTS = linear-1 linear-2 linear-3 nonlinear-2
 
 EXTRA_DIST = $(TESTS)
 
@@ -38,14 +38,14 @@ ellipse0.mnc: Makefile.am
 	-center 0 0 0 $@
 
 test1.xfm: Makefile.am
-	$(extradir)/param2xfm -clobber -translation 10 20 50 $@
+	$(extradir)/param2xfm -clobber -translation 10 20 30 $@
 
 # This could be done by applying test1.xfm to ellipse0,
 # but we choose to do it by making a phantom with a different centre.
 ellipse1.mnc: Makefile.am
 	../make_phantom/make_phantom -clobber -ellipse \
 	-nele 64 64 64 -step 2 2 2 -start -64 -64 -64 \
-	-center 10 20 50 $@
+	-center 10 20 30 $@
 
 test2.xfm: Makefile.am
 	$(extradir)/param2xfm -clobber -translation 5 2 -6 -rotation -4 7 10 $@

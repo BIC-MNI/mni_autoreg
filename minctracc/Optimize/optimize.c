@@ -14,7 +14,10 @@
               express or implied warranty.
 
 @MODIFIED   : $Log: optimize.c,v $
-@MODIFIED   : Revision 96.3  2000-02-15 19:02:08  stever
+@MODIFIED   : Revision 96.4  2000-02-16 22:09:36  stever
+@MODIFIED   : fine tuning basic nonlinear tests
+@MODIFIED   :
+@MODIFIED   : Revision 96.3  2000/02/15 19:02:08  stever
 @MODIFIED   : Add tests for param2xfm, minctracc -linear.
 @MODIFIED   :
 @MODIFIED   : Revision 96.2  1997/11/12 21:07:43  louis
@@ -114,7 +117,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 96.3 2000-02-15 19:02:08 stever Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 96.4 2000-02-16 22:09:36 stever Exp $";
 #endif
 
 #include <config.h>
@@ -233,13 +236,9 @@ private void vector_to_parameters(double *trans,
   if (weights[11] != 0.0) { shears[2]= op_vector[i] * weights[11];     }
 }
 
-private BOOLEAN inline in_limits(double x,double lower,double upper)
+inline private BOOLEAN in_limits(double x,double lower,double upper)
 {
-
-  if ( x>=lower && x <= upper ) 
-    return(TRUE);
-  else
-    return(FALSE);
+    return lower <= x && x <= upper;
 }
 
 
