@@ -77,6 +77,38 @@ public void do_linear_transformation(Coord_Vector *result, void *trans_data,
 }
 
 
+public void do_linear_transformation_point(Point *result, void *trans_data, 
+                                     Point *coordinate)
+{
+   Linear_Transformation *matrx;
+   int idim, jdim;
+   double lcoord[WORLD_NDIMS], lresult[WORLD_NDIMS];
+
+   /* Get linear transformation info */
+   matrx = trans_data;
+
+   /* Make our own coord vector */
+   lcoord[X] = Point_x( *coordinate );
+   lcoord[Y] = Point_y( *coordinate );
+   lcoord[Z] = Point_z( *coordinate );
+
+   /* Calculate transformation */
+   for (idim=0; idim<WORLD_NDIMS; idim++) {
+      lresult[idim] = matrx->mat[idim][MAT_NDIMS-1];
+      for (jdim=0; jdim<WORLD_NDIMS; jdim++) {
+         lresult[idim] += matrx->mat[idim][jdim] * lcoord[jdim];
+      }
+   }
+
+   /* Save the result */
+   Point_x( *result ) = lresult[X];
+   Point_y( *result ) = lresult[Y];
+   Point_z( *result ) = lresult[Z];
+
+   return;
+}
+
+
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : do_non_linear_transformation
 @INPUT      : trans_data - pointer to transformation data
@@ -132,7 +164,7 @@ public void do_non_linear_transformation(Coord_Vector *result, void *trans_data,
 public void invert_transformation(Transformation *result, 
                                   Transformation *transformation)
 {
-   Linear_Transformation *matrx, *result_matrix;
+   Linear_Transformation *matrx;
    float **nrmatrix, **nrresult, nrd, nrcol[MAT_NDIMS+1];
    int nrindex[MAT_NDIMS+1], idim, jdim;
 
@@ -350,7 +382,11 @@ private float return_r(double *cor1, double *cor2, int dim)
       r3 = cor1[2] - cor2[2];
       return(fsqrt(r1*r1 + r2*r2 + r3*r3));
    } 
-   else { printf(" impossible error in mapping.c (return_r)\n"); exit(-1); }
+   else { 
+     printf(" impossible error in mapping.c (return_r)\n"); 
+     exit(-1); 
+     return(0.0);
+   }
 }
 
 private float FU(double r, int dim)
@@ -372,5 +408,9 @@ private float FU(double r, int dim)
    } else
    if (dim==3){
       return(fabs(r));
-   } else { printf(" impossible error in mapping.c (FU)\n"); exit(-1); }
+   } else { 
+     printf(" impossible error in mapping.c (FU)\n"); 
+     exit(-1); 
+     return(0.0);
+   }
 }

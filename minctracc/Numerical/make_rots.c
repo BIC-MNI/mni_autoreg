@@ -1,24 +1,53 @@
-#include <def_standard.h>
-#include <def_alloc.h>
-#include <math.h>
+#include <def_mni.h>
+#include <recipes.h>
 
-#include "warp_vol.h"
-#include "recipes.h"
+#include "matrix_basics.h"
+#include "rotmat_to_ang.h"
 
+#define  FILL_NR_COLVEC( vector, x, y, z ) \
+            { \
+		vector[1][1] = (x); \
+		vector[2][1] = (y); \
+		vector[3][1] = (z); \
+		vector[4][1] = 1.0; \
+            }
 
-extern int
-  invert_mapping_flag;
+#define  MAG_NR_COLVEC( vector ) \
+            ( fsqrt(vector[1][1]*vector[1][1] + \
+		    vector[2][1]*vector[2][1] + \
+		    vector[3][1]*vector[3][1])  \
+	     )
 
-extern void
-  calc_inv();
-extern Boolean
-  rotmat_to_ang();
+#define  ADD_NR_COLVEC( vector, v1, v2 ) \
+            { \
+		vector[1][1] = v1[1][1] + v2[1][1]; \
+		vector[2][1] = v1[2][1] + v2[2][1]; \
+		vector[3][1] = v1[3][1] + v2[3][1]; \
+		vector[4][1] = 1.0; \
+            }
 
+#define  SUB_NR_COLVEC( vector, v1, v2 ) \
+            { \
+		vector[1][1] = v1[1][1] - v2[1][1]; \
+		vector[2][1] = v1[2][1] - v2[2][1]; \
+		vector[3][1] = v1[3][1] - v2[3][1]; \
+		vector[4][1] = 1.0; \
+            }
 
-void   make_rots(xmat,data_rot_x,data_rot_y,data_rot_z)
-     float
-	**xmat,
-	data_rot_x,data_rot_y,data_rot_z;
+/* ----------------------------- MNI Header -----------------------------------
+@NAME       : make_rots
+@INPUT      : rot_x, rot_y, rot_z - three rotation angles, in radians.
+@OUTPUT     : xmat, a numerical recipes matrix for homogeous transformations
+@RETURNS    : nothing
+@DESCRIPTION: to be applied by premultiplication, ie rot*vec = newvec
+@METHOD     : 
+@GLOBALS    : 
+@CALLS      : 
+@CREATED    : Tue Jun  8 08:44:59 EST 1993 LC
+@MODIFIED   : 
+---------------------------------------------------------------------------- */
+
+void   make_rots(float **xmat, float rot_x, float rot_y, float rot_z)
 {
    float
       **TRX,
@@ -33,13 +62,12 @@ void   make_rots(xmat,data_rot_x,data_rot_y,data_rot_z)
    T1   = matrix(1,4,1,4);
    T2   = matrix(1,4,1,4);
 
+   nr_rotxf(TRX, rot_x);             /* create the rotate X matrix */
+   nr_rotyf(TRY, rot_y);             /* create the rotate Y matrix */
+   nr_rotzf(TRZ, rot_z);             /* create the rotate Z matrix */
    
-   nr_rotxf(TRX,data_rot_x);             /* create the rotate X matrix */
-   nr_rotyf(TRY,data_rot_y);             /* create the rotate Y matrix */
-   nr_rotzf(TRZ,data_rot_z);             /* create the rotate Z matrix */
-   
-   nr_multf(TRX,1,4,1,4,  TRY,1,4,1,4,  T1); /* apply rx and ry */
-   nr_multf(T1 ,1,4,1,4,  TRZ,1,4,1,4,  xmat); /* apply rz */
+   nr_multf(TRY,1,4,1,4,  TRX,1,4,1,4,  T1); /* apply rx and ry */
+   nr_multf(TRZ,1,4,1,4,  T1,1,4,1,4,  xmat); /* apply rz */
 
    free_matrix(TRX,1,4,1,4);
    free_matrix(TRY,1,4,1,4);
@@ -49,224 +77,322 @@ void   make_rots(xmat,data_rot_x,data_rot_y,data_rot_z)
 
 }
 
-public void   
-  make_resampling_matrix(xmat,
-			 trans_x,trans_y,trans_z,
-			 center_x,center_y,center_z,
-			 rot_x,rot_y,rot_z,
-			 scale_x,scale_y,scale_z)
-float
-  **xmat,
-  trans_x,trans_y,trans_z,
-  center_x,center_y,center_z, /* rotation center position */
-  rot_x,rot_y,rot_z,   	    /* ang in cntrclkwise radians */
-  scale_x,scale_y,scale_z;    /* scale in AP, LR and CC directions */
+
+
+
+/* ----------------------------- MNI Header -----------------------------------
+@NAME       : build_transformation_matrix
+@INPUT      : center, translations, scales, rotations
+@OUTPUT     : *lt->mat - a linear transformation matrix
+@RETURNS    : nothing
+@DESCRIPTION: mat = (t)(c)(r*s)(-c),
+               the matrix is to be  PREmultiplied with a vector (mat*vec)
+	       when used in the application
+@METHOD     : 
+@GLOBALS    : 
+@CALLS      : 
+@CREATED    : Thu Jun  3 09:37:56 EST 1993 lc
+@MODIFIED   : 
+---------------------------------------------------------------------------- */
+
+public void build_transformation_matrix(double lt[3][4], 
+					double *center,
+					double *translations,
+					double *scales,
+					double *rotations)
 {
-
-   float
-      **TEMP1,
-      **TEMP2,
-      **R,
-      **S,
-      **T1,
-      **T2;
-   int
-      i,j;
-
-   TEMP1  = matrix(1,4,1,4);
-   TEMP2  = matrix(1,4,1,4);
-   R      = matrix(1,4,1,4);
-   S      = matrix(1,4,1,4);
-   T1     = matrix(1,4,1,4);
-   T2     = matrix(1,4,1,4);
-
-  if (!invert_mapping_flag) {
-				/* xmat = (-C)*R*S*C*T */
-
-    nr_identf(T1,1,4,1,4);	/* make (-C) */
-    T1[4][1] = -center_x;
-    T1[4][2] = -center_y;
-    T1[4][3] = -center_z;
-
-    make_rots(R,rot_x,rot_y,rot_z); /* make R */
-
-    nr_identf(S,1,4,1,4);	/* make S */
-    S[1][1] = scale_x;	
-    S[2][2] = scale_y;
-    S[3][3] = scale_z;
- 
-    nr_multf(R,1,4,1,4,  S,1,4,1,4,  T2); /* make   scale*rotation */
-
-    nr_multf(T1,1,4,1,4,  T2,1,4,1,4,  TEMP1); /* apply centering and rotation*scale */
- 
-    nr_identf(T2,1,4,1,4);
-    T2[4][1] = center_x;
-    T2[4][2] = center_y;
-    T2[4][3] = center_z;
-
-    nr_multf(TEMP1,1,4,1,4, T2,1,4,1,4, TEMP2); /* reposition          */
-   
-    for (i=1; i<=4; ++i)
-      for (j=1; j<=4; ++j)
-	xmat[i][j] = TEMP2[i][j];
-
-    xmat[4][1] += trans_x;
-    xmat[4][2] += trans_y;
-    xmat[4][3] += trans_z;
-  }
-  else {
-				/* xmat = (-T)(-C)(S')(R')(C) where ' is inv*/
-    nr_identf(T1,1,4,1,4);
-
-    T1[4][1] = -trans_x-center_x;		
-    T1[4][2] = -trans_y-center_y;		
-    T1[4][3] = -trans_z-center_z;
-
-    make_rots(R,rot_x,rot_y,rot_z); /* these are inv angles from below */
-
-    nr_identf(S,1,4,1,4);	/* make scaling matrix */
-    S[1][1] = 1.0 / scale_x;	
-    S[2][2] = 1.0 / scale_y;
-    S[3][3] = 1.0 / scale_z;
-
-    nr_multf(S,1,4,1,4,  R,1,4,1,4,  T2); /* make   scale*rotation */
-
-    nr_multf(T1,1,4,1,4,  T2,1,4,1,4,  TEMP1); /* apply centering and rotation*scale */
- 
-    nr_identf(T2,1,4,1,4);
-    T2[4][1] = center_x;
-    T2[4][2] = center_y;
-    T2[4][3] = center_z;
-
-    nr_multf(TEMP1,1,4,1,4, T2,1,4,1,4, TEMP2); /* reposition          */
-   
-    for (i=1; i<=4; ++i)
-      for (j=1; j<=4; ++j)
-	xmat[i][j] = TEMP2[i][j];
-
-  }
-
-   free_matrix(TEMP1,1,4,1,4);
-   free_matrix(TEMP2,1,4,1,4);
-   free_matrix(R    ,1,4,1,4);
-   free_matrix(S    ,1,4,1,4);
-   free_matrix(T1   ,1,4,1,4);
-   free_matrix(T2   ,1,4,1,4);
-
-
-}
-
-
-/* when this routine is called, all calling parameters have valid values
-   to map data into target space (forward mapping).
-   the object of the routine is to use the information therein, to devise
-   the inverse mapping.
-
-   Only the rotation parameters will be modified, since the 
-   invert_mapping_flag will control the order of matrix application.
-*/
-
-public void
-  make_inverted_resampling_matrix(xmat,
-				  trans_x,trans_y,trans_z,
-				  center_x,center_y,center_z,
-				  rot_x,rot_y,rot_z,
-				  scale_x,scale_y,scale_z)
-float
-  **xmat,
-  *trans_x,*trans_y,*trans_z,
-  *center_x,*center_y,*center_z, /* rotation center position */
-  *rot_x,*rot_y,*rot_z,	         /* ang in cntrclkwise degrees! */
-  *scale_x,*scale_y,*scale_z;    /* scale in AP, LR and CC directions */
-{
-
+  
   float
-    **S,**R,**Ri,
-    *ang,
     **TEMP1,
     **TEMP2,
+    **R,
+    **S,
     **T1,
     **T2;
   int
     i,j;
-
-  R     = matrix(1,4,1,4);	/* initial rotation matrix */
-  Ri    = matrix(1,4,1,4);	/* inverted matrix */
-  TEMP1 = matrix(1,4,1,4);
-  ang   = vector(1,3);		/* rot angles for inverted matrix */
-
-  make_rots(R,(*rot_x)*DEG_TO_RAD,(*rot_y)*DEG_TO_RAD,(*rot_z)*DEG_TO_RAD);
-
-  for (i=1; i<=4; ++i)/* copy rot matrix, since calc_inv destroys input */
-    for (j=1; j<=4; ++j)
-      TEMP1[i][j] = R[i][j];
-
-  calc_inv(TEMP1,Ri,4,4);
-    
-  if (!rotmat_to_ang(Ri,ang)) {
-    print_error("Cannot convert Ri to radians!",__FILE__,__LINE__,0,0,0,0,0);
-  }
-
-
-/*    test by building new new transform matrix, testing it
-      against the inv(xmat)                                   */
-
-
-  S   = matrix(1,4,1,4);
+  
+  TEMP1  = matrix(1,4,1,4);
   TEMP2  = matrix(1,4,1,4);
+  R      = matrix(1,4,1,4);
+  S      = matrix(1,4,1,4);
   T1     = matrix(1,4,1,4);
   T2     = matrix(1,4,1,4);
+  
+				             /* mat = (T)(C)(S)(R)(-C) */
 
-  make_resampling_matrix(TEMP2,
-			 *trans_x,*trans_y,*trans_z,
-			 *center_x,*center_y,*center_z,
-			 ang[1],ang[2],ang[3],
-			 *scale_x,*scale_y,*scale_z);
+  nr_identf(T1,1,4,1,4);	             /* make (T)(C) */
+  for_less( i, 0, 3 ) {
+    T1[1+i][4] = translations[i] + center[i];		
+  }
+				             /* make rotation matix */
+  make_rots(R,
+	    (float)(rotations[0]*DEG_TO_RAD),
+	    (float)(rotations[1]*DEG_TO_RAD),
+	    (float)(rotations[2]*DEG_TO_RAD)); 
 
-  for (i=1; i<=4; ++i)		/* reset all values of transformation matrix */
-    for (j=1; j<=4; ++j)
-      T2[i][j] = xmat[i][j];
 
-  calc_inv(T2,TEMP1,4,4);
-
-  nr_multf(xmat,1,4,1,4,  TEMP2,1,4,1,4,  T1); /* T1 should = I */
-
-  for (i=1; i<=4; ++i) {
-    for (j=1; j<=4; ++j)
-      printf ("%8.4f ",TEMP2[i][j]);
-    printf ("|");
-    for (j=1; j<=4; ++j)
-      printf ("%8.4f ",xmat[i][j]);
-    printf ("|");
-    for (j=1; j<=4; ++j)
-      printf ("%8.4f ",T1[i][j]);
-    printf ("\n");
+  nr_identf(S,1,4,1,4);	                     /* make scaling matrix */
+  for_less( i, 0, 3 ) {
+    S[1+i][1+i] = scales[i];
   }
 
-  for (i=1; i<=4; ++i) {
-    for (j=1; j<=4; ++j)
-      printf ("%8.4f ",TEMP1[i][j]);
-    printf ("\n");
-  }
-  
-  for (i=1; i<=4; ++i)		/* reset all values of transformation matrix */
-    for (j=1; j<=4; ++j)
-      xmat[i][j] = TEMP2[i][j];
-  
-  *rot_x = ang[1]*RAD_TO_DEG;
-  *rot_y = ang[2]*RAD_TO_DEG;
-  *rot_z = ang[3]*RAD_TO_DEG;
+  nr_multf(S,1,4,1,4,  R,1,4,1,4,  T2);      /* make   scale*rotation */
 
+  nr_multf(T1,1,4,1,4,  T2,1,4,1,4,  TEMP1); /* apply centering and rotation*scale */
+
+  nr_identf(T2,1,4,1,4);	             /* make -center          */
+  for_less( i, 0, 3 ) {
+    T2[1+i][4] = -center[i];		
+  }
+
+  nr_multf(TEMP1,1,4,1,4, T2,1,4,1,4, TEMP2); /* reposition           */
+   
+
+  for (i=1; i<=3; ++i)
+    for (j=1; j<=4; ++j)
+      lt[i-1][j-1] = TEMP2[i][j];
+
+  free_matrix(TEMP1,1,4,1,4);
   free_matrix(TEMP2,1,4,1,4);
+  free_matrix(R    ,1,4,1,4);
   free_matrix(S    ,1,4,1,4);
   free_matrix(T1   ,1,4,1,4);
   free_matrix(T2   ,1,4,1,4);
-
-  free_matrix(R    ,1,4,1,4);
-  free_matrix(Ri   ,1,4,1,4);
-  free_vector(ang,  1,3);
-  free_matrix(TEMP1,1,4,1,4);
-
 }
+
+/* ----------------------------- MNI Header -----------------------------------
+@NAME       : build_inverse_transformation_matrix
+@INPUT      : center, translations, scales, rotations
+@OUTPUT     : the inverse linear transformation matrix of mat:
+                   mat = (t)(c)(r*s)(-c)
+@RETURNS    : nothing
+@DESCRIPTION: mat = (t)(c)(r*s)(-c),
+               the matrix is to be  PREmultiplied with a vector (mat*vec)
+	       when used in the application
+@METHOD     : 
+@GLOBALS    : 
+@CALLS      : 
+@CREATED    : Tue Jun 15 16:45:35 EST 1993 LC
+@MODIFIED   : 
+---------------------------------------------------------------------------- */
+public void build_inverse_transformation_matrix(double lt[3][4], 
+						double *center,
+						double *translations,
+						double *scales,
+						double *rotations)
+{
+  double 
+    mat[3][4];
+  float
+    **TEMP,
+    **INV;
+  int
+    i,j;
+  
+				/* build the forward transformation */
+  build_transformation_matrix(mat, center, translations, scales, rotations);
+
+
+  TEMP  = matrix(1,4,1,4);
+  INV   = matrix(1,4,1,4);
+
+  nr_identf(TEMP,1,4,1,4);
+  for_less( i, 0, 3 )
+    for_less( j, 0, 4)
+      TEMP[i+1][j+1] = mat[i][j];
+
+  invertmatrix(4, TEMP, INV);
+
+  for_less( i, 0, 3 )
+    for_less( j, 0, 4)
+      lt[i][j] = INV[i+1][j+1];
+
+  free_matrix(TEMP,1,4,1,4);
+  free_matrix(INV, 1,4,1,4);
+}
+
+
+/* ----------------------------- MNI Header -----------------------------------
+@NAME       : extract_parameters_from_matrix
+@INPUT      : lt[3][4] - a linear transformation matrix
+              center   - an array of the desired center of rotation and scaling.
+@OUTPUT     : translations, scales, rotations
+@RETURNS    : nothing
+@DESCRIPTION: mat = (t)(c)(r*s)(-c)
+@METHOD     : 
+@GLOBALS    : 
+@CALLS      : 
+@CREATED    : Thu Jun  3 09:37:56 EST 1993 lc
+@MODIFIED   : 
+---------------------------------------------------------------------------- */
+
+public Boolean extract_parameters_from_matrix(double lt[3][4], 
+					      double *center,
+					      double *translations,
+					      double *scales,
+					      double *rotations)
+{
+  int 
+    i,j;
+
+  float 
+    magnitude,
+    **center_of_rotation,
+    **result,
+    **unit_vec,
+    *ang,*tmp,
+    **xmat,**T,**Tinv,**C,**Sinv,**R,**SR,**SRinv,**Cinv,**TMP1,**TMP2;
+
+  xmat  = matrix(1,4,1,4); nr_identf(xmat,1,4,1,4);
+  TMP1  = matrix(1,4,1,4); nr_identf(TMP1,1,4,1,4);
+  TMP2  = matrix(1,4,1,4); nr_identf(TMP2,1,4,1,4);
+  Cinv  = matrix(1,4,1,4); nr_identf(Cinv,1,4,1,4);
+  SR    = matrix(1,4,1,4); nr_identf(SR  ,1,4,1,4);
+  SRinv = matrix(1,4,1,4); nr_identf(SRinv,1,4,1,4);
+  Sinv  = matrix(1,4,1,4); nr_identf(Sinv,1,4,1,4); 
+  T     = matrix(1,4,1,4); nr_identf(T   ,1,4,1,4);
+  Tinv  = matrix(1,4,1,4); nr_identf(Tinv,1,4,1,4);
+  C     = matrix(1,4,1,4); nr_identf(C   ,1,4,1,4);
+  R     = matrix(1,4,1,4); nr_identf(R   ,1,4,1,4);
+
+  center_of_rotation = matrix(1,4,1,1);	/* make column vectors */
+  result             = matrix(1,4,1,1);
+  unit_vec           = matrix(1,4,1,1);
+
+  tmp = vector(1,3);
+  ang = vector(1,3);
+
+
+  for_inclusive( i, 0, 2)	/* copy the input matrix */
+    for_inclusive( j, 0, 3)
+      xmat[i+1][j+1] = (float)lt[i][j];
+
+  
+
+  /* -------------DETERMINE THE TRANSLATION FIRST! ---------  */
+
+				/* see where the center of rotation is displaced... */
+
+  FILL_NR_COLVEC( center_of_rotation, center[0], center[1], center[2] );
+
+  raw_matrix_multiply( 4, 4, 1, xmat, center_of_rotation, result);
+
+  SUB_NR_COLVEC( result, result, center_of_rotation );
+
+  for_inclusive( i, 0, 2) 
+    translations[i] = result[i+1][1];
+
+  /* -------------NOW GET THE SCALING VALUES! ----------------- */
+
+  for_inclusive( i, 0, 2) 
+    tmp[i+1] = -translations[i];
+  translation_to_homogeneous(3, tmp, Tinv); 
+
+  for_inclusive( i, 0, 2) 
+    tmp[i+1] = center[i];
+  translation_to_homogeneous(3, tmp, C); 
+  for_inclusive( i, 0, 2) 
+    tmp[i+1] = -center[i];
+  translation_to_homogeneous(3, tmp, Cinv); 
+
+  matrix_multiply(4,4,4, Cinv, Tinv, TMP1);    /* get scaling*rotation matrix */
+
+  matrix_multiply(4,4,4, TMP1, xmat, TMP1);
+
+  matrix_multiply(4,4,4, TMP1, C,    SR);
+
+  invertmatrix(4, SR, SRinv);	/* get inverse of scaling*rotation */
+
+
+				/* find each scale by mapping a unit vector backwards,
+				   and finding the magnitude of the result. */
+  FILL_NR_COLVEC( unit_vec, 1.0, 0.0, 0.0 );
+  raw_matrix_multiply( 4, 4, 1, SRinv, unit_vec, result);
+  magnitude = MAG_NR_COLVEC( result );
+  if (magnitude != 0.0) {
+    scales[0] = 1/magnitude;
+    Sinv[1][1] = magnitude;
+  }
+  else {
+    scales[0] = 1.0;
+    Sinv[1][1] = 1.0;
+  }
+
+  FILL_NR_COLVEC( unit_vec, 0.0, 1.0, 0.0 );
+  raw_matrix_multiply( 4, 4, 1, SRinv, unit_vec, result);
+  magnitude = MAG_NR_COLVEC( result );
+  if (magnitude != 0.0) {
+    scales[1] = 1/magnitude;
+    Sinv[2][2] = magnitude;
+  }
+  else {
+    scales[1]  = 1.0;
+    Sinv[2][2] = 1.0;
+  }
+
+  FILL_NR_COLVEC( unit_vec, 0.0, 0.0, 1.0 );
+  raw_matrix_multiply( 4, 4, 1, SRinv, unit_vec, result);
+  magnitude = MAG_NR_COLVEC( result );
+  if (magnitude != 0.0) {
+    scales[2] = 1/magnitude;
+    Sinv[3][3] = magnitude;
+  }
+  else {
+    scales[2] = 1.0;
+    Sinv[3][3] = 1.0;
+  }
+
+  /* ------------NOW GET THE ROTATION ANGLES!----- */
+
+				/* extract rotation matrix */
+  matrix_multiply(4,4, 4, Sinv, SR,   R);
+
+				/* get rotation angles */
+  if (!rotmat_to_ang(R, ang)) {
+    fprintf(stderr,"Cannot convert R to radians!");
+    printmatrix(3,3,R);
+    return(FALSE);
+  }
+
+  for_inclusive( i, 0, 2 )
+    rotations[i] = ang[i+1]*RAD_TO_DEG;
+
+  free_matrix(xmat,1,4,1,4);
+  free_matrix(TMP1,1,4,1,4);
+  free_matrix(TMP2,1,4,1,4);
+  free_matrix(Cinv,1,4,1,4);
+  free_matrix(SR  ,1,4,1,4);
+  free_matrix(SRinv,1,4,1,4);
+  free_matrix(Sinv,1,4,1,4);
+  free_matrix(T   ,1,4,1,4);
+  free_matrix(Tinv,1,4,1,4);
+  free_matrix(C   ,1,4,1,4);
+  free_matrix(R   ,1,4,1,4);
+  
+  free_matrix(center_of_rotation,1,4,1,1);	/* make column vectors */
+  free_matrix(result            ,1,4,1,1);
+  free_matrix(unit_vec          ,1,4,1,1);
+
+  free_vector(ang, 1, 3);
+  free_vector(tmp, 1, 3);
+
+  return(TRUE);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

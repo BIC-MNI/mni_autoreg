@@ -3,6 +3,15 @@
 #include "minctracc.h"
 #include "def_geometry.h"
 
+#include "matrix_basics.h"
+#include "cov_to_praxes.h"
+#include "make_rots.h"
+
+extern Arg_Data main_args;
+
+extern void 
+  print_error(char *s, char * d1, int d2, int d3, int d4, int d5, int d6, int d7);
+
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : init_params.c
 @INPUT      : 
@@ -44,7 +53,7 @@
 @MODIFIED   : Thu May 27 16:50:50 EST 1993 lc
                  rewrite for minc files and david's library
 ---------------------------------------------------------------------------- */
-public Boolean vol_to_cov(volume_struct *d1, float *centroid, float **covar, Arg_Data *args)
+public Boolean vol_to_cov(Volume d1, float *centroid, float **covar, Arg_Data *globals)
 {
 
   Vector
@@ -62,7 +71,7 @@ public Boolean vol_to_cov(volume_struct *d1, float *centroid, float **covar, Arg
     col,
     voxel;
 
-  double
+  Real
     tx,ty,tz,
     voxel_value;
   int
@@ -74,15 +83,22 @@ public Boolean vol_to_cov(volume_struct *d1, float *centroid, float **covar, Arg
     sxx,syy,szz,
     sxy,syz,sxz,
     sx,sy,sz,si; 
+  Real
+    thickness[3];
+  int
+    sizes[3];
+
+  get_volume_separations(d1, thickness);
+  get_volume_sizes(d1, sizes);
   
 				/* build sampling lattice info */
   for_less( i, 0, 3) {	
-    args->step[X] *= d1->thickness[i] / ABS( d1->thickness[i]);
+    globals->step[X] *= thickness[i] / ABS( thickness[i]);
   }
 
-  fill_Vector( row_step,   args->step[X], 0.0,           0.0 );
-  fill_Vector( col_step,   0.0,           args->step[Y], 0.0 );
-  fill_Vector( slice_step, 0.0,           0.0,           args->step[Z] );
+  fill_Vector( row_step,   globals->step[X], 0.0,           0.0 );
+  fill_Vector( col_step,   0.0,           globals->step[Y], 0.0 );
+  fill_Vector( slice_step, 0.0,           0.0,           globals->step[Z] );
 
   convert_voxel_to_world(d1, 0.0, 0.0, 0.0, &tx, &ty, &tz);
 
@@ -90,11 +106,11 @@ public Boolean vol_to_cov(volume_struct *d1, float *centroid, float **covar, Arg
 
   for_less( i, 0, 3) {		/* for each dim, get # of steps in that direction,
 				   and set starting offset */
-    t = d1->sizes[i] * d1->thickness[i] / args->step[i];
+    t = sizes[i] * thickness[i] / globals->step[i];
     limits[i] = (int)( ABS( t ) );
     
     Point_coord( starting_offset, i ) = 
-      ( (d1->sizes[i]-1)*d1->thickness[i] - (limits[i] * args->step[i] ) ) / 2.0;
+      ( (sizes[i]-1)*thickness[i] - (limits[i] * globals->step[i] ) ) / 2.0;
   }
   
   ADD_POINTS( starting_position, starting_origin, starting_offset ); /*  */
@@ -125,9 +141,9 @@ public Boolean vol_to_cov(volume_struct *d1, float *centroid, float **covar, Arg
 
 	fill_Point( voxel, tx, ty, tz );
 
-	trilinear_interpolant( d1, &voxel, &voxel_value );
+/*	trilinear_interpolant( d1, &voxel, &voxel_value );*/
 
-/*	INTERPOLATE_VOXEL_VALUE( d1, &voxel, &voxel_value ); */
+	INTERPOLATE_VOXEL_VALUE( d1, &voxel, &voxel_value ); 
 	
 	sx +=  Point_x(col) * voxel_value;
 	sy +=  Point_y(col) * voxel_value;
@@ -201,12 +217,14 @@ public Boolean vol_to_cov(volume_struct *d1, float *centroid, float **covar, Arg
 
 
 /* ----------------------------- MNI Header -----------------------------------
-@NAME       : init_transformation - get trans parameters given trans matrix
+@NAME       : init_transformation - get trans parameters using principal axis
+                 transformation technique.  the transformation points in 
+		 d1 -> d2.
 @INPUT      : d1,d2:
                 two volumes of data (already in memory).
 	      m1,m2:
                 two mask volumes for data (already in memory).
-	      args: globval argument structure
+	      main_args: globval argument structure
 	      kx,ky,kz:
                 size of resampling kernel
 	        
@@ -231,16 +249,15 @@ public Boolean vol_to_cov(volume_struct *d1, float *centroid, float **covar, Arg
 @MODIFIED   : Thu May 27 16:50:50 EST 1993 lc
                  rewrite for minc files and david's library
 ---------------------------------------------------------------------------- */
-private  void init_transformation(
-				  volume_struct *d1, /* data for volume1 */
-				  volume_struct *d2, /* data for volume2 */
-				  volume_struct *m1, /* mask for volume1 */
-				  volume_struct *m2, /* mask for volume2 */
-				  Arg_Data *args,
+private  Boolean init_transformation(
+				  Volume d1, /* data for volume1 */
+				  Volume d2, /* data for volume2 */
+				  Volume m1, /* mask for volume1 */
+				  Volume m2, /* mask for volume2 */
+				  Arg_Data *globals,
 				  float kx,          /* size of current resampling kernel */
 				  float ky,
 				  float kz,
-				  float **xmat,      /* transformation matrix             */
 				  float **trans,     /* translation matrix to go from d1 to d2 */
 				  float **rots,      /* rotation matrix to go from d1 to d2    */
 				  float *ang,        /* rotation angles to go from d1 to d2    */
@@ -262,9 +279,8 @@ private  void init_transformation(
   int
     ndim,i,j;
   
-  nr_identf(xmat,1,4,1,4);	/* start with identity                       */
-  nr_identf(trans,1,4,1,4);
-  nr_identf(rots,1,4,1,4);
+  nr_identf(trans,1,4,1,4);	/* start with identity                       */
+  nr_identf(rots, 1,4,1,4);
   
   cov1       = matrix(1,3,1,3); 
   cov2       = matrix(1,3,1,3); 
@@ -280,12 +296,15 @@ private  void init_transformation(
   kern = MIN( kx, ky);
   kern = MIN( kern, kz);
   
-  if (! vol_to_cov(d1, c1, cov1, args ) )
+  if (! vol_to_cov(d1, c1, cov1, globals ) ) {
     print_error("Cannot calculate the COG of volume 1\n.", __FILE__, __LINE__, 0,0,0,0,0 );
-  
-  if (! vol_to_cov(d2, c2, cov2, args ) )
+    return(FALSE);
+  }
+  if (! vol_to_cov(d2, c2, cov2, globals ) ) {
     print_error("Cannot calculate the COG of volume 2\n.", __FILE__, __LINE__, 0,0,0,0,0 );
-  
+    return(FALSE);
+  }
+
   tx = c2[1] - c1[1];    /* translations to map vol1 into vol2                  */
   ty = c2[2] - c1[2];
   tz = c2[3] - c1[3];
@@ -297,16 +316,18 @@ private  void init_transformation(
   nr_copyf(prin_axes2,1,3,1,3,R2);
   
   
-  printf ("cov1:                              cov2:\n");
-  for (i=1; i<=3; i++) {
-    for (j=1; j<=3; j++)
-      printf ("%8.3f ", cov1[i][j]);
+  if (globals->flags.verbose > 1) {
+    printf ("cov1:                              cov2:\n");
+    for (i=1; i<=3; i++) {
+      for (j=1; j<=3; j++)
+	printf ("%8.3f ", cov1[i][j]);
     printf ("|");
-    for (j=1; j<=3; j++)
-      printf ("%8.3f ", cov2[i][j]);
-    printf ("\n\n");
+      for (j=1; j<=3; j++)
+	printf ("%8.3f ", cov2[i][j]);
+      printf ("\n\n");
+    }
   }
-  
+
   for (i=1; i<=3; ++i) {
     norm = fsqrt(prin_axes1[i][1]*prin_axes1[i][1] + 
 		 prin_axes1[i][2]*prin_axes1[i][2] + 
@@ -321,14 +342,16 @@ private  void init_transformation(
       R2[i][j] /= norm;
   }
   
-  printf ("prin_axes1:                      princ_axes2:\n");
-  for (i=1; i<=3; i++) {
-    for (j=1; j<=3; j++)
-      printf ("%8.3f ", prin_axes1[i][j]);
-    printf ("|");
-    for (j=1; j<=3; j++)
-      printf ("%8.3f ", prin_axes2[i][j]);
-    printf ("\n\n");
+  if (globals->flags.verbose > 1) {
+    printf ("prin_axes1:                      princ_axes2:\n");
+    for (i=1; i<=3; i++) {
+      for (j=1; j<=3; j++)
+	printf ("%8.3f ", prin_axes1[i][j]);
+      printf ("|");
+      for (j=1; j<=3; j++)
+	printf ("%8.3f ", prin_axes2[i][j]);
+      printf ("\n\n");
+    }
   }
   
   invertmatrix(3,R1,Rinv);
@@ -336,26 +359,33 @@ private  void init_transformation(
   nr_multf(Rinv,1,3,1,3, R2,1,3,1,3, R);
   
   
-  printf ("r1:                   r2:                  r:\n");
-  for (i=1; i<=3; i++) {
-    for (j=1; j<=3; j++)
-      printf ("%8.3f ", R1[i][j]);
-    printf ("|");
-    for (j=1; j<=3; j++)
-      printf ("%8.3f ", R2[i][j]);
-    printf ("|");
-    for (j=1; j<=3; j++)
-      printf ("%8.3f ", R[i][j]);
-    printf ("\n");
+  if (globals->flags.verbose > 1) {
+    printf ("r1:                   r2:                  r:\n");
+    for (i=1; i<=3; i++) {
+      for (j=1; j<=3; j++)
+	printf ("%8.3f ", R1[i][j]);
+      printf ("|");
+      for (j=1; j<=3; j++)
+	printf ("%8.3f ", R2[i][j]);
+      printf ("|");
+      for (j=1; j<=3; j++)
+	printf ("%8.3f ", R[i][j]);
+      printf ("\n");
+    }
   }
-  
-  rotmat_to_ang(R, angles);
+
+
+  transpose(3,3,R,R);		/* all of the princ axes stuff uses vec*mat */
+
+  if (!rotmat_to_ang(R, angles)) {
+    fprintf(stderr,"Could not extract angles from:\n");
+    printmatrix(3,3,R);
+    return(FALSE);
+  }
   
   scale[1] = 1.0;
   scale[2] = 1.0;
   scale[3] = 1.0;
-
-
 
   ang[1] = angles[1];		/* rotation about X axis                         */
   ang[2] = angles[2];		/* rotation about Y axis                         */
@@ -363,62 +393,48 @@ private  void init_transformation(
   
   for (i=1; i<=3; ++i)		/* set rotations in matrix                       */
     for (j=1; j<=3; ++j) {
-      xmat[i][j] = R[i][j];
       rots[i][j] = R[i][j];
     }
   
-  xmat[4][1] += tx;		/* set translations in full matrix               */
-  xmat[4][2] += ty;
-  xmat[4][3] += tz;
-  
-  trans[4][1] += tx;		/* set translations in translation matrix        */
-  trans[4][2] += ty;
-  trans[4][3] += tz;
+  trans[1][4] += tx;		/* set translations in translation matrix        */
+  trans[2][4] += ty;
+  trans[3][4] += tz;
   
   ndim = 3;
   
-  (void) printf("\nFor volume 1 :");
-  (void) printf("\nCentroid :");
-  for (i=1; i<=ndim; i++) (void) printf("  %f",c1[i]);
-  (void) printf("\n\n");
-  (void) printf("Principal axes\n");
-  for (i=1; i<=ndim; i++) {
-    (void) printf("Vector %d :",i);
-    for (j=1; j<=ndim; j++) {
-      (void) printf("  %f",prin_axes1[i][j]);
+  if (globals->flags.verbose > 1) {
+    (void) printf("\nFor volume 1 :");
+    (void) printf("\nCentroid :");
+    for (i=1; i<=ndim; i++) (void) printf("  %f",c1[i]);
+    (void) printf("\n\n");
+    (void) printf("Principal axes\n");
+    for (i=1; i<=ndim; i++) {
+      (void) printf("Vector %d :",i);
+      for (j=1; j<=ndim; j++) {
+	(void) printf("  %f",prin_axes1[i][j]);
+      }
+      (void) printf("\n");
     }
+  
     (void) printf("\n");
-  }
-  
-  (void) printf("\n");
-  
-  (void) printf("\nFor volume 2 :");
-  (void) printf("\nCentroid :");
-  for (i=1; i<=ndim; i++) (void) printf("  %f",c2[i]);
-  (void) printf("\n\n");
-  (void) printf("Principal axes\n");
-  for (i=1; i<=ndim; i++) {
-    (void) printf("Vector %d :",i);
-    for (j=1; j<=ndim; j++) {
-      (void) printf("  %f",prin_axes2[i][j]);
+    
+    (void) printf("\nFor volume 2 :");
+    (void) printf("\nCentroid :");
+    for (i=1; i<=ndim; i++) (void) printf("  %f",c2[i]);
+    (void) printf("\n\n");
+    (void) printf("Principal axes\n");
+    for (i=1; i<=ndim; i++) {
+      (void) printf("Vector %d :",i);
+      for (j=1; j<=ndim; j++) {
+	(void) printf("  %f",prin_axes2[i][j]);
+      }
+      (void) printf("\n");
     }
-    (void) printf("\n");
+    
+    (void) printf ("rotation angles are: %f %f %f\n",angles[1]*180/PI,angles[2]*180/PI,
+		   angles[3]*180/PI);
   }
-  
-  (void) printf ("rotation angles are: %f %f %f\n",angles[1]*180/PI,angles[2]*180/PI,
-		 angles[3]*180/PI);
-  
-  
-  (void) printf("\nFor volume 1 --> 2 :");
-  (void) printf("\nxmat = [");
-  for (i=1; i<=4; i++) {
-    for (j=1; j<=4; j++) {
-      (void) printf("  %f",xmat[i][j]);
-    }
-    (void) printf("\n");
-  }
-  (void) printf("]\n");
-  
+
   free_matrix(cov1,      1,3,1,3); 
   free_matrix(cov2,      1,3,1,3); 
   free_matrix(prin_axes1,1,3,1,3); 
@@ -431,11 +447,12 @@ private  void init_transformation(
   free_vector(c2,        1,3);
   free_vector(angles,    1,3);
   
-  
+  return(TRUE);
 }
 
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : init_params
+                get the parameters necessary to map volume 1 to volume 2
 @INPUT      : d1,d2:
                 two volumes of data (already in memory).
 	      m1,m2:
@@ -444,17 +461,8 @@ private  void init_transformation(
 	        a global data structure containing info from the command line.
 	        
 @OUTPUT     : 
-              
-	      
-              
 @RETURNS    : TRUE if ok, FALSE if error.
 @DESCRIPTION: 
-              
-              
-	      
-	      
-              
-
 @GLOBALS    : 
 @CALLS      : 
 @CREATED    : Thu May 27 16:50:50 EST 1993 lc
@@ -462,49 +470,51 @@ private  void init_transformation(
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-void init_params(volume_struct *d1,
-		 volume_struct *d2,
-		 volume_struct *m1,
-		 volume_struct *m2, 
+public Boolean init_params(Volume d1,
+		 Volume d2,
+		 Volume m1,
+		 Volume m2, 
 		 Arg_Data *globals)
 {  
-  float  
-    **T2,
-    **xmat;
-  
   float 
     **trans,			/* principal componant variables */
     **rots,
+    **cov1,
     *c1,
     *c2,
     *ang,
-    *sc,
-    
-    *trans_vec,			/* procrustes variables */
-    *center_vec,
-    **rot_mat, 
-    scale_value,
-    *rot_vec;
+    *sc;
     
   int
-    i,j;
+    i;
     
-  Status 
-    status;
-
-  Linear_Transformation *lt;
-
-				/* GLOBALS:
-				   these two matrices are used to store the
-				   current transformation. */
-  xmat = matrix(1,4,1,4);
-  T2   = matrix(1,4,1,4);
-
+  Linear_Transformation 
+    *lt;
 
 				/* if no transformation specified on the command line,
-				   so use principal axes transformation to init trans. */
-  if (globals->trans_info.use_default == TRUE) {
+				   of if PAT tgransformation selected,
+				     do principal axes transformation to init trans. */
 
+  if (globals->trans_info.use_default == TRUE || 
+      globals->trans_info.transform_type==TRANS_PAT) {
+
+				/* if none of these flags set on the command line,
+				   or if PAT transformation requested, 
+				   then assume them all to be true, otherwise leave
+				   them as set on the command line. */
+    
+    if ((globals->trans_info.transform_type==TRANS_PAT) || 
+	!(globals->trans_flags.estimate_center ||
+	  globals->trans_flags.estimate_scale  ||
+	  globals->trans_flags.estimate_rots   ||
+	  globals->trans_flags.estimate_trans)) {
+      
+      globals->trans_flags.estimate_center = TRUE;
+      globals->trans_flags.estimate_scale = TRUE;
+      globals->trans_flags.estimate_rots = TRUE;
+      globals->trans_flags.estimate_trans = TRUE;
+    }
+    
     trans = matrix(1,4,1,4);
     rots = matrix(1,4,1,4);
     ang = vector(1,3);
@@ -512,24 +522,33 @@ void init_params(volume_struct *d1,
     c2 = vector(1,3);
     sc = vector(1,3);
     
-    init_transformation(d1,d2,m1,m2, globals,
-			globals->step[0],globals->step[1],globals->step[2],
-			xmat,trans,rots,ang,c1,c2,sc);      
-
+    if (!init_transformation(d1,d2,m1,m2, globals,
+			     globals->step[0],globals->step[1],globals->step[2],
+			     trans,rots,ang,c1,c2,sc))
+      return(FALSE);
+    
     for_less( i, 0, 3 ) {
-      globals->trans_info.rotations[i]    = ang[i+1]*RAD_TO_DEG;
-      globals->trans_info.translations[i] = trans[4][i+1];
-      globals->trans_info.center[i]       = c1[i+1];
-      globals->trans_info.scales[i]       = sc[i+1]; 
+      if (globals->trans_flags.estimate_rots)
+	globals->trans_info.rotations[i]    = ang[i+1]*RAD_TO_DEG;
+      else
+	globals->trans_info.rotations[i]    = 0.0;
+      
+      if (globals->trans_flags.estimate_trans)
+	globals->trans_info.translations[i] = trans[i+1][4];
+      else
+	globals->trans_info.translations[i] = 0.0;
+      
+      if (globals->trans_flags.estimate_center)
+	globals->trans_info.center[i]       = c1[i+1];
+      else
+	globals->trans_info.center[i]       = 0.0;
+      
+      if (globals->trans_flags.estimate_scale)
+	globals->trans_info.scales[i]       = sc[i+1]; 
+      else
+	globals->trans_info.scales[i]       = 1.0;
     }
-
-
-    lt = (Linear_Transformation *) globals->trans_info.transformation.trans_data;
-
-    for_less ( i, 0, 3 )      /* copy xmat into the default matrix */
-      for_less ( j, 0, 4)
-	 lt->mat[i][j] = xmat[j+1][i+1];
-
+    
     free_matrix(trans,1,4,1,4);
     free_matrix(rots,1,4,1,4);
     free_vector(ang,1,3);
@@ -538,12 +557,98 @@ void init_params(volume_struct *d1,
     free_vector(sc,1,3);
     
   }
-/*
-  else {
+  else { /*  we have an input matrix, we now have to extract the proper parameters from it */
+
+    lt = (Linear_Transformation *) globals->trans_info.transformation.trans_data;
+
+				/* get cog of data1 before extracting parameters
+				   from matrix, if estimate requested on command line */
+    if (globals->trans_flags.estimate_center) {  
+
+      cov1 = matrix(1,3,1,3); 
+      c1   = vector(1,3);
+      
+      if (! vol_to_cov(d1, c1, cov1, globals ) ) {
+	print_error("Cannot calculate the COG of volume 1\n.", 
+		    __FILE__, __LINE__, 0,0,0,0,0 );
+	return(FALSE);
+      }
+      for_inclusive( i, 0, 2 )
+	globals->trans_info.center[i] = c1[i+1];
+
+      free_matrix(cov1,1,3,1,3);
+      free_vector(c1,1,3);
+    }
+				/* get the parameters from the input matrix: */
+    extract_parameters_from_matrix(lt->mat, 
+				   globals->trans_info.center,
+				   globals->trans_info.translations,
+				   globals->trans_info.scales,
+				   globals->trans_info.rotations);
+
+				/* do we need to replace anything?
+				   (note that center was possibly replaced
+				    just abve, and we dont have to do all the 
+				    PAT stuff if nothing else is needed)         */
+    if ((globals->trans_flags.estimate_scale  ||
+	 globals->trans_flags.estimate_rots   ||
+	 globals->trans_flags.estimate_trans)) {
+      
+      trans = matrix(1,4,1,4);
+      rots = matrix(1,4,1,4);
+      ang = vector(1,3);
+      c1 = vector(1,3);
+      c2 = vector(1,3);
+      sc = vector(1,3);
+    
+      init_transformation(d1,d2,m1,m2, globals,
+			  globals->step[0],globals->step[1],globals->step[2],
+			  trans,rots,ang,c1,c2,sc);      
+      
+      for_less( i, 0, 3 ) {
+	if (globals->trans_flags.estimate_rots)
+	  globals->trans_info.rotations[i]    = ang[i+1]*RAD_TO_DEG;
+	else
+	  globals->trans_info.rotations[i]    = 0.0;
+	
+	if (globals->trans_flags.estimate_trans)
+	  globals->trans_info.translations[i] = trans[i+1][4];
+	else
+	  globals->trans_info.translations[i] = 0.0;
+	
+	if (globals->trans_flags.estimate_center)
+	  globals->trans_info.center[i]       = c1[i+1];
+	else
+	  globals->trans_info.center[i]       = 0.0;
+	
+	if (globals->trans_flags.estimate_scale)
+	  globals->trans_info.scales[i]       = sc[i+1]; 
+	else
+	  globals->trans_info.scales[i]       = 1.0;
+      }
+        
+    free_matrix(trans,1,4,1,4);
+    free_matrix(rots,1,4,1,4);
+    free_vector(ang,1,3);
+    free_vector(c1,1,3);
+    free_vector(c2,1,3);
+    free_vector(sc,1,3);
+    }
+
   }
-*/  
+
+  lt = (Linear_Transformation *) globals->trans_info.transformation.trans_data;
   
-  /*  if (globals->trans_info.invert_mapping_flag)  */
+  build_transformation_matrix(lt->mat, 
+			      globals->trans_info.center,
+			      globals->trans_info.translations,
+			      globals->trans_info.scales,
+			      globals->trans_info.rotations);
+  
 
-
+  return(TRUE);
 }
+
+
+
+

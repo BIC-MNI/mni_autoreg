@@ -34,7 +34,7 @@
 @MODIFIED   : Fri May 28 09:06:12 EST 1993 Louis Collins
                mod to use david's volume_struct
 ---------------------------------------------------------------------------- */
-public int trilinear_interpolant(volume_struct *volume, 
+public int trilinear_interpolant(Volume volume, 
                                  Point *coord, double *result)
 {
    long ind0, ind1, ind2, max0, max1, max2;
@@ -66,14 +66,14 @@ public int trilinear_interpolant(volume_struct *volume,
    if (ind2 >= max2-1) ind2 = max2-1;
 
    /* Get the relevant voxels */
-   v000 = GET_VOLUME_DATA( *volume, ind0  , ind1  , ind2   );
-   v001 = GET_VOLUME_DATA( *volume, ind0  , ind1  , ind2+1 );
-   v010 = GET_VOLUME_DATA( *volume, ind0  , ind1+1, ind2   );
-   v011 = GET_VOLUME_DATA( *volume, ind0  , ind1+1, ind2+1 );
-   v100 = GET_VOLUME_DATA( *volume, ind0+1, ind1  , ind2   );
-   v101 = GET_VOLUME_DATA( *volume, ind0+1, ind1  , ind2+1 );
-   v110 = GET_VOLUME_DATA( *volume, ind0+1, ind1+1, ind2   );
-   v111 = GET_VOLUME_DATA( *volume, ind0+1, ind1+1, ind2+1 );
+   GET_VOXEL_3D( v000 ,  volume, ind0  , ind1  , ind2   );
+   GET_VOXEL_3D( v001 ,  volume, ind0  , ind1  , ind2+1 );
+   GET_VOXEL_3D( v010 ,  volume, ind0  , ind1+1, ind2   );
+   GET_VOXEL_3D( v011 ,  volume, ind0  , ind1+1, ind2+1 );
+   GET_VOXEL_3D( v100 ,  volume, ind0+1, ind1  , ind2   );
+   GET_VOXEL_3D( v101 ,  volume, ind0+1, ind1  , ind2+1 );
+   GET_VOXEL_3D( v110 ,  volume, ind0+1, ind1+1, ind2   );
+   GET_VOXEL_3D( v111 ,  volume, ind0+1, ind1+1, ind2+1 );
 
    /* Get the fraction parts */
    f0 = Point_x( *coord ) - ind0;
@@ -138,7 +138,7 @@ public int trilinear_interpolant(volume_struct *volume,
 @MODIFIED   : Fri May 28 09:06:12 EST 1993 Louis Collins
                mod to use david's volume_struct
 ---------------------------------------------------------------------------- */
-public void do_Ncubic_interpolation(volume_struct *volume, 
+public void do_Ncubic_interpolation(Volume volume, 
                                     long index[], int cur_dim, 
                                     double frac[], double *result)
 {
@@ -150,13 +150,13 @@ public void do_Ncubic_interpolation(volume_struct *volume,
 
    /* If last dimension, then just get the values */
    if (cur_dim == VOL_NDIMS-1) {
-     v0 = GET_VOLUME_DATA( *volume, index[0] ,index[1], index[2] );
+     GET_VOXEL_3D( v0 ,  volume, index[0] ,index[1], index[2] );
      index[cur_dim]++;
-     v1 = GET_VOLUME_DATA( *volume, index[0] ,index[1], index[2] );
+     GET_VOXEL_3D( v1 ,  volume, index[0] ,index[1], index[2] );
      index[cur_dim]++;
-     v2 = GET_VOLUME_DATA( *volume, index[0] ,index[1], index[2] );
+     GET_VOXEL_3D( v2 ,  volume, index[0] ,index[1], index[2] );
      index[cur_dim]++;
-     v3 = GET_VOLUME_DATA( *volume, index[0] ,index[1], index[2] );
+     GET_VOXEL_3D( v3 ,  volume, index[0] ,index[1], index[2] );
    }
 
    /* Otherwise, recurse */
@@ -222,7 +222,7 @@ public void do_Ncubic_interpolation(volume_struct *volume,
 @MODIFIED   : Fri May 28 09:06:12 EST 1993 Louis Collins
                mod to use david's volume_struct
 ---------------------------------------------------------------------------- */
-public int tricubic_interpolant(volume_struct *volume, 
+public int tricubic_interpolant(Volume volume, 
                                 Point *coord, double *result)
 {
    long ind0, ind1, ind2, max0, max1, max2, index[VOL_NDIMS];
@@ -284,7 +284,7 @@ public int tricubic_interpolant(volume_struct *volume,
 @MODIFIED   : Fri May 28 09:06:12 EST 1993 Louis Collins
                mod to use david's volume_struct
 ---------------------------------------------------------------------------- */
-public int nearest_neighbour_interpolant(volume_struct *volume, 
+public int nearest_neighbour_interpolant(Volume volume, 
                                          Point *coord, double *result)
 {
    long ind0, ind1, ind2, max0, max1, max2;
@@ -318,7 +318,7 @@ public int nearest_neighbour_interpolant(volume_struct *volume,
    ind2 = (long) (Point_z( *coord ) + 0.5);
 
    /* Get the value */
-   *result = GET_VOLUME_DATA( *volume, ind0  , ind1  , ind2  );
+   GET_VOXEL_3D( *result ,  volume, ind0  , ind1  , ind2  );
 
 /*
    *result = volume->scale[ind0] * (*result) + volume->offset[ind0];

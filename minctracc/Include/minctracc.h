@@ -16,7 +16,7 @@
 
 /* ------------------------ Constants used in program  ------------------------ */
 
-#define VOL_NDIMS       3   /* Number of volume dimensions */
+#define VOL_NDIMS       3
 #define WORLD_NDIMS     3   /* Number of world spatial dimensions */
 #define SLICE_NDIMS     2   /* Number of slice dimensions */
 #define MAT_NDIMS       WORLD_NDIMS+1   /* Number of dims for homogenous matrix */
@@ -40,7 +40,9 @@
 #define TRANS_LSQ7        3
 #define TRANS_LSQ9        4
 #define TRANS_LSQ12       5
+#define TRANS_PAT         6
 
+#define OPT_SIMPLEX       0
 
 /* ------------------------  Types used in program  ------------------------ */
 
@@ -85,7 +87,7 @@ typedef struct {
 typedef struct Volume_Data_Struct Volume_Data;
 
 typedef int (*Interpolating_Function) 
-     (volume_struct *volume, Point *coord, double *result);
+     (Volume volume, Point *coord, double *result);
 
 struct Volume_Data_Struct {
    nc_type datatype;         /* Type of data in volume */
@@ -97,31 +99,20 @@ struct Volume_Data_Struct {
    void *data;               /* Pointer to volume data */
    double *scale;            /* Pointer to array of scales for slices */
    double *offset;           /* Pointer to array of offsets for slices */
-   Interpolating_Function vinterpolant;
+   Interpolating_Function interpolant;
 };
-
-typedef struct {
-   File_Info *file;          /* Information about associated file */
-   Volume_Data *volume;      /* Volume data for (input volume) */
-   Transformation *voxel_to_world;
-   Transformation *world_to_voxel;
-} Volume;
-
-typedef struct {
-   int axes[WORLD_NDIMS];    /* Relates world X,Y,Z (index) to dimension 
-                                order (value=0,1,2; 0=slowest varying) */
-   long nelements[WORLD_NDIMS]; /* These are subscripted by X, Y and Z */
-   double step[WORLD_NDIMS];
-   double start[WORLD_NDIMS];
-   double dircos[WORLD_NDIMS][WORLD_NDIMS];
-   char units[WORLD_NDIMS][MI_MAX_ATTSTR_LEN];
-   char spacetype[WORLD_NDIMS][MI_MAX_ATTSTR_LEN];
-} Volume_Definition;
 
 typedef struct {
    int verbose;
    int debug;
 } Program_Flags;
+
+typedef struct {
+   int estimate_center;
+   int estimate_scale;
+   int estimate_rots;
+   int estimate_trans;
+} Transform_Flags;
 
 typedef struct {
   char *data;
@@ -130,6 +121,7 @@ typedef struct {
   char *mask_model;
   char *output_trans;
 } Program_Filenames;
+
 
 typedef struct {
   int use_default;
@@ -142,12 +134,30 @@ typedef struct {
   int invert_mapping_flag;		/* true if input transform maps model to source */
 } Program_Transformation;
 
+
+typedef struct Arg_Data Arg_Data_struct;
+
+typedef float (*Objective_Function) (Volume d1,
+				     Volume d2,
+				     Volume m1,
+				     Volume m2, 
+				     Arg_Data_struct *globals);
+
 typedef struct {
-  Program_Filenames      filenames;
-  Program_Flags          flags;
-  Program_Transformation trans_info;
-  Interpolating_Function interpolant;
-  double step[3];
+  Program_Filenames      filenames;    /* names of all data filename to be used      */
+  Program_Flags          flags;	       /* flags (debug, verbose etc...               */ 
+  Program_Transformation trans_info;   /* world to world transformation information  */
+  Interpolating_Function interpolant;  /* point to interpolation funciton to be used */
+  Objective_Function     obj_function; /* pointer to objective function to be used   */
+  int                    optimize_type;/* Type of optimization strategy              */
+  double                 step[3];      /* step size for sampling lattice             */
+  double                 start[3];     /* starting position for sampling lattice     */
+  int                    count[3];     /* number of elements for sampling lattice    */
+  int                    smallest_vol; /* either one or two, indicates the smaller vol */
+  Transform_Flags        trans_flags;  /* flags defining which parameters to estimate*/
+  double                 threshold;    /* lower limit of voxels considered           */
+  double                 speckle;      /* percent noise speckle                      */
+  int                    groups;       /* number of groups to use for ratioo of variance */
 } Arg_Data;
 
 
@@ -210,21 +220,21 @@ typedef struct {
 }
 
 #ifndef DEBUG_PRINT
-#   define DEBUG_PRINT(str) if (args.flags.debug) (void) fprintf (stderr,  str  );
-#   define DEBUG_PRINT1(str,a1) if (args.flags.debug) (void) fprintf (stderr,  str ,a1 );
-#   define DEBUG_PRINT2(str,a1,a2) if (args.flags.debug) (void) fprintf (stderr,  str ,a1,a2 );
-#   define DEBUG_PRINT3(str,a1,a2,a3) if (args.flags.debug) (void) fprintf (stderr,  str ,a1,a2,a3 );
-#   define DEBUG_PRINT4(str,a1,a2,a3,a4) if (args.flags.debug) (void) fprintf (stderr,  str ,a1,a2,a3,a4 );
-#   define DEBUG_PRINT5(str,a1,a2,a3,a4,a5) if (args.flags.debug) (void) fprintf (stderr,  str ,a1,a2,a3,a4,a5 );
-#   define DEBUG_PRINT6(str,a1,a2,a3,a4,a5,a6) if (args.flags.debug) (void) fprintf (stderr,  str ,a1,a2,a3,a4,a5,a6 );
-#   define DEBUG_PRINT7(str,a1,a2,a3,a4,a5,a6,a7) if (args.flags.debug) (void) fprintf (stderr,  str ,a1,a2,a3,a4,a5,a6,a7 );
+#   define DEBUG_PRINT(str) if (main_args.flags.debug) (void) fprintf (stderr,  str  );
+#   define DEBUG_PRINT1(str,a1) if (main_args.flags.debug) (void) fprintf (stderr,  str ,a1 );
+#   define DEBUG_PRINT2(str,a1,a2) if (main_args.flags.debug) (void) fprintf (stderr,  str ,a1,a2 );
+#   define DEBUG_PRINT3(str,a1,a2,a3) if (main_args.flags.debug) (void) fprintf (stderr,  str ,a1,a2,a3 );
+#   define DEBUG_PRINT4(str,a1,a2,a3,a4) if (main_args.flags.debug) (void) fprintf (stderr,  str ,a1,a2,a3,a4 );
+#   define DEBUG_PRINT5(str,a1,a2,a3,a4,a5) if (main_args.flags.debug) (void) fprintf (stderr,  str ,a1,a2,a3,a4,a5 );
+#   define DEBUG_PRINT6(str,a1,a2,a3,a4,a5,a6) if (main_args.flags.debug) (void) fprintf (stderr,  str ,a1,a2,a3,a4,a5,a6 );
+#   define DEBUG_PRINT7(str,a1,a2,a3,a4,a5,a6,a7) if (main_args.flags.debug) (void) fprintf (stderr,  str ,a1,a2,a3,a4,a5,a6,a7 );
 #endif
 
 
 /*  ------------------------ Function prototypes  ------------------------ */
 
 public void resample_volumes(Program_Flags *program_flags,
-                             Volume *in_vol, Volume *out_vol, 
+                             Volume in_vol, Volume out_vol, 
                              Transformation *transformation);
 
 public void invert_transformation(Transformation *result, 
@@ -233,20 +243,23 @@ public void invert_transformation(Transformation *result,
 public void do_linear_transformation(Coord_Vector *result, void *trans_data, 
                                      Coord_Vector *coordinate);
 
+public void do_linear_transformation_point(Point *result, void *trans_data, 
+                                     Point *coordinate);
+
 public void do_non_linear_transformation(Coord_Vector *result, void *trans_data, 
                                      Coord_Vector *coordinate);
 
-public int trilinear_interpolant(volume_struct *volume, 
+public int trilinear_interpolant(Volume volume, 
                                  Point *coord, double *result);
 
-public int tricubic_interpolant(volume_struct *volume, 
+public int tricubic_interpolant(Volume volume, 
                                 Point *coord, double *result);
 
-public void do_Ncubic_interpolation(volume_struct *volume, 
+public void do_Ncubic_interpolation(Volume volume, 
                                     long index[], int cur_dim, 
                                     double frac[], double *result);
 
-public int nearest_neighbour_interpolant(volume_struct *volume, 
+public int nearest_neighbour_interpolant(Volume volume, 
                                          Point *coord, double *result);
 
 public void mult_linear_transform(Transformation *result, 
@@ -286,13 +299,51 @@ public int   save_transform(
     char          filename[] );
 
 
-void init_params(volume_struct *d1,
-		 volume_struct *d2,
-		 volume_struct *m1,
-		 volume_struct *m2, 
-		 Arg_Data *globals);
+public Boolean init_params(Volume d1,
+			   Volume d2,
+			   Volume m1,
+			   Volume m2, 
+			   Arg_Data *globals);
 
-static Arg_Data args = {
+public void init_lattice(Volume d1,
+			 Volume d2,
+			 Volume m1,
+			 Volume m2, 
+			 Arg_Data *globals);
+
+public Boolean optimize_linear_transformation(Volume d1,
+					      Volume d2,
+					      Volume m1,
+					      Volume m2, 
+					      Arg_Data *globals);
+
+public float xcorr_objective(Volume d1,
+			     Volume d2,
+			     Volume m1,
+			     Volume m2, 
+			     Arg_Data *globals);
+
+public float zscore_objective(Volume d1,
+			      Volume d2,
+			      Volume m1,
+			      Volume m2, 
+			      Arg_Data *globals);
+
+public float vr_objective(Volume d1,
+			  Volume d2,
+			  Volume m1,
+			  Volume m2, 
+			  Arg_Data *globals);
+
+public float ssc_objective(Volume d1,
+			   Volume d2,
+			   Volume m1,
+			   Volume m2, 
+			   Arg_Data *globals);
+
+
+
+Arg_Data main_args = {
   {NULL,NULL,NULL,NULL,NULL},	/* filenames           */
   {1,FALSE},			/* verbose, debug      */
   {				/* transformation info */
@@ -303,11 +354,20 @@ static Arg_Data args = {
     {1.0, 1.0, 1.0},		/*   scale             */
     {0.0, 0.0, 0.0},		/*   rotations         */
     {0.0, 0.0, 0.0},		/*   translations      */
-    FALSE},			/*   invert_mapping_flag */
-  trilinear_interpolant,
-  {4.0,4.0,4.0}
+    FALSE},			/*   invert_mapping_flag                  */
+  trilinear_interpolant,	/* use trilinear interpolation by default */
+  xcorr_objective,              /* use cross-correlation by default       */
+  OPT_SIMPLEX,                  /* use simplex optimizatino strategy      */
+  {4.0,4.0,4.0},		/* default step sizes for lattice         */
+  {0.0,0.0,0.0},		/* default start for lattice, reset in init_lattice */
+  {0,0,0},                      /* default number of element in lattice, also reset */
+  1,                            /* use first volume as default smallest volume      */
+  {FALSE, FALSE, FALSE, FALSE},
+  0.0,				/* lower limit of voxels considered                 */
+  5.0,				/* percent noise speckle                            */
+  16				/* number of groups to use for ratio of variance    */
 };
 
 #define INTERPOLATE_VOXEL_VALUE(volume, coord, result) \
-   (args.interpolant) (volume, coord, result)
+   (*(main_args.interpolant)) (volume, coord, result)
 

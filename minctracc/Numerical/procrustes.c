@@ -3,13 +3,17 @@
 @DESCRIPTION: File containing routines for doing procrustes calculations.
 @METHOD     : Contains routines :
                  procrustes
-                 transformations_to_homogeneous
-                 translation_to_homogeneous
-                 rotation_to_homogeneous
 @CALLS      : 
 @CREATED    : January 29, 1992 (Peter Neelin)
 @MODIFIED   : February 7, 1992 (Peter Neelin)
                  - added routine transformations_to_homogeneous
+Fri Jun  4 14:10:34 EST 1993 LC
+
+removed
+    transformations_to_homogeneous
+    translation_to_homogeneous
+    rotation_to_homogeneous
+and moved them to matrix_basics!
 ---------------------------------------------------------------------------- */
 #include <def_mni.h>
 #include <recipes.h>
@@ -23,17 +27,8 @@ public void procrustes(int npoints, int ndim,
                        float **Apoints, float **Bpoints,
                        float *translation, float *centre_of_rotation,
                        float **rotation, float *scale);
-public void transformations_to_homogeneous(int ndim, 
-                  float *translation, float *centre_of_rotation,
-                  float **rotation, float scale,
-                  float **transformation);
-public void translation_to_homogeneous(int ndim, float *translation,
-                                       float **transformation);
-public void rotation_to_homogeneous(int ndim, float **rotation,
-                                       float **transformation);
 
 
-
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : procrustes
 @INPUT      : npoints - number of input point pairs
@@ -158,6 +153,10 @@ public void procrustes(int npoints, int ndim,
    }
 
 
+   /* transpose back the rotation matrix */
+
+   transpose(ndim, ndim, rotation, rotation);
+
    /* Free vectors */
    free_vector(Atranslation,1,ndim);
    free_vector(Btranslation,1,ndim);
@@ -175,193 +174,3 @@ public void procrustes(int npoints, int ndim,
    free_matrix(product,1,npoints,1,npoints);
 }
 
-
-
-/* ----------------------------- MNI Header -----------------------------------
-@NAME       : transformations_to_homogeneous
-@INPUT      : ndim    - number of dimensions
-              translation - Numerical recipes vector (1 to ndim) that 
-                 specifies the translation to be applied first.
-              centre_of_rotation - Numerical recipes vector (1 to ndim) that
-                 specifies the centre of rotation and scaling.
-              rotation - Numerical recipes matrix (1 to ndim by 1 to ndim) 
-                 for rotation about centre_of_rotation (applied after 
-                 translation). Note that this matrix need not only specify
-                 rotation/reflexion - any ndim x ndim matrix will work.
-              scale - Scalar value giving global scaling to be applied after
-                 translation and rotation.
-@OUTPUT     : transformation - Numerical recipes matrix (1 to ndim+1 by
-                 1 to ndim+1) specifying the transformation for homogeneous 
-                 coordinates. To apply this transformation, a point
-                 vector should be post-multiplied by this matrix, with the
-                 last coordinate of the ndim+1 point vector having value
-                 one. The calling routine must allocate space for this
-                 matrix.
-@RETURNS    : (nothing)
-@DESCRIPTION: Computes a transformation matrix in homogeneous coordinates
-              given a translation, a rotation matrix (or other 
-              non-homogeneous matrix) and a global scaling factor.
-              Transformations are applied in that order.
-@METHOD     : Apply the following operations (multiply from left to right):
-                 1) Translate by translation
-                 2) Translate by -centre_of_rotation
-                 3) Rotate
-                 4) Scale
-                 5) Translate by centre_of_rotation
-@GLOBALS    : (none)
-@CALLS      : numerical recipes stuff
-              translation_to_homogeneous
-              matrix_multiply
-              matrix_scalar_multiply
-@CREATED    : February 7, 1992 (Peter Neelin)
-@MODIFIED   : 
----------------------------------------------------------------------------- */
-public void transformations_to_homogeneous(int ndim, 
-                  float *translation, float *centre_of_rotation,
-                  float **rotation, float scale,
-                  float **transformation)
-{
-   int i;
-   int size;
-   float *centre_translate;
-   float **trans1, **trans2;
-   float **trans_temp, **rotation_and_scale;
-
-   size=ndim+1;
-
-   /* Allocate matrices and vectors */
-   centre_translate = vector(1,ndim);
-   trans1 = matrix(1,size,1,size);
-   trans2 = matrix(1,size,1,size);
-   trans_temp = matrix(1,size,1,size);
-   rotation_and_scale = matrix(1,ndim,1,ndim);
-
-
-   /* Construct translation matrix */
-   translation_to_homogeneous(ndim, translation, trans1);
-
-
-   /* Construct translation matrix for centre of rotation and
-      apply it */
-   for (i=1; i<=ndim; i++) centre_translate[i] = -centre_of_rotation[i];
-   translation_to_homogeneous(ndim, centre_translate, trans_temp);
-   matrix_multiply(size, size, size, trans1, trans_temp, trans2);
-
-
-   /* Scale rotation matrix, then convert it to homogeneous coordinates and
-      apply it */
-   matrix_scalar_multiply(ndim, ndim, scale, rotation, rotation_and_scale);
-   rotation_to_homogeneous(ndim, rotation_and_scale, trans_temp);
-   matrix_multiply(size, size, size, trans2, trans_temp, trans1);
-
-
-   /* Return to centre of rotation */
-   translation_to_homogeneous(ndim, centre_of_rotation, trans_temp);
-   matrix_multiply(size, size, size, trans1, trans_temp, transformation);
-
-
-   /* Free matrices */
-   free_vector(centre_translate,1,ndim);
-   free_matrix(trans1,1,size,1,size);
-   free_matrix(trans2,1,size,1,size);
-   free_matrix(trans_temp,1,size,1,size);
-   free_matrix(rotation_and_scale,1,ndim,1,ndim);
-
-}
-
-
-/* ----------------------------- MNI Header -----------------------------------
-@NAME       : translation_to_homogeneous
-@INPUT      : ndim    - number of dimensions
-              translation - Numerical recipes vector (1 to ndim) that 
-                 specifies the translation.
-@OUTPUT     : transformation - Numerical recipes matrix (1 to ndim+1 by
-                 1 to ndim+1) specifying the transformation for homogeneous 
-                 coordinates. To apply this transformation, a point
-                 vector should be post-multiplied by this matrix, with the
-                 last coordinate of the ndim+1 point vector having value
-                 one. The calling routine must allocate space for this
-                 matrix.
-@RETURNS    : (nothing)
-@DESCRIPTION: Computes a transformation matrix in homogeneous coordinates
-              given a translation.
-@METHOD     : 
-@GLOBALS    : (none)
-@CALLS      : 
-@CREATED    : February 7, 1992 (Peter Neelin)
-@MODIFIED   : 
----------------------------------------------------------------------------- */
-public void translation_to_homogeneous(int ndim, float *translation,
-                                       float **transformation)
-{
-   int i,j;
-   int size;
-
-   size=ndim+1;
-
-   /* Construct translation matrix */
-   for (i=1; i<=ndim; i++) {
-      for (j=1; j<=size; j++) {
-         if (i == j) {
-            transformation[i][j] = 1.0;
-         }
-         else {
-            transformation[i][j] = 0.0;
-         }
-      }
-   }
-   for (j=1; j<=ndim; j++) {
-      transformation[size][j] = translation[j];
-   }
-
-   transformation[size][size] = 1.0;
-
-}
-
-
-/* ----------------------------- MNI Header -----------------------------------
-@NAME       : rotation_to_homogeneous
-@INPUT      : ndim    - number of dimensions
-              rotation - Numerical recipes matrix (1 to ndim by 1 to ndim) 
-                 for rotation about origin. Note that this matrix need not 
-                 only specify rotation/reflexion - any ndim x ndim matrix 
-                 will work.
-@OUTPUT     : transformation - Numerical recipes matrix (1 to ndim+1 by
-                 1 to ndim+1) specifying the transformation for homogeneous 
-                 coordinates. To apply this transformation, a point
-                 vector should be post-multiplied by this matrix, with the
-                 last coordinate of the ndim+1 point vector having value
-                 one. The calling routine must allocate space for this
-                 matrix.
-@RETURNS    : (nothing)
-@DESCRIPTION: Computes a transformation matrix in homogeneous coordinates
-              given a rotation matrix.
-@METHOD     : 
-@GLOBALS    : (none)
-@CALLS      : 
-@CREATED    : February 7, 1992 (Peter Neelin)
-@MODIFIED   : 
----------------------------------------------------------------------------- */
-public void rotation_to_homogeneous(int ndim, float **rotation,
-                                       float **transformation)
-{
-   int i,j;
-   int size;
-
-   size=ndim+1;
-
-   /* Construct  matrix */
-   for (i=1; i<=size; i++) {
-      for (j=1; j<=size; j++) {
-         if ((i==size) || (j==size)) {
-            transformation[i][j] = 0.0;
-         }
-         else {
-            transformation[i][j] = rotation[i][j];
-         }
-      }
-   }
-
-   transformation[size][size] = 1.0;
-
-}

@@ -59,7 +59,9 @@ main ( argc, argv )
   Linear_Transformation 
     *lt;
   int 
-    i,j;
+    sizes[3],i,j;
+  Real
+    step[3];
   float 
     **the_matrix,  **inv_matrix;
 
@@ -74,18 +76,18 @@ main ( argc, argv )
     exit(EXIT_FAILURE);
   }
 
-  args.filenames.data  = argv[1];	/* set up necessary file names */
-  args.filenames.model = argv[2];
-  args.filenames.output_trans = argv[3];
+  main_args.filenames.data  = argv[1];	/* set up necessary file names */
+  main_args.filenames.model = argv[2];
+  main_args.filenames.output_trans = argv[3];
   
 
 				/* set up linear transformation to identity, if
 				   not set up in the argument list */
 
-  if (args.trans_info.transformation.transform == NULL) { /* then use identity */
-    args.trans_info.transformation = identity_transformation;
-    args.trans_info.transformation.trans_data = malloc(sizeof(Linear_Transformation));
-    (void) memcpy(args.trans_info.transformation.trans_data,
+  if (main_args.trans_info.transformation.transform == NULL) { /* then use identity */
+    main_args.trans_info.transformation = identity_transformation;
+    main_args.trans_info.transformation.trans_data = malloc(sizeof(Linear_Transformation));
+    (void) memcpy(main_args.trans_info.transformation.trans_data,
 		  identity_transformation.trans_data,
 		  sizeof(Linear_Transformation));
   }
@@ -98,24 +100,47 @@ main ( argc, argv )
   main_data.tags2  = NULL;
   main_data.labels = NULL;
   main_data.tps    = NULL;
-  strcpy(main_data.filename1,args.filenames.data);
-  strcpy(main_data.filename2,args.filenames.model);
+  strcpy(main_data.filename1,main_args.filenames.data);
+  strcpy(main_data.filename2,main_args.filenames.model);
 
 
 
   DEBUG_PRINT1 ( "===== Debugging information from %s =====\n", prog_name);
-  DEBUG_PRINT1 ( "Data filename       = %s\n", args.filenames.data);
-  DEBUG_PRINT1 ( "Model filename      = %s\n", args.filenames.model);
-  DEBUG_PRINT1 ( "Data mask filename  = %s\n", args.filenames.mask_data);
-  DEBUG_PRINT1 ( "Model mask filename = %s\n", args.filenames.mask_model);
-  DEBUG_PRINT1 ( "Output filename     = %s\n\n", args.filenames.output_trans);
+  DEBUG_PRINT1 ( "Data filename       = %s\n", main_args.filenames.data);
+  DEBUG_PRINT1 ( "Model filename      = %s\n", main_args.filenames.model);
+  DEBUG_PRINT1 ( "Data mask filename  = %s\n", main_args.filenames.mask_data);
+  DEBUG_PRINT1 ( "Model mask filename = %s\n", main_args.filenames.mask_model);
+  DEBUG_PRINT1 ( "Output filename     = %s\n\n", main_args.filenames.output_trans);
+  DEBUG_PRINT  ( "Objective function  = ");
+  if (main_args.obj_function == xcorr_objective) {
+    DEBUG_PRINT1("cross correlation (threshold = %f)\n",main_args.threshold);
+  }
+  else
+    if (main_args.obj_function == zscore_objective) {
+      DEBUG_PRINT1( "zscore (threshold = %f)\n", main_args.threshold );
+    }
+    else
+      if (main_args.obj_function == vr_objective) {
+	DEBUG_PRINT2( "ratio of variance (threshold = %f, groups = %d)\n", 
+		     main_args.threshold, main_args.groups);
+      }
+      else
+	if (main_args.obj_function == ssc_objective) {
+	  DEBUG_PRINT2( "stochastic sign change (threshold = %f, speckle %f %%)\n",
+		       main_args.threshold, main_args.speckle);
+	}
+	else {
+	  DEBUG_PRINT("unknown!\n");
+	  exit(EXIT_FAILURE);
+	}
 
-  DEBUG_PRINT1 ( "Transform linear    = %s\n", (args.trans_info.transformation.linear ? "TRUE" : "FALSE") );
-  DEBUG_PRINT1 ( "Transform inverted? = %s\n", (args.trans_info.invert_mapping_flag ? "TRUE" : "FALSE") );
-  DEBUG_PRINT1 ( "Transform type      = %d\n", args.trans_info.transform_type );
 
-  if (args.trans_info.transformation.linear) {
-    lt = (Linear_Transformation *) args.trans_info.transformation.trans_data;
+  DEBUG_PRINT1 ( "Transform linear    = %s\n", (main_args.trans_info.transformation.linear ? "TRUE" : "FALSE") );
+  DEBUG_PRINT1 ( "Transform inverted? = %s\n", (main_args.trans_info.invert_mapping_flag ? "TRUE" : "FALSE") );
+  DEBUG_PRINT1 ( "Transform type      = %d\n", main_args.trans_info.transform_type );
+
+  if (main_args.trans_info.transformation.linear) {
+    lt = (Linear_Transformation *) main_args.trans_info.transformation.trans_data;
 
     DEBUG_PRINT ( "Transform matrix    = ");
     for_less(i,0,4) DEBUG_PRINT1 ("%9.4f ",lt->mat[0][i]);
@@ -129,55 +154,124 @@ main ( argc, argv )
   }
 
   DEBUG_PRINT3 ( "Transform center   = %8.3f %8.3f %8.3f\n", 
-		args.trans_info.center[0],
-		args.trans_info.center[1],
-		args.trans_info.center[2] );
+		main_args.trans_info.center[0],
+		main_args.trans_info.center[1],
+		main_args.trans_info.center[2] );
   DEBUG_PRINT3 ( "Transform trans    = %8.3f %8.3f %8.3f\n", 
-		args.trans_info.translations[0],
-		args.trans_info.translations[1],
-		args.trans_info.translations[2] );
+		main_args.trans_info.translations[0],
+		main_args.trans_info.translations[1],
+		main_args.trans_info.translations[2] );
   DEBUG_PRINT3 ( "Transform rotation = %8.3f %8.3f %8.3f\n", 
-		args.trans_info.rotations[0],
-		args.trans_info.rotations[1],
-		args.trans_info.rotations[2] );
+		main_args.trans_info.rotations[0],
+		main_args.trans_info.rotations[1],
+		main_args.trans_info.rotations[2] );
   DEBUG_PRINT3 ( "Transform scale    = %8.3f %8.3f %8.3f\n\n", 
-		args.trans_info.scales[0],
-		args.trans_info.scales[1],
-		args.trans_info.scales[2] );
+		main_args.trans_info.scales[0],
+		main_args.trans_info.scales[1],
+		main_args.trans_info.scales[2] );
 
-  DEBUG_PRINT3 ( "Lattice step size  = %8.3f %8.3f %8.3f\n\n",
-		args.step[0],args.step[1],args.step[2]);
 
   ALLOC( data, 1 );		/* read in source data and target model */
   ALLOC( model, 1 );
-  status = input_volume( args.filenames.data, data );
-  status = input_volume( args.filenames.model, model );
+  status = input_volume( main_args.filenames.data, &data );
+  status = input_volume( main_args.filenames.model, &model );
 
+  get_volume_sizes(data, sizes);
+  get_volume_separations(data, step);
   DEBUG_PRINT3 ( "Source volume %3d cols by %3d rows by %d slices\n",
-		 data->sizes[X], data->sizes[Y], data->sizes[Z]);
+		 sizes[X], sizes[Y], sizes[Z]);
   DEBUG_PRINT3 ( "Source voxel = %8.3f %8.3f %8.3f\n", 
-		 data->thickness[X], data->thickness[Y], data->thickness[Z]);
+		 step[X], step[Y], step[Z]);
+  get_volume_sizes(model, sizes);
+  get_volume_separations(model, step);
   DEBUG_PRINT3 ( "Target volume %3d cols by %3d rows by %d slices\n",
-		 model->sizes[X], model->sizes[Y], model->sizes[Z]);
+		 sizes[X], sizes[Y], sizes[Z]);
   DEBUG_PRINT3 ( "Target voxel = %8.3f %8.3f %8.3f\n\n", 
-		 model->thickness[X], model->thickness[Y], model->thickness[Z]);
+		 step[X], step[Y], step[Z]);
   
 
 
   /* ===========================  translate initial transformation matrix into 
                                   transformation parameters */
 
-  init_params( data, model, mask_data, mask_model, &args );
+  init_params( data, model, mask_data, mask_model, &main_args );
 
-  /* ===========================   do linear fitting =============== */
+  DEBUG_PRINT  ("AFTER init_params()\n");
+  if (main_args.trans_info.transformation.linear) {
+    lt = (Linear_Transformation *) main_args.trans_info.transformation.trans_data;
+
+    DEBUG_PRINT ( "Transform matrix    = ");
+    for_less(i,0,4) DEBUG_PRINT1 ("%9.4f ",lt->mat[0][i]);
+    DEBUG_PRINT ( "\n" );
+    DEBUG_PRINT ( "                      ");
+    for_less(i,0,4) DEBUG_PRINT1 ("%9.4f ",lt->mat[1][i]);
+    DEBUG_PRINT ( "\n" );
+    DEBUG_PRINT ( "                      ");
+    for_less(i,0,4) DEBUG_PRINT1 ("%9.4f ",lt->mat[2][i]);
+    DEBUG_PRINT ( "\n" );
+  }
+  DEBUG_PRINT ( "\n" );
+
+  DEBUG_PRINT3 ( "Transform center   = %8.3f %8.3f %8.3f\n", 
+		main_args.trans_info.center[0],
+		main_args.trans_info.center[1],
+		main_args.trans_info.center[2] );
+  DEBUG_PRINT3 ( "Transform trans    = %8.3f %8.3f %8.3f\n", 
+		main_args.trans_info.translations[0],
+		main_args.trans_info.translations[1],
+		main_args.trans_info.translations[2] );
+  DEBUG_PRINT3 ( "Transform rotation = %8.3f %8.3f %8.3f\n", 
+		main_args.trans_info.rotations[0],
+		main_args.trans_info.rotations[1],
+		main_args.trans_info.rotations[2] );
+  DEBUG_PRINT3 ( "Transform scale    = %8.3f %8.3f %8.3f\n\n", 
+		main_args.trans_info.scales[0],
+		main_args.trans_info.scales[1],
+		main_args.trans_info.scales[2] );
+
+
+
+				/* do not do any optimization if the transformation
+				   requested is the Principal Axes Transformation 
+				   then:
+		                   =======   do linear fitting =============== */
+
+  if (main_args.trans_info.transform_type != TRANS_PAT) {
+    
+				/* initialize the sampling lattice and figure out
+				   which of the two volumes is smaller.           */
+
+    init_lattice( data, model, mask_data, mask_model, &main_args );
+
+
+    if (main_args.smallest_vol == 1) {
+      DEBUG_PRINT("Source volume is smallest\n");
+    }
+    else {
+      DEBUG_PRINT("Target volume is smallest\n");
+    }
+    DEBUG_PRINT3 ( "Lattice step size  = %8.3f %8.3f %8.3f\n",
+		  main_args.step[0],main_args.step[1],main_args.step[2]);
+    DEBUG_PRINT3 ( "Lattice start      = %8.3f %8.3f %8.3f\n",
+		  main_args.start[0],main_args.start[1],main_args.start[2]);
+    DEBUG_PRINT3 ( "Lattice count      = %8d %8d %8d\n\n",
+		  main_args.count[0],main_args.count[1],main_args.count[2]);
+
+    if (!optimize_linear_transformation( data, model, mask_data, mask_model, &main_args )) {
+      (void) fprintf(stderr, 
+		     "\n%s: Error in optimization\n", 
+		     prog_name);
+      exit(EXIT_FAILURE);
+   }
+  }
+
 
 
   /* ===========================   write out transformation =============== */
 
-
-  if (args.trans_info.transformation.linear) {
+  if (main_args.trans_info.transformation.linear) {
     
-    lt = (Linear_Transformation *) args.trans_info.transformation.trans_data;
+    lt = (Linear_Transformation *) main_args.trans_info.transformation.trans_data;
     
     for_less ( i, 0, 3 )       /* copy to main_data transform matrix */
       for_less ( j, 0, 4)
@@ -191,7 +285,7 @@ main ( argc, argv )
     exit(EXIT_FAILURE);
   }
 
-  if (args.trans_info.invert_mapping_flag && args.trans_info.transformation.linear) {
+  if (main_args.trans_info.invert_mapping_flag && main_args.trans_info.transformation.linear) {
     
     the_matrix= matrix(1,4,1,4);
     inv_matrix= matrix(1,4,1,4);
@@ -215,8 +309,8 @@ main ( argc, argv )
     free_matrix(the_matrix,1,4,1,4);
   }
   
-  if (!save_transform(&main_data, args.filenames.output_trans)) {
-    (void) fprintf(stderr,"Error saving transformation to %s.\n",args.filenames.output_trans);
+  if (!save_transform(&main_data, main_args.filenames.output_trans)) {
+    (void) fprintf(stderr,"Error saving transformation to %s.\n",main_args.filenames.output_trans);
     return ERROR_STATUS;
   }
   
@@ -304,14 +398,16 @@ public int get_transformation(char *dst, char *key, char *nextArg)
      }
      
      /* Invert the transformation */
-     invert_transformation(transformation, transformation);
-     
+
+/*
+     invert_transformation(transformation, transformation);  only needed for resampling!
+*/
    }
    
 
    /* set a GLOBAL flag, to show that a transformation has been read in */
 
-   args.trans_info.use_default = FALSE;	
+   main_args.trans_info.use_default = FALSE;	
 
    return TRUE;
 }
@@ -338,12 +434,12 @@ public int get_mask_file(char *dst, char *key, char *nextArg)
 
   if (strncmp ( "-model_mask", key, 2) == 0) {
     ALLOC( mask_model, 1 );
-    status = input_volume( nextArg, mask_model );
+    status = input_volume( nextArg, &mask_model );
     dst = nextArg;
   }
   else {
     ALLOC( mask_data, 1);
-    status = input_volume( nextArg, mask_data );
+    status = input_volume( nextArg, &mask_data );
     dst = nextArg;
   }
 
