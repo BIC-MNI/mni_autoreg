@@ -7,3 +7,5 @@ stamp-h.in
 stamp-h
 Makefile.in
 Makefile
+configure
+config.h.in

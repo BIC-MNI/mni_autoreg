@@ -1,17 +1,19 @@
 #! /bin/sh
 
-test () {
+check_transform () {
     ./param2xfm -clobber $@ test1.xfm
     cat > test2.xfm
-    if ! ./cmpxfm -linear_tolerance 0.0001 -translation_tolerance 0.0001 \
-         test1.xfm test2.xfm; then
+    if ./cmpxfm -linear_tolerance 0.0001 -translation_tolerance 0.0001 \
+	test1.xfm test2.xfm; then
+	:
+    else
 	echo >&2 $0 failed: param2xfm $@ produced incorrect results.
 	exit 1
     fi
 }
 
 
-test -translation 2 3 4 <<EOF
+check_transform -translation 2 3 4 <<EOF
 MNI Transform File
 
 Transform_Type = Linear;
@@ -22,7 +24,7 @@ Linear_Transform =
 EOF
 
 
-test -rotations 0 0 90 <<EOF
+check_transform -rotations 0 0 90 <<EOF
 MNI Transform File
 
 Transform_Type = Linear;
@@ -33,7 +35,7 @@ Linear_Transform =
 EOF
 
 
-test -scales 2 3 4 <<EOF
+check_transform -scales 2 3 4 <<EOF
 MNI Transform File
 
 Transform_Type = Linear;
@@ -44,7 +46,7 @@ Linear_Transform =
 EOF
 
 
-test -shears 2 3 4 <<EOF
+check_transform -shears 2 3 4 <<EOF
 MNI Transform File
 
 Transform_Type = Linear;

@@ -10,7 +10,7 @@ built_PATH = $(minctraccdir):$(extradir)
 # path to the shell interpreter.
 TESTS_ENVIRONMENT = PATH=$(built_PATH):$(PATH) $(SHELL)
 
-TESTS = minctracc-linear
+TESTS = linear-1 linear-2 linear-3 nonlinear-1
 
 EXTRA_DIST = $(TESTS)
 
@@ -21,6 +21,10 @@ aux_testfiles = \
 	ellipse1.mnc \
 	ellipse2.mnc \
 	ellipse3.mnc \
+	ellipse0_dxyz.mnc \
+	ellipse1_dxyz.mnc \
+	ellipse2_dxyz.mnc \
+	ellipse3_dxyz.mnc \
 	test1.xfm \
 	test2.xfm \
 	test3.xfm
@@ -36,8 +40,8 @@ ellipse0.mnc: Makefile.am
 test1.xfm: Makefile.am
 	$(extradir)/param2xfm -clobber -translation 10 20 50 $@
 
-# This could be done by resampling ellipse0, or simply
-# by making a phantom with a different centre.
+# This could be done by applying test1.xfm to ellipse0,
+# but we choose to do it by making a phantom with a different centre.
 ellipse1.mnc: Makefile.am
 	../make_phantom/make_phantom -clobber -ellipse \
 	-nele 64 64 64 -step 2 2 2 -start -64 -64 -64 \
@@ -57,6 +61,19 @@ test3.xfm: Makefile.am
 ellipse3.mnc: Makefile.am ellipse0.mnc test3.xfm
 	mincresample -clobber -transformation test3.xfm \
 	-like ellipse0.mnc ellipse0.mnc $@
+
+ellipse0_dxyz.mnc: ellipse0.mnc
+	../mincblur/mincblur -clobber -gradient -fwhm 6 ellipse0.mnc ellipse0
+
+ellipse1_dxyz.mnc: ellipse1.mnc
+	../mincblur/mincblur -clobber -gradient -fwhm 6 ellipse1.mnc ellipse1
+
+ellipse2_dxyz.mnc: ellipse2.mnc
+	../mincblur/mincblur -clobber -gradient -fwhm 6 ellipse2.mnc ellipse2
+
+ellipse3_dxyz.mnc: ellipse3.mnc
+	../mincblur/mincblur -clobber -gradient -fwhm 6 ellipse3.mnc ellipse3
+
 
 
 

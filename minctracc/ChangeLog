@@ -1,3 +1,9 @@
+2000-02-15  Steve ROBBINS  <stever@bic.mni.mcgill.ca>
+
+	* Extra_progs/param2xfm.tests: rename function `test' to
+ 	`check_transform', since the former is restricted on IRIX 6.5 sh;
+ 	don't use ! to negate command status (breaks on IRIX 5.3).
+
 2000-02-15  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* Extra_progs/Makefile.am (TESTS): add param2xfm.tests.

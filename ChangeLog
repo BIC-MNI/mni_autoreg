@@ -1,3 +1,12 @@
+2000-02-16  Steve ROBBINS  <stever@bic.mni.mcgill.ca>
+
+	* Testing/Makefile.am (TESTS): split `minctracc-linear' test
+	into three linear-{1,2,3}, add corresponding nonlinear-1 test (with 
+	more to come).  Add rules to create ellipse?_dxyz files.
+
+	* Makefile.am (AUTOMAKE_OPTIONS): add check-news, to enforce
+ 	updated NEWS file when making a release.
+
 2000-02-15  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* Testing/Makefile.am (TESTS): new set of automated tests; try

@@ -1,0 +1,10 @@
+exec > linear-1.log 2>&1
+
+minctracc -debug -clobber -lsq3 -simplex 10 -step 8 8 8 \
+	ellipse0.mnc ellipse1.mnc output.xfm   || exit 1
+
+mincresample -clobber -transformation output.xfm -like ellipse0.mnc \
+	ellipse0.mnc output.mnc || exit 2
+
+expr `xcorr_vol output.mnc ellipse1.mnc` \> 0.99
+

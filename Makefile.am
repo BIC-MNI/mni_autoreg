@@ -1,3 +1,5 @@
+AUTOMAKE_OPTIONS = check-news
+
 SUBDIRS = \
         Proglib \
 	make_phantom \
