@@ -1,5 +1,20 @@
 2000-05-16  Louis COLLINS  <louis@bic.mni.mcgill.ca>
 
+	* Optimize/optimize.c (optimize_non_linear_transformation):
+ 	changed the call to normalize_data_to_match_target() so that all
+ 	feature volume pairs are normalized (instead of the only the main
+ 	(zeroeth) volume pair).
+
+	* Optimize/do_nonlinear.c (do_non_linear_optimization): removed a
+ 	whole looping section that was conditional on a FALSE, since it is
+ 	no longer needed.
+
+	Also, added a call to normalize_data_to_match_target() at the
+ 	bottom of the main loop for all feature volumes, so that all
+ 	volume pairs that use optical flow get the intensity normalization
+ 	procedure at each iteration (since the normalization procedure is
+ 	based the best guess for the current transformation.)
+
 	* Volume/volume_functions.c (normalize_data_to_match_target):
  	removed nonfunctional call to qsort and replaced it with a
  	homegrown qs_list() to find the median ratio value when
@@ -9,6 +24,11 @@
  	threshold values (if none are given on the command line) _before_
  	the computation of the volume-to-volume intensity normalization
  	factor.
+	(normalize_data_to_match_target): changed the call to
+ 	set_feature_value_threshold() so that it no longer changes the
+ 	globals thresholds, and only sets temporary threshold values (like
+ 	it is supposed to do) for use within the procedure.
+	
 
 2000-05-12  Steve ROBBINS  <stever@bic.mni.mcgill.ca>
 
