@@ -16,9 +16,13 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 96.4  1999-06-09 13:11:08  louis
-@MODIFIED   : working version with optical flow (working by itself).
+@MODIFIED   : Revision 96.5  1999-06-10 12:51:23  louis
+@MODIFIED   : update with optical flow working in addition to xcorr, label, and diff
+@MODIFIED   : sub-lattice computed only if needed
 @MODIFIED   :
+ * Revision 96.4  1999/06/09  13:11:08  louis
+ * working version with optical flow (working by itself).
+ *
  * Revision 96.3  1997/11/12  21:07:43  louis
  * - added support for chamfer distance as a local obj func
  * - moved all procedures used to compute the local obj function
@@ -254,7 +258,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.4 1999-06-09 13:11:08 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.5 1999-06-10 12:51:23 louis Exp $";
 #endif
 
 #include <config.h>		/* MAXtype and MIN defs                      */
@@ -405,6 +409,8 @@ public  void  terminate_amoeba( amoeba_struct  *amoeba );
 
 public  Real amoeba_NL_obj_function(void * dummy, float d[]);
 
+#define AMOEBA_ITERATION_LIMIT  400 /* max number of iterations for amoeba */
+
 public  Real local_objective_function(float *x);
 
 private Real get_deformation_vector_for_node(Real spacing, Real threshold1, 
@@ -414,7 +420,8 @@ private Real get_deformation_vector_for_node(Real spacing, Real threshold1,
 					     Real voxel_displacement[],
 					     int iteration, int total_iters,
 					     int *nfunks,
-					     int ndim);
+					     int ndim,
+					     BOOLEAN sub_lattice_needed);
 
 private double return_locally_smoothed_def(int  isotropic_smoothing,
 					 int  ndim,
@@ -464,6 +471,25 @@ public int point_not_masked(Volume volume,
 public int nearest_neighbour_interpolant(Volume volume, 
                                  PointR *coord, double *result);
 
+private BOOLEAN is_a_sub_lattice_needed (char obj_func[],
+					 int  number_of_features);
+
+private BOOLEAN build_lattices(Real spacing, 
+			       Real threshold, 
+			       Real source_coord[],
+			       Real mean_target[],
+			       Real target_coord[],
+			       Real def_vector[],
+			       int ndim);
+
+private Real get_optical_flow_vector(Real threshold1, 
+				     Real source_coord[],
+				     Real mean_target[],
+				     Real def_vector[],
+				     Real voxel_displacement[],
+				     Volume data,
+				     Volume model,
+				     int ndim);
 
 /**************************************************************************/
 public Status do_non_linear_optimization(Arg_Data *globals)
@@ -503,7 +529,8 @@ public Status do_non_linear_optimization(Arg_Data *globals)
       i,j,k,
       nodes_done, nodes_tried,	/* variables to calc stats on deformation estim  */
       nodes_seen, over,
-      nfunks, nfunk1, nodes1;
+      nfunks, nfunk1, nodes1,
+      sub_lattice_needed;
 
    Real 
       debug_steps[MAX_DIMENSIONS], 
@@ -551,16 +578,27 @@ public Status do_non_linear_optimization(Arg_Data *globals)
    if (Gglobals->features.number_of_features > 0) {
       ALLOC2D (Ga1_features, Gglobals->features.number_of_features, MAX_G_LEN+1);
       ALLOC( Gsqrt_features, Gglobals->features.number_of_features);
+
+      sub_lattice_needed = is_a_sub_lattice_needed (Gglobals->features.obj_func,
+						    Gglobals->features.number_of_features);
+
       if (globals->flags.debug) {
         print ("There are %d feature pairs\n",Gglobals->features.number_of_features);
         for_less(i,0,Gglobals->features.number_of_features) {
-	  print ("%d: %s <-> %s\n", i,
+	  print ("%d: [%d] [%7.5f] %s <-> %s\n", i, 
+		 Gglobals->features.obj_func[i],
+		 Gglobals->features.weight[i],
 		 Gglobals->features.data_name[i],
 		 Gglobals->features.model_name[i]);
         }
+	if (sub_lattice_needed) 
+	  print ("A sub-lattice is needed for at least one feature\n");
+	else
+	  print ("No sub-lattice needed.  Should be a fast run!\n");
+
       } 
    }
-   else {
+   else {			/* we should never get here */
      print_error_and_line_num("There are no features to match in non_lin optimization\n", 
 			      __FILE__, __LINE__);
    }
@@ -580,7 +618,7 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 
 				/* exit if no deformation */
    if (current_warp == (General_transform *)NULL) { 
-      print_error_and_line_num("Cannot find the deformation field transform to optimize",
+      print_error_and_line_num("Cannot find the deformation field to optimize at end of input transform",
                                __FILE__, __LINE__);
    }
 				/* set up linear part of transformation   */
@@ -602,8 +640,7 @@ public Status do_non_linear_optimization(Arg_Data *globals)
    additional_vol = additional_warp->displacement_volume;
    get_volume_sizes(additional_vol, additional_count);
    get_volume_XYZV_indices(additional_vol, xyzv);
-                                /* reset the additional warp to zero */
-   init_the_volume_to_zero(additional_vol);
+   init_the_volume_to_zero(additional_vol);    /* reset it to zero */
 
 
    /* build a debugging volume/xform */
@@ -662,7 +699,7 @@ public Status do_non_linear_optimization(Arg_Data *globals)
       }
    }
    else
-      print_error_and_line_num("Zero step size for gradient data2: %f %f %f\n", 
+      print_error_and_line_num("Zero voxel size for model data: %f %f %f\n", 
                                __FILE__, __LINE__,
                                steps_data[0],steps_data[1],steps_data[2]);
 
@@ -973,7 +1010,8 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 						       voxel_displacement,
 						       iters, iteration_limit, 
 						       &nfunks,
-						       number_dimensions);
+						       number_dimensions,
+						       sub_lattice_needed);
 	    
 	      if (result < 0.0) {
 		nodes_tried++;
@@ -1290,7 +1328,8 @@ public Status do_non_linear_optimization(Arg_Data *globals)
 							   voxel_displacement,
 							   iters, iteration_limit, 
 							   &nfunks,
-							   number_dimensions);
+							   number_dimensions,
+							   sub_lattice_needed);
 
 		  if (result>=0) {
 
@@ -1433,6 +1472,26 @@ public Status do_non_linear_optimization(Arg_Data *globals)
   return (OK);
 
 }
+
+
+
+/*   look though the list of object functions requested,
+     and set is_a_sub_lattice_needed=TRUE if any obj function
+     is used other than Optical Flow
+*/
+private BOOLEAN is_a_sub_lattice_needed (char obj_func[],
+					 int  number_of_features) {
+  BOOLEAN needed;
+  int i;
+
+  needed = FALSE;
+  for_less (i,0,number_of_features) {
+    if (obj_func[i] != NONLIN_OPTICALFLOW) 
+      needed = TRUE;
+  }
+  return(needed);
+}
+
 
 /*
    if local isotropic smoothing:
@@ -1754,25 +1813,41 @@ private BOOLEAN get_best_start_from_neighbours(
     nx = (target[X] + mean_target[X])/2.0; 
     ny = (target[Y] + mean_target[Y])/2.0; 
     nz = (target[Z] + mean_target[Z])/2.0; 
+
 				/* what is the deformation needed to
 				   achieve this displacement */
     def[X] = nx - target[X];
     def[Y] = ny - target[Y];
     def[Z] = nz - target[Z];
 
-
 				/* reset the target location to be
 				   halfway to the mean position of its
 				   neighbours */
-
     target[X] = nx; target[Y] = ny; target[Z] = nz;
 
     return(TRUE);
   }  
 }
 
+/* use optical flow to compute the deformation (def_vector) required
+to warp the source_coord onto the mean_target using the intensities of
+the source_coord in the source volume and the mean_target coord in the
+target volume, as well as the 1st intensity derivatives in the source
+volume.  
 
+inputs:
+    threshold1,
+    source_coord
+    mean_target
+    ndim
 
+outputs:
+    def_vector         (in world coords)
+    voxel_displacement (in voxel coords)
+    num_functions      (for number of function evaluations)
+
+Based on Horn and Schunck Artificial Intell 17 (1981) 185-203
+*/
 
 
 private Real get_optical_flow_vector(Real threshold1, 
@@ -1780,7 +1855,8 @@ private Real get_optical_flow_vector(Real threshold1,
 				     Real mean_target[],
 				     Real def_vector[],
 				     Real voxel_displacement[],
-				     int *num_functions,
+				     Volume data,
+				     Volume model,
 				     int ndim)
 { 
   Real
@@ -1794,12 +1870,12 @@ private Real get_optical_flow_vector(Real threshold1,
   int
     i;				/* a counter                            */
 
-    get_volume_separations(Gglobals->features.data[0], steps);
+    get_volume_separations(data, steps);
   
     xp = mean_target[0];	/* get intensity in target volume       */
     yp = mean_target[1];
     zp = mean_target[2];
-    evaluate_volume_in_world(Gglobals->features.model[0],
+    evaluate_volume_in_world(model,
 			     xp, yp, zp,
 			     0, TRUE, 0.0, val,
 			     NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
@@ -1808,7 +1884,7 @@ private Real get_optical_flow_vector(Real threshold1,
     xp = source_coord[0];	/* get intensity and derivatives        */
     yp = source_coord[1];	/* in source volume                     */
     zp = source_coord[2];
-    evaluate_volume_in_world(Gglobals->features.data[0],
+    evaluate_volume_in_world(data,
 			     xp, yp, zp,
 			     0, TRUE, 0.0, val,
                              d1x,d1y,d1z,
@@ -1841,11 +1917,248 @@ private Real get_optical_flow_vector(Real threshold1,
 		   def_vector[1]*def_vector[1] +
 		   def_vector[2]*def_vector[2]);
     
-    *num_functions = 1;
     return(result);
 
 }
 
+private Real get_chamfer_vector(Real threshold1, 
+				Real source_coord[],
+				Real mean_target[],
+				Real def_vector[],
+				Real voxel_displacement[],
+				Volume data,
+				Volume model,
+				int ndim)
+{ 
+  Real 
+    result;
+  int 
+    i;
+				/* use optical flow for the target-> source 
+				   (chamfer volume -> linemask) problem, and then
+				   invert the result */
+  result = get_optical_flow_vector(0.1, 
+				   mean_target, source_coord,
+				   def_vector,  voxel_displacement,
+				   model,       data,  ndim);
+
+  if (result > 0.0) {
+    for_less(i,0,3) {
+      def_vector[i] *= -1.0;
+      voxel_displacement *= -1.0; /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1111*/
+    }
+  }
+  return(result);
+}
+
+/* procedure build_lattices will construct the sub-lattice on the
+   source and target volumes for xcorr, diff and label objective
+   functions that need to be optimized with the similarity_function 
+
+   inputs:
+   outputs:
+
+*/
+
+private BOOLEAN build_lattices(Real spacing, 
+			       Real threshold, 
+			       Real source_coord[],
+			       Real mean_target[],
+			       Real target_coord[],
+			       Real def_vector[],
+			       int ndim)
+{
+
+  BOOLEAN
+    result;
+  Real
+    pos[3],
+    xp,yp,zp;
+  int 
+    i,j;
+
+  /* if there is no gradient magnitude strong enough to grab onto,
+     then set a negative magnitude deformation and skip the optimization 
+     
+     otherwise
+     
+     Bias the initial starting search position for the local
+     deformation vector by calculating a target position that is equal
+     to the vector average of 
+     (current_transformation(source) + average_position(source in target)
+     
+  */
+  
+
+  result = TRUE;
+
+  if (!get_best_start_from_neighbours(threshold,
+				      source_coord, mean_target, target_coord,
+				      def_vector)) {
+    
+    for_less (i,0,3)
+      target_coord[i] = mean_target[i];
+
+    result = FALSE;
+    
+  }
+  else {   
+
+    /* we now have the info needed to continue...
+       
+       source_coord[] - point in source volume
+       target_coord[] - best point in target volume, so far.
+       def_vector[]   - currently contains the additional def needed to 
+                        take source_coord mid-way to the neighbour's
+                        mean-point (which is now stored in target_coord[]).  
+
+       now,
+       get the world coord position of the node in the source volume,
+       corresponding to the target node in question, taking into
+       consideration the current warp  
+       
+       xp,yp,zp will be the position in the source volume, corresponding to
+       the 'best target' position */
+    
+    if (ndim==3)
+      general_inverse_transform_point(Gglobals->trans_info.transformation, 
+				      target_coord[X],  target_coord[Y],  target_coord[Z],
+				      &xp, &yp, &zp);
+    else
+      general_inverse_transform_point_in_trans_plane(Gglobals->trans_info.transformation, 
+						     target_coord[X],  target_coord[Y],  target_coord[Z],
+						     &xp, &yp, &zp);
+    
+    /* -------------------------------------------------------------- */
+    /* BUILD THE SOURCE VOLUME LOCAL NEIGHBOURHOOD INFO:
+          build the list of world coordinates representing nodes in the
+          sub-lattice within the source volume                       
+
+       The spherical sub-lattice will have Glen points in the source
+       volume, note: sub-lattice diameter= 1.5*fwhm 
+       (here specified as 3*spacing = 2*(fwhm/2) to specify radius 
+       in build_source_lattice) 
+
+       note that SX, SY, SZ, TX,TY,TZ, and Glen are all globals
+    */
+
+    build_source_lattice(xp, yp, zp, 
+			 SX, SY, SZ,
+			 spacing*3*2, spacing*3*2, spacing*3*2,
+			 Diameter_of_local_lattice,  
+			 Diameter_of_local_lattice,  
+			 Diameter_of_local_lattice,
+			 ndim, &Glen);
+
+    /* -------------------------------------------------------------- */
+    /* BUILD THE TARGET VOLUME LOCAL NEIGHBOURHOOD INFO */
+
+    /* map this lattice forward into the target space, using the
+       current transformation, in order to build a deformed lattice
+       (in the WORLD COORDS of the target volume) */
+
+    if (Gglobals->trans_info.use_super>0) 
+      build_target_lattice_using_super_sampled_def(
+		  SX,SY,SZ, TX,TY,TZ, Glen, ndim);
+    else 
+      build_target_lattice(SX,SY,SZ, TX,TY,TZ, Glen, ndim);
+      
+
+    /* -------------------------------------------------------------- */
+    /* GET THE VOXEL COORDINATE LIST:
+	  need the voxel coordinates of the target lattice
+          for the objective function used in the actual 
+	  optimization,
+
+	  (world coords are use for the source, since it is only 
+	   interpolated once)
+
+	  note: I assume that the volume is stored in ZYX order !
+	        (since I load the features in ZYX order in main() and
+		in get_feature_volume()                               
+
+		so, TX[] will store the voxel zdim position, TY with
+		ydim, and TZ the voxel xdim coordinate.  BIZARRE I know,
+		but it works... */
+
+    for_inclusive(i,1,Glen) {
+      convert_3D_world_to_voxel(Gglobals->features.model[0], 
+				(Real)TX[i],(Real)TY[i],(Real)TZ[i], 
+				&pos[0], &pos[1], &pos[2]);
+      TX[i] = pos[0];
+      TY[i] = pos[1];
+      TZ[i] = pos[2];
+    }
+
+    /* -------------------------------------------------------------- */
+    /* re-build the source lattice (without local neighbour warp),
+       that will be used in the optimization below                    */
+
+    if (Gglobals->trans_info.use_magnitude) {
+      for_inclusive(i,1,Glen) {
+	SX[i] += source_coord[X] - xp;
+	SY[i] += source_coord[Y] - yp;
+	SZ[i] += source_coord[Z] - zp;
+      }
+    }
+
+    /* -------------------------------------------------------------- */
+    /* GO GET FEATURES IN SOURCE VOLUME actually get the feature data from
+       the source volume local neighbourhood and compute the required
+       similarity function.  The target volume features are retrieved and
+       the similarity function computed in go_get_samples_with_offset() 
+
+       note that I only have to get features from the volumes that
+       will use the sublattice in the optimization 
+    */
+
+    for_less(i,0, Gglobals->features.number_of_features) {
+
+      if (Gglobals->features.obj_func[i] != NONLIN_OPTICALFLOW)
+
+	go_get_samples_in_source(Gglobals->features.data[i], 
+				 SX,SY,SZ, Ga1_features[i], Glen, 
+				 (Gglobals->interpolant==nearest_neighbour_interpolant ? -1 : 0)
+				 );
+    }
+
+    /* -------------------------------------------------------------- */
+    /* calc one of the normalization coefficients for the similarity
+       measure, when using the magnitude data.  This saves a few CPU cycles
+       in go_get_samples_with_offset(), since the constants only have to be
+       eval'd once for the source volume. Note that this variable is not
+       used when doing OPTICAL FLOW. */
+
+    for_less(i,0,Gglobals->features.number_of_features) {
+
+      switch (Gglobals->features.obj_func[i]) {
+      case NONLIN_XCORR:
+	Gsqrt_features[i] = 0.0;
+	for_inclusive(j,1,Glen)
+	  Gsqrt_features[i] += Ga1_features[i][j]*Ga1_features[i][j];
+	Gsqrt_features[i] = sqrt((double)Gsqrt_features[i]);
+	break;
+      case NONLIN_DIFF:
+	Gsqrt_features[i] = (Real)Glen;
+	break;
+      case NONLIN_LABEL:
+	Gsqrt_features[i] = (Real)Glen;
+	break;
+      case NONLIN_CHAMFER:
+	Gsqrt_features[i] = 0;
+	break;
+      case NONLIN_OPTICALFLOW:
+	Gsqrt_features[i] = 0;
+	break;
+      default:
+	print_error_and_line_num("Objective function %d not supported in build_lattices",
+                                 __FILE__, __LINE__,Gglobals->features.obj_func[i]);
+      }
+    }
+    
+  }
+  return(result );
+}
 
 /**********************************************************
 
@@ -1891,10 +2204,15 @@ private Real get_deformation_vector_for_node(Real spacing,
 					     Real voxel_displacement[],
 					     int iteration, int total_iters,
 					     int *num_functions,
-					     int ndim)
+					     int ndim,
+					     BOOLEAN sub_lattice_needed)
 {
 
   Real
+    real_def[3], vox_def[3],
+    optical_partial_weight,
+    other_partial_weight,
+    total_weight,
     du,dv,dw,
     xt, yt, zt,
     local_corr3D[3][3][3],
@@ -1918,260 +2236,95 @@ private Real get_deformation_vector_for_node(Real spacing,
     *parameters;
   FILE *tmp_fp;
 
-
-
-  if (!Gglobals->trans_info.use_magnitude) { /* then use optical flow */
-    
-    return( get_optical_flow_vector(threshold1, 
-				    source_coord, mean_target,
-				    def_vector,   voxel_displacement,
-				    num_functions,ndim));
-  }                                                                       
-
-  /* otherwise, use magnitude info */        
-  
-  result = 0.0;			/* assume no additional deformation */
+				/* initialize for no deformation */
+  result = 0.0;			
   def_vector[X] = def_vector[Y] = def_vector[Z] = 0.0;
-  *num_functions = 0;		/* assume no optimization done      */
+  *num_functions = 0;		
 
-  
-  /* if there is no gradient magnitude strong enough to grab onto,
-     then set a negative magnitude deformation and skip the optimization 
+				/* build sub-lattice if necessary */
+  if (sub_lattice_needed) {
 
-     otherwise
-
-     Bias the initial starting search position for the local
-     deformation vector by calculating a target position that is equal
-     to the vector average of 
-     (current_transformation(source) + average_position(source in target)
-
-     */
-
-
-  if (!get_best_start_from_neighbours(Gglobals->features.thresh_data[0], 
-				      source_coord, mean_target, target_coord,
-				      def_vector)) {
-
-    result = -DBL_MAX;		/* set result to a flag value used
-				   above when looping through all nodes */
+    if ( ! build_lattices(spacing, threshold1, 
+			  source_coord, mean_target, target_coord, def_vector,
+			  ndim) ){
+      result = -DBL_MAX;
+      return(result);		/* return if we don't make the threshold */
+    }
 
   }
-  else {   
-    /* we now have the info needed to continue...
+				/* compute weighting factors */
 
-       source_coord[] - point in source volume
-       target_coord[] - best point in target volume, so far.
-       def_vector[]   - currently contains the additional def needed to 
-                        take source_coord mid-way to the neighbour's
-		        mean-point (which is now stored in target_coord[]).   */
+  optical_partial_weight = other_partial_weight = total_weight = 0.0;
 
+  for_less(i,0,Gglobals->features.number_of_features) {
 
-    /* -------------------------------------------------------------- */
-    /* get the world coord position of the node in the source volume,
-       corresponding to the target node in question, taking into
-       consideration the current warp  
-
-       xp,yp,zp is the position in the source volume, corrsponding to
-       the 'best target' position */
-
-
-    if (ndim==3)
-      general_inverse_transform_point(Gglobals->trans_info.transformation, 
-				      target_coord[X],  target_coord[Y],  target_coord[Z],
-				      &xp, &yp, &zp);
+    if (Gglobals->features.obj_func[i] == NONLIN_OPTICALFLOW) 
+      optical_partial_weight += Gglobals->features.weight[i];
     else
-      general_inverse_transform_point_in_trans_plane(Gglobals->trans_info.transformation, 
-					 target_coord[X],  target_coord[Y],  target_coord[Z],
-					 &xp, &yp, &zp);
+      other_partial_weight += Gglobals->features.weight[i];
 
-    /* -------------------------------------------------------------- */
-    /* BUILD THE SOURCE VOLUME LOCAL NEIGHBOURHOOD INFO:
-          build the list of world coordinates representing nodes in the
-          sub-lattice within the source volume                        */
+    total_weight += Gglobals->features.weight[i];
+  }
 
-    if (Gglobals->trans_info.use_magnitude) {
+  if (total_weight == 0.0) {
+    print_error_and_line_num("Objective functions have no total weight in get_deformation_vector_for_node",
+			     __FILE__, __LINE__);
+  }
 
-      /* build a spherical sub-lattice of Glen points in the source
-         volume, note: sub-lattice diameter= 1.5*fwhm 
-	 (here specified as 3*spacing = 2*(fwhm/2) to specify radius 
-	  in build_source_lattice) 
-      */
+  
+  /* estimate deformations using optimization over the sub-lattice if
+     required */
 
-      build_source_lattice(xp, yp, zp, 
-			   SX, SY, SZ,
-			   spacing*3*2, spacing*3*2, spacing*3*2,
-			   Diameter_of_local_lattice,  
-			   Diameter_of_local_lattice,  
-			   Diameter_of_local_lattice,
-			   ndim, &Glen);
-    }
-    else {			/* use projections */
-
-      /* store the coordinate of the center of the neighbourhood only,
-         since we are using projections. */
-
-      SX[1] = xp; SY[1] = yp; SZ[1] = zp;
-      Glen = 1;
-    }
-
-    /* -------------------------------------------------------------- */
-    /* BUILD THE TARGET VOLUME LOCAL NEIGHBOURHOOD INFO */
-
-    if ( Gglobals->trans_info.use_magnitude ) {
-
-      /* map this lattice forward into the target space, using the
-	 current transformation, in order to build a deformed lattice
-	 (in the WORLD COORDS of the target volume) */
-
-      if (Gglobals->trans_info.use_super>0) 
-	build_target_lattice_using_super_sampled_def(
-                             SX,SY,SZ, TX,TY,TZ, Glen, number_dimensions);
-      else 
-	build_target_lattice(SX,SY,SZ, TX,TY,TZ, Glen, number_dimensions);
-
-    }
-    else {
-
-      /* get only the target voxel position */
-
-      if (number_dimensions==3)
-	general_transform_point(Gglobals->trans_info.transformation, 
-				xp,yp,zp,    &xt, &yt, &zt);
-      else
-	general_transform_point_in_trans_plane(Gglobals->trans_info.transformation, 
-					xp,yp,zp,  &xt, &yt, &zt);
-					
-      convert_3D_world_to_voxel(Gglobals->features.model[0], xt, yt, zt,
-				&Gtarget_vox_x, &Gtarget_vox_y, &Gtarget_vox_z);
-    }
-
-
-    /* -------------------------------------------------------------- */
-    /* GET THE VOXEL COORDINATE LIST:
-          for the objective function used in the actual optimization,
-	  need the voxel coordinates of the target lattice.
-
-	  note: I assume that the volume is stored in ZYX order !
-	        (since I load the features in ZYX order in main() and
-		in get_feature_volume()                               
-
-		so, TX[] will store the voxel zdim position, TY with
-		ydim, and TZ the voxel xdim coordinate.  BIZARRE I know,
-		but it works... */
-
-    for_inclusive(i,1,Glen) {
-      convert_3D_world_to_voxel(Gglobals->features.model[0], 
-				(Real)TX[i],(Real)TY[i],(Real)TZ[i], 
-				&pos[0], &pos[1], &pos[2]);
-      TX[i] = pos[0];
-      TY[i] = pos[1];
-      TZ[i] = pos[2];
-    }
-
-    /* -------------------------------------------------------------- */
-    /* re-build the source lattice (without local neighbour warp),
-       that will be used in the optimization below                    */
-
-    if (Gglobals->trans_info.use_magnitude) {
-      for_inclusive(i,1,Glen) {
-	SX[i] += source_coord[X] - xp;
-	SY[i] += source_coord[Y] - yp;
-	SZ[i] += source_coord[Z] - zp;
-      }
-    }
-
-    /* -------------------------------------------------------------- */
-    /* GO GET FEATURES IN SOURCE VOLUME actually get the feature data from
-       the source volume local neighbourhood and compute the required
-       similarity function.  The target volume features are retrieved and
-       the similarity function computed in go_get_samples_with_offset() */
-
-
-    if (Gglobals->trans_info.use_magnitude) {
-      for_less(i,0, Gglobals->features.number_of_features) {
-	go_get_samples_in_source(Gglobals->features.data[i], 
-				 SX,SY,SZ, Ga1_features[i], Glen, 
-				 (Gglobals->interpolant==nearest_neighbour_interpolant ? -1 : 0)
-				 );
-      }
-    }
-
-    /* -------------------------------------------------------------- */
-    /* calc one of the normalization coefficients for the similarity
-       measure, when using the magnitude data.  This saves a few CPU cycles
-       in go_get_samples_with_offset(), since the constants only have to be
-       eval'd once for the source volume. Note that this variable is not
-       used when using projections. */
-
-    for_less(i,0,Gglobals->features.number_of_features) {
-
-      switch (Gglobals->features.obj_func[i]) {
-      case NONLIN_XCORR:
-	Gsqrt_features[i] = 0.0;
-	for_inclusive(j,1,Glen)
-	  Gsqrt_features[i] += Ga1_features[i][j]*Ga1_features[i][j];
-	Gsqrt_features[i] = sqrt((double)Gsqrt_features[i]);
-	break;
-      case NONLIN_DIFF:
-	Gsqrt_features[i] = (Real)Glen;
-	break;
-      case NONLIN_LABEL:
-	Gsqrt_features[i] = (Real)Glen;
-	break;
-      case NONLIN_CHAMFER:
-	Gsqrt_features[i] = 0;
-
-	break;
-      default:
-	print_error_and_line_num("Objective function %d not supported in get_deformation_vector_for_node",
-                                 __FILE__, __LINE__,Gglobals->features.obj_func[i]);
-      }
-    }
-
+  if (other_partial_weight > 0.0) {
     /* -------------------------------------------------------------- */
     /*  FIND BEST DEFORMATION VECTOR
-          now find the best local deformation that maximises the local
-	  neighbourhood correlation between the source values stored in
-	  **Ga1_features at positions Sx, SY, SZ with the homologous 
-	  values at positions TX,TY,TZ in the target volume */
-
+	now find the best local deformation that maximises the local
+	neighbourhood correlation between the source values stored in
+	**Ga1_features at positions Sx, SY, SZ with the homologous 
+	values at positions TX,TY,TZ in the target volume */
+    
     if ( !Gglobals->trans_info.use_simplex) {
-
+      
       /* ----------------------------------------------------------- */
       /*  USE QUADRATIC FITTING to find best deformation vector      */
-
-      if (ndim==3) {
-	/* build up the 3x3x3 matrix of local correlation values */
-
-	for_inclusive(i,-1,1)
-	  for_inclusive(j,-1,1)
+      
+      if (ndim==3) { /* build up the 3x3x3 matrix of local correlation values */
+	
+	for_inclusive(i,-1,1) {
+	  
+	  pos_vector[1] = (float) i * Gsimplex_size/2.0;
+	  for_inclusive(j,-1,1) {
+	    
+	    pos_vector[2] = (float) j * Gsimplex_size/2.0;
 	    for_inclusive(k,-1,1) {
-	      pos_vector[1] = (float) i * Gsimplex_size/2.0;
-	      pos_vector[2] = (float) j * Gsimplex_size/2.0;
 	      pos_vector[3] = (float) k * Gsimplex_size/2.0;
 	      local_corr3D[i+1][j+1][k+1] = local_objective_function(pos_vector); 
 	    }
-	*num_functions = 27;
+	  }
+	}
+	*num_functions += 27;
 	flag = return_3D_disp_from_min_quad_fit(local_corr3D, &du, &dv, &dw);
 	
       }
       else {
 	/* build up the 3x3 matrix of local correlation values */
 	
-	for_inclusive(i,-1,1)
+	pos_vector[3] = 0.0;	/* since 2D */
+	
+	for_inclusive(i,-1,1) {
+	  pos_vector[1] = (float) i * Gsimplex_size/2.0;
 	  for_inclusive(j,-1,1) {
-	    pos_vector[1] = (float) i * Gsimplex_size/2.0;
 	    pos_vector[2] = (float) j * Gsimplex_size/2.0;
-	    pos_vector[3] = 0.0;
 	    local_corr2D[i+1][j+1] = 1.0 - local_objective_function(pos_vector); 
 	  }
-	*num_functions = 9;
+	}
+	*num_functions += 9;
 	
 	flag = return_2D_disp_from_quad_fit(local_corr2D,  &du, &dv);
 	dw = 0.0;
 	
       }
-
+      
       if ( flag ) {
 	voxel_displacement[0] = dw * Gsimplex_size/2.0;	/* fastest (X) data index */
 	voxel_displacement[1] = dv * Gsimplex_size/2.0;	/* Y */
@@ -2185,13 +2338,13 @@ private Real get_deformation_vector_for_node(Real spacing,
       }
     }
     else {
-
+      
       /* ----------------------------------------------------------- */
       /*  USE SIMPLEX OPTIMIZATION to find best deformation vector   */
-
+      
 				/* set up SIMPLEX OPTIMIZATION */
       nfunk = 0;
-
+      
       ALLOC(parameters, ndim);	
       for_less(i,0,ndim)	/* init parameters for _NO_ deformation  */
 	parameters[i] = 0.0;
@@ -2202,28 +2355,27 @@ private Real get_deformation_vector_for_node(Real spacing,
       simplex_size = Gsimplex_size * 
 	(0.5 + 
 	 0.5*((Real)(total_iters-iteration)/(Real)total_iters));
-
-/*print("amoeba\n");*/
+      
       initialize_amoeba(&the_amoeba, ndim, parameters, 
 			simplex_size, amoeba_NL_obj_function, 
 			NULL, (Real)ftol);
       
-      /*                do the actual SIMPLEX optimization        */
+      
+      nfunk = 4;		/* since 4 eval's needed to init the amoeba */
+      
+      /*   do the actual SIMPLEX optimization,
+	   note that nfunk is incremented inside perform_amoeba  */
 
-      nfunk = 4;		/* since 4 eval's needed to init
-				   the amoeba                     */
-
-				/*  nfunk is incremented inside 
-				    perform_amoeba  */
-      while (nfunk < 400 && 
+      while (nfunk < AMOEBA_ITERATION_LIMIT && 
 	     perform_amoeba(&the_amoeba, &nfunk) );
-    
-      if (nfunk<400) {
+      
+      *num_functions += nfunk;
 
+      if (nfunk < AMOEBA_ITERATION_LIMIT) {
+	
 	get_amoeba_parameters(&the_amoeba,parameters);
 	
-	*num_functions = nfunk;
-    
+	
 	if (ndim>2) {
 	  voxel_displacement[0] = parameters[2]; /* fastest data index */
 	  voxel_displacement[1] = parameters[1];
@@ -2234,32 +2386,31 @@ private Real get_deformation_vector_for_node(Real spacing,
 	  voxel_displacement[1] = parameters[1];
 	  voxel_displacement[2] = parameters[0];
 	}
-
+	
       }
       else {
-	      /* simplex optimization found nothing, so set the additional
-		 displacement to 0 */
-
+	/* simplex optimization found nothing, so set the additional
+	   displacement to 0 */
+	
 	voxel_displacement[0] = 0.0;
 	voxel_displacement[1] = 0.0;
 	voxel_displacement[2] = 0.0;
 	result                = -DBL_MAX;
-	*num_functions        = 0;
-
+	
       } /*  if perform_amoeba */
-
+      
       terminate_amoeba(&the_amoeba);      
       FREE(parameters);
-
-    } /* else use_magnitude */
-
-
+      
+    } /* else use_simplex */
+    
+  
     /* -------------------------------------------------------------- */
     /* RETURN DEFORMATION FOUND 
-          deformation calculated above is in voxel coordinates, it
-	  has to be transformed into real world coordinates so that it
-	  can be saved in the GRID_TRANSFORM                          */
-
+       deformation calculated above is in voxel coordinates, it
+       has to be transformed into real world coordinates so that it
+       can be saved in the GRID_TRANSFORM                          */
+    
     if ((voxel_displacement[0] == 0.0 &&
 	 voxel_displacement[1] == 0.0 &&
 	 voxel_displacement[2] == 0.0)) {
@@ -2269,7 +2420,7 @@ private Real get_deformation_vector_for_node(Real spacing,
       def_vector[Z] += 0.0;
     }
     else {
-
+      
       convert_3D_world_to_voxel(Gglobals->features.model[0], 
 				target_coord[X],target_coord[Y],target_coord[Z], 
 				&voxel[0], &voxel[1], &voxel[2]);
@@ -2284,31 +2435,47 @@ private Real get_deformation_vector_for_node(Real spacing,
       def_vector[Y] += pos[Y]-target_coord[Y];
       def_vector[Z] += pos[Z]-target_coord[Z];
       
+      for_less (j,0,3) {	/* weight these displacements properly */
+	def_vector[j]         *= other_partial_weight / total_weight;
+	voxel_displacement[j] *= other_partial_weight / total_weight;
+      }
+
     }
 
-    result = sqrt((def_vector[X] * def_vector[X]) + 
-		  (def_vector[Y] * def_vector[Y]) + 
-		  (def_vector[Z] * def_vector[Z])) ;      
-    
-    if (result > 50.0 && 
-	voxel_displacement[0]!=-20.0 && 
-	voxel_displacement[1]!=-20.0 && 
-	voxel_displacement[2]!=-20.0   ) {	/* this is a check, and should never
-				   occur when using normal brain data,
-				   unless we are scanning trauma
-				   patients!  */
-
-      print ("??? displacement way too big: %f\n",result);
-      print ("vox_disp %f %f %f\n",
-	     voxel_displacement[0],
-	     voxel_displacement[1],
-	     voxel_displacement[2]);
-      print ("deform   %f %f %f\n", def_vector[X], def_vector[Y], def_vector[Z]);
-      print ("Gsimplex_size = %f\n",Gsimplex_size);
-    }
-
-  } /*  if (!get_best_start_from_neighbours()) */
+  }
   
+  /* at this point, we have the deformations coming from optimization
+     of correlation, label or difference objective functions (if any)
+     stored in def_vector and voxel_displacement, now time to find
+     displacements with OPTICAL FLOW if needed */
+
+  if (optical_partial_weight > 0.0) {
+
+    for_less(i,0,Gglobals->features.number_of_features) {
+      
+      if (Gglobals->features.obj_func[i] == NONLIN_OPTICALFLOW)  {
+
+	result =  get_optical_flow_vector(threshold1, 
+					  source_coord, mean_target,
+					  real_def, vox_def,
+					  Gglobals->features.data[i],
+					  Gglobals->features.model[i],
+					  ndim);
+	*num_functions += 1;
+				/* add in the weighted deformations */
+	for_less (j,0,3) {
+	  def_vector[j] += real_def[j]        * Gglobals->features.weight[i] / total_weight;
+	  voxel_displacement[j] += vox_def[j] * Gglobals->features.weight[i] / total_weight;
+	}
+
+      }
+    }
+  }
+  
+  result = sqrt((def_vector[X] * def_vector[X]) + 
+		(def_vector[Y] * def_vector[Y]) + 
+		(def_vector[Z] * def_vector[Z])) ;      
+
   return(result);
 }
 

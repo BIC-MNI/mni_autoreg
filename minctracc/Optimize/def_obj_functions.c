@@ -3,11 +3,15 @@
 @DESCRIPTION: routines to calculate the objective function used for local
               optimization              
 @CREATED    : Nov 4, 1997, Louis Collins
-@VERSION    : $Id: def_obj_functions.c,v 1.3 1999-06-09 13:10:51 louis Exp $
+@VERSION    : $Id: def_obj_functions.c,v 1.4 1999-06-10 12:51:23 louis Exp $
 @MODIFIED   : $Log: def_obj_functions.c,v $
-@MODIFIED   : Revision 1.3  1999-06-09 13:10:51  louis
-@MODIFIED   : clean up
+@MODIFIED   : Revision 1.4  1999-06-10 12:51:23  louis
+@MODIFIED   : update with optical flow working in addition to xcorr, label, and diff
+@MODIFIED   : sub-lattice computed only if needed
 @MODIFIED   :
+ * Revision 1.3  1999/06/09  13:10:51  louis
+ * clean up
+ *
 -----------------------------------------------------------------------------*/
 
 #include <config.h>		
@@ -89,53 +93,58 @@ private Real cost_fn(float x, float y, float z, Real max_length)
 
 private Real similarity_fn(float *d)
 {
-   int i;
-   Real
-      norm,
-      val[MAX_DIMENSIONS],
-      voxel[MAX_DIMENSIONS],
-      xw,yw,zw, 
-      s, s1, s2, func_sim;
+  int i;
+  Real
+    norm,
+    val[MAX_DIMENSIONS],
+    voxel[MAX_DIMENSIONS],
+    xw,yw,zw, 
+    s, s1, s2, func_sim;
    
-   /* note: here the displacement order for go_get_samples_with_offset
-      is 3,2,1 (=Z,Y,X) since the source and target volumes are stored in
-      Z,Y,X order.
-      
-      This backward ordering is necessary since the same function is
-      used for 2D and 3D optimization, and simplex will only modify d[1]
-      and d[2] in 2D (d[3] stays const=0). */
-   
-   if (Gglobals->trans_info.use_magnitude) {
-      
-      s = norm = 0.0;
-      
-      for_less(i,0,Gglobals->features.number_of_features)  {
-         func_sim = 
-            (Real)go_get_samples_with_offset(Gglobals->features.model[i],
-                                             TX,TY,TZ,
-                                             d[3], d[2], d[1],
-                                             Gglobals->features.obj_func[i],
-                                             Glen, 
-                                             Gsqrt_features[i], Ga1_features[i],
-                                             Gglobals->interpolant==nearest_neighbour_interpolant);
-         if ((Gglobals->features.obj_func[i]==NONLIN_CHAMFER) && (func_sim > 1.5)) {
-                                /* do nothing, do not add the chamfer distance info */
-         }
-         else {
-            norm += ABS(Gglobals->features.weight[i]);
-            s += Gglobals->features.weight[i] * func_sim;
-         }
-         
-      }
-      
-      if (norm != 0.0) 
-         s = s / norm;
-      else
-         print_error_and_line_num("The feature weights are null.", 
-                                  __FILE__, __LINE__);
-   }
+  /* note: here the displacement order for go_get_samples_with_offset
+     is 3,2,1 (=Z,Y,X) since the source and target volumes are stored in
+     Z,Y,X order.
+     
+     This backward ordering is necessary since the same function is
+     used for 2D and 3D optimization, and simplex will only modify d[1]
+     and d[2] in 2D (d[3] stays const=0). */
+  
+  s = norm = 0.0;
+    
+  for_less(i,0,Gglobals->features.number_of_features)  {
 
-   return( s );
+				/* ignore OPTICAL FLOW objective functions, since it is
+				   computed directly and _not_ optimized */
+
+    if (Gglobals->features.obj_func[i] != NONLIN_OPTICALFLOW) {
+      func_sim = 
+	(Real)go_get_samples_with_offset(Gglobals->features.model[i],
+					 TX,TY,TZ,
+					 d[3], d[2], d[1],
+					 Gglobals->features.obj_func[i],
+					 Glen, 
+					 Gsqrt_features[i], Ga1_features[i],
+					 Gglobals->interpolant==nearest_neighbour_interpolant);
+      
+      norm += ABS(Gglobals->features.weight[i]);
+      s += Gglobals->features.weight[i] * func_sim;
+      
+      /*
+	if ((Gglobals->features.obj_func[i]==NONLIN_CHAMFER) && (func_sim > 1.5))
+	do nothing, do not add the chamfer distance info 
+      */
+      
+    }
+    
+  }
+  
+  if (norm > 0.0) 
+    s = s / norm;
+  else
+    print_error_and_line_num("The feature weights are null.", 
+			     __FILE__, __LINE__);
+
+  return( s );
 }
 
 /* 
