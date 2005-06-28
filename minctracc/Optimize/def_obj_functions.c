@@ -3,9 +3,12 @@
 @DESCRIPTION: routines to calculate the objective function used for local
               optimization              
 @CREATED    : Nov 4, 1997, Louis Collins
-@VERSION    : $Id: def_obj_functions.c,v 1.10 2004-02-12 06:08:19 rotor Exp $
+@VERSION    : $Id: def_obj_functions.c,v 1.11 2005-06-28 18:56:18 rotor Exp $
 @MODIFIED   : $Log: def_obj_functions.c,v $
-@MODIFIED   : Revision 1.10  2004-02-12 06:08:19  rotor
+@MODIFIED   : Revision 1.11  2005-06-28 18:56:18  rotor
+@MODIFIED   :  * added masking for feature volumes (irina and patricia)
+@MODIFIED   :
+@MODIFIED   : Revision 1.10  2004/02/12 06:08:19  rotor
 @MODIFIED   :  * removed public/private defs
 @MODIFIED   :
 @MODIFIED   : Revision 1.9  2004/02/04 20:44:11  lenezet
@@ -52,6 +55,8 @@ extern float
   *Gsqrt_features,
   **Ga1_features,
   *TX, *TY, *TZ;                /* from do_nonlinear.c */
+extern BOOLEAN 
+  **masked_samples_in_source;  /* from do_nonlinear.c */
 extern int 
   Glen;                         /* from do_nonlinear.c */
 extern Real                     /* from do_nonlinear.c */
@@ -65,18 +70,19 @@ extern Real
 int 
   nearest_neighbour_interpolant(Volume volume, 
                                 PointR *coord, double *result);
+int target_sample_count=0;
 
 void from_param_to_grid_weights(
    Real p[],
    Real grid[]);
 
 
-float go_get_samples_with_offset(Volume data,
+float go_get_samples_with_offset(Volume data, Volume model_mask,
 					float *x, float *y, float *z,
 					Real  dx, Real  dy, Real dz,
 					int obj_func,
-					int len, 
-					float sqrt_s1, float *a1,
+					int len, int *sample_count,
+					float sqrt_s1, float *a1, BOOLEAN *m1,
 					BOOLEAN use_nearest_neighbour);
 
 
@@ -141,11 +147,13 @@ static Real similarity_fn(float *d)
     if (Gglobals->features.obj_func[i] != NONLIN_OPTICALFLOW) {
       func_sim = 
 	(Real)go_get_samples_with_offset(Gglobals->features.model[i],
+                Gglobals->features.model_mask[i],
 					 TX,TY,TZ,
 					 d[3], d[2], d[1],
 					 Gglobals->features.obj_func[i],
-					 Glen, 
+					 Glen, &target_sample_count,
 					 Gsqrt_features[i], Ga1_features[i],
+                masked_samples_in_source[i],
 					 Gglobals->interpolant==nearest_neighbour_interpolant);
       
 

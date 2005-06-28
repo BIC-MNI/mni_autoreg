@@ -16,7 +16,10 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 96.22  2004-05-05 17:21:41  louis
+@MODIFIED   : Revision 96.23  2005-06-28 18:56:18  rotor
+@MODIFIED   :  * added masking for feature volumes (irina and patricia)
+@MODIFIED   :
+@MODIFIED   : Revision 96.22  2004/05/05 17:21:41  louis
 @MODIFIED   : changed constant min/max real voxel range for the deformation grid to be equal to that
 @MODIFIED   : defined on the command line.
 @MODIFIED   :
@@ -325,7 +328,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.22 2004-05-05 17:21:41 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.23 2005-06-28 18:56:18 rotor Exp $";
 #endif
 
 #include <config.h>		/* MAXtype and MIN defs                      */
@@ -356,6 +359,10 @@ int stat_quad_two=0;              /* (mostly for debugging)                    *
 int stat_quad_plus=0;
 int stat_quad_minus=0;
 int stat_quad_semi=0;
+int sample_count=0;             /* this is the value returned from the go_get_
+                                   samples when sub-lattice contains masked nodes*/
+
+
 
                                 /* these globals are used to tally stats over
                                    do_non_linear_optimization() and 
@@ -376,6 +383,7 @@ static stats_struct
 
 float  *Gsqrt_features=NULL;		/* normalization const for correlation       */
 float  **Ga1_features=NULL;		/* samples in source sub-lattice             */
+BOOLEAN **masked_samples_in_source=NULL;   /* masked samples in source sub-lattice */
 float  *TX=NULL; 
 float  *TY=NULL; 
 float  *TZ=NULL;		/* sample sub-lattice positions in target    */
@@ -649,7 +657,7 @@ Status do_non_linear_optimization(Arg_Data *globals)
       end[MAX_DIMENSIONS],	/* ending limit of index[]                      */
       debug_sizes[MAX_DIMENSIONS],
       iters,			/* iteration counter */
-      i,j,k,
+      i,j,k,ff,ff_count,
       nodes_done, nodes_tried,	/* variables to calc stats on deformation estim  */
       nodes_seen, over,
       nfunks, nfunk1, nodes1,
@@ -695,7 +703,8 @@ Status do_non_linear_optimization(Arg_Data *globals)
       progress;
 
    STRING filenamestring;
- 
+   BOOLEAN condition;
+
   /*******************************************************************************/
 
 	   /* set up globals for communication with other routines */
@@ -721,6 +730,7 @@ Status do_non_linear_optimization(Arg_Data *globals)
 
    if (Gglobals->features.number_of_features > 0) {
       ALLOC2D (Ga1_features, Gglobals->features.number_of_features, MAX_G_LEN+1);
+      ALLOC2D (masked_samples_in_source, Gglobals->features.number_of_features, MAX_G_LEN+1);
       ALLOC( Gsqrt_features, Gglobals->features.number_of_features);
 
       sub_lattice_needed = is_a_sub_lattice_needed (Gglobals->features.obj_func,
@@ -994,6 +1004,7 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
 	  xyzv[X], xyzv[Y], xyzv[Z], xyzv[Z+1]);
     print("number_dimensions    = %d\n",number_dimensions);
     print("num_of_dims_to_opt   = %d\n",num_of_dims_to_optimize);
+    print("smoothing_weight     = %f\n",smoothing_weight);
     print("loop                 = (%d %d) (%d %d) (%d %d)\n",
 	  start[0],end[0],start[1],end[1],start[2],end[2]);
     print("current_def_vector   = %f %f %f\n",current_def_vector[X], current_def_vector[Y],current_def_vector[Z]);
@@ -1192,10 +1203,18 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
 		   wx = target_node[X] + current_def_vector[X]; 
 		   wy = target_node[Y] + current_def_vector[Y]; 
 		   wz = target_node[Z] + current_def_vector[Z];
-		   
-		   if (point_not_masked(Gglobals->features.model_mask[0], wx, wy, wz) &&
-		       get_value_of_point_in_volume(wx,wy,wz, Gglobals->features.model[0])>threshold2) {
+         
+		   ff_count = 0;
 
+                   for_less(ff,0, Gglobals->features.number_of_features){
+                     if (point_not_masked(Gglobals->features.model_mask[ff], wx, wy, wz) )
+                       ff_count++;
+                   }
+
+		   condition = ff_count &&
+                     get_value_of_point_in_volume(wx,wy,wz,Gglobals->features.model[0]) > threshold2;
+
+                   if (condition) {
 
 				         /* now get the mean warped position of 
 					    the target's neighbours */
@@ -2374,7 +2393,9 @@ static BOOLEAN build_lattices(Real spacing,
       if (Gglobals->features.obj_func[i] != NONLIN_OPTICALFLOW && Gglobals->features.obj_func[i] != NONLIN_CHAMFER)
 
 	go_get_samples_in_source(Gglobals->features.data[i], 
-				 SX,SY,SZ, Ga1_features[i], Glen, 
+				 Gglobals->features.data_mask[i],
+				 SX,SY,SZ, Ga1_features[i], 
+				 masked_samples_in_source[i], Glen, 
 				 (Gglobals->interpolant==nearest_neighbour_interpolant ? -1 : 0)
 				 );
     }
@@ -2391,9 +2412,11 @@ static BOOLEAN build_lattices(Real spacing,
       switch (Gglobals->features.obj_func[i]) {
       case NONLIN_XCORR:
 	Gsqrt_features[i] = 0.0;
-	for_inclusive(j,1,Glen) 
-	  Gsqrt_features[i] += Ga1_features[i][j]*Ga1_features[i][j];
-
+	for_inclusive(j,1,Glen) {
+	  if ( masked_samples_in_source[i][j] ==0)
+	    Gsqrt_features[i] += Ga1_features[i][j]*Ga1_features[i][j];
+	}
+	 
 	Gsqrt_features[i] = sqrt((double)Gsqrt_features[i]);
 	break;
       case NONLIN_DIFF:

@@ -13,7 +13,10 @@
 
    @CREATED    : February 3, 1992 - louis collins
    @MODIFIED   : $Log: minctracc.c,v $
-   @MODIFIED   : Revision 96.12  2004-03-18 06:51:03  rotor
+   @MODIFIED   : Revision 96.13  2005-06-28 18:56:14  rotor
+   @MODIFIED   :  * added masking for feature volumes (irina and patricia)
+   @MODIFIED   :
+   @MODIFIED   : Revision 96.12  2004/03/18 06:51:03  rotor
    @MODIFIED   :  * changed make_model from csh to sh
    @MODIFIED   :  * removed an extraneous printf from minctracc
    @MODIFIED   :
@@ -128,7 +131,7 @@ Wed May 26 13:05:44 EST 1993 lc
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.12 2004-03-18 06:51:03 rotor Exp $";
+static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.13 2005-06-28 18:56:14 rotor Exp $";
 #endif
 
 #include <config.h>
@@ -955,6 +958,10 @@ int get_feature_volumes(char *dst, char *key, int argc, char **argv)
       }
       if ( strncmp(argv[obj_func_index], "chamfer", 2)==0 ) {
 	obj_func =  NONLIN_CHAMFER;
+	weight_index++; args_used++;
+      }
+      if ( strncmp(argv[obj_func_index], "corrcoeff", 2)==0 ) {
+	obj_func = NONLIN_CORRCOEFF;
 	weight_index++; args_used++;
       }
       if ( strncmp(argv[obj_func_index], "opticalflow", 2)==0 ) {

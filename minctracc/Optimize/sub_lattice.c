@@ -14,9 +14,12 @@
                                     to create a sublattice defined on the target.
      
 @CREATED    : Mon Nov  3, 1997 , Louis Collins
-@VERSION    : $Id: sub_lattice.c,v 1.10 2004-02-12 06:08:21 rotor Exp $
+@VERSION    : $Id: sub_lattice.c,v 1.11 2005-06-28 18:56:18 rotor Exp $
 @MODIFIED   : $Log: sub_lattice.c,v $
-@MODIFIED   : Revision 1.10  2004-02-12 06:08:21  rotor
+@MODIFIED   : Revision 1.11  2005-06-28 18:56:18  rotor
+@MODIFIED   :  * added masking for feature volumes (irina and patricia)
+@MODIFIED   :
+@MODIFIED   : Revision 1.10  2004/02/12 06:08:21  rotor
 @MODIFIED   :  * removed public/private defs
 @MODIFIED   :
 @MODIFIED   : Revision 1.9  2003/02/26 00:56:38  lenezet
@@ -81,6 +84,12 @@ extern float
     Real                *x_transformed,
     Real                *y_transformed,
     Real                *z_transformed );
+
+public int point_not_masked(Volume volume, 
+			    Real wx, Real wy, Real wz);
+
+public int voxel_point_not_masked(Volume volume, 
+                                  Real vx, Real vy, Real vz);
 
 
 /*********************************************************************** 
@@ -204,9 +213,9 @@ void    build_source_lattice(Real x, Real y, Real z,
    use the world coordinates stored in x[],y[],z[] to interpolate len
    samples from the volume 'data' */
 
-void go_get_samples_in_source(Volume data,
+void go_get_samples_in_source(Volume data, Volume mask,
 				     float x[], float y[], float z[],
-				     float samples[],
+				     float samples[], BOOLEAN masked_samples[],
 				     int len,
 				     int inter_type) 
 {
@@ -215,20 +224,27 @@ void go_get_samples_in_source(Volume data,
   Real 
     val[MAX_DIMENSIONS];
   
-  
-  for_inclusive(c,1,len) {
-     val[0] = 0.0;
-     evaluate_volume_in_world(data,
-                              (Real)x[c], (Real)y[c], (Real)z[c], 
-                              inter_type,
-                              TRUE,
-                              0.0, 
-                              val,
-                              NULL, NULL, NULL, 
-                              NULL, NULL, NULL, 
-                              NULL, NULL, NULL );
-     
-     samples[c] = (float)val[0];
+  for_inclusive(c,1,len) {  
+    if (point_not_masked(mask, (Real)x[c], (Real)y[c], (Real)z[c])){
+      masked_samples[c] = FALSE;
+      val[0] = 0.0;
+      evaluate_volume_in_world(data,
+			       (Real)x[c], (Real)y[c], (Real)z[c], 
+			       inter_type,
+			       TRUE,
+			       0.0, 
+			       val,
+			       NULL, NULL, NULL, 
+			       NULL, NULL, NULL, 
+			       NULL, NULL, NULL );
+      
+      samples[c] = (float)val[0];
+    }
+    else
+      {
+	masked_samples[c] = TRUE;
+	samples[c] = 0.0;
+      }
   }
   
 }
@@ -263,12 +279,15 @@ void go_get_samples_in_source(Volume data,
 
 float go_get_samples_with_offset(
      Volume data,                  /* The volume of data */
+     Volume mask,                  /* The target mask */  
      float *x, float *y, float *z, /* the positions of the sub-lattice */
      Real  dx, Real  dy, Real dz,  /* the local displacement to apply  */
      int obj_func,                 /* the type of obj function req'd   */
      int len,                      /* number of sub-lattice nodes      */
+     int *sample_target_count,      /* number of nonmasked  sub-lattice nodes */
      float normalization,                /* normalization factor for obj func*/
      float *a1,                    /* feature value for (x,y,z) nodes  */
+     BOOLEAN *m1,                  /* mask flag for (x,y,z) nodes in source */ 
      BOOLEAN use_nearest_neighbour) /* interpolation flag              */
 {
   float
@@ -294,7 +313,13 @@ float go_get_samples_with_offset(
   Data_types 
     data_type;
   
-
+  double mean_s = 0.0;
+  double mean_t = 0.0;
+  double var_s = 0.0;
+  double var_t = 0.0;
+  double covariance = 0.0;
+  
+  
   number_of_nonzero_samples = 0;
 
   data_type = get_volume_data_type(data);
@@ -308,7 +333,7 @@ float go_get_samples_with_offset(
 
 
   s1 = s2 = s3 = s4 = s5 = 0.0;
-  ++a1;                         /* inc pointer, so that we are pointing to
+  ++a1;   ++m1;                   /* inc pointer, so that we are pointing to
                                    the first feature value, corresponding
                                    to the first sub-lattice point x,y,z   */
 
@@ -353,7 +378,7 @@ float go_get_samples_with_offset(
 	   sample = (float)sampleR;
 	*/
 	
-      if (  !(obj_func==NONLIN_CHAMFER) ||  (*a1>0) ) {
+	if (!(*m1) && (voxel_point_not_masked(mask, (Real)*x, (Real)*y, (Real)*z)) && (!(obj_func==NONLIN_CHAMFER) ||  (*a1>0)) ) {
 
          ind0 = (int) ( *x++ + dx );
          ind1 = (int) ( *y++ + dy );
@@ -370,7 +395,8 @@ float go_get_samples_with_offset(
 #include "switch_obj_func.c"
       }
       else {
-         a1++;
+         sample = 0; a1++;
+	 m1++;
          x++;
          y++;
          z++;
@@ -385,7 +411,7 @@ float go_get_samples_with_offset(
       
       for_inclusive(c,1,len) {
 	
-         if (  !(obj_func==NONLIN_CHAMFER) ||  (*a1>0) ) {
+	if  (  !(*m1) && (voxel_point_not_masked(mask, (Real)*x, (Real)*y, (Real)*z)) && (!(obj_func==NONLIN_CHAMFER) ||  (*a1>0)) ) {
             ind0 = (int) ( *x++ + dx );
             ind1 = (int) ( *y++ + dy );
             ind2 = (int) ( *z++ + dz );
@@ -401,7 +427,8 @@ float go_get_samples_with_offset(
 #include "switch_obj_func.c"
          }
          else {
-            a1++;
+            sample = 0; a1++;
+	    m1++;
             x++;
             y++;
             z++;
@@ -419,7 +446,7 @@ float go_get_samples_with_offset(
       
       for_inclusive(c,1,len) {
 	
-         if (  !(obj_func==NONLIN_CHAMFER) ||  (*a1>0) ) {
+        if  (  !(*m1) && (voxel_point_not_masked(mask, (Real)*x, (Real)*y, (Real)*z)) && (!(obj_func==NONLIN_CHAMFER) ||  (*a1>0)) ) {
             ind0 = (int) ( *x++ + dx );
             ind1 = (int) ( *y++ + dy );
             ind2 = (int) ( *z++ + dz );
@@ -435,7 +462,8 @@ float go_get_samples_with_offset(
 #include "switch_obj_func.c"
          }
          else {
-            a1++;
+            sample = 0; a1++;
+	    m1++;
             x++;
             y++;
             z++;
@@ -464,7 +492,7 @@ float go_get_samples_with_offset(
            
            /*  fast tri-linear interplation */
            
-           if (  !(obj_func==NONLIN_CHAMFER) ||  (*a1>0) ) {
+	  if  (  !(*m1) && (voxel_point_not_masked(mask, (Real)*x, (Real)*y, (Real)*z)) && (!(obj_func==NONLIN_CHAMFER) ||  (*a1>0)) ) {
               v0 = (Real) ( *x++ + dx );
               v1 = (Real) ( *y++ + dy );
               v2 = (Real) ( *z++ + dz );
@@ -523,7 +551,8 @@ float go_get_samples_with_offset(
 #include "switch_obj_func.c"
            }
            else {
-              a1++;
+              sample = 0; a1++;
+	      m1++;
               x++;
               y++;
               z++;
@@ -541,7 +570,7 @@ float go_get_samples_with_offset(
            
 	/*  fast tri-linear interpolation */
 	
-           if (  !(obj_func==NONLIN_CHAMFER) ||  (*a1>0) ) {
+  	  if  (  !(*m1) && (voxel_point_not_masked(mask, (Real)*x, (Real)*y, (Real)*z)) && (!(obj_func==NONLIN_CHAMFER) ||  (*a1>0)) ) {
               v0 = (Real) ( *x++ + dx );
               v1 = (Real) ( *y++ + dy );
               v2 = (Real) ( *z++ + dz );
@@ -598,7 +627,8 @@ float go_get_samples_with_offset(
 #include "switch_obj_func.c"
            }
            else {
-              a1++;
+              sample = 0; a1++;
+	      m1++;
               x++;
               y++;
               z++;
@@ -614,7 +644,7 @@ float go_get_samples_with_offset(
         
         for_inclusive(c,1,len) {
            
-           if (  !(obj_func==NONLIN_CHAMFER) ||  (*a1>0) ) {
+ 	  if  (  !(*m1) && (voxel_point_not_masked(mask, (Real)*x, (Real)*y, (Real)*z)) && (!(obj_func==NONLIN_CHAMFER) ||  (*a1>0)) ) {
               /*  fast tri-linear interplation */
               
               v0 = (Real) ( *x++ + dx );
@@ -673,7 +703,8 @@ float go_get_samples_with_offset(
 #include "switch_obj_func.c"
            }
            else {
-              a1++;
+              sample = 0; a1++;
+	      m1++;
               x++;
               y++;
               z++;
@@ -707,7 +738,7 @@ float go_get_samples_with_offset(
 	r = 0.0;
       }
       else {
-	r = s1 / (normalization*sqrt((double)s3));
+	r = s1 / ((sqrt((double)s2))*(sqrt((double)s3)));
       }
     }
     /* r = 1.0 - r;                 now, 0 is best                   */
@@ -718,13 +749,13 @@ float go_get_samples_with_offset(
                                    s1 stores the sum of the magnitude of
                                    the differences*/
 
-    r = -s1 / normalization;	/* r = average intensity difference ; with
+     r = -s1 /number_of_nonzero_samples;	/* r = average intensity difference ; with
                                    -max(intensity range) < r < 0,
                                    where 0 is best                  */
     break;
   case NONLIN_LABEL:
-    r = s1 / normalization;           /* r = average label agreement,
-                                   s1 stores the number of similar labels
+     r = s1 /number_of_nonzero_samples;           /* r = average label agreement,
+                                    s1 stores the number of similar labels
                                    0 < r < 1.0                      
                                    where 1.0 is best                */
     break;
@@ -759,13 +790,28 @@ float go_get_samples_with_offset(
 	   *
 	   * normalization = #values considered
 	   */
-	  double mean_s = s1 / normalization;
-	  double mean_t = s2 / normalization;
-	  double var_s = s3 / normalization - mean_s*mean_s;
-	  double var_t = s4 / normalization - mean_t*mean_t;
-	  double covariance = s5 / normalization - mean_s*mean_t;
+	  if (number_of_nonzero_samples>0) {
+	    mean_s = s1 / number_of_nonzero_samples;
+	    mean_t = s2 / number_of_nonzero_samples;
+	    var_s = s3 / number_of_nonzero_samples - mean_s*mean_s;
+	    var_t = s4 / number_of_nonzero_samples - mean_t*mean_t;
+	    covariance = s5 / number_of_nonzero_samples - mean_s*mean_t;
+	  }
+	  else {
+	    mean_s = 0.0;
+	    mean_t = 0.0;
+	    var_s = 0.0;
+	    var_t = 0.0;
+	    covariance = 0.0;
+	  }
 
-	  r = covariance / sqrt( var_s*var_t );
+
+	  if ((var_s < 0.00001) || (var_t < 0.00001) ) {
+	    r = 0.0;
+	  }
+	  else {
+	    r = covariance / sqrt( var_s*var_t );	    
+	  }
       }
       break;
 	  
@@ -773,7 +819,7 @@ float go_get_samples_with_offset(
 				   in the sub-lattice.
                                    s1 stores the sum of the squared intensity
 				   differences */
-    r = -s1 / normalization;
+    r = -s1 /number_of_nonzero_samples;
     break;
 
   default:
