@@ -1,11 +1,16 @@
 CHANGES to the MNI_AutoReg package...
 
+Release 0.98t
+-------------
+
+* 30% speed increase due to changes in nonlinear fitting code
+* Corrected masking in sub-lattice (Patricia Le Nezet and Irina Kezele)
+
+
 Release 0.98s
 -------------
 
 * Removed malloc.h from mincblur to assist build on OSX
-* 30% speed increase due to changes in nonlinear fitting code
-* Corrected masking in sub-lattice (Patricia Le Nezet and Irina Kezele)
 
 
 Release 0.98r
@@ -14,6 +19,7 @@ Release 0.98r
 * Fixed COV bug (lenezet)
 * Fixed make check bug with direction cosines
 * added epm-header.in for binary package building
+
 
 Release 0.98q
 -------------
@@ -25,6 +31,7 @@ Release 0.98q
 * Removed most Keyword Substitutions in perl programs in favour
     of the perl module FindBin::Bin this module is part of the
 	base perl distribution
+
 
 Release 0.98p
 -------------
