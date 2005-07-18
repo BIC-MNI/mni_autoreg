@@ -4,6 +4,8 @@ Release 0.98s
 -------------
 
 * Removed malloc.h from mincblur to assist build on OSX
+* 30% speed increase due to changes in nonlinear fitting code
+* Corrected masking in sub-lattice (Patricia Le Nezet and Irina Kezele)
 
 
 Release 0.98r
