@@ -14,9 +14,12 @@
                                     to create a sublattice defined on the target.
      
 @CREATED    : Mon Nov  3, 1997 , Louis Collins
-@VERSION    : $Id: sub_lattice.c,v 1.11 2005-06-28 18:56:18 rotor Exp $
+@VERSION    : $Id: sub_lattice.c,v 1.12 2005-07-18 19:14:02 rotor Exp $
 @MODIFIED   : $Log: sub_lattice.c,v $
-@MODIFIED   : Revision 1.11  2005-06-28 18:56:18  rotor
+@MODIFIED   : Revision 1.12  2005-07-18 19:14:02  rotor
+@MODIFIED   :  * Optimisations to code resulting in 30% speed increase for nonlinear fitting
+@MODIFIED   :
+@MODIFIED   : Revision 1.11  2005/06/28 18:56:18  rotor
 @MODIFIED   :  * added masking for feature volumes (irina and patricia)
 @MODIFIED   :
 @MODIFIED   : Revision 1.10  2004/02/12 06:08:21  rotor
@@ -292,7 +295,7 @@ float go_get_samples_with_offset(
 {
   float
     sample, r,
-    s1,s2,s3,s4,s5;		   /* accumulators for inner loop */
+    s1,s2,s3,s4,s5,tmp;		   /* accumulators for inner loop */
   int 
     sizes[3],
     ind0, ind1, ind2, 
@@ -350,106 +353,110 @@ float go_get_samples_with_offset(
     case UNSIGNED_BYTE:  
       
       byte_ptr = VOXEL_DATA (data); 
-
+      
+      /* increment by one as we index from 1...n */
       ++x; ++y; ++z; 
       
-      for_inclusive(c,1,len) {
+     /* for each sub-lattice node */
+     for(c=len; c--;) {
 	
 	/*
-	   this is code to test timing of David's evaluate_volume_in_world()
-	   interpolation code.  While it is _VERY_ general, the eval_vol_in_world()'s
-	   NN interpolation is approximately 8-9 times slower than the bit of 
-	   fast NN code below.
-	   
-	   Real
-	   sampleR,index[5], wx, wy,wz;
-	   
-	   index[0] = (Real) ( *x++ + dx );
-	   index[1] = (Real) ( *y++ + dy );
-	   index[2] = (Real) ( *z++ + dz );
-	   index[3] = 0.0;
-	   index[4] = 0.0;
-	   
-	   convert_voxel_to_world(data, index, &wx, &wy, &wz );
-	   
-	   evaluate_volume_in_world(data, wx, wy, wz,
-				    0, TRUE, 0.0, &sampleR,
-				    NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
-	   sample = (float)sampleR;
-	*/
+	 *  this is code to test timing of David's evaluate_volume_in_world()
+	 *  interpolation code.  While it is _VERY_ general, the eval_vol_in_world()'s
+	 *  NN interpolation is approximately 8-9 times slower than the bit of 
+	 *  fast NN code below.
+	 *  
+	 *  Real sampleR, index[5], wx, wy, wz;
+	 *  index[0] = (Real) ( *x + dx );
+	 *  index[1] = (Real) ( *y + dy );
+	 *  index[2] = (Real) ( *z + dz );
+	 *  index[3] = index[4] = 0.0;
+	 *  convert_voxel_to_world(data, index, &wx, &wy, &wz );
+	 *  evaluate_volume_in_world(data, wx, wy, wz,
+	 *			    0, TRUE, 0.0, &sampleR,
+	 *			    NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
+	 *   sample = (float)sampleR;
+	 */
 	
 	if (!(*m1) && (voxel_point_not_masked(mask, (Real)*x, (Real)*y, (Real)*z)) && (!(obj_func==NONLIN_CHAMFER) ||  (*a1>0)) ) {
 
-         ind0 = (int) ( *x++ + dx );
-         ind1 = (int) ( *y++ + dy );
-         ind2 = (int) ( *z++ + dz );
+         ind0 = (int) ( *x + dx );
+         ind1 = (int) ( *y + dy );
+         ind2 = (int) ( *z + dz );
          
          if (ind0>=0 && ind0<xs &&
              ind1>=0 && ind1<ys &&
              ind2>=0 && ind2<zs) {
             sample = (float)(byte_ptr[ind0][ind1][ind2]) * f_scale + f_trans;
          }
-         else
+         else{
             sample = 0.0;
+         }
 
 #include "switch_obj_func.c"
       }
-      else {
-         sample = 0; a1++;
-	 m1++;
-         x++;
-         y++;
-         z++;
-      }
+        
+       /* increment the coordinate, value and mask array pointers */  
+       x++;
+       y++;
+       z++;
+       a1++;
+	    m1++;
+     
     }
     break;
+    
     case SIGNED_SHORT:  
       
       sshort_ptr = VOXEL_DATA (data); 
 
+      /* increment by one as we index from 1...n */
       ++x; ++y; ++z; 
       
-      for_inclusive(c,1,len) {
+     /* for each sub-lattice node */
+     for(c=len; c--;) {
 	
 	if  (  !(*m1) && (voxel_point_not_masked(mask, (Real)*x, (Real)*y, (Real)*z)) && (!(obj_func==NONLIN_CHAMFER) ||  (*a1>0)) ) {
-            ind0 = (int) ( *x++ + dx );
-            ind1 = (int) ( *y++ + dy );
-            ind2 = (int) ( *z++ + dz );
+            ind0 = (int) ( *x + dx );
+            ind1 = (int) ( *y + dy );
+            ind2 = (int) ( *z + dz );
             
             if (ind0>=0 && ind0<xs &&
                 ind1>=0 && ind1<ys &&
                 ind2>=0 && ind2<zs) {
                sample = sshort_ptr[ind0][ind1][ind2] * f_scale + f_trans;
             }
-            else
+            else{
                sample = 0.0;
+               }
 	
 #include "switch_obj_func.c"
          }
-         else {
-            sample = 0; a1++;
-	    m1++;
-            x++;
-            y++;
-            z++;
-         }
+     
+       /* increment the pointers */  
+       ++x;
+       ++y;
+       ++z;
+       ++a1;
+	    ++m1;
       }
       break;
+      
     case UNSIGNED_SHORT:  
       
-      ushort_ptr = VOXEL_DATA (data); 
-
-
+      ushort_ptr = VOXEL_DATA (data);
       ushort_ptr = (unsigned short ***)data->array.data;
 
+      /* increment by one as we index from 1...n */
       ++x; ++y; ++z; 
       
-      for_inclusive(c,1,len) {
+        /* for each sub-lattice node */
+        for(c=len; c--;) {
 	
         if  (  !(*m1) && (voxel_point_not_masked(mask, (Real)*x, (Real)*y, (Real)*z)) && (!(obj_func==NONLIN_CHAMFER) ||  (*a1>0)) ) {
-            ind0 = (int) ( *x++ + dx );
-            ind1 = (int) ( *y++ + dy );
-            ind2 = (int) ( *z++ + dz );
+            ind0 = (int) ( *x + dx );
+            ind1 = (int) ( *y + dy );
+            ind2 = (int) ( *z + dz );
             
             if (ind0>=0 && ind0<xs &&
                 ind1>=0 && ind1<ys &&
@@ -461,41 +468,46 @@ float go_get_samples_with_offset(
             
 #include "switch_obj_func.c"
          }
-         else {
-            sample = 0; a1++;
-	    m1++;
-            x++;
-            y++;
-            z++;
-         }
+     
+       /* increment the pointers */  
+       ++x;
+       ++y;
+       ++z;
+       ++a1;
+	    ++m1;
       }
       break;
+      
     default:
       print_error_and_line_num("Image data type not supported in go_get_samples_with_offset (only unsigned_byte, signed_short, unsigned_short allowed)",__FILE__, __LINE__);
     }
     
   }
+  
   else {			/* then do fast trilinear interpolation */
-     
-    if (Gglobals->count[Z]>1) {offset0 = 1;} else {offset0 = 0;}
-    if (Gglobals->count[Y]>1) {offset1 = 1;} else {offset1 = 0;}
-    if (Gglobals->count[X]>1) {offset2 = 1;} else {offset2 = 0;}
+    
+    /* set up offsets */
+    offset0 = (Gglobals->count[Z] > 1) ? 1 : 0;
+    offset1 = (Gglobals->count[Y] > 1) ? 1 : 0;
+    offset2 = (Gglobals->count[X] > 1) ? 1 : 0;
     
     switch( data_type ) {
-        case UNSIGNED_BYTE:  
-        
+    
+        case UNSIGNED_BYTE:
         byte_ptr = VOXEL_DATA (data);
         
+        /* increment by one as we index from 1...n */
         ++x; ++y; ++z; 
         
-        for_inclusive(c,1,len) {
+        /* for each sub-lattice node */
+        for(c=len; c--;) {
            
            /*  fast tri-linear interplation */
            
 	  if  (  !(*m1) && (voxel_point_not_masked(mask, (Real)*x, (Real)*y, (Real)*z)) && (!(obj_func==NONLIN_CHAMFER) ||  (*a1>0)) ) {
-              v0 = (Real) ( *x++ + dx );
-              v1 = (Real) ( *y++ + dy );
-              v2 = (Real) ( *z++ + dz );
+              v0 = (Real) ( *x + dx );
+              v1 = (Real) ( *y + dy );
+              v2 = (Real) ( *z + dz );
               
               ind0 = (int)v0;
               ind1 = (int)v1;
@@ -544,19 +556,22 @@ float go_get_samples_with_offset(
                  
                  
               }
-              else
+              else{
                  sample = 0.0;
+                 }
               
               
 #include "switch_obj_func.c"
            }
-           else {
-              sample = 0; a1++;
-	      m1++;
-              x++;
-              y++;
-              z++;
-           }
+
+/*  this one */
+       
+       /* increment the pointers */  
+       ++x;
+       ++y;
+       ++z;
+       ++a1;
+	    ++m1;
            
         }
         break;
@@ -564,16 +579,18 @@ float go_get_samples_with_offset(
         
         sshort_ptr = VOXEL_DATA (data); 
         
+        /* increment by one as we index from 1...n */
         ++x; ++y; ++z; 
         
-        for_inclusive(c,1,len) {
+        /* for each sub-lattice node */
+        for(c=len; c--;) {
            
 	/*  fast tri-linear interpolation */
 	
   	  if  (  !(*m1) && (voxel_point_not_masked(mask, (Real)*x, (Real)*y, (Real)*z)) && (!(obj_func==NONLIN_CHAMFER) ||  (*a1>0)) ) {
-              v0 = (Real) ( *x++ + dx );
-              v1 = (Real) ( *y++ + dy );
-              v2 = (Real) ( *z++ + dz );
+              v0 = (Real) ( *x + dx );
+              v1 = (Real) ( *y + dy );
+              v2 = (Real) ( *z + dz );
               
               ind0 = (int)v0;
               ind1 = (int)v1;
@@ -626,13 +643,13 @@ float go_get_samples_with_offset(
               
 #include "switch_obj_func.c"
            }
-           else {
-              sample = 0; a1++;
-	      m1++;
-              x++;
-              y++;
-              z++;
-           }
+     
+       /* increment the pointers */  
+       ++x;
+       ++y;
+       ++z;
+       ++a1;
+	    ++m1;
            
         }
         break;
@@ -640,16 +657,18 @@ float go_get_samples_with_offset(
         
         ushort_ptr = VOXEL_DATA (data);
         
+        /* increment by one as we index from 1...n */
         ++x; ++y; ++z; 
         
-        for_inclusive(c,1,len) {
+        /* for each sub-lattice node */
+        for(c=len; c--;) {
            
  	  if  (  !(*m1) && (voxel_point_not_masked(mask, (Real)*x, (Real)*y, (Real)*z)) && (!(obj_func==NONLIN_CHAMFER) ||  (*a1>0)) ) {
               /*  fast tri-linear interplation */
               
-              v0 = (Real) ( *x++ + dx );
-              v1 = (Real) ( *y++ + dy );
-              v2 = (Real) ( *z++ + dz );
+              v0 = (Real) ( *x + dx );
+              v1 = (Real) ( *y + dy );
+              v2 = (Real) ( *z + dz );
               
               ind0 = (int)v0;
               ind1 = (int)v1;
@@ -702,13 +721,14 @@ float go_get_samples_with_offset(
               
 #include "switch_obj_func.c"
            }
-           else {
-              sample = 0; a1++;
-	      m1++;
-              x++;
-              y++;
-              z++;
-           }
+         
+     
+       /* increment the pointers */  
+       ++x;
+       ++y;
+       ++z;
+       ++a1;
+	    ++m1;
 
         }
         break;
@@ -718,7 +738,8 @@ float go_get_samples_with_offset(
      
   }
   
-  
+
+
 				/* do the last bits of the similarity function
 				   calculation here - normalizing each obj_func
                                    where-ever possible: */

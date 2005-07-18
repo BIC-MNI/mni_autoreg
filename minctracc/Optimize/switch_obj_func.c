@@ -19,7 +19,10 @@
 
 @CREATED    : 
 @MODIFIED   : $Log: switch_obj_func.c,v $
-@MODIFIED   : Revision 96.4  2005-06-28 18:56:18  rotor
+@MODIFIED   : Revision 96.5  2005-07-18 19:14:02  rotor
+@MODIFIED   :  * Optimisations to code resulting in 30% speed increase for nonlinear fitting
+@MODIFIED   :
+@MODIFIED   : Revision 96.4  2005/06/28 18:56:18  rotor
 @MODIFIED   :  * added masking for feature volumes (irina and patricia)
 @MODIFIED   :
 @MODIFIED   : Revision 96.3  2003/02/04 06:08:46  stever
@@ -52,50 +55,55 @@
 ---------------------------------------------------------------------------- */
 
 	switch (obj_func) {
-	float tmp;
+   
 	case NONLIN_XCORR:
 	  s2 += (*a1) * (*a1);
-	  s1 += *a1++ * sample; /* compute correlation */
+	  s1 += *a1 * sample; /* compute correlation */
 	  s3 += sample * sample;
-	  *m1++;
 	  break;
+     
 	case NONLIN_DIFF:
-	  tmp = *a1++ - sample;
-	  if (tmp<0) tmp *= -1.0;
+	  tmp = *a1 - sample;
+	  if (tmp<0){
+        tmp *= -1.0;
+     }
 	  s1 += tmp;            /* add the difference */
 	  number_of_nonzero_samples++;
-	  *m1++;
 	  break;
+     
 	case NONLIN_LABEL:
-	  tmp = *a1++ - sample;
-	  if (tmp<0) tmp *= -1.0;
-	  if (tmp < 0.01)
+	  tmp = *a1 - sample;
+	  if (tmp<0){
+        tmp *= -1.0;
+     }
+	  if (tmp < 0.01){
 	    s1 += 1.0;          /* count up similar labels */
+     }
 	  number_of_nonzero_samples++;
-	  *m1++;
 	  break;
+     
 	case NONLIN_CHAMFER:
-	  if (*a1++ > 0) {
+	  if (*a1 > 0) {
              s1 += sample;         /* add the distance */
              number_of_nonzero_samples++;
           }
-	  *m1++;
 	  break;
+     
 	case NONLIN_CORRCOEFF:
 	    s1 += *a1;
 	    s2 += sample;
 	    s3 += (*a1) * (*a1);
 	    s4 += sample * sample;
-	    s5 += *a1++ * sample;
+	    s5 += *a1 * sample;
 	    number_of_nonzero_samples++;
-	    *m1++;
 	    break;
+       
 	case NONLIN_SQDIFF:
-	  tmp = *a1++ - sample;
+	  tmp = *a1 - sample;
 	  s1 += tmp*tmp;
-	  *m1++;
 	  number_of_nonzero_samples++;
 	  break;
+     
 	default:
 	  print_error_and_line_num("Objective function %d not supported in go_get_samples_with_offset",__FILE__, __LINE__,obj_func);
 	}
