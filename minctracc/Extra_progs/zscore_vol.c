@@ -1,5 +1,6 @@
 
-#include <volume_io/internal_volume_io.h>
+#include <float.h>
+#include <volume_io.h>
 #include <config.h>
 #include "interpolation.h"
 

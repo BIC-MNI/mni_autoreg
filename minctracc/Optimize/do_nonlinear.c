@@ -16,7 +16,15 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 96.23  2005-06-28 18:56:18  rotor
+@MODIFIED   : Revision 96.24  2005-07-20 20:45:50  rotor
+@MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
+@MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
+@MODIFIED   :     * Removed old VOLUME_IO cruft #defines
+@MODIFIED   :     * Fixed up all Makefile.am's in subdirs
+@MODIFIED   :     * Removed all things in Proglib that are now part of MINC proper
+@MODIFIED   :     * Still working on fixing up perl subdirectory - removing mni_perllib
+@MODIFIED   :
+@MODIFIED   : Revision 96.23  2005/06/28 18:56:18  rotor
 @MODIFIED   :  * added masking for feature volumes (irina and patricia)
 @MODIFIED   :
 @MODIFIED   : Revision 96.22  2004/05/05 17:21:41  louis
@@ -328,16 +336,17 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.23 2005-06-28 18:56:18 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.24 2005-07-20 20:45:50 rotor Exp $";
 #endif
 
 #include <config.h>		/* MAXtype and MIN defs                      */
-#include <volume_io/internal_volume_io.h>	/* structs & tools to deal with volumes data */
+#include <float.h>
+#include <volume_io.h>	/* structs & tools to deal with volumes data */
 #include <amoeba.h>		/* simplex optimization struct               */
 
 #include <stdlib.h>		/* to get header info for drand48()          */
 #include <arg_data.h>		/* definition of the global data struct      */
-#include <print_error.h>	/* def of print_error_and_..                 */
+#include <Proglib.h>	/* def of print_error_and_..                 */
 #include <deform_support.h>	/* prototypes for routines called
 				   from deformation procedures.              */
 

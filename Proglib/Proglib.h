@@ -6,8 +6,24 @@
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-#include "ParseArgv.h"
-#include "history.h"
-#include "print_error.h"
-#include "print_version.h"
-#include "time_stamp.h"
+/* a few macros for historical reasons */
+#define VOXEL_DATA(vol) ((vol)->array.data)
+
+#define MNI_AUTOREG_LONG_VERSION \
+   "Package " PACKAGE_STRING \
+   ", compiled by " MNI_AUTOREG_COMPILE_USER \
+   "@" MNI_AUTOREG_COMPILE_HOST \
+   " (" MNI_AUTOREG_COMPILE_SYSTEM ")" \
+   " on " MNI_AUTOREG_COMPILE_DATETIME
+
+
+void  print_error_and_line_num( char format[], char *name, int line, ... );
+void  print_version_info( char *version_string);
+
+
+/*
+ *  * Generate a history string consisting of the output of time_stamp(),
+ *   * (which ends with a newline) followed by "(MNI_AUTOREG_LONG_VERSION)\n".
+ *    */
+char* history_string( int ac, char* av[] );
+

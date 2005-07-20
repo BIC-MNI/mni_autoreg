@@ -35,7 +35,15 @@
       created by removing build_default_deformation_field from 
       transformations.c
 @MODIFIED   : $Log: default_def.c,v $
-@MODIFIED   : Revision 96.8  2004-02-12 05:54:27  rotor
+@MODIFIED   : Revision 96.9  2005-07-20 20:45:49  rotor
+@MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
+@MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
+@MODIFIED   :     * Removed old VOLUME_IO cruft #defines
+@MODIFIED   :     * Fixed up all Makefile.am's in subdirs
+@MODIFIED   :     * Removed all things in Proglib that are now part of MINC proper
+@MODIFIED   :     * Still working on fixing up perl subdirectory - removing mni_perllib
+@MODIFIED   :
+@MODIFIED   : Revision 96.8  2004/02/12 05:54:27  rotor
 @MODIFIED   :  * removed public/private defs
 @MODIFIED   :
 @MODIFIED   : Revision 96.7  2004/02/04 20:43:46  lenezet
@@ -92,8 +100,8 @@ static char rcsid[]="";
 #endif
 
 #include <config.h>
-#include <volume_io/internal_volume_io.h>
-#include <print_error.h>
+#include <volume_io.h>
+#include <Proglib.h>
 #include "arg_data.h"
 #include "local_macros.h"
 #include "constants.h"
@@ -269,14 +277,7 @@ static void resample_the_deformation_field(Arg_Data *globals)
     (void) strcpy( (new_field)->dimension_names[xyzv[Z+1]], MIvector_dimension );
   }
 
-#ifdef VOLIO_HAVE_2ARG_DELETE_DIMENSION_NAMES
   delete_dimension_names(new_field, data_dim_names);
-#else
-#  ifndef VOLIO_HAVE_1ARG_DELETE_DIMENSION_NAMES
-#    error Help!  Do not know how to invoke delete_dimension_names.
-#  endif
-  delete_dimension_names(data_dim_names);
-#endif
 
   if (globals->flags.debug) {
     print ("in resample_deformation_field:\n");

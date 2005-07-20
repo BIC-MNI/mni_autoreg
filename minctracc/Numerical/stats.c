@@ -15,7 +15,15 @@
 
 @CREATED    : February 23, 1996
 @MODIFIED   : $Log: stats.c,v $
-@MODIFIED   : Revision 1.5  2004-02-13 00:17:15  rotor
+@MODIFIED   : Revision 1.6  2005-07-20 20:45:49  rotor
+@MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
+@MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
+@MODIFIED   :     * Removed old VOLUME_IO cruft #defines
+@MODIFIED   :     * Fixed up all Makefile.am's in subdirs
+@MODIFIED   :     * Removed all things in Proglib that are now part of MINC proper
+@MODIFIED   :     * Still working on fixing up perl subdirectory - removing mni_perllib
+@MODIFIED   :
+@MODIFIED   : Revision 1.5  2004/02/13 00:17:15  rotor
 @MODIFIED   :  * removed public/private defs
 @MODIFIED   :
 @MODIFIED   : Revision 1.4  2002/12/13 21:16:31  lenezet
@@ -33,11 +41,12 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/stats.c,v 1.5 2004-02-13 00:17:15 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/stats.c,v 1.6 2005-07-20 20:45:49 rotor Exp $";
 #endif
 
-#include <volume_io/internal_volume_io.h>
 #include <config.h>
+#include <float.h>
+#include <volume_io.h>
 #include <stats.h>
 
 void init_stats(stats_struct *stat,

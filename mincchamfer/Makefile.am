@@ -1,6 +1,6 @@
-INCLUDES = -I$(top_srcdir)/Proglib @MNI_INCLUDES@
+INCLUDES = -I$(top_srcdir)/Proglib
 
-LDADD = ../Proglib/libProglib.a @MNI_LIBS@ -lm
+LDADD = ../Proglib/libProglib.a -lm
 
 bin_PROGRAMS = mincchamfer
 

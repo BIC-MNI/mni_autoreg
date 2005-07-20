@@ -28,7 +28,15 @@
 
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   :  $Log: init_lattice.c,v $
-@MODIFIED   :  Revision 96.8  2004-02-12 06:04:52  rotor
+@MODIFIED   :  Revision 96.9  2005-07-20 20:45:51  rotor
+@MODIFIED   :      * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
+@MODIFIED   :      * Many changes to includes of files (float.h, limits.h, etc)
+@MODIFIED   :      * Removed old VOLUME_IO cruft #defines
+@MODIFIED   :      * Fixed up all Makefile.am's in subdirs
+@MODIFIED   :      * Removed all things in Proglib that are now part of MINC proper
+@MODIFIED   :      * Still working on fixing up perl subdirectory - removing mni_perllib
+@MODIFIED   :
+@MODIFIED   :  Revision 96.8  2004/02/12 06:04:52  rotor
 @MODIFIED   :   * removed public/private defs
 @MODIFIED   :
 @MODIFIED   :  Revision 96.7  2004/02/04 20:44:42  lenezet
@@ -97,11 +105,11 @@ made change to init lattice to not change start when there is only 1 slice.
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/init_lattice.c,v 96.8 2004-02-12 06:04:52 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/init_lattice.c,v 96.9 2005-07-20 20:45:51 rotor Exp $";
 #endif
 
 #include <config.h>
-#include <volume_io/internal_volume_io.h>
+#include <volume_io.h>
 
 #include "matrix_basics.h"
 #include "make_rots.h"
@@ -111,7 +119,7 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 
 #include "local_macros.h"
 
-#include <print_error.h>
+#include <Proglib.h>
 
 extern Arg_Data main_args;
 
@@ -143,15 +151,7 @@ void get_volume_XYZV_indices(Volume data, int xyzv[])
     }
   }
 
-#ifdef VOLIO_HAVE_2ARG_DELETE_DIMENSION_NAMES
   delete_dimension_names(data, data_dim_names);
-#else
-#  ifndef VOLIO_HAVE_1ARG_DELETE_DIMENSION_NAMES
-#    error Help!  Do not know how to invoke delete_dimension_names.
-#  endif
-  delete_dimension_names(data_dim_names);
-#endif
-
 }
 
 

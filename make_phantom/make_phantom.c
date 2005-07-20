@@ -20,7 +20,15 @@
               express or implied warranty.
    @CREATED    : Wed Mar 16 20:20:50 EST 1994  Louis Collins
    @MODIFIED   : $Log: make_phantom.c,v $
-   @MODIFIED   : Revision 1.5  2004-02-12 05:53:40  rotor
+   @MODIFIED   : Revision 1.6  2005-07-20 20:45:32  rotor
+   @MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
+   @MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
+   @MODIFIED   :     * Removed old VOLUME_IO cruft #defines
+   @MODIFIED   :     * Fixed up all Makefile.am's in subdirs
+   @MODIFIED   :     * Removed all things in Proglib that are now part of MINC proper
+   @MODIFIED   :     * Still working on fixing up perl subdirectory - removing mni_perllib
+   @MODIFIED   :
+   @MODIFIED   : Revision 1.5  2004/02/12 05:53:40  rotor
    @MODIFIED   :  * removed public/private defs
    @MODIFIED   :
    @MODIFIED   : Revision 1.4  2000/02/20 04:00:58  stever
@@ -47,8 +55,11 @@
 ---------------------------------------------------------------------------- */
 
 #include <config.h>
+#include <float.h>
+#include <limits.h>
 #include <volume_io.h>
 #include <Proglib.h>
+#include <ParseArgv.h>
 #include "make_phantom.h"
 
 static char *default_dim_names[N_DIMENSIONS] = { MIxspace, MIyspace, MIzspace };

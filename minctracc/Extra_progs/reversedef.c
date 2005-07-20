@@ -11,7 +11,15 @@
 @CALLS      : 
 @CREATED    : Mon May 29 09:07:14 MET DST 1995 Collins
 @MODIFIED   : $Log: reversedef.c,v $
-@MODIFIED   : Revision 1.4  2004-02-12 05:54:06  rotor
+@MODIFIED   : Revision 1.5  2005-07-20 20:45:47  rotor
+@MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
+@MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
+@MODIFIED   :     * Removed old VOLUME_IO cruft #defines
+@MODIFIED   :     * Fixed up all Makefile.am's in subdirs
+@MODIFIED   :     * Removed all things in Proglib that are now part of MINC proper
+@MODIFIED   :     * Still working on fixing up perl subdirectory - removing mni_perllib
+@MODIFIED   :
+@MODIFIED   : Revision 1.4  2004/02/12 05:54:06  rotor
 @MODIFIED   :  * removed public/private defs
 @MODIFIED   :
 @MODIFIED   : Revision 1.3  2002/03/26 14:15:32  stever
@@ -37,14 +45,14 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/reversedef.c,v 1.4 2004-02-12 05:54:06 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/reversedef.c,v 1.5 2005-07-20 20:45:47 rotor Exp $";
 #endif
 
 #include <config.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <volume_io/internal_volume_io.h>
+#include <volume_io.h>
 #include <minc_def.h>
 #include <ParseArgv.h>
 

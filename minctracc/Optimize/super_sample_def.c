@@ -20,7 +20,15 @@
 
 @CREATED    : 
 @MODIFIED   : $Log: super_sample_def.c,v $
-@MODIFIED   : Revision 96.10  2004-02-12 06:08:21  rotor
+@MODIFIED   : Revision 96.11  2005-07-20 20:45:51  rotor
+@MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
+@MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
+@MODIFIED   :     * Removed old VOLUME_IO cruft #defines
+@MODIFIED   :     * Fixed up all Makefile.am's in subdirs
+@MODIFIED   :     * Removed all things in Proglib that are now part of MINC proper
+@MODIFIED   :     * Still working on fixing up perl subdirectory - removing mni_perllib
+@MODIFIED   :
+@MODIFIED   : Revision 96.10  2004/02/12 06:08:21  rotor
 @MODIFIED   :  * removed public/private defs
 @MODIFIED   :
 @MODIFIED   : Revision 96.9  2004/02/04 20:44:13  lenezet
@@ -87,12 +95,12 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/super_sample_def.c,v 96.10 2004-02-12 06:08:21 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/super_sample_def.c,v 96.11 2005-07-20 20:45:51 rotor Exp $";
 #endif
 
 #include <config.h>
-#include <volume_io/internal_volume_io.h>
-#include <print_error.h>
+#include <volume_io.h>
+#include <Proglib.h>
 #include "constants.h"
 #include "point_vector.h"
 

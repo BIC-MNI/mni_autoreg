@@ -3,9 +3,17 @@
 @DESCRIPTION: routines to calculate the objective function used for local
               optimization              
 @CREATED    : Nov 4, 1997, Louis Collins
-@VERSION    : $Id: def_obj_functions.c,v 1.11 2005-06-28 18:56:18 rotor Exp $
+@VERSION    : $Id: def_obj_functions.c,v 1.12 2005-07-20 20:45:50 rotor Exp $
 @MODIFIED   : $Log: def_obj_functions.c,v $
-@MODIFIED   : Revision 1.11  2005-06-28 18:56:18  rotor
+@MODIFIED   : Revision 1.12  2005-07-20 20:45:50  rotor
+@MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
+@MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
+@MODIFIED   :     * Removed old VOLUME_IO cruft #defines
+@MODIFIED   :     * Fixed up all Makefile.am's in subdirs
+@MODIFIED   :     * Removed all things in Proglib that are now part of MINC proper
+@MODIFIED   :     * Still working on fixing up perl subdirectory - removing mni_perllib
+@MODIFIED   :
+@MODIFIED   : Revision 1.11  2005/06/28 18:56:18  rotor
 @MODIFIED   :  * added masking for feature volumes (irina and patricia)
 @MODIFIED   :
 @MODIFIED   : Revision 1.10  2004/02/12 06:08:19  rotor
@@ -39,7 +47,7 @@
 -----------------------------------------------------------------------------*/
 
 #include <config.h>		
-#include <volume_io/internal_volume_io.h>	
+#include <volume_io.h>	
 #include "constants.h"
 #include <arg_data.h>           /* definition of the global data struct      */
 #include <Proglib.h>

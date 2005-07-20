@@ -19,7 +19,15 @@
 
 @CREATED    : some time in 1993
 @MODIFIED   : $Log: gradmag_volume.c,v $
-@MODIFIED   : Revision 96.2  2005-01-29 16:34:05  rotor
+@MODIFIED   : Revision 96.3  2005-07-20 20:45:39  rotor
+@MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
+@MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
+@MODIFIED   :     * Removed old VOLUME_IO cruft #defines
+@MODIFIED   :     * Fixed up all Makefile.am's in subdirs
+@MODIFIED   :     * Removed all things in Proglib that are now part of MINC proper
+@MODIFIED   :     * Still working on fixing up perl subdirectory - removing mni_perllib
+@MODIFIED   :
+@MODIFIED   : Revision 96.2  2005/01/29 16:34:05  rotor
 @MODIFIED   :  * removed malloc.h include for smoother OSX build
 @MODIFIED   :
 @MODIFIED   : Revision 96.1  2004/02/12 05:53:48  rotor
@@ -61,7 +69,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/gradmag_volume.c,v 96.2 2005-01-29 16:34:05 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/gradmag_volume.c,v 96.3 2005-07-20 20:45:39 rotor Exp $";
 #endif
 
 #include <config.h>             /* for EXIT_FAILURE (on some systems) */
@@ -69,6 +77,7 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur
 #include <stdlib.h>
 #include <stdio.h>
 #include <float.h>
+#include <limits.h>
 #include <string.h>
 #include <math.h>
 #include <minc.h>

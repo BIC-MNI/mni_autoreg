@@ -7,7 +7,7 @@
 
 #include <config.h>
 #include <volume_io.h>
-#include <print_error.h>
+#include <Proglib.h>
 
 
 #define GWID1 0.75

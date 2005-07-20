@@ -16,7 +16,15 @@
 
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   :  $Log: objectives.c,v $
-@MODIFIED   :  Revision 96.8  2004-02-12 06:08:21  rotor
+@MODIFIED   :  Revision 96.9  2005-07-20 20:45:50  rotor
+@MODIFIED   :      * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
+@MODIFIED   :      * Many changes to includes of files (float.h, limits.h, etc)
+@MODIFIED   :      * Removed old VOLUME_IO cruft #defines
+@MODIFIED   :      * Fixed up all Makefile.am's in subdirs
+@MODIFIED   :      * Removed all things in Proglib that are now part of MINC proper
+@MODIFIED   :      * Still working on fixing up perl subdirectory - removing mni_perllib
+@MODIFIED   :
+@MODIFIED   :  Revision 96.8  2004/02/12 06:08:21  rotor
 @MODIFIED   :   * removed public/private defs
 @MODIFIED   :
 @MODIFIED   :  Revision 96.7  2004/02/04 20:44:13  lenezet
@@ -92,16 +100,16 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/objectives.c,v 96.8 2004-02-12 06:08:21 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/objectives.c,v 96.9 2005-07-20 20:45:50 rotor Exp $";
 #endif
 
-#include <volume_io/internal_volume_io.h>
+#include <volume_io.h>
 #include "constants.h"
 #include "arg_data.h"
 #include "interpolation.h"
 #include "segment_table.h"
 #include "local_macros.h"
-#include <print_error.h>
+#include <Proglib.h>
 #include "vox_space.h"
 #include "interpolation.h"
 

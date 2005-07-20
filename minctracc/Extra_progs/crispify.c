@@ -10,7 +10,7 @@
 @CREATED    : Aug 25, 1996 (Vasco KOLLOKIAN)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-#include <volume_io/internal_volume_io.h>
+#include <volume_io.h>
 #include <ParseArgv.h>
 #include <time_stamp.h>
 

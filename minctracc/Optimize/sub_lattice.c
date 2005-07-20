@@ -14,9 +14,17 @@
                                     to create a sublattice defined on the target.
      
 @CREATED    : Mon Nov  3, 1997 , Louis Collins
-@VERSION    : $Id: sub_lattice.c,v 1.12 2005-07-18 19:14:02 rotor Exp $
+@VERSION    : $Id: sub_lattice.c,v 1.13 2005-07-20 20:45:51 rotor Exp $
 @MODIFIED   : $Log: sub_lattice.c,v $
-@MODIFIED   : Revision 1.12  2005-07-18 19:14:02  rotor
+@MODIFIED   : Revision 1.13  2005-07-20 20:45:51  rotor
+@MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
+@MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
+@MODIFIED   :     * Removed old VOLUME_IO cruft #defines
+@MODIFIED   :     * Fixed up all Makefile.am's in subdirs
+@MODIFIED   :     * Removed all things in Proglib that are now part of MINC proper
+@MODIFIED   :     * Still working on fixing up perl subdirectory - removing mni_perllib
+@MODIFIED   :
+@MODIFIED   : Revision 1.12  2005/07/18 19:14:02  rotor
 @MODIFIED   :  * Optimisations to code resulting in 30% speed increase for nonlinear fitting
 @MODIFIED   :
 @MODIFIED   : Revision 1.11  2005/06/28 18:56:18  rotor
@@ -60,7 +68,7 @@
 
 
 #include <config.h>		
-#include <volume_io/internal_volume_io.h>	
+#include <volume_io.h>	
 
 #include <Proglib.h>
 #include "constants.h"
@@ -88,10 +96,10 @@ extern float
     Real                *y_transformed,
     Real                *z_transformed );
 
-public int point_not_masked(Volume volume, 
+int point_not_masked(Volume volume, 
 			    Real wx, Real wy, Real wz);
 
-public int voxel_point_not_masked(Volume volume, 
+int voxel_point_not_masked(Volume volume, 
                                   Real vx, Real vy, Real vz);
 
 

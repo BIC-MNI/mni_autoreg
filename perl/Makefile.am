@@ -10,23 +10,13 @@ noinst_PROGRAMS = version
 #           mritopet mritoself mritotal mritotal\
 #           do_mritopet do_pettopet do_mritotal
 
-EXTRA_DIST = $(script_in) $(configdata_in) $(man_MANS) $(perllib_DATA) \
+EXTRA_DIST = $(script_in) $(configdata_in) $(man_MANS) \
 	build_perl_stuff 
 
 script_in = autocrop.in mritoself.in mritotal.in xfmtool.in
 configdata_in = mritotal.cfg.in mritotal.default.cfg.in mritotal.icbm.cfg.in
 
 man_MANS = mritotal.1 autocrop.1 mritoself.1
-
-perllib_DATA = Startup.pm JobControl.pm \
-	file_utilities.pl \
-	minc_utilities.pl \
-	misc_utilities.pl \
-	numeric_utilities.pl \
-	path_utilities.pl \
-	string_utilities.pl \
-	volume_heuristics.pl
-
 
 if PERLGOOD
 

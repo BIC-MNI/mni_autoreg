@@ -29,7 +29,15 @@
                       using numerical recipes routines jacobi() and eigsrt().  
 		      See Hotelling Transform
 @MODIFIED   : $Log: cov_to_praxes.c,v $
-@MODIFIED   : Revision 96.4  2004-02-12 05:54:27  rotor
+@MODIFIED   : Revision 96.5  2005-07-20 20:45:48  rotor
+@MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
+@MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
+@MODIFIED   :     * Removed old VOLUME_IO cruft #defines
+@MODIFIED   :     * Fixed up all Makefile.am's in subdirs
+@MODIFIED   :     * Removed all things in Proglib that are now part of MINC proper
+@MODIFIED   :     * Still working on fixing up perl subdirectory - removing mni_perllib
+@MODIFIED   :
+@MODIFIED   : Revision 96.4  2004/02/12 05:54:27  rotor
 @MODIFIED   :  * removed public/private defs
 @MODIFIED   :
 @MODIFIED   : Revision 96.3  2002/03/26 14:15:39  stever
@@ -68,10 +76,10 @@
 
 ---------------------------------------------------------------------------- */
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/cov_to_praxes.c,v 96.4 2004-02-12 05:54:27 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/cov_to_praxes.c,v 96.5 2005-07-20 20:45:48 rotor Exp $";
 #endif
 
-#include <volume_io/internal_volume_io.h>
+#include <volume_io.h>
 
 BOOLEAN eigen(double **inputMat, int ndim, 
 		     double *eigen_val, double **eigen_vec, 

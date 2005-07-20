@@ -10,7 +10,15 @@
 @CALLS      : 
 @CREATED    : Tue Aug 23 15:32:30 EST 1994 - Louis
 @MODIFIED   : $Log: rand_param.c,v $
-@MODIFIED   : Revision 96.2  2002-03-26 14:15:31  stever
+@MODIFIED   : Revision 96.3  2005-07-20 20:45:46  rotor
+@MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
+@MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
+@MODIFIED   :     * Removed old VOLUME_IO cruft #defines
+@MODIFIED   :     * Fixed up all Makefile.am's in subdirs
+@MODIFIED   :     * Removed all things in Proglib that are now part of MINC proper
+@MODIFIED   :     * Still working on fixing up perl subdirectory - removing mni_perllib
+@MODIFIED   :
+@MODIFIED   : Revision 96.2  2002/03/26 14:15:31  stever
 @MODIFIED   : Update includes to <volume_io/foo.h> style.
 @MODIFIED   :
 @MODIFIED   : Revision 96.1  1999/10/25 19:52:09  louis
@@ -41,9 +49,10 @@ static char rcsid[]="";
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <volume_io/internal_volume_io.h>
+#include <volume_io.h>
 #include <config.h>
 #include <Proglib.h>
+#include <ParseArgv.h>
 
 #include <sys/types.h>
 #include <time.h>

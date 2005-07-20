@@ -46,22 +46,21 @@
 # the same copyright as above.
 # --------------------------------------------------------------------
 
-# $Id: mritotal.in,v 1.12 2004-02-12 05:55:18 rotor Exp $
+# $Id: mritotal.in,v 1.13 2005-07-20 20:45:53 rotor Exp $
 
 require 5.001;
 
 use FindBin;
-use lib "$FindBin::Bin/../lib/mni_autoreg";
+# use lib "$FindBin::Bin/../lib/mni_autoreg";
 
-use Startup;
+use MNI::Startup qw(nocputimes);
+use MNI::Spawn;
 use Getopt::Tabular qw/GetOptions SpoofGetOptions/;
-use JobControl qw/AddProgramOptions Spawn/;
+# use JobControl qw/AddProgramOptions Spawn/;
 
-require "file_utilities.pl";
-require "path_utilities.pl";
-require "numeric_utilities.pl";
-require "minc_utilities.pl";
-require "volume_heuristics.pl";
+use MNI::FileUtilities qw(search_directories);
+use MNI::PathUtilities qw(replace_ext replace_dir);
+use MNI::MincUtilities qw(:history);
 
 # This "use vars" statement is useful for checking the strictness of the
 # initialization functions -- normally, they live under a "no strict"
@@ -100,8 +99,7 @@ use strict;                              # for badly-behaved main program
 {
    my (@linear_fits, @nonlinear_fits, @fits);
    my ($do_linear, $linear_xfm, $nl_input_xfm);
-
-   &Startup;			# from Startup module - general startup stuff
+   
    &Initialize;			# sets globals, parses command line args
 
    # Quit now if the output transform exists and $Clobber is false
@@ -459,7 +457,7 @@ sub ReadConfigFile
    my ($dir, $args, @args);
    require "shellwords.pl";
 
-   $dir = &SearchDirectories ($file, @$path)
+   $dir = &search_directories ($file, \@$path)
       || &Fatal ("Couldn't find configuration file $file anywhere in " .
 		 join (":", @$path));
    $file = $dir . $file;
@@ -2364,3 +2362,80 @@ sub verbose
 {
    print "@_\n" if $Verbose;
 }
+
+
+# ------------------------------ MNI Header ----------------------------------
+#@NAME       : &GuessSubsample
+#@INPUT      : @steps - the step sizes of the three spatial dimensions
+#                       for the input volume
+#@OUTPUT     : 
+#@RETURNS    : new step sizes to use
+#@DESCRIPTION: 
+#@METHOD     : 
+#@GLOBALS    : 
+#@CALLS      : 
+#@CREATED    : 95/08/30, Greg Ward
+#@MODIFIED   : 
+#-----------------------------------------------------------------------------
+sub GuessSubsample
+{
+   my ($steps) = @_;
+   my (@newsteps, $i);
+
+   # Default subsample step values are just 2*step for any dimension
+   # with steps < 1.5mm.  This isn't exactly rocket science, and it
+   # doesn't have to be since subsampling is done solely to save time
+   # and memory.
+
+   @newsteps = @$steps;
+   for $i (0,1,2)
+   {
+      $newsteps[$i] = 2*$steps->[$i] if (abs ($steps->[$i]) < 1.5);
+   }
+   @newsteps
+}
+
+
+# ------------------------------ MNI Header ----------------------------------
+#@NAME       : &GuessCrop
+#@INPUT      : $step, $length - references to arrays containing
+#                 the various spatial parameters for the input volume
+#@OUTPUT     : 
+#@RETURNS    : array of crop specifications to use on the volume
+#@DESCRIPTION: Determines how much of a volume we need to remove in order
+#              to preserve the top 190mm of the volume.  This is useful
+#              to reduce the amount of data in a large sagittal (or coronal)
+#              acquisition, as I've seen anecdotally that this seems to
+#              be plenty to get in the whole brain, as long as the top of the
+#              head is near the top of the volume.
+#@METHOD     : 
+#@GLOBALS    : 
+#@CALLS      : 
+#@CREATED    : 95/08/30, Greg Ward
+#@MODIFIED   : 
+#-----------------------------------------------------------------------------
+sub GuessCrop
+{
+   my ($step, $length) = @_;
+   my (@extent, @crop, $i);
+
+   for $i (0,1,2)
+   {
+      $extent[$i] = $step->[$i] * $length->[$i];
+   }
+   @extent = &labs (@extent);
+   
+   # For now, we only crop in the z dimension by default.  The biggest
+   # assumption here is that the top of the head is pretty near the
+   # top of the scanning volume.  The heuristic used is this: if the
+   # z-extent is > 190 mm, we chop off anything outside of the top 190
+   # mm.  The reasoning for this is quite arbitrary -- ie. it looks
+   # like that's a pretty good figure to use for ICBM data acquired at
+   # the MNI, so presumably it applies to the entire world.
+
+   @crop = ("0,0", "0,0", "0,0");
+   $crop[2] = sprintf ("%g,0", 190-$extent[2])
+      if (abs ($extent[2]) > 190);
+   @crop;
+}
+

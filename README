@@ -1,5 +1,4 @@
                  MNI Automated Linear Registration Package
-                      Version 0.98i  ---  Spring 2000
 
 
 DESCRIPTION
@@ -59,9 +58,9 @@ INSTALL.quick and INSTALL.  What follows here are instructions for
 installing *prerequisite* software.
 
 You can obtain a copy of the latest version of the MNI_AutoReg
-software using anonymous FTP from:
+software from:
 
-   ftp://ftp.bic.mni.mcgill.ca/pub/mni_autoreg/
+   http://packages.bic.mni.mcgill.ca/tgz
 
 Look for a file named mni_autoreg-x.yy.tar.gz (where x.yy is the release
 number).
@@ -71,77 +70,36 @@ installed first.  The MINC file format is a highly flexible medical
 image file format built on top of the netCDF generalized data format.
 You should be able to get them both from 
 
-   ftp://ftp.bic.mni.mcgill.ca/pub/minc
+   http://packages.bic.mni.mcgill.ca/tgz
 
 If you prefer, you can get netCDF from its home site, the Unidata Program
 Centre at the University Corporation for Atmospheric Research:
 
    ftp://unidata.ucar.edu/pub/netcdf
 
-but make sure you install a version of NetCDF compatible with MINC.
-(At the time of this writing, MINC does not compile with NetCDF greater
-than 2.3.2.)
-
 You will also need a recent version of Perl 5; Perl 5.002 or later is
 required.
 
 You can always find the latest version of Perl at at any mirror of the
-Comprehensive Perl Archive Network (CPAN), in src/5.0/.  The easiest
-way is to go to:
+Comprehensive Perl Archive Network (CPAN)
 
-   http://www.perl.com/CPAN/src/5.0/
+   http://www.perl.com/
 
-which will magically connect you to a nearby CPAN site.
-
-If you prefer the old-fashioned way, here is a random selection of CPAN
-sites:
-
-   * ftp://ftp.metronet.com/pub/perl
-   * ftp://uiarchive.cso.uiuc.edu/pub/lang/perl/CPAN
-   * ftp://ftp.funet.fi/pub/languages/perl/CPAN
-   * ftp://ftp.demon.co.uk/pub/mirrors/perl/CPAN
-   * ftp://ftp.mame.mu.oz.au/pub/perl/CPAN
 
 In addition to Perl itself, you will need the Getopt::Tabular module.
 This is also available at
 
-   ftp://ftp.bic.mni.mcgill.ca/pub/perl
-
-or it can be found on any CPAN site, in authors/id/GWARD.  To install
-Getopt::Tabular, just unpack the archive and run the following (you'll
-need write permission on the directories where Perl was installed):
-
-   perl ./Makefile.PL
-   make install
-
-(If you can't write to the Perl installation directories (eg. if Perl was
-installed by the super-user, and you don't have root privileges) you can
-install the module to your home directory like this:
-
-   perl ./Makefile.PL PREFIX=~
-   make install
-
-but then you'll also need to add ~/lib/perl5/site_perl (or wherever the
-module was actually installed) to your PERLLIB environment variable.)
+   http://www.cpan.org/
 
 The model used for stereotaxic registration is based on the 305 brain
 average MRI volume created at the Montreal Neurological Institute.
 Because of its size, this model is *not* included with the MNI_AutoReg
 package.  But, it too is available from
 
-   ftp://ftp.bic.mni.mcgill.ca/pub/mni_autoreg/mni_autoreg_model-x.y.tar.gz
+   http://pacakges.bic.mni.mcgill.ca/tgz/mni_autoreg_model-x.y.tar.gz
 
 The version of mni_autoreg_model is NOT tied to the version of
 mni_autoreg.  Choose the highest numbered version.
-
-There are also two example MRI volumes available that you can use to test
-the package once you have everything built and installed.  They are also
-both available from ftp://ftp.bic.mni.mcgill.ca/pub/mni_autoreg; the first
-(mni_autoreg_big_example_mri.mnc.gz) is a full-head, full-resolution ICBM
-T1-weighted scan.  This file is about 23 MB uncompressed, so you may wish
-to consider using mni_autoreg_small_example_mri.mnc (1.1 MB uncompressed),
-which is the same data but with the first preprocessing step (subsampling
-and cropping) performed on it.
 
 
 USING MNI_AUTOREG

@@ -14,7 +14,15 @@
 
 @CREATED    : Tue Jun 15 08:57:23 EST 1993 LC
 @MODIFIED   :  $Log: volume_functions.c,v $
-@MODIFIED   :  Revision 96.10  2004-02-12 06:04:53  rotor
+@MODIFIED   :  Revision 96.11  2005-07-20 20:45:52  rotor
+@MODIFIED   :      * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
+@MODIFIED   :      * Many changes to includes of files (float.h, limits.h, etc)
+@MODIFIED   :      * Removed old VOLUME_IO cruft #defines
+@MODIFIED   :      * Fixed up all Makefile.am's in subdirs
+@MODIFIED   :      * Removed all things in Proglib that are now part of MINC proper
+@MODIFIED   :      * Still working on fixing up perl subdirectory - removing mni_perllib
+@MODIFIED   :
+@MODIFIED   :  Revision 96.10  2004/02/12 06:04:53  rotor
 @MODIFIED   :   * removed public/private defs
 @MODIFIED   :
 @MODIFIED   :  Revision 96.9  2002/03/26 14:15:47  stever
@@ -82,14 +90,15 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/volume_functions.c,v 96.10 2004-02-12 06:04:53 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/volume_functions.c,v 96.11 2005-07-20 20:45:52 rotor Exp $";
 #endif
 
 #include <config.h>
-#include <volume_io/internal_volume_io.h>
+#include <float.h>
+#include <volume_io.h>
 #include "point_vector.h"
 #include "constants.h"
-#include <print_error.h>
+#include <Proglib.h>
 #include <arg_data.h>		/* definition of the global data struct      */
 #include "local_macros.h"
 

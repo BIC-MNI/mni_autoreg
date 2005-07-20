@@ -2,8 +2,8 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "time_stamp.h"
-#include "print_error.h"
+#include <minc.h>
+#include "Proglib.h"
 
 char* history_string( int ac, char* av[] )
 {

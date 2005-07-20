@@ -13,7 +13,15 @@
 
    @CREATED    : February 3, 1992 - louis collins
    @MODIFIED   : $Log: minctracc.c,v $
-   @MODIFIED   : Revision 96.13  2005-06-28 18:56:14  rotor
+   @MODIFIED   : Revision 96.14  2005-07-20 20:45:48  rotor
+   @MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
+   @MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
+   @MODIFIED   :     * Removed old VOLUME_IO cruft #defines
+   @MODIFIED   :     * Fixed up all Makefile.am's in subdirs
+   @MODIFIED   :     * Removed all things in Proglib that are now part of MINC proper
+   @MODIFIED   :     * Still working on fixing up perl subdirectory - removing mni_perllib
+   @MODIFIED   :
+   @MODIFIED   : Revision 96.13  2005/06/28 18:56:14  rotor
    @MODIFIED   :  * added masking for feature volumes (irina and patricia)
    @MODIFIED   :
    @MODIFIED   : Revision 96.12  2004/03/18 06:51:03  rotor
@@ -131,11 +139,13 @@ Wed May 26 13:05:44 EST 1993 lc
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.13 2005-06-28 18:56:14 rotor Exp $";
+static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.14 2005-07-20 20:45:48 rotor Exp $";
 #endif
 
 #include <config.h>
-#include <volume_io/internal_volume_io.h>
+#include <float.h>
+#include <ParseArgv.h>
+#include <volume_io.h>
 #include <minctracc.h>
 #include <globals.h>
 

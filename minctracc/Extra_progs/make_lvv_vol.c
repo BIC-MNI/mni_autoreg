@@ -10,7 +10,15 @@
 @CALLS      : 
 @CREATED    : Thur Oct 5 08:45:43 MET 1995
 @MODIFIED   : $Log: make_lvv_vol.c,v $
-@MODIFIED   : Revision 1.4  2004-02-12 05:54:06  rotor
+@MODIFIED   : Revision 1.5  2005-07-20 20:45:46  rotor
+@MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
+@MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
+@MODIFIED   :     * Removed old VOLUME_IO cruft #defines
+@MODIFIED   :     * Fixed up all Makefile.am's in subdirs
+@MODIFIED   :     * Removed all things in Proglib that are now part of MINC proper
+@MODIFIED   :     * Still working on fixing up perl subdirectory - removing mni_perllib
+@MODIFIED   :
+@MODIFIED   : Revision 1.4  2004/02/12 05:54:06  rotor
 @MODIFIED   :  * removed public/private defs
 @MODIFIED   :
 @MODIFIED   : Revision 1.3  2002/12/13 21:09:12  lenezet
@@ -36,11 +44,11 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/make_lvv_vol.c,v 1.4 2004-02-12 05:54:06 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/make_lvv_vol.c,v 1.5 2005-07-20 20:45:46 rotor Exp $";
 #endif
 
 #include <stdio.h>
-#include <volume_io/internal_volume_io.h>
+#include <volume_io.h>
 #include <Proglib.h>
 #include <config.h>
 

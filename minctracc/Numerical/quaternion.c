@@ -51,9 +51,10 @@
  */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/quaternion.c,v 96.2 2003-02-04 06:08:45 stever Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/quaternion.c,v 96.3 2005-07-20 20:45:49 rotor Exp $";
 #endif
-#include <volume_io/internal_volume_io.h>
+
+#include <volume_io.h>
 #define SQR(a) (a)*(a)
 #define cube(a) (a)*(a)*(a)
 

@@ -104,9 +104,9 @@ Questions:
    Institute.  (This model is *not* included with the MNI AutoReg
    package, but is available at
 
-      ftp://ftp.bic.mni.mcgill.ca/pub/mni_autoreg/
+      http://packages.bic.mni.mcgill.ca/tgz
 
-   Look for mni_autoreg_model-1.02.tar.gz, or possibly a more recent
+   Look for mni_autoreg_model-XXX.tar.gz, or possibly a more recent
    version.  There are four steps to use a new model file: you have to
    build the features volumes, construct a brain mask, install the
    model, and tell mritotal to use the new model.

@@ -15,7 +15,15 @@
 
 @CREATED    : Mon May 22 14:14:50 MET DST 1995
 @MODIFIED   : $Log: quad_max_fit.c,v $
-@MODIFIED   : Revision 96.4  2004-02-13 00:16:48  rotor
+@MODIFIED   : Revision 96.5  2005-07-20 20:45:49  rotor
+@MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
+@MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
+@MODIFIED   :     * Removed old VOLUME_IO cruft #defines
+@MODIFIED   :     * Fixed up all Makefile.am's in subdirs
+@MODIFIED   :     * Removed all things in Proglib that are now part of MINC proper
+@MODIFIED   :     * Still working on fixing up perl subdirectory - removing mni_perllib
+@MODIFIED   :
+@MODIFIED   : Revision 96.4  2004/02/13 00:16:48  rotor
 @MODIFIED   :  * removed public/private defs
 @MODIFIED   :
 @MODIFIED   : Revision 96.3  2002/03/26 14:15:41  stever
@@ -58,7 +66,7 @@
 
 ---------------------------------------------------------------------------- */
 
-#include <volume_io/internal_volume_io.h>		
+#include <volume_io.h>		
 #include <math.h>
 #include <quad_max_fit.h>
 

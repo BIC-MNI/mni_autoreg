@@ -1,3 +1,12 @@
+2005-07-20  Andrew Janke <a.janke@gmail.com>
+
+	* Complete rewrite of the autoconf stuff (configure.in -> configure.am)
+	* Many changes to includes of files (float.h, limits.h, etc)
+	* Removed old VOLUME_IO cruft #defines
+	* Fixed up all Makefile.am's in subdirs
+	* Removed all things in Proglib that are now part of MINC proper
+	* Still working on fixing up perl subdirectory - removing mni_perllib
+
 2005-06-28  Andrew Janke <a.janke@gmail.com>
 
 	* Added masking for feature volumes from Patricia Le Nezet & Irina Kezele

@@ -1,11 +1,10 @@
-INCLUDES = -I$(srcdir)/../Include -I$(top_srcdir)/Proglib @MNI_INCLUDES@
+INCLUDES = -I$(srcdir)/../Include -I$(top_srcdir)/Proglib
 
 LDADD = ../Files/libminctracc_files.a \
 	../Optimize/libminctracc_optimize.a \
 	../Numerical/libminctracc_numerical.a \
 	../Volume/libminctracc_volume.a \
-	../../Proglib/libProglib.a \
-	@MNI_LIBS@ -lm
+	../../Proglib/libProglib.a
 
 bin_PROGRAMS = minctracc
 minctracc_SOURCES = \

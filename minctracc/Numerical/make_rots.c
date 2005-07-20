@@ -14,7 +14,15 @@
               express or implied warranty.
 @CREATED    : Tue Jun  8 08:44:59 EST 1993 LC
 @MODIFIED   : $Log: make_rots.c,v $
-@MODIFIED   : Revision 96.5  2004-02-12 05:54:27  rotor
+@MODIFIED   : Revision 96.6  2005-07-20 20:45:49  rotor
+@MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
+@MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
+@MODIFIED   :     * Removed old VOLUME_IO cruft #defines
+@MODIFIED   :     * Fixed up all Makefile.am's in subdirs
+@MODIFIED   :     * Removed all things in Proglib that are now part of MINC proper
+@MODIFIED   :     * Still working on fixing up perl subdirectory - removing mni_perllib
+@MODIFIED   :
+@MODIFIED   : Revision 96.5  2004/02/12 05:54:27  rotor
 @MODIFIED   :  * removed public/private defs
 @MODIFIED   :
 @MODIFIED   : Revision 96.4  2002/11/20 21:38:49  lenezet
@@ -71,10 +79,10 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/make_rots.c,v 96.5 2004-02-12 05:54:27 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/make_rots.c,v 96.6 2005-07-20 20:45:49 rotor Exp $";
 #endif
 
-#include <volume_io/internal_volume_io.h>
+#include <volume_io.h>
 #include "matrix_basics.h"
 #include "rotmat_to_ang.h"
 #include "local_macros.h"

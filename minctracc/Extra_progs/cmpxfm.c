@@ -7,6 +7,7 @@
 #include <config.h>
 #include <math.h>
 #include <Proglib.h>
+#include <ParseArgv.h>
 #include <volume_io.h>
 
 static char* ProgName;

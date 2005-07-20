@@ -4,20 +4,20 @@ ACLOCAL_AMFLAGS = -I m4
 bin_SCRIPTS = make_model
 
 SUBDIRS = \
-        Proglib \
+	Proglib \
 	make_phantom \
 	mincbbox \
 	mincblur \
 	mincchamfer \
-        minctracc \
-        perl \
+	minctracc \
+	perl \
 	Testing
 
 EXTRA_DIST = $(m4_files) \
-	BUGS FAQ INSTALL.quick ORIGIN README.TESTING \
+	BUGS FAQ INSTALL.quick README.TESTING \
 	Doc/howto_add_obj_fn Doc/howto_add_opt_fn \
 	make_model.in \
-        epm-header.in
+	epm-header.in
 
 m4_files = \
 	m4/mni_REQUIRE_LIB.m4 \

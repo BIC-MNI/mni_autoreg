@@ -5,13 +5,14 @@
                procedures.               
 @CREATED    : Mon Nov  3, 1997 , Louis Collins
 @MODIFIED   : not yet!
-@VERSION    : $Id: extras.c,v 1.6 2004-02-12 06:08:20 rotor Exp $
+@VERSION    : $Id: extras.c,v 1.7 2005-07-20 20:45:50 rotor Exp $
 #-----------------------------------------------------------------------------
 */
 
 
 #include <config.h>		
-#include <volume_io/internal_volume_io.h>	
+#include <float.h>
+#include <volume_io.h>	
 #include <time.h>
 
 void report_time(long start_time, STRING text) 
@@ -27,16 +28,7 @@ void report_time(long start_time, STRING text)
   present_time = time(NULL);
   
   time_total = (Real)(present_time - start_time);
-  
-#ifdef VOLIO_HAVE_2ARG_FORMAT_TIME
   time_total_string = format_time("%g %s", time_total);
-#else
-#  ifndef VOLIO_HAVE_3ARG_FORMAT_TIME
-#    error Help!  Do not know how to invoke format_time.
-#  endif
-  /* This comes from a very very old VolumeIO library. */
-  format_time( time_total_string,"%g %s", time_total);
-#endif
   
   print ("\n%s : %s", text, time_total_string);
   

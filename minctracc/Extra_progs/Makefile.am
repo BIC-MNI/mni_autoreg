@@ -1,9 +1,8 @@
-INCLUDES = -I$(srcdir)/../Include -I$(top_srcdir)/Proglib @MNI_INCLUDES@
+INCLUDES = -I$(srcdir)/../Include -I$(top_srcdir)/Proglib
 LDADD = ../Numerical/libminctracc_numerical.a \
 	../Volume/libminctracc_volume.a \
 	../Optimize/libminctracc_optimize.a \
-	../../Proglib/libProglib.a \
-	@MNI_LIBS@ -lm
+	../../Proglib/libProglib.a
 
 bin_PROGRAMS = \
 	check_scale \
