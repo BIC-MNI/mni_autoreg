@@ -46,7 +46,7 @@
 # the same copyright as above.
 # --------------------------------------------------------------------
 
-# $Id: mritotal.in,v 1.13 2005-07-20 20:45:53 rotor Exp $
+# $Id: mritotal.in,v 1.14 2005-07-26 20:25:41 rotor Exp $
 
 require 5.001;
 
@@ -203,8 +203,8 @@ use strict;                              # for badly-behaved main program
 #-----------------------------------------------------------------------------
 sub CreateInfoText
 {
-   $Version = "@VERSION@";
-   $LongVersion = "@LONG_VERSION@";
+   $Version = '@VERSION@';
+   $LongVersion = '@MNI_AUTOREG_LONG_VERSION@';
 
    $Usage = <<USAGE;
 $ProgramName, version $Version
@@ -579,7 +579,7 @@ sub Initialize
    # Set defaults for the global variables.  These can be overridden by 
    # the configuration file or the command line.
 
-   $ModelDir     = "$FindBin::Bin/../share/mni_autoreg";
+   $ModelDir     = "$FindBin::Bin/../share/@PACKAGE_NAME@";
    $Model        = "average_305";
    $Protocol     = "default";
 
@@ -619,7 +619,7 @@ sub Initialize
 
    &CreateInfoText;
 
-   @ConfigPath = ($ENV{"HOME"}, "$FindBin::Bin/../etc/mni_autoreg");
+   @ConfigPath = ($ENV{"HOME"}, "$FindBin::Bin/../etc/@PACKAGE_NAME@");
    ($pref_tbl, $site_tbl, $protocol_tbl, $other_tbl) = 
       &SetupArgTables ($ok_levels);
    @all_args = (@$pref_tbl, @$site_tbl, @$protocol_tbl, @$other_tbl);

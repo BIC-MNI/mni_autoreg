@@ -14,7 +14,7 @@
 #              rewrite #2: December 1995-February 1996, GW
 #@MODIFIED   : April-May 1996, Louis Collins: modifications to make an
 #                              official mritoself for ICBM and AI data
-#@VERSION    : $Id: mritoself.in,v 1.5 2005-07-20 20:45:53 rotor Exp $
+#@VERSION    : $Id: mritoself.in,v 1.6 2005-07-26 20:25:41 rotor Exp $
 #@COMMENTS   : 
 #  possible additions:
 #    figure out the thresholding stuff
@@ -28,7 +28,7 @@
 # usage: mritoself [options] source_vol target_vol transform
 
 use FindBin;
-use lib "$FindBin::Bin/../lib/mni_autoreg";
+# use lib "$FindBin::Bin/../lib/mni_autoreg";
 
 use Startup;
 use JobControl qw(AddProgramOptions Spawn);

@@ -13,13 +13,13 @@
 #@CALLS      : 
 #@CREATED    : 1996/06/07, Greg Ward
 #@MODIFIED   : 
-#@VERSION    : $Id: xfmtool.in,v 1.2 2004-02-12 05:55:18 rotor Exp $
+#@VERSION    : $Id: xfmtool.in,v 1.3 2005-07-26 20:25:41 rotor Exp $
 #-----------------------------------------------------------------------------
 
 require 5.002;
 
 use FindBin;
-use lib "$FindBin::Bin/../lib/mni_autoreg";
+# use lib "$FindBin::Bin/../lib/mni_autoreg";
 
 require "string_utilities.pl";
 require "file_utilities.pl";

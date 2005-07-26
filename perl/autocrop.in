@@ -22,7 +22,7 @@
 
 # By Greg Ward 94/9/22
 
-# $Id: autocrop.in,v 1.4 2004-02-12 05:55:18 rotor Exp $
+# $Id: autocrop.in,v 1.5 2005-07-26 20:25:41 rotor Exp $
 
 use FindBin;
 use lib "$FindBin::Bin/../lib/mni_autoreg";
@@ -179,9 +179,9 @@ sub SetGlobals
    @ModParams = ();             # sequence of extend, expand, keep, ... ?
 
    $Version = "@VERSION@";
-   $LongVersion = "@LONG_VERSION@";
+   $LongVersion = "@MNI_AUTOREG_LONG_VERSION@";
    $Usage = <<EOH;
-$ProgramName, from MNI_AutoReg version $Version
+$ProgramName, from @PACKAGE_NAME@ version $Version
 
 Usage: $ProgramName [options] volume crop_volume
        $ProgramName -help for details
