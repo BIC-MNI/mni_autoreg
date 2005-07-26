@@ -10,13 +10,9 @@
   - the --with-build-path flag is enabled, 
     still need to update the build docs
 
-
 * use ICBM150 data as default model?
 
 * configure probe for Getopt::Tabular
-
-* fix warnings during alpha compilation
-  (Proglib/ParseArgv.c)
 
 * it would be handy to be able to pass `-verbose 3' on to minctracc,
   but the handing of -verbose and -debug is currently done by some perl library
@@ -24,5 +20,3 @@
 
 * it would be nice if xcorr_vol could optionally take a transformation
   and apply it to one of the volumes
-
-

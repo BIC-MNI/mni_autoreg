@@ -6,32 +6,34 @@
 #
 #   All model files MUST be voxel-matched to _mask.mnc volume
 #
-#   Before running this script, the mni_reg package should be
+#   Before running this script, the mni_autoreg package should be
 #   installed.
-#
+
 
 # get program name
 me=`basename $0`
 
 # check args
 if [ $# -eq 0 ] ; then
-    echo "usage: $me base_filename"
-    echo "       $me -version"
-    echo ""
-    exit 1
+   echo "usage: $me <base_filename>"
+   echo "      $me -version"
+   echo ""
+   exit 1
 fi
 
 if [ $1 = "-version" ];
 then
-    echo "Package MNI AutoReg, version @VERSION@"
-    echo ""
-    exit 0
+   echo "Package @PACKAGE_NAME@, version @VERSION@"
+   echo ""
+   exit 0
 fi
 
 BASE=$1
 echo "Using base filename $BASE"
 echo "Note that your input volume *must* be in Talairach space for this to work"
 
+
+# check for the input files
 HIRES=$BASE.mnc
 if [ ! -e $HIRES ];
 then
@@ -41,71 +43,51 @@ then
 fi
 
 
-
-#
 # subsample and pad onto a  2mm volume
-#
 PAD=${BASE}_pad.mnc
-
 if [ -e $PAD ];
 then
-    echo "$PAD exists already..."
+   echo "$PAD exists already..."
 else
    echo "** Making $PAD from $HIRES by resampling on 2mm grid and padding by 16mm"
    autocrop -clobber $HIRES $PAD -isostep 2 -isoexpand 16mm
 fi
 
-#
-# build the 16mm FWHM feature volumes.
-#
 
+# build the 16mm FWHM feature volumes.
 BLURBASE=${BASE}_16
 BLUR=${BLURBASE}_blur.mnc
-
 if [ -e $BLUR ];
 then
-    echo "$BLUR exists already..."
+   echo "$BLUR exists already..."
 else
    echo "** Building 16mm data for $BASE"
-
    mincblur -clobber $PAD tmp_16 -fwhm 16.0
    autocrop -clobber tmp_16_blur.mnc $BLUR -extend -16mm,-16mm -16mm,-16mm -36mm,-36mm
    mincresample -clobber -nearest ${BASE}_mask.mnc ${BASE}_16_mask.mnc -like ${BLUR}
-
    rm -f tmp_16*
 fi
 
-#
-# build the 8mm FWHM feature volumes.
-#
 
+# build the 8mm FWHM feature volumes.
 BLURBASE=${BASE}_8
 BLUR=${BLURBASE}_blur.mnc
 GRAD=${BLURBASE}_dxyz.mnc
-
 if [ -e $BLUR -a -e $GRAD ];
 then
-    echo "$BLUR and $GRAD exist already..."
+   echo "$BLUR and $GRAD exist already..."
 else
    echo "** Building 8mm data for $BASE"
-
    mincblur -clobber $PAD tmp_8 -fwhm 8.0 -gradient
    autocrop -clobber tmp_8_blur.mnc $BLUR -extend -16mm,-16mm -16mm,-16mm -26mm,-26mm
    autocrop -clobber tmp_8_dxyz.mnc $GRAD -extend -16mm,-16mm -16mm,-16mm -26mm,-26mm
    mincresample -clobber -nearest  ${BASE}_mask.mnc ${BASE}_8_mask.mnc  -like ${BLUR}
-
    rm -f tmp_8*
 fi
 
-#
-# build the 4mm and 2mm FWHM feature volumes.
-#
-#
 
 # pad by 4mm
-#
 PAD4=${BASE}_pad4.mnc
-
 if [ -e $PAD4 ];
 then
    echo "$PAD4 exists already..."
@@ -114,45 +96,40 @@ else
    autocrop -clobber $HIRES $PAD4 -isoexpand 4mm
 fi
 
+
+# build the 4mm FWHM feature volume
 BLURBASE=${BASE}_4
 BLUR=${BLURBASE}_blur.mnc
 GRAD=${BLURBASE}_dxyz.mnc
-
 if [ -e $BLUR -a -e $GRAD ];
 then
    echo "$BLUR and $GRAD exist already..."
 else
    echo "** Building 4mm data for $BASE"
-
    mincblur -clobber $PAD4 tmp_4 -fwhm 4.0 -gradient
    autocrop -clobber tmp_4_blur.mnc $BLUR -isoexpand -9mm
    autocrop -clobber tmp_4_dxyz.mnc $GRAD -isoexpand -9mm
    mincresample -clobber -nearest  ${BASE}_mask.mnc ${BASE}_4_mask.mnc -like ${BLUR}
-
    rm -f tmp_4*
 fi
 
+
+# build the 2mm FWHM feature volume
 BLURBASE=${BASE}_2
 BLUR=${BLURBASE}_blur.mnc
 GRAD=${BLURBASE}_dxyz.mnc
-
 if [ -e $BLUR -a -e $GRAD ];
 then
-    echo "$BLUR and $GRAD exist already..."
+   echo "$BLUR and $GRAD exist already..."
 else
    echo "** Building 2mm data for $BASE"
-
    mincblur -clobber $PAD4 tmp_2 -fwhm 2.0 -gradient
    autocrop -clobber tmp_2_blur.mnc $BLUR -isoexpand -7mm
    autocrop -clobber tmp_2_dxyz.mnc $GRAD -isoexpand -7mm
    mincresample -clobber -nearest  ${BASE}_mask.mnc ${BASE}_2_mask.mnc -like ${BLUR}
-
    rm -f tmp_2*
 fi
 
 
-#
 # cleanup temporary files
-# 
-
 rm -f $PAD $PAD4
