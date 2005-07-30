@@ -16,12 +16,10 @@
 #
 
 # ---------------------------------------------------------------
-# Site-specific options -- if you edited Makefile.include to
-# correctly reflect where the "average_305" stereotaxic model
-# is installed on your system, these should be fine.
+# Site-specific options
 # ---------------------------------------------------------------
 
-# -modeldir @MODELDIR@    # problem! however mritotal defaults handle this
+# -modeldir <newdir>    # use this if you wish to place models somewhere else
 -model average_305
 -protocol default
 
@@ -32,8 +30,8 @@
 # disable fitting if you used -noexecute.)
 # ---------------------------------------------------------------
 
--verbose			# print commands and status info
--execute			# actually execute commands
--noclobber			# do not blithely overwrite output files
--nodebug			# do not make minctracc and mincblur very noisy
--nokeeptmp			# do delete all temp files
+-verbose          # print commands and status info
+-execute          # actually execute commands
+-noclobber        # do not blithely overwrite output files
+-nodebug          # do not make minctracc and mincblur very noisy
+-nokeeptmp        # do delete all temp files
