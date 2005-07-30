@@ -84,6 +84,9 @@ perl/autocrop
 perl/mritoself
 perl/mritotal
 perl/xfmtool
+perl/mritotal.cfg
+perl/mritotal.default.cfg
+perl/mritotal.icbm.cfg
 Makefile
 Proglib/Makefile
 make_phantom/Makefile
