@@ -1,4 +1,4 @@
-#! @PERL@ -w
+#! @PERL@
 
 # mritotal (new and improved)
 # 
@@ -46,21 +46,21 @@
 # the same copyright as above.
 # --------------------------------------------------------------------
 
-# $Id: mritotal.in,v 1.14 2005-07-26 20:25:41 rotor Exp $
+# $Id: mritotal.in,v 1.15 2005-08-02 21:38:49 rotor Exp $
 
 require 5.001;
 
+use warnings "all";
+
 use FindBin;
-# use lib "$FindBin::Bin/../lib/mni_autoreg";
 
 use MNI::Startup qw(nocputimes);
 use MNI::Spawn;
-use Getopt::Tabular qw/GetOptions SpoofGetOptions/;
-# use JobControl qw/AddProgramOptions Spawn/;
-
-use MNI::FileUtilities qw(search_directories);
-use MNI::PathUtilities qw(replace_ext replace_dir);
-use MNI::MincUtilities qw(:history);
+use MNI::FileUtilities qw(search_directories check_output_dirs check_files);
+use MNI::PathUtilities qw(replace_ext replace_dir split_path);
+use MNI::MincUtilities qw(:history volume_params volume_cog);
+use MNI::NumericUtilities qw(labs round);
+use Getopt::Tabular qw(GetOptions SpoofGetOptions);
 
 # This "use vars" statement is useful for checking the strictness of the
 # initialization functions -- normally, they live under a "no strict"
@@ -106,7 +106,7 @@ use strict;                              # for badly-behaved main program
 
    if (-e $FinalXfm && ! $Clobber)
    {
-      &Fatal ("$FinalXfm exists -- use -clobber to overwrite it");
+      die "$FinalXfm exists -- use -clobber to overwrite it";
    }
 
 
@@ -178,9 +178,6 @@ use strict;                              # for badly-behaved main program
 
    &PerformFits ([@linear_fits, @nonlinear_fits],
                  $SourceVol, $SourceBase, $Model);
-
-   &Cleanup (1);
-
 }
 
 # END main program
@@ -203,14 +200,15 @@ use strict;                              # for badly-behaved main program
 #-----------------------------------------------------------------------------
 sub CreateInfoText
 {
-   $Version = '@VERSION@';
-   $LongVersion = '@MNI_AUTOREG_LONG_VERSION@';
+   $Version = '0.98u';
+   $LongVersion = 'Package mni_autoreg 0.98u, compiled by rotor@audrey (i686-pc-linux-gnu) on Mon Aug  1 14:42:23 EDT 2005';
 
    $Usage = <<USAGE;
 $ProgramName, version $Version
 
 Usage: $ProgramName [options] input_volume output_transform
        $ProgramName -help
+       
 USAGE
 
    $Help = <<HELP;
@@ -227,6 +225,7 @@ the first couple of fits and use your initial guess in place of them.
 (In particular, it starts at a 9-parameter, gradient fit of $Blurs[0]
 mm blurred data; normally, it starts with a 7-parameter intensity fit
 of $Blurs[1] mm blurred data.)
+
 HELP
 
    &Getopt::Tabular::SetHelp ($Help, $Usage);
@@ -275,7 +274,6 @@ sub SetupArgTables
    #   arg_desc (optional)
 
    # Default args -- the defaults from Startup.pm, plus "-version"
-
    @default_args =
       (@DefaultArgs,
        ["-version", "call", undef, \&print_version,
@@ -458,8 +456,8 @@ sub ReadConfigFile
    require "shellwords.pl";
 
    $dir = &search_directories ($file, \@$path)
-      || &Fatal ("Couldn't find configuration file $file anywhere in " .
-		 join (":", @$path));
+      || die "Couldn't find configuration file $file anywhere in " .
+		 join (":", @$path);
    $file = $dir . $file;
 
    open (FILE, $file) || die "Unable to read file $file: $!\n";
@@ -579,7 +577,7 @@ sub Initialize
    # Set defaults for the global variables.  These can be overridden by 
    # the configuration file or the command line.
 
-   $ModelDir     = "$FindBin::Bin/../share/@PACKAGE_NAME@";
+   $ModelDir     = "$FindBin::Bin/../share/mni_autoreg";
    $Model        = "average_305";
    $Protocol     = "default";
 
@@ -619,7 +617,7 @@ sub Initialize
 
    &CreateInfoText;
 
-   @ConfigPath = ($ENV{"HOME"}, "$FindBin::Bin/../etc/@PACKAGE_NAME@");
+   @ConfigPath = ($ENV{"HOME"}, "$FindBin::Bin/../etc/mni_autoreg");
    ($pref_tbl, $site_tbl, $protocol_tbl, $other_tbl) = 
       &SetupArgTables ($ok_levels);
    @all_args = (@$pref_tbl, @$site_tbl, @$protocol_tbl, @$other_tbl);
@@ -660,8 +658,8 @@ sub Initialize
       &ReadConfigFile (\@ConfigPath, $config_file);
    &verbose ("Loading configuration file $config_file");
    &GetOptions ([@$site_tbl, @$pref_tbl], \@config_args)
-      || &Fatal ("Error in configuration file $config_file");
-   &Fatal ("Found leftover arguments in config file $config_file\n")
+      || die "Error in configuration file $config_file";
+   die "Found leftover arguments in config file $config_file\n"
       if (@config_args);
    &CheckClampOptions ("configuration file $config_file");
 
@@ -694,23 +692,23 @@ sub Initialize
    push (@programs, 'xfmtool')
       if $NonlinearFit;
 
-   &JobControl::SetOptions (ErrorAction => 'fatal',
-                            Verbose     => $Verbose,
-                            Execute     => $Execute,
-                            Strict      => 1);
-   &JobControl::FindPrograms (\@programs) || exit 1;
+   MNI::Spawn::SetOptions (err_action => 'fatal',
+                           verbose     => $Verbose,
+                           execute     => $Execute,
+                           strict      => 1);
+   RegisterPrograms (\@programs) || exit 1;
 
 
    # Add -debug, -quiet, -clobber to subprogram command lines 
    # as appropriate
    
-   AddProgramOptions ([qw(mincblur minctracc mincresample autocrop)], 
+   AddDefaultArgs ([qw(mincblur minctracc mincresample autocrop)], 
                       ["-quiet"])
       unless $Verbose;
-   AddProgramOptions ([qw(mincblur minctracc mincresample autocrop)],
+   AddDefaultArgs ([qw(mincblur minctracc mincresample autocrop)],
                       ["-clobber"])
       if $Clobber;
-   AddProgramOptions ([qw(mincblur minctracc)], ["-debug"])
+   AddDefaultArgs ([qw(mincblur minctracc)], ["-debug"])
       if $Debug;
 
    # Turn off GuessSubsample/GuessCrop if any subsample/crop
@@ -734,7 +732,7 @@ sub Initialize
    my (@model_files) = ('16_blur', '8_blur', '8_dxyz', '16_mask', '8_mask', 'headmask');
    @model_files = map { "${Model}_${_}.mnc" } @model_files;
       
-   &check_files ($SourceVol, @model_files) || &Fatal;
+   &check_files ($SourceVol, @model_files) || die;
    $SourceBase = (&split_path ($SourceVol))[1];
 
 
@@ -886,7 +884,7 @@ sub Preprocess
 
    if ($compute_cog)
    {
-      $volume_cog = &volume_cog ($reduced);
+      $volume_cog = join(' ', &volume_cog ($reduced));
       &verbose ("Centroid of input volume: $volume_cog");
    }
 
@@ -1133,7 +1131,7 @@ sub ReduceVolume
       }
       else
       {
-	 &Fatal ("\&ReduceVolume: \@\$step must have 1 or 3 elements");
+	 die "\&ReduceVolume: \@\$step must have 1 or 3 elements";
       }
    }
    else
@@ -1158,7 +1156,7 @@ sub ReduceVolume
       }
       else
       {
-	 &Fatal ("\&ReduceVolume: \@\$extend must have 1 or 3 elements");
+	 die "\&ReduceVolume: \@\$extend must have 1 or 3 elements";
       }
    }
    else
@@ -1946,7 +1944,7 @@ sub minctracc
    my ($program, $svol, $tvol, $type);
    my ($sourcemask, $targetmask);
 
-   &Fatal ("fit profile is missing some required field")
+   die "fit profile is missing some required field"
       unless ($fit->{'program'} &&
               ($fit->{'volume'} || ($fit->{'target'} && $fit->{'source'})) &&
 	      ($fit->{'inputxfm'} || $fit->{'init_args'}) && 
@@ -2438,4 +2436,15 @@ sub GuessCrop
       if (abs ($extent[2]) > 190);
    @crop;
 }
+
+# find the maximum value in an array
+sub max
+{
+   my($max) = pop(@_);
+   foreach (@_) {
+      $max = $_ if ($max < $_);
+   }
+   $max;
+}
+
 
