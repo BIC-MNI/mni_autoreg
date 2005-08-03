@@ -1,3 +1,9 @@
+2005-08-03  Andrew L Janke  <a.janke@gmail.com>
+
+	* Removed internal version of mni_perllib
+	* Updated all scripts to use MNI::Perl stuff
+	* Added sensical -version options to all scripts
+
 2003-06-12  Steve ROBBINS  <stever@bic.mni.mcgill.ca>
 
 	* Startup.pm (SelfAnnounce): Remove "defined @argv", it is

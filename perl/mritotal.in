@@ -46,7 +46,7 @@
 # the same copyright as above.
 # --------------------------------------------------------------------
 
-# $Id: mritotal.in,v 1.16 2005-08-03 15:33:31 rotor Exp $
+# $Id: mritotal.in,v 1.17 2005-08-03 15:38:01 rotor Exp $
 
 require 5.001;
 
@@ -549,9 +549,7 @@ sub ReadProtocol
 #              protocol (data-specific preprocessing): @Subsample, @Crop,
 #                 $Objective, @Blurs, $Blur
 #              $ProtocolArgs
-#@CALLS      : &JobControl::SetOptions
-#              &JobControl::AddProgramOptions      
-#              &SetupArgTables
+#@CALLS      : &SetupArgTables
 #              &ReadConfigFile
 #              &GetOptions
 #              &ReadProtocol (indirectly through ParseArgs)
