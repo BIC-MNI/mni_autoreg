@@ -16,4 +16,5 @@ libminctracc_optimize_a_SOURCES = \
 	obj_fn_mutual_info.c \
 	do_nonlinear.c
 
-EXTRA_DIST = switch_obj_func.c
+EXTRA_DIST = switch_obj_func.c \
+	louis_splines.h
