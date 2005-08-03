@@ -1,4 +1,4 @@
-#! @PERL@ -w
+#! @PERL@
 
 # ------------------------------ MNI Header ----------------------------------
 #@NAME       : mritoself
@@ -14,7 +14,7 @@
 #              rewrite #2: December 1995-February 1996, GW
 #@MODIFIED   : April-May 1996, Louis Collins: modifications to make an
 #                              official mritoself for ICBM and AI data
-#@VERSION    : $Id: mritoself.in,v 1.6 2005-07-26 20:25:41 rotor Exp $
+#@VERSION    : $Id: mritoself.in,v 1.7 2005-08-03 15:33:30 rotor Exp $
 #@COMMENTS   : 
 #  possible additions:
 #    figure out the thresholding stuff
@@ -24,28 +24,21 @@
 #      do not align with either volume voxel sizes.
 #-----------------------------------------------------------------------------
 
-
-# usage: mritoself [options] source_vol target_vol transform
+use warnings "all";
 
 use FindBin;
-# use lib "$FindBin::Bin/../lib/mni_autoreg";
 
-use Startup;
-use JobControl qw(AddProgramOptions Spawn);
-use Getopt::Tabular;                    # import only GetOptions
-
-require "file_utilities.pl";
-require "path_utilities.pl";
-require "minc_utilities.pl";
-require "numeric_utilities.pl";
-require "volume_heuristics.pl";
-
-&Startup;
+use MNI::Startup qw(nocputimes);
+use MNI::Spawn;
+use MNI::FileUtilities qw(search_directories check_output_dirs check_files);
+use MNI::PathUtilities qw(replace_ext replace_dir split_path);
+use MNI::MincUtilities qw(:history volume_params volume_cog volume_min auto_threshold);
+use MNI::NumericUtilities qw(labs round);
+use Getopt::Tabular qw(GetOptions SpoofGetOptions);
 
 &Initialize;
 
 # variables local to the main program
-
 my ($source_cropped, $source_crop, $source_subsample);
 my ($target_cropped, $target_crop, $target_subsample);
 my ($source_mask, $target_mask);
@@ -73,10 +66,10 @@ $TargetBase = (&split_path ($Target, "last"))[1];
 
 ($source_cropped, $source_crop, $source_subsample)=
    &Crop ($SourceBase, $Source, "crop", 
-	  $GuessCrop, $GuessSubsample, \@Subsample, \@Crop);
+          $GuessCrop, $GuessSubsample, \@Subsample, \@Crop);
 ($target_cropped, $target_crop, $target_subsample) =
    &Crop ($TargetBase, $Target, "crop",
-	  $GuessCrop, $GuessSubsample, \@Subsample, \@Crop);
+          $GuessCrop, $GuessSubsample, \@Subsample, \@Crop);
 
 
 # Possible create masks for each volume (possibly different, depending
@@ -120,7 +113,6 @@ if ($Threshold)
 &Resample ($Source, $Resample, $FinalXfm, $target_cropped)
    if ($Resample);
 
-&Shutdown (1);
 
 
 sub verbose
@@ -158,22 +150,21 @@ sub Initialize
    $Debug = 0;
 
    $KeepTmp = 0;
-   &JobControl::SetOptions ("ErrorAction", "fatal");
+   MNI::Spawn::SetOptions (err_action => 'fatal');
 
-#  $Fitter = "tracc";           # N.B. this is ignored...
    $GuessSubsample = 0;         # don't subsample
    @Subsample = ();
    $GuessCrop = 1;
    @Crop = (0);                 # so heuristic cropping is the default
-   $Blur = 0;			# don't blur
+   $Blur = 0;                        # don't blur
    $Mask = "none";              # don't mask
    $MaskLabel = "mask";         # which mask volume to use
-   $DilateMask = 0;		# number of dilation steps
+   $DilateMask = 0;                # number of dilation steps
    $UseGradient = 1;
-   $Threshold = 1;		# 
-   $AutoThreshold = 1;		# only has meaning if $Threshold == 1
-   @Thresholds = ();		# only has meaning if $Threshold == 1 and
-				# !$AutoThreshold
+   $Threshold = 1;                # 
+   $AutoThreshold = 1;                # only has meaning if $Threshold == 1
+   @Thresholds = ();                # only has meaning if $Threshold == 1 and
+                                # !$AutoThreshold
 
    $Model = "average_305";
    $ModelDir = "$FindBin::Bin/../share/mni_autoreg";
@@ -188,7 +179,8 @@ sub Initialize
 
    my $usage = <<USAGE;
 Usage: $ProgramName [options] source_vol target_vol transform
-       $ProgramName -help for details
+       $ProgramName -help
+
 USAGE
 
    my $help = <<HELP;
@@ -209,123 +201,127 @@ HELP
 
    @ArgInfo =
       (@DefaultArgs,
+      
+       ["-version", "call", undef, \&print_version,
+        "print version and quit"],
+      
        ["Fitting program, objective function, type of fit", "section"],
        ["-xcorr", "copy", undef, \$Objective,
-	"use cross-correlation objective fn for fitting with minctracc"],
+        "use cross-correlation objective fn for fitting with minctracc"],
        ["-vr", "copy", undef, \$Objective,
-	"use variance-of-ratios objective fn for fitting with minctracc"],
+        "use variance-of-ratios objective fn for fitting with minctracc"],
        ["-mi", "copy", undef, \$Objective,
-	"use mutual information objective fn for fitting with minctracc [default]"],
+        "use mutual information objective fn for fitting with minctracc [default]"],
        ["-lsq6", "copy", undef, \$FitType,
-	"do 6-parameter fit [default]"],
+        "do 6-parameter fit [default]"],
        ["-lsq7", "copy", undef, \$FitType,
-	"do 7-parameter fit [not recommended - only for dire need]"],
+        "do 7-parameter fit [not recommended - only for dire need]"],
        ["-lsq9", "copy", undef, \$FitType,
-	"do 9-parameter fit [not recommended - only for dire need]"],
+        "do 9-parameter fit [not recommended - only for dire need]"],
        ["-groups", "integer", 1, \$Groups,
-	"number of groups for -vr or -mi fitting [default: 256]"],
+        "number of groups for -vr or -mi fitting [default: 256]"],
        ["-simplex", "float", 1, \$Simplex,
-	"set the simplex radius for fitting with minctracc"],
+        "set the simplex radius for fitting with minctracc"],
 
        ["Thresholding options", "section"],
        ["-threshold", "float", 2, \@Thresholds,
-	"set thresholds (as fraction of volume max) for the two volumes " .
-	"[default: -autothreshold]"],
+        "set thresholds (as fraction of volume max) for the two volumes " .
+        "[default: -autothreshold]"],
        ["-nothreshold", "copy", 0, \$Threshold,
-	"disable thresholding [default: -autothreshold]"],
+        "disable thresholding [default: -autothreshold]"],
        ["-autothreshold", "boolean", 0, \$AutoThreshold,
-	"automatically determine the background thresholds [default]"],
+        "automatically determine the background thresholds [default]"],
 
        ["Initial transformation options", "section"],
        ["-transform", "string", 1, \$InputXfm,
-	"set the initial transform file"],
+        "set the initial transform file"],
        ["-initial", "string", 1, \$InitialGuess,
-	"set the minctracc parameters to use in lieu of -transform " .
-	"[default: \"$InitialGuess\"; overridden by -transform]"],
+        "set the minctracc parameters to use in lieu of -transform " .
+        "[default: \"$InitialGuess\"; overridden by -transform]"],
        ["-close", "call", 0, \&set_fit_params,
-	"use when registering scans from the same session; synonymous with " .
-	"\"-simplex 3 -initial \'-identity\'\" [default]"],
+        "use when registering scans from the same session; synonymous with " .
+        "\"-simplex 3 -initial \'-identity\'\" [default]"],
        ["-veryclose", "boolean", undef, \$VeryClose,
-	"only do last fitting step (to refine good input xfm)"],
+        "only do last fitting step (to refine good input xfm)"],
        ["-far", "call", 0, \&set_fit_params,
-	"use when registering scans from different sessions; synonymous " .
-	"with \"-simplex 10 -initial \'-est_center -est_translations\'\""],
+        "use when registering scans from different sessions; synonymous " .
+        "with \"-simplex 10 -initial \'-est_center -est_translations\'\""],
        ["-invert_input", "boolean", 0, \$InvertInputTransform,
         "invert final transform before using it [default: -noinvert_input]"],
 
        ["Preprocessing options, part 1: subsampling", "section"],
        ["-subsample", "float", 3, \@Subsample,
-	"(x,y,z) step size (in mm) to subsample both volumes to " .
-	"[default: -guess_subsample]"],
+        "(x,y,z) step size (in mm) to subsample both volumes to " .
+        "[default: -guess_subsample]"],
        ["-guess_subsample", "eval", 0, 
-	"\@main::Subsample = (0); \$main::GuessSubsample = 1;",
-	"make an educated guess about step sizes for subsampling"],
+        "\@main::Subsample = (0); \$main::GuessSubsample = 1;",
+        "make an educated guess about step sizes for subsampling"],
        ["-nosubsample", "eval", 0, "\@main::Subsample = ()",
-	"disable subsampling [default]"],
+        "disable subsampling [default]"],
 
        ["Preprocessing options, part 2: cropping", "section"],
        ["-crop", "string", 3, \@Crop,
-	"specify the amount of data to remove before doing anything else " .
-	"(takes the form of \`extent\' specifications -- one per spatial " .
-	"dimension, in (x,y,z) order -- passed directly to autocrop) " .
-	"[default: -guesscrop]"],
+        "specify the amount of data to remove before doing anything else " .
+        "(takes the form of \`extent\' specifications -- one per spatial " .
+        "dimension, in (x,y,z) order -- passed directly to autocrop) " .
+        "[default: -guesscrop]"],
        ["-guess_crop", "eval", 0, 
-	"\@main::Crop = (0); \$main::GuessCrop = 1;",
-	"make an educated guess about how to crop the volume [default]"],
+        "\@main::Crop = (0); \$main::GuessCrop = 1;",
+        "make an educated guess about how to crop the volume [default]"],
        ["-nocrop", "copy", 0, \$Crop,
-	"don't remove any data"],
+        "don't remove any data"],
 
        ["Preprocessing options, part 3: blurring", "section"],
        ["-blur", "float", 1, \$Blur,
-	"set size of blurring kernel (in mm) to use " .
-	"[default is -noblur]"],
+        "set size of blurring kernel (in mm) to use " .
+        "[default is -noblur]"],
        ["-noblur", "copy", 0, \$Blur,
-	"disable blurring [default]"],
+        "disable blurring [default]"],
        ["-gradient|-intensity", "boolean", 0, \$UseGradient,
-	"use the gradient blur images for fitting " .
-	"[default; opposite is -intensity]"],
+        "use the gradient blur images for fitting " .
+        "[default; opposite is -intensity]"],
 
        ["Preprocessing options, part 4: masking", "section"],
        ["-mask", "string", 1, \$Mask,
-	"use the transformation to stereotaxic space, along with the " .
-	"stereotaxic model files, to mask one or both volumes (eg. " .
-	"\"-mask source\", \"-mask target\", or \"-mask both\") " .
-	"[default: none]"],
+        "use the transformation to stereotaxic space, along with the " .
+        "stereotaxic model files, to mask one or both volumes (eg. " .
+        "\"-mask source\", \"-mask target\", or \"-mask both\") " .
+        "[default: none]"],
        ["-dilatemask", "integer", 1, \$DilateMask,
-	"number of dilation steps to apply to mask(s) [default: $DilateMask]"],
+        "number of dilation steps to apply to mask(s) [default: $DilateMask]"],
        ["-nomask", "const", 0, \$Mask,
-	"disable masking (equivalent to \"-mask none\" [default]"],
+        "disable masking (equivalent to \"-mask none\" [default]"],
        ["-masklabel", "string", 1, \$MaskLabel,
-	"set the name of the mask volume to use (eg. \"mask\" for brain " .
-	"mask, \"headmask\" for head mask)"],
+        "set the name of the mask volume to use (eg. \"mask\" for brain " .
+        "mask, \"headmask\" for head mask)"],
 
        ["Postprocessing", "section"],
        ["-resample", "string", 1, \$Resample,
-	"set the name of the file to resample the source volume to " .
-	"[default: -noresample]"],
+        "set the name of the file to resample the source volume to " .
+        "[default: -noresample]"],
        ["-noresample", "copy", 0, \$Resample,
-	"disable resampling the source volume"],
+        "disable resampling the source volume"],
        ["-invert_output", "boolean", 0, \$InvertOutputTransform,
         "invert final transform before saving it [default: -noinvert_output]"],
 
        ["Stereotaxic transform files", "section"],
        ["-talxfm", "string", 1, \$TalXfm,
-	"set the transformation to stereotaxic space (same for source and " .
-	"target) " .
-	"(to use for cropping, masking, etc.)"],
+        "set the transformation to stereotaxic space (same for source and " .
+        "target) " .
+        "(to use for cropping, masking, etc.)"],
        ["-source_talxfm", "string", 1, \$TalXfm[0],
-	"set the transformation to stereotaxic space for the source volume"],
+        "set the transformation to stereotaxic space for the source volume"],
        ["-target_talxfm", "string", 1, \$TalXfm[1],
-	"set the transformation to stereotaxic space for the target volume"],
+        "set the transformation to stereotaxic space for the target volume"],
 
        ["Location and basename of stereotaxic model files", "section"],
        ["-model", "string", 1, \$Model,
-	"set the base filename for stereotaxic model files (if given as " .
-	"relative path, the directory specified by -modeldir will be used) " .
-	"[default: $Model]"],
+        "set the base filename for stereotaxic model files (if given as " .
+        "relative path, the directory specified by -modeldir will be used) " .
+        "[default: $Model]"],
        ["-modeldir", "string", 1, \$ModelDir,
-	"set the directory where stereotaxic model files live " .
-	"[default: $ModelDir]"]);
+        "set the directory where stereotaxic model files live " .
+        "[default: $ModelDir]"]);
 
    &Getopt::Tabular::SetHelp ($help, $usage);
 
@@ -344,7 +340,7 @@ HELP
 You must specify an input transformation (with -transform) when you
 use the -veryclose option.
 END
-   }	
+   }        
 
    $Objective = "-mi" unless defined $Objective;
 
@@ -372,7 +368,7 @@ END
    if ($Mask && (!@TalXfm || !($TalXfm[0] || $TalXfm[1])))
    {
       die "Must supply stereotaxic transforms (with -talxfm or " .
-	  "-source_talxfm or -target_talxfm options) to do masking\n";
+          "-source_talxfm or -target_talxfm options) to do masking\n";
    }
 
    # if user supplied explicit threshold values, they should
@@ -381,7 +377,7 @@ END
    if ($AutoThreshold && @Thresholds)
    {
       warn "$ProgramName: warning: " .
-	 "-threshold settings override the -autothreshold option\n";
+         "-threshold settings override the -autothreshold option\n";
       $AutoThreshold = 0;
    }
 
@@ -413,19 +409,18 @@ END
    push (@programs, 'dilate_volume') if $DilateMask;
    push (@programs, 'mincstats') if $AutoThreshold;
 
-   JobControl::FindPrograms (\@programs) || exit 1;
+   RegisterPrograms (\@programs) || exit 1;
 
 
    # Add options for various programs according to $Debug, $Verbose,
    # $Clobber flags
-
-   AddProgramOptions
+   AddDefaultArgs
       ([qw(mincblur minctracc mincresample autocrop)], ["-quiet"])
          unless $Verbose;
-   AddProgramOptions
+   AddDefaultArgs
       ([qw(mincblur minctracc mincresample autocrop)], ["-clobber"])
          if $Clobber;
-   AddProgramOptions ([qw(mincblur minctracc)], ["-debug"])
+   AddDefaultArgs ([qw(mincblur minctracc)], ["-debug"])
       if $Debug;
 
    ($Source, $Target, $FinalXfm) = @argv;
@@ -512,7 +507,7 @@ sub make_mask
    if ($dilation)
    {
       &Spawn (['dilate_volume', $tempmask, $mask, 255, 26, $dilation])
-	 unless -e $mask && !$Clobber;
+         unless -e $mask && !$Clobber;
    }
 }
 
@@ -537,12 +532,12 @@ sub MakeMasks
           $tal_xfm->[0] eq $tal_xfm->[1] &&
           -e $source_mask)
       {
-	 link ($source_mask, $target_mask);
+         link ($source_mask, $target_mask);
       }
       else
       {
-	 &make_mask ($model_mask, $tal_xfm->[1], 
-		     $target, $target_mask, $dilation);
+         &make_mask ($model_mask, $tal_xfm->[1], 
+                     $target, $target_mask, $dilation);
       }
    }      
    ($source_mask, $target_mask);
@@ -605,7 +600,7 @@ sub GetThresholds
    elsif (@Thresholds)
    {
       Fatal ("\@Thresholds must have exactly two elements")
-	 unless (@Thresholds == 2);
+         unless (@Thresholds == 2);
       
       ($source_min, $source_max) = &volume_minmax ($source);
       $source_threshold = round
@@ -729,7 +724,7 @@ sub Fit
          unless (-e $out_xfm && !$Clobber);
    }
 
-}				
+}                                
 
 
 sub Resample
@@ -824,3 +819,54 @@ sub GuessCrop
    @crop;
 }
 
+# ------------------------------ MNI Header ----------------------------------
+#@NAME       : &uncompress
+#@INPUT      : $tmp_dir - directory to uncompress files to
+#              @originals - list of files to consider for uncompression
+#@OUTPUT     :
+#@RETURNS    : array context: @originals, changed so that any the names
+#                of any files that were compressed are now decompressed
+#                and in $tmp_dir
+#              scalar context: first element of @originals, possibly changed
+#                to decompressed version
+#@DESCRIPTION: Uncompresses (if applicable) compressed files to $tmp_dir.
+#@METHOD     :
+#@GLOBALS    :
+#@CALLS      :
+#@CREATED    : 1995/07/31, Greg Ward
+#@MODIFIED   :
+#-----------------------------------------------------------------------------
+sub uncompress
+{
+   my ($tmp_dir, @originals) = @_;
+   my ($uncompressed, @uncompressed, $orig);
+
+   foreach $orig (@originals)
+   {
+      if ($orig =~ /\.(Z|gz|z)$/)
+      {
+     ($uncompressed = &replace_dir ($tmp_dir, $orig)) =~ s/\.(Z|gz|z)$//;
+         unless (-e $uncompressed)
+         {
+            system ("gunzip -c $orig > $uncompressed");
+            die "gunzip $orig failed\n" if ($?);
+         }
+     push (@uncompressed, $uncompressed);
+      }
+      else
+      {
+     push (@uncompressed, $orig);
+      }
+   }
+   return @uncompressed if wantarray;
+   return $uncompressed[0];
+}
+
+sub print_version {
+   
+   my($Version) = '@PACKAGE_VERSION@';
+   my($LongVersion) = '@MNI_AUTOREG_LONG_VERSION@';
+   
+   print "\n$ProgramName $Version built from:\n$LongVersion\n\n";
+   exit;
+}

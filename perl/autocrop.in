@@ -1,4 +1,4 @@
-#! @PERL@ -w
+#! @PERL@
 
 # autocrop - a program for extracting and manipulating the bounds of a
 # MINC volume, with the capability to output parameters for mincresample
@@ -22,20 +22,19 @@
 
 # By Greg Ward 94/9/22
 
-# $Id: autocrop.in,v 1.5 2005-07-26 20:25:41 rotor Exp $
+# $Id: autocrop.in,v 1.6 2005-08-03 15:33:30 rotor Exp $
 
-use FindBin;
-use lib "$FindBin::Bin/../lib/mni_autoreg";
+use warnings "all";
 
-use Startup;
-use JobControl;
+use MNI::Startup qw(nocputimes);
+use MNI::Spawn;
+use MNI::FileUtilities qw( check_output_dirs );
+use MNI::MincUtilities qw( update_history volume_params get_dimension_order 
+                           compute_reshape_args compute_resample_args);
+use MNI::NumericUtilities qw( round );
 use Getopt::Tabular;                    # import just GetOptions
 
-require "file_utilities.pl";
-require "numeric_utilities.pl";
-require "minc_utilities.pl";
 
-&Startup;
 &SetGlobals;
 &ParseArgs ();
 
@@ -54,23 +53,23 @@ require "minc_utilities.pl";
 # Otherwise, the user didn't pick step values -- so we just use the
 # current ones.
 
-if (@Step)			# user set them on command line
+if (@Step)                        # user set them on command line
 {
    my (@absstep) = &labs (@Step);
    my (@absoldstep) = &labs (@oldstep);
    my ($steps_changed) = ! &comp_arrays (\@absstep, \@absoldstep);
 
-   if (! $Action)		# $Action not already set - we can pick it
+   if (! $Action)                # $Action not already set - we can pick it
    {
       $Action = ($steps_changed) ? "resample" : "reshape";
    }
    else
    {
       die "Can't use mincreshape if the steps are changed\n"
-	 if ($steps_changed && $Action eq "reshape");
+         if ($steps_changed && $Action eq "reshape");
    }
 }
-else				# steps aren't already decided on
+else                                # steps aren't already decided on
 {
    @Step = @oldstep;
    $Action = "reshape" unless defined $Action;
@@ -122,7 +121,7 @@ else
 
 if ($Action eq "resample")
 {
-   $params = &compute_resample_params (\@start, \@extent, \@Step);
+   $params = join(' ', &compute_resample_args (\@start, \@extent, \@Step));
    if ($Crop)
    {
       &Spawn ("$MincResample $InputVolume $CropVolume $params");
@@ -132,8 +131,8 @@ if ($Action eq "resample")
 elsif ($Action eq "reshape")
 {
    my $dim_order = (&get_dimension_order ($InputVolume))[0];
-   $params = &compute_reshape_params ($dim_order, \@oldstart, \@oldstep,
-                                      \@start, \@extent, \@Step);
+   $params = join(' ', &compute_reshape_args ($dim_order, \@oldstart, \@oldstep,
+                                      \@start, \@extent, \@Step));
    if ($Crop)
    {
       &Spawn ("$MincReshape $InputVolume $CropVolume $params");
@@ -152,8 +151,6 @@ if ($OutputParams)
 }
 
 
-&Shutdown ();
-
 
 
 # -------------------------------------------
@@ -166,11 +163,11 @@ if ($OutputParams)
 
 sub SetGlobals
 {
-   &JobControl::SetOptions ("MergeErrors", 1, "ErrorAction", "fatal");
+   MNI::Spawn::SetOptions (err_action => 'fatal');
 
-   $MincResample = &find_program ("mincresample");
-   $MincReshape = &find_program ("mincreshape");
-   &Fatal () unless $MincResample && $MincReshape;
+   $MincResample = 'mincresample';
+   $MincReshape = 'mincreshape';
+   RegisterPrograms([$MincResample, $MincReshape]) or &Fatal();
    
    $Action = undef;             # "resample" or "reshape" (depending on
                                 # circumstances)
@@ -178,21 +175,18 @@ sub SetGlobals
    $OutputParams = 0;           # print minc{resample,reshape} args?
    @ModParams = ();             # sequence of extend, expand, keep, ... ?
 
-   $Version = "@VERSION@";
-   $LongVersion = "@MNI_AUTOREG_LONG_VERSION@";
-   $Usage = <<EOH;
-$ProgramName, from @PACKAGE_NAME@ version $Version
-
+   $Version = '@PACKAGE_VERSION@';
+   $LongVersion = '@MNI_AUTOREG_LONG_VERSION@';
+   $Usage = <<USAGE;
 Usage: $ProgramName [options] volume crop_volume
        $ProgramName -help for details
-EOH
 
-   $Help = <<EOH;
-$ProgramName, $LongVersion
+USAGE
 
+   $Help = <<HELP;
 $ProgramName is a big, hairy program with lots of options and far
 too much flexibility.  See the man page for the full story.
-EOH
+HELP
 
 }
 
@@ -224,15 +218,15 @@ sub ParseArgs
 
       if ($arg =~ /^-(resample|reshape)$/)
       {
-	 $Action = $1;
-	 $Crop = 1;
-	 $OutputParams = 0;
+         $Action = $1;
+         $Crop = 1;
+         $OutputParams = 0;
       }
       elsif ($arg =~ /^-no(resample|reshape)/)
       {
-	 $Action = $1;
-	 $Crop = 0;
-	 $OutputParams = 1;
+         $Action = $1;
+         $Crop = 0;
+         $OutputParams = 1;
       }
       else
       {
@@ -319,6 +313,9 @@ sub ParseArgs
 
    @arg_table = 
       (@DefaultArgs,
+      
+       ["-version", "call", undef, \&print_version,
+        "print version and quit"],
 
        ["Action-to-take options", "section"],
        ["-resample", "call", undef, $set_action,
@@ -466,16 +463,16 @@ sub GetBounds
    {
       if ($bounds_file =~ /\.tag/)
       {
-	 $tagfile = $bounds_file;
+         $tagfile = $bounds_file;
       }
       elsif ($bounds_file =~ /([^\/]+)\.mnc/)
       {
-	 $tagfile = $TmpDir . "/" . $1 . "_bounds.tag";
-	 &GetVolumeBounds ($bounds_file, $tagfile);
+         $tagfile = $TmpDir . "/" . $1 . "_bounds.tag";
+         &GetVolumeBounds ($bounds_file, $tagfile);
       }
       else
       {
-	 &Fatal ("Bounds file $bounds_file must be either a tag file or a MINC volume");
+         &Fatal ("Bounds file $bounds_file must be either a tag file or a MINC volume");
       }
    }
    elsif ($bbox_file)
@@ -610,7 +607,7 @@ sub GetVolumeBounds
    {
       $stop[$i] = $start[$i] + $step[$i] * ($length[$i] - 1);
       ($stop[$i],$start[$i]) = ($start[$i],$stop[$i])
-	 if ($step[$i] < 0.0);
+         if ($step[$i] < 0.0);
 
       if ($Debug)
       {
@@ -621,7 +618,7 @@ sub GetVolumeBounds
 
    &DimLimitsToBounds (\@start, \@stop, \@xcoords, \@ycoords, \@zcoords);
    &WriteTagFile ($tagfile, "bounds tag file created from volume $volume",
-		  \@xcoords, \@ycoords, \@zcoords) || &Fatal;
+                  \@xcoords, \@ycoords, \@zcoords) || &Fatal;
 }
 
 
@@ -694,7 +691,7 @@ sub GetBBoxBounds
    &DimLimitsToBounds (\@start, \@stop, \@xcoords, \@ycoords, \@zcoords);
    &WriteTagFile ($tagfile,
                   "bounds tag file created from bounding box of $volume",
-		  \@xcoords, \@ycoords, \@zcoords)
+                  \@xcoords, \@ycoords, \@zcoords)
       || &Fatal;
 }
 
@@ -742,7 +739,7 @@ sub TransformBounds
    }
 
    &Spawn ("transformtags -vol1 -transform $transform " .
-	   "$foreign_tag $native_tag");
+           "$foreign_tag $native_tag");
 }
 
 
@@ -832,10 +829,10 @@ sub FixBounds
       $extent->[$i] = round ($extent->[$i], abs ($step->[$i]), $extent->[$i] <=> 0);
 
       if (($step->[$i] < 0.0 && $extent->[$i] > 0.0) |
-	  ($step->[$i] > 0.0 && $extent->[$i] < 0.0))
+          ($step->[$i] > 0.0 && $extent->[$i] < 0.0))
       {
-	 $start->[$i] += $extent->[$i] - abs($step->[$i]);
-	 $extent->[$i] = - $extent->[$i];
+         $start->[$i] += $extent->[$i] - abs($step->[$i]);
+         $extent->[$i] = - $extent->[$i];
       }
 
       if ($Debug)
@@ -1034,8 +1031,8 @@ sub ModifyBounds
       }
    }
 }
-	 
-	 
+         
+         
 
 # --------------------------------------------------------------
 #   Low-level utility subroutines for reading/writing tag files:
@@ -1082,8 +1079,8 @@ sub ReadTagFile
    my $i = 0;
    while (<TAGFILE>)
    {
-      s/^\s+//;			# strip leading whitespace
-      @_ = split;		# pull out first three coordinates
+      s/^\s+//;                        # strip leading whitespace
+      @_ = split;                # pull out first three coordinates
       $x->[$i] = $_[0];
       $y->[$i] = $_[1];
       $z->[$i] = $_[2];
@@ -1100,7 +1097,7 @@ sub ReadTagFile
 #                      it already exists)
 #              $comment - comment to put at top of tag file; can be 
 #                         multiline; percent charaters will be added as
-#                         necessary				
+#                         necessary                                
 #              $x,$y,$z - references to arrays of coordinates
 #@OUTPUT     : 
 #@RETURNS    : 1 on success, 0 if any error
@@ -1160,4 +1157,51 @@ sub comp_arrays
       return 0 unless ($a1->[$i] == $a2->[$i]);
    }
    return 1;
+}
+
+# ------------------------------ MNI Header ----------------------------------
+#@NAME       : &min
+#@INPUT      : List of scalars (numeric).
+#@OUTPUT     :
+#@RETURNS    : Minimum value from list.
+#@DESCRIPTION: Finds the min value in a list.
+#@METHOD     :
+#@GLOBALS    :
+#@CALLS      :
+#@CREATED    : August 95, GW (from Perl man page)
+#@MODIFIED   :
+#-----------------------------------------------------------------------------
+sub min
+{
+   my($min) = pop(@_);
+   foreach $foo (@_) {
+      $min = $foo if $min > $foo;
+   }
+   $min;
+}
+
+# ------------------------------ MNI Header ----------------------------------
+#@NAME       : &max
+#@INPUT      : List of scalars (numeric).
+#@OUTPUT     :
+#@RETURNS    : Maximum value from list.
+#@DESCRIPTION: Finds the max value in a list.
+#@METHOD     :
+#@GLOBALS    :
+#@CALLS      :
+#@CREATED    : August 95, GW (from Perl man page)
+#@MODIFIED   :
+#-----------------------------------------------------------------------------
+sub max
+{
+   my($max) = pop(@_);
+   foreach $foo (@_) {
+      $max = $foo if $max < $foo;
+   }
+   $max;
+}
+
+sub print_version {
+   print "\n$ProgramName $Version, built from:\n$LongVersion\n\n";
+   exit;
 }

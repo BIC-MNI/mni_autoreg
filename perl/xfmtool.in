@@ -1,4 +1,4 @@
-#! @PERL@ -w
+#! @PERL@
 
 # ------------------------------ MNI Header ----------------------------------
 #@NAME       : xfmtool
@@ -13,18 +13,17 @@
 #@CALLS      : 
 #@CREATED    : 1996/06/07, Greg Ward
 #@MODIFIED   : 
-#@VERSION    : $Id: xfmtool.in,v 1.3 2005-07-26 20:25:41 rotor Exp $
+#@VERSION    : $Id: xfmtool.in,v 1.4 2005-08-03 15:33:31 rotor Exp $
 #-----------------------------------------------------------------------------
 
 require 5.002;
 
-use FindBin;
-# use lib "$FindBin::Bin/../lib/mni_autoreg";
+use warnings "all";
+use MNI::MiscUtilities qw/ timestamp userstamp /;
+use MNI::PathUtilities qw/ split_path /;
+use MNI::FileUtilities qw/ check_output_path /;
 
-require "string_utilities.pl";
-require "file_utilities.pl";
-require "path_utilities.pl";
-require "misc_utilities.pl";
+#require "string_utilities.pl";
 
 
 package TransformFile;
@@ -346,7 +345,13 @@ sub print
 package main;
 
 $::Usage = <<USAGE;
+
+xfmtool is a tool to perform various operations on xfm files.  
+Currently it just inverts and concatenates any number of xfm's
+
 Usage: xfmtool in_xfm in_xfm ... out_xfm
+       xfmtool in1.xfm invert:in2.xfm in3.xfm ... result.xfm
+
 USAGE
 
 die $::Usage unless @ARGV >= 2;

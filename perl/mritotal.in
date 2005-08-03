@@ -46,7 +46,7 @@
 # the same copyright as above.
 # --------------------------------------------------------------------
 
-# $Id: mritotal.in,v 1.15 2005-08-02 21:38:49 rotor Exp $
+# $Id: mritotal.in,v 1.16 2005-08-03 15:33:31 rotor Exp $
 
 require 5.001;
 
@@ -200,12 +200,10 @@ use strict;                              # for badly-behaved main program
 #-----------------------------------------------------------------------------
 sub CreateInfoText
 {
-   $Version = '0.98u';
-   $LongVersion = 'Package mni_autoreg 0.98u, compiled by rotor@audrey (i686-pc-linux-gnu) on Mon Aug  1 14:42:23 EDT 2005';
+   $Version = '@PACKAGE_VERSION@';
+   $LongVersion = '@MNI_AUTOREG_LONG_VERSION@';
 
    $Usage = <<USAGE;
-$ProgramName, version $Version
-
 Usage: $ProgramName [options] input_volume output_transform
        $ProgramName -help
        
@@ -260,7 +258,7 @@ sub SetupArgTables
 
    sub print_version
    {
-      print "Program $ProgramName, built from:\n$LongVersion\n";
+      print "\n$ProgramName $Version, built from:\n$LongVersion\n\n";
       exit;
    }
 

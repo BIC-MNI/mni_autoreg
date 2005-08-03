@@ -2,30 +2,18 @@ perllibdir = $(pkglibdir)
 configdir = $(sysconfdir)/@PACKAGE@
 modeldir = $(pkgdatadir)
 
-# Helper program used by build_perl_stuff.
-# noinst_PROGRAMS = version
+man_MANS = mritotal.1 autocrop.1 mritoself.1
+script_in = autocrop.in mritoself.in mritotal.in xfmtool.in
+configdata_in = mritotal.cfg.in mritotal.default.cfg.in mritotal.icbm.cfg.in
 
 EXTRA_DIST = $(script_in) $(configdata_in) $(man_MANS)
-
-# script_in = autocrop.in mritoself.in mritotal.in xfmtool.in
-# configdata_in = mritotal.cfg.in mritotal.default.cfg.in mritotal.icbm.cfg.in
-
-man_MANS = mritotal.1 autocrop.1 mritoself.1
 
 if PERLGOOD
 
 CLEANFILES = $(bin_SCRIPTS) $(config_DATA)
 
-bin_SCRIPTS = autocrop mritotal mritoself xfmtool
-config_DATA  = mritotal.cfg mritotal.default.cfg mritotal.icbm.cfg
-
-# Wacky perl script to do substitution
-#
-#$(bin_SCRIPTS) $(config_DATA): $(script_in) $(configdata_in) version Makefile
-#	$(PERL) $(srcdir)/build_perl_stuff --srcdir $(srcdir) \
-#	    PERL=$(PERL) LIBDIR=$(perllibdir) \
-#	    MODELDIR=$(modeldir) CONFIGDIR=$(configdir) \
-#	    $(bin_SCRIPTS) $(config_DATA)
+bin_SCRIPTS = $(script_in:.in=)
+config_DATA  = $(configdata_in:.in=)
 
 install-exec-local:
 
