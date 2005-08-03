@@ -5,6 +5,7 @@
  */
 
 #include <config.h>
+#include <float.h>
 #include <math.h>
 #include <Proglib.h>
 #include <ParseArgv.h>
