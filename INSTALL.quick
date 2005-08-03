@@ -14,10 +14,6 @@ AutoReg.  See the files INSTALL, README, and TESTING for more details
     * Perl 5 version 5.002 or later
     * the Getopt::Tabular perl module
 
-See the README for ftp locations and other instructions regarding
-these.
-
-
 ** Installation procedure:
 
     1. ./configure, or ./configure --prefix=/your/favourite/place
@@ -71,15 +67,14 @@ directories using options --prefix, --bindir, and the like.  Besides
 executables, scripts, and their man pages, MNI_Autoreg installs
 
 	configuration files	in $sysconfdir/mni_autoreg,
-	perl libraries		in $libdir/mni_autoreg,
 
 and will look for 
 
 	model files		in $datadir/mni_autoreg
 
 These directories can all be set at configure time; by default, 
-they are $prefix/etc/mni_autoreg, $prefix/lib/mni_autoreg, and
-$prefix/share/mni_autoreg, respectively ($prefix defaults to /usr/local).
+they are $prefix/etc/mni_autoreg, and $prefix/share/mni_autoreg, 
+respectively ($prefix defaults to /usr/local).
 
 Note that if you feel like setting ALL of these (e.g., to install
 MNI_AutoReg to /tmp or your home directory), you're generally better
@@ -90,8 +85,7 @@ defaults with configure arguments.
 
 *** Important: MNI_AutoReg doesn't actually install anything to
 MODELDIR; that is done by another package, the MNI Average Brain
-Stereotaxic Registration Model (which you should have downloaded as
-mni_autoreg_model-x.y.tar.gz).  However, MNI_AutoReg produces a custom
+Stereotaxic Registration Model However, MNI_AutoReg produces a custom
 version of the mritotal program (the main driver for stereotaxic
 registration) with MODELDIR hard-coded into it.  Be sure to use the
 same MODELDIR when configuring and installing the two packages, or you
@@ -103,7 +97,7 @@ will always need to use mritotal's `-modeldir' option to override the
 
 You will have to build and install the stereotaxic model before you
 can do actual fitting of MRI data to Talairach space.  This is
-available as a separate package from ftp.bic.mni.mcgill.ca; see the
+available as a separate package from packages.bic.mni.mcgill.ca; see the
 README file for more information.
 
 Finally, you should test the package on real data -- one example is

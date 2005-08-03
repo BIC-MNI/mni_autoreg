@@ -1,5 +1,9 @@
-2005-07-20  Andrew Janke <a.janke@gmail.com>
+2005-08-03  Andrew L Janke  <a.janke@gmail.com>
 
+	* Finished perl perllib stuff (finally)
+
+2005-07-20  Andrew Janke <a.janke@gmail.com>
+	
 	* Complete rewrite of the autoconf stuff (configure.in -> configure.am)
 	* Many changes to includes of files (float.h, limits.h, etc)
 	* Removed old VOLUME_IO cruft #defines

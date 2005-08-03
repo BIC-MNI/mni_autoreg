@@ -1,5 +1,11 @@
 CHANGES to the MNI_AutoReg package...
 
+Release 0.98u
+-------------
+
+* removed perl libraries that are now part of mni_perllib
+* removed c libraries that are now part of MINC proper
+
 Release 0.98t
 -------------
 

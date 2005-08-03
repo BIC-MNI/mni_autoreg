@@ -23,15 +23,6 @@ Questions:
    MINC file that can be used for registration or display purposes.
    See the rawtominc man page for more details.
 
-   Alternatively, there is (or soon will be) a collection of tools and
-   Perl scripts useful for converting various medical imaging formats
-   to MINC.  Since many of these formats are proprietary, we
-   unfortunately can't distribute a useful set of tools with
-   MNI_AutoReg.  Contact Peter Neelin <neelin@bic.mni.mcgill.ca> for
-   more information on conversion tools.  Two common formats that are
-   easily converted by these tools are those used by recent (?) GE
-   MRI scanners and ANALYZE.
-
 2- HOW DO I VIEW THE RESULTS OF THE REGISTRATION?
 
    When you run mritotal, the result is not a new image volume
@@ -75,19 +66,13 @@ Questions:
    the mincresample man page.
 
    Next, you'll want to look at the resampled MRI data, preferably
-   alongside the registration model (average_305.mnc).  If you have a
-   Silicon Graphics workstation, you can use Register, which was also
-   developed at the MNI.  This program allows the interactive browsing
-   of two 3-D volumes, along with a merged view of them.  You can
-   obtain Register (in precompiled form) from ftp.mni.mcgill.ca, in
-   /pub/register/MNI_Register-irix5.3.tar.Z.  When you have Register
-   installed on your system, try the following command (assuming you
-   have already done the above resampling):
+   alongside the registration model (average_305.mnc).  You can
+   obtain Register (in precompiled form) from packages.mni.mcgill.ca
+   When you have Register installed on your system, try the following 
+   command (assuming you have already done the above resampling):
 
-      register /data/avgbrain/models/average_305.mnc smith_john_mrital.mnc
+   register /usr/local/mni/share/mni_autoreg/average_305.mnc smith_john_mrital.mnc
 
-   If you don't have an SGI, try mincview -- another of the programs
-   in the MINC toolkit.
 
 2- HOW DO I CUSTOMIZE OBJECTIVE FUNCTIONS USED FOR FITTING?
 3- HOW DO I CUSTOMIZE THE OPTIMIZATION PROCEDURE USED?
