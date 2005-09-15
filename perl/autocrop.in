@@ -22,7 +22,7 @@
 
 # By Greg Ward 94/9/22
 
-# $Id: autocrop.in,v 1.6 2005-08-03 15:33:30 rotor Exp $
+# $Id: autocrop.in,v 1.7 2005-09-15 02:51:15 rotor Exp $
 
 use warnings "all";
 
@@ -31,7 +31,7 @@ use MNI::Spawn;
 use MNI::FileUtilities qw( check_output_dirs );
 use MNI::MincUtilities qw( update_history volume_params get_dimension_order 
                            compute_reshape_args compute_resample_args);
-use MNI::NumericUtilities qw( round );
+use MNI::NumericUtilities qw( round labs );
 use Getopt::Tabular;                    # import just GetOptions
 
 
