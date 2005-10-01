@@ -1,3 +1,7 @@
+2005-10-01  Andrew L Janke  <a.janke@gmail.com>
+
+	* Added vladimir fonovs changes to xfmtool that allows a .gz grid xfm
+	
 2005-08-03  Andrew L Janke  <a.janke@gmail.com>
 
 	* Finished perl perllib stuff (finally)

@@ -13,7 +13,7 @@
 #@CALLS      : 
 #@CREATED    : 1996/06/07, Greg Ward
 #@MODIFIED   : 
-#@VERSION    : $Id: xfmtool.in,v 1.4 2005-08-03 15:33:31 rotor Exp $
+#@VERSION    : $Id: xfmtool.in,v 1.5 2005-10-01 16:41:46 rotor Exp $
 #-----------------------------------------------------------------------------
 
 require 5.002;
@@ -22,9 +22,6 @@ use warnings "all";
 use MNI::MiscUtilities qw/ timestamp userstamp /;
 use MNI::PathUtilities qw/ split_path /;
 use MNI::FileUtilities qw/ check_output_path /;
-
-#require "string_utilities.pl";
-
 
 package TransformFile;
 
@@ -303,8 +300,24 @@ sub print_single
             }
             else
             {
-               symlink ($orig, $new)
-                  || die "Couldn't symlink $orig -> $new: $!\n";
+               #(VF) will check if original file is a real .mnc file, or .mnc.gz
+               if(-e $orig)
+               {
+                  symlink($orig, $new) 
+                     || die "Couldn't symlink $orig -> $new: $!\n";
+               } 
+               
+               # original file is gzipped
+               elsif(-e "${orig}.gz")
+               {
+                  symlink("${orig}.gz", "${new}.gz")
+                     || die "Couldn't symlink ${orig}.gz -> ${new}.gz : $!\n"
+               }
+               
+               else {
+                  die "$orig doesn't exists! $!\n";
+               }
+
             }
          }
       }
