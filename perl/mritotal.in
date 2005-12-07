@@ -46,7 +46,7 @@
 # the same copyright as above.
 # --------------------------------------------------------------------
 
-# $Id: mritotal.in,v 1.17 2005-08-03 15:38:01 rotor Exp $
+# $Id: mritotal.in,v 1.18 2005-12-07 03:19:13 rotor Exp $
 
 require 5.001;
 
@@ -568,7 +568,7 @@ sub Initialize
    # First, announce ourselves to stdout (for ease in later dissection
    # of log files) -- unless STDOUT is a tty.
 
-   &SelfAnnounce ("STDOUT") if $Verbose && ! -t "STDOUT";
+   &self_announce("STDOUT") if $Verbose && ! -t "STDOUT";
 
    # Set defaults for the global variables.  These can be overridden by 
    # the configuration file or the command line.
