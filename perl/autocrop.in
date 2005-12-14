@@ -22,13 +22,13 @@
 
 # By Greg Ward 94/9/22
 
-# $Id: autocrop.in,v 1.7 2005-09-15 02:51:15 rotor Exp $
+# $Id: autocrop.in,v 1.8 2005-12-14 15:29:20 rotor Exp $
 
 use warnings "all";
 
 use MNI::Startup qw(nocputimes);
 use MNI::Spawn;
-use MNI::FileUtilities qw( check_output_dirs );
+use MNI::FileUtilities qw( check_output_dirs split_path );
 use MNI::MincUtilities qw( update_history volume_params get_dimension_order 
                            compute_reshape_args compute_resample_args);
 use MNI::NumericUtilities qw( round labs );
