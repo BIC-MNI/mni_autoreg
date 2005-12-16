@@ -6,6 +6,7 @@ LDADD = ../Numerical/libminctracc_numerical.a \
 
 bin_PROGRAMS = \
 	check_scale \
+	crispify \
 	param2xfm \
 	volume_cog \
 	rand_param \
