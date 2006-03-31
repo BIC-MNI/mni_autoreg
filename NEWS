@@ -1,5 +1,10 @@
 CHANGES to the MNI_AutoReg package...
 
+Release 0.99.1
+--------------
+
+* fixed a bug in autocrop regarding split_path
+
 Release 0.98u
 -------------
 

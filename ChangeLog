@@ -1,3 +1,7 @@
+2006-03-31  Andrew L Janke <a.janke@gmail.com>
+
+	* Fixed use declaration of split_path in autocrop
+	
 2005-10-01  Andrew L Janke  <a.janke@gmail.com>
 
 	* Added vladimir fonovs changes to xfmtool that allows a .gz grid xfm
