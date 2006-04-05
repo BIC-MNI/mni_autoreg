@@ -14,7 +14,7 @@
 #              rewrite #2: December 1995-February 1996, GW
 #@MODIFIED   : April-May 1996, Louis Collins: modifications to make an
 #                              official mritoself for ICBM and AI data
-#@VERSION    : $Id: mritoself.in,v 1.8 2005-12-01 06:18:38 rotor Exp $
+#@VERSION    : $Id: mritoself.in,v 1.9 2006-04-05 20:33:42 rotor Exp $
 #@COMMENTS   : 
 #  possible additions:
 #    figure out the thresholding stuff
@@ -30,7 +30,7 @@ use FindBin;
 
 use MNI::Startup qw(nocputimes);
 use MNI::Spawn;
-use MNI::FileUtilities qw(search_directories check_output_dirs check_files);
+use MNI::FileUtilities qw(search_directories check_output_dirs check_files check_input_dirs );
 use MNI::PathUtilities qw(replace_ext replace_dir split_path);
 use MNI::MincUtilities qw(:history volume_params volume_cog volume_min auto_threshold);
 use MNI::NumericUtilities qw(labs round);
@@ -53,7 +53,7 @@ if (-e $FinalXfm && !$Clobber)
    exit 0;
 }
 
-&self_announce () unless -t "STDOUT";
+&self_announce ();
 
 # Get the working filenames (uncompressed), and their base names
 
