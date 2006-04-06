@@ -1,5 +1,10 @@
 CHANGES to the MNI_AutoReg package...
 
+Release 0.99.2
+--------------
+
+* fixed a bug in mritoself and mritotal when piping output to STDOUT
+
 Release 0.99.1
 --------------
 

@@ -1,3 +1,7 @@
+2006-04-06  Andrew L Janke <a.janke@gmail.com>
+
+	* Fixed use of self_announce in mritotal and mritoself
+	
 2006-03-31  Andrew L Janke <a.janke@gmail.com>
 
 	* Fixed use declaration of split_path in autocrop
