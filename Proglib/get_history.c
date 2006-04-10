@@ -7,7 +7,7 @@
 
 char* history_string( int ac, char* av[] )
 {
-    char* stamp = time_stamp( ac, av );
+    char* stamp = (char *)time_stamp( ac, av );
     int len = strlen(stamp) + strlen(MNI_AUTOREG_LONG_VERSION) + 4;
     char* s = malloc(len);
 
