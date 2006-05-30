@@ -1,3 +1,7 @@
+2006-05-30  Andrew L Janke <a.janke@gmail.com>
+
+	* Added an include fix to get_history.c (thanks claude)
+
 2006-04-06  Andrew L Janke <a.janke@gmail.com>
 
 	* Fixed use of self_announce in mritotal and mritoself
