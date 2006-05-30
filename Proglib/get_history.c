@@ -3,7 +3,7 @@
 #include <stdlib.h>
 
 #include <minc.h>
-#include "Proglib.h"
+#include <time_stamp.h>
 
 char* history_string( int ac, char* av[] )
 {
