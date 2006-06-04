@@ -2,6 +2,11 @@
 
 typedef struct Arg_Data_struct Arg_Data;
 
+/* enums to define interpolants and objective functions */
+enum Interpolating_Type { TRILINEAR, TRICUBIC, N_NEIGHBOUR };
+enum Objective_Type { XCORR, ZSCORE, SSC, VR, MUTUAL_INFORMATION };
+
+
 typedef float (*Objective_Function) (Volume d1,
 				     Volume d2,
 				     Volume m1,
@@ -86,7 +91,9 @@ struct Arg_Data_struct {
   Feature_volumes        features;     /* struct contain extra feature info */
 
   Interpolating_Function interpolant;  /* point to interpolation funciton to be used */
+  enum Interpolating_Type interpolant_type;  /* enum defining interpolant to be used */
   Objective_Function     obj_function; /* pointer to objective function to be used   */
+  enum Objective_Type    obj_function_type; /* enum defining objective function to be used */
   int                    optimize_type;/* Type of optimization strategy              */
   int                    force_lattice;/* =0, do not force; =1, force src; =2, frc target */
   double                 step[3];      /* step size for sampling lattice             */

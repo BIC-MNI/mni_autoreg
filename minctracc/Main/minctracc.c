@@ -13,7 +13,11 @@
 
    @CREATED    : February 3, 1992 - louis collins
    @MODIFIED   : $Log: minctracc.c,v $
-   @MODIFIED   : Revision 96.14  2005-07-20 20:45:48  rotor
+   @MODIFIED   : Revision 96.15  2006-06-04 07:02:35  rotor
+   @MODIFIED   :  * Fixed 64 bit function pointer and ParseArgv problem with an enum for
+   @MODIFIED   :       objective function type and interpolation type (thanks jason)
+   @MODIFIED   :
+   @MODIFIED   : Revision 96.14  2005/07/20 20:45:48  rotor
    @MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
    @MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
    @MODIFIED   :     * Removed old VOLUME_IO cruft #defines
@@ -139,7 +143,7 @@ Wed May 26 13:05:44 EST 1993 lc
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.14 2005-07-20 20:45:48 rotor Exp $";
+static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.15 2006-06-04 07:02:35 rotor Exp $";
 #endif
 
 #include <config.h>
@@ -205,6 +209,42 @@ int main ( int argc, char* argv[] )
     (strlen(main_args.filenames.matlab_file)  != 0) ||
     (strlen(main_args.filenames.measure_file) != 0);
 
+  /* assign objective function and interpolant type */
+  switch (main_args.interpolant_type) {
+  case TRICUBIC:
+    main_args.interpolant = tricubic_interpolant;
+    break;
+  case TRILINEAR:
+    main_args.interpolant = trilinear_interpolant;
+    break;
+  case N_NEIGHBOUR:
+    main_args.interpolant = nearest_neighbour_interpolant;
+    break;
+  default:
+    (void) fprintf(stderr, "Error determining interpolation type\n");
+    exit(EXIT_FAILURE);
+  }
+
+  switch (main_args.obj_function_type) {
+  case XCORR:
+    main_args.obj_function = xcorr_objective;
+    break;
+  case ZSCORE:
+    main_args.obj_function = zscore_objective;
+    break;
+  case SSC:
+    main_args.obj_function = ssc_objective;
+    break;
+  case VR:
+    main_args.obj_function = vr_objective;
+    break;
+  case MUTUAL_INFORMATION:
+    main_args.obj_function = mutual_information_objective;
+    break;
+  default:
+    (void) fprintf(stderr, "Error determining objective function type\n");
+    exit(EXIT_FAILURE);
+  }
 
   if (parse_flag || 
       (measure_matlab_flag && argc!=3) ||

@@ -17,7 +17,11 @@
 
 @CREATED    : Thu May 20 14:20:21 EST 1993 Louis Collins
 @MODIFIED   : $Log: minctracc.h,v $
-@MODIFIED   : Revision 96.9  2004-02-12 05:54:16  rotor
+@MODIFIED   : Revision 96.10  2006-06-04 07:02:35  rotor
+@MODIFIED   :  * Fixed 64 bit function pointer and ParseArgv problem with an enum for
+@MODIFIED   :       objective function type and interpolation type (thanks jason)
+@MODIFIED   :
+@MODIFIED   : Revision 96.9  2004/02/12 05:54:16  rotor
 @MODIFIED   :  * removed public/private defs
 @MODIFIED   :
 @MODIFIED   : Revision 96.8  2003/02/04 06:08:44  stever
@@ -260,7 +264,9 @@ Arg_Data main_args = {
     TRANS_ROT},                  /* default use normal rotation */
   {0,NULL, NULL, NULL, NULL, NULL, NULL},	/* FEATURE VOL */
   trilinear_interpolant,	/* use trilinear interpolation by default */
+  TRILINEAR,                   /* use trilinear interpolation by default */
   xcorr_objective,              /* use cross-correlation by default       */
+  XCORR,                        /* use cross-correlation by default       */
   OPT_SIMPLEX,                  /* use simplex optimization strategy      */
   0,                            /* do not force lattice on source or target */
   {4.0,4.0,4.0},		/* default step sizes for lattice         */
