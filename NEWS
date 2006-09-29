@@ -1,5 +1,10 @@
 CHANGES to the MNI_AutoReg package...
 
+Release 0.99.3
+--------------
+
+* new release to compile on ia64
+
 Release 0.99.2
 --------------
 
