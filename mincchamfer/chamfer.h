@@ -5,4 +5,4 @@
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-Status compute_chamfer(Volume  chamfer, Real max_val);
+VIO_Status compute_chamfer(VIO_Volume  chamfer, VIO_Real max_val);

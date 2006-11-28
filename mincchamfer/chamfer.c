@@ -6,13 +6,15 @@
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-
+#include <config.h>
 #include <volume_io.h>
+
+#define  MIN( x, y )  ( ((x) <= (y)) ? (x) : (y) )
 
 extern int verbose;
 extern int debug;
 
-static void build_mask(Volume vol, Real mask_f[3][3][3], Real mask_b[3][3][3]);
+static void build_mask(VIO_Volume vol, VIO_Real mask_f[3][3][3], VIO_Real mask_b[3][3][3]);
 
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       :  compute_chamfer
@@ -30,21 +32,21 @@ static void build_mask(Volume vol, Real mask_f[3][3][3], Real mask_b[3][3][3]);
 @CREATED    : Nov 2, 1998 Louis
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-Status compute_chamfer(Volume chamfer, Real max_val)
+VIO_Status compute_chamfer(VIO_Volume chamfer, VIO_Real max_val)
 {
 
-   Real
+   VIO_Real
       mask_f[3][3][3],
       mask_b[3][3][3],
       zero, min,
       vox_min, vox_max,
       val, val2;
    int
-      sizes[MAX_DIMENSIONS],
+      sizes[VIO_MAX_DIMENSIONS],
       i,j,k,
       ind0,ind1,ind2;
    
-   progress_struct 
+   VIO_progress_struct 
       progress;
    
    get_volume_sizes(chamfer, sizes);
@@ -57,9 +59,9 @@ Status compute_chamfer(Volume chamfer, Real max_val)
       and infinity (or vox_max) elsewhere */
    
    if (debug) print ("initing chamfer vol (%d %d %d)\n",sizes[0],sizes[1],sizes[2]);
-   for_less (ind0, 0, sizes[0]) {
-      for_less (ind1, 0, sizes[1]) {
-         for_less (ind2, 0, sizes[2]) {
+   for(ind0=0; ind0<sizes[0]; ind0++) {
+      for(ind1=0; ind1<sizes[1]; ind1++) {
+         for(ind2=0; ind2<sizes[2]; ind2++) {
             
             GET_VOXEL_3D(val, chamfer, ind0, ind1, ind2);
             if (val == zero) {
@@ -83,9 +85,9 @@ Status compute_chamfer(Volume chamfer, Real max_val)
    if (verbose) initialize_progress_report( &progress, TRUE, sizes[0], 
                                            "forward pass");
    
-   for_less (ind0, 1, sizes[0]-1) {
-      for_less (ind1, 1, sizes[1]-1) {
-         for_less (ind2, 1, sizes[2]-1) {
+   for(ind0=1; ind0<sizes[0]-1; ind0++) {
+      for(ind1=1; ind1<sizes[1]-1; ind1++) {
+         for(ind2=1; ind2<sizes[2]-1; ind2++) {
 
             GET_VALUE_3D(val, chamfer, ind0, ind1, ind2);
             
@@ -93,9 +95,9 @@ Status compute_chamfer(Volume chamfer, Real max_val)
 
                min = val;
 
-               for_inclusive(i, -1, +1) {
-                  for_inclusive(j, -1, +1) {
-                     for_inclusive(k, -1, +1) {
+               for(i=-1; i<=+1; i++) {
+                  for(j=-1; j<=+1; j++) {
+                     for(k=-1; k<=+1; k++) {
                         
                         GET_VALUE_3D(val, chamfer, i+ind0, j+ind1, k+ind2);
                         
@@ -108,7 +110,7 @@ Status compute_chamfer(Volume chamfer, Real max_val)
                            
                min = convert_value_to_voxel(chamfer, min);
 
-               SET_VOXEL_3D(chamfer, ind0, ind1, ind2, min );  	    
+               SET_VOXEL_3D(chamfer, ind0, ind1, ind2, min );              
                
             } /* if val != 0.0 */
             
@@ -123,9 +125,9 @@ Status compute_chamfer(Volume chamfer, Real max_val)
    if (verbose) initialize_progress_report( &progress, TRUE, sizes[0], 
                                            "reverse pass");
        
-   for_down (ind0,  sizes[0]-2, 1) {
-      for_down (ind1,  sizes[1]-2, 1) {
-         for_down (ind2,  sizes[2]-2, 1) {
+   for(ind0=sizes[0]-2; ind0>=1; ind0--) {
+      for(ind1=sizes[1]-2; ind1>=1; ind1--) {
+         for(ind2=sizes[2]-2; ind2>=1; ind2--) {
             
             GET_VALUE_3D(val, chamfer, ind0, ind1, ind2);
             
@@ -133,9 +135,9 @@ Status compute_chamfer(Volume chamfer, Real max_val)
                                 
                min = val;
 
-               for_inclusive(i, -1, 1) {
-                  for_inclusive(j, -1, +1) {
-                     for_inclusive(k, -1, +1) {
+               for(i=-1; i<=1; i++) {
+                  for(j=-1; j<=+1; j++) {
+                     for(k=-1; k<=+1; k++) {
                         
                         GET_VALUE_3D(val, chamfer, i+ind0, j+ind1, k+ind2);
                         
@@ -148,7 +150,7 @@ Status compute_chamfer(Volume chamfer, Real max_val)
                            
                min = convert_value_to_voxel(chamfer, min);
 
-               SET_VOXEL_3D(chamfer, ind0, ind1, ind2, min );  	    
+               SET_VOXEL_3D(chamfer, ind0, ind1, ind2, min );              
                
             } /* if val != 0.0 */
             
@@ -164,20 +166,20 @@ Status compute_chamfer(Volume chamfer, Real max_val)
 }
 
 
-static void build_mask(Volume vol, 
-                        Real mask_f[3][3][3], 
-                        Real mask_b[3][3][3])
+static void build_mask(VIO_Volume vol, 
+                        VIO_Real mask_f[3][3][3], 
+                        VIO_Real mask_b[3][3][3])
 {
    int i,j,k;
-   Real 
-      steps[MAX_DIMENSIONS],
+   VIO_Real 
+      steps[VIO_MAX_DIMENSIONS],
       d1;
 
    get_volume_separations(vol, steps);
 
-   for_inclusive(i,-1,1)
-      for_inclusive(j,-1,1)
-         for_inclusive(k,-1,1) {
+   for(i=-1; i<=1; i++)
+      for(j=-1; j<=1; j++)
+         for(k=-1; k<=1; k++) {
             d1 = sqrt(i*i*steps[0]*steps[0] + j*j*steps[1]*steps[1]);
             mask_f[i+1][j+1][k+1] = sqrt( d1*d1 + k*k*steps[2]*steps[2] );
             mask_b[i+1][j+1][k+1] = mask_f[i+1][j+1][k+1];
@@ -185,8 +187,8 @@ static void build_mask(Volume vol,
    
    mask_f[1][1][1] = mask_b[1][1][1] = 0.0;
 
-   for_inclusive(j,-1,1)
-      for_inclusive(k,-1,1) {
+   for(j=-1; j<=1; j++)
+      for(k=-1; k<=1; k++) {
          mask_f[2][j+1][k+1] = 1000.0;
          mask_b[0][j+1][k+1] = 1000.0;
       }
@@ -205,13 +207,13 @@ static void build_mask(Volume vol,
    if (debug) {
       print ("%20s %35s\n","forward","reverse");
 
-      for_down(i,2,0) {
+      for(i=2; i>=0; i--) {
          print ("slice %d\n",i);
-         for_inclusive(j,0,2) {
-            for_inclusive(k,0,2) 
+         for(j=0; j<=2; j++) {
+            for(k=0; k<=2; k++) 
                print ("%10.4f ",mask_f[i][j][k]);
             print ("       ");
-            for_inclusive(k,0,2) 
+            for(k=0; k<=2; k++) 
                print ("%10.4f ",mask_b[i][j][k]);
             print ("\n");
          }

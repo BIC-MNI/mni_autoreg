@@ -21,19 +21,19 @@
 
 int main ( int argc, char* argv[] )
 {   
-   static char *default_dim_names[N_DIMENSIONS] = { MIzspace, MIyspace, MIxspace };
+   static char *default_dim_names[VIO_N_DIMENSIONS] = { MIzspace, MIyspace, MIxspace };
 
    char 
       *infilename,
       *outfilename;
    
-   Volume 
+   VIO_Volume 
       data;
    
    FILE 
       *ifd,*ofd;
    
-   Status 
+   VIO_Status 
       status;
 
    char* history = history_string( argc, argv );
@@ -64,7 +64,7 @@ int main ( int argc, char* argv[] )
    }
    
    
-				/* check files to be used.  */
+                                /* check files to be used.  */
    
    status = open_file( infilename , READ_FILE, BINARY_FORMAT, &ifd );
    if ( status != OK ) 
@@ -83,8 +83,8 @@ int main ( int argc, char* argv[] )
    if (verbose)
       printf ("Reading in input data.\n");
    status = input_volume(infilename, 3, default_dim_names, 
-			 NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-			 TRUE, &data, (minc_input_options *)NULL );
+                         NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+                         TRUE, &data, (minc_input_options *)NULL );
    
    if ( status != OK ) 
       print_error_and_line_num ("Problems reading `%s'.", __FILE__, __LINE__, infilename);
@@ -96,7 +96,7 @@ int main ( int argc, char* argv[] )
    if (status != OK)
       print_error_and_line_num("problems computing chamfer...",__FILE__, __LINE__);
    
-				/* output volume data!  */
+                                /* output volume data!  */
 
    if (verbose)
       printf ("Writing volumetric data.\n");

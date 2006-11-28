@@ -6,12 +6,12 @@
 @MODIFIED   :
 ---------------------------------------------------------------------------- */
 
-				/* include list */
+                                /* include list */
 #include <volume_io.h>
 #include <Proglib.h>
 #include <ParseArgv.h>
 
-				/* globals */
+                                /* globals */
 char 
   *prog_name;
 int
