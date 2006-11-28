@@ -11,20 +11,20 @@ int  verbose      = TRUE;
 int  clobber_flag = FALSE;
 int  partial_flag  = TRUE;
 
-Real   voxel_range[2] = { 1.0,  255.0 };
-Real   real_range[2]  = { 0.0,    1.0 };
-Real   step[3]        = { 2.0, 2.0, 2.0 };
-Real   start[3]       = { 0.0, 0.0, 0.0 };
+VIO_Real   voxel_range[2] = { 1.0,  255.0 };
+VIO_Real   real_range[2]  = { 0.0,    1.0 };
+VIO_Real   step[3]        = { 2.0, 2.0, 2.0 };
+VIO_Real   start[3]       = { 0.0, 0.0, 0.0 };
 int    count[3]       = { 128, 128, 128 };
 int    datatype       = NC_BYTE;
 int    is_signed      = FALSE;
 
 int    object         = RECTANGLE;
-Real   center[3]      = { 128.0, 128.0, 128.0 };
-Real   width[3]       = { 60.0, 80.0, 30.0 };
-Real   fill_value     = 1.0;
-Real   edge_value     = 1.0;
-Real   background     = 0.0;
+VIO_Real   center[3]      = { 128.0, 128.0, 128.0 };
+VIO_Real   width[3]       = { 60.0, 80.0, 30.0 };
+VIO_Real   fill_value     = 1.0;
+VIO_Real   edge_value     = 1.0;
+VIO_Real   background     = 0.0;
 
 static ArgvInfo argTable[] = {
   {NULL, ARGV_HELP, NULL, NULL,
