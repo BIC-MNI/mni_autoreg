@@ -1,7 +1,7 @@
 char *prog_name;
 int  debug;
 int  verbose;
-Real threshold = 0.0;
+VIO_Real threshold = 0.0;
 int  mincresample = FALSE;
 int  mincreshape  = FALSE;
 int  minccrop     = FALSE;

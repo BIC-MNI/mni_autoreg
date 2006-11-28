@@ -5,8 +5,8 @@
 @RETURNS    : TRUE if ok, ERROR if error.
 @DESCRIPTION: This program will calculate the bounding box of the data in
               the minc volume and return the coordinates of the box in terms
-	      of startx, starty, startz, widthx, widthy, widthz 
-	      all in mm
+              of startx, starty, startz, widthx, widthy, widthz 
+              all in mm
 @COPYRIGHT  :
               Copyright 1993 Louis Collins, McConnell Brain Imaging Centre, 
               Montreal Neurological Institute, McGill University.
@@ -20,7 +20,10 @@
 
 @CREATED    : Thu Jun  2 10:21:00 EST 1994   Louis Collins
 @MODIFIED   : $Log: mincbbox.c,v $
-@MODIFIED   : Revision 1.3  2005-07-20 20:45:35  rotor
+@MODIFIED   : Revision 1.4  2006-11-28 08:57:39  rotor
+@MODIFIED   :  * many changes for clean minc 2.0 build
+@MODIFIED   :
+@MODIFIED   : Revision 1.3  2005/07/20 20:45:35  rotor
 @MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
 @MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
 @MODIFIED   :     * Removed old VOLUME_IO cruft #defines
@@ -39,7 +42,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincbbox/mincbbox.c,v 1.3 2005-07-20 20:45:35 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincbbox/mincbbox.c,v 1.4 2006-11-28 08:57:39 rotor Exp $";
 #endif
 
 
@@ -52,19 +55,21 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincbbox
 #include <ParseArgv.h>
 #include "mincbbox.h"
 
+#define  FLOOR( x )     ((int) floor(x))
+#define  ROUND( x )     FLOOR( (double) (x) + 0.5 )
 
-static char *default_dim_names[N_DIMENSIONS] = { MIxspace, MIyspace, MIzspace };
-static char *My_File_order_dimension_names[MAX_DIMENSIONS] = { "", "", "", "", "" };
+static char *default_dim_names[VIO_N_DIMENSIONS] = { MIxspace, MIyspace, MIzspace };
+static char *My_File_order_dimension_names[VIO_MAX_DIMENSIONS] = { "", "", "", "", "" };
 
 int main (int argc, char *argv[] )
 {   
   char 
     *infilename;
-  Status 
+  VIO_Status 
     status;
-  Volume
+  VIO_Volume
     data;
-  Real
+  VIO_Real
     voxel, value, 
     x,y,z,
     minx, miny, minz,
@@ -89,13 +94,13 @@ int main (int argc, char *argv[] )
 
   if (ParseArgv(&argc, argv, argTable, 0) || (argc!=2)) {
     (void) fprintf(stderr, 
-		   "\nUsage: %s [<options>] <inputfile> \n", 
-		   prog_name);
+                   "\nUsage: %s [<options>] <inputfile> \n", 
+                   prog_name);
     (void) fprintf(stderr,"       %s [-help]\n\n", prog_name);
     exit(EXIT_FAILURE);
   }
 
-  infilename  = argv[1];	/* set up necessary file names */
+  infilename  = argv[1];        /* set up necessary file names */
 
   if(debug) {
     print ("input -> %s\n",infilename);
@@ -108,14 +113,14 @@ int main (int argc, char *argv[] )
   
   if (mincreshape)
       status = input_volume(infilename, 3, My_File_order_dimension_names , 
-			    NC_UNSPECIFIED, FALSE, 
-			    0.0, 0.0, TRUE, &data, 
-			    (minc_input_options *)NULL);
+                            NC_UNSPECIFIED, FALSE, 
+                            0.0, 0.0, TRUE, &data, 
+                            (minc_input_options *)NULL);
   else
       status = input_volume(infilename, 3, default_dim_names , 
-			    NC_UNSPECIFIED, FALSE, 
-			    0.0, 0.0, TRUE, &data, 
-			    (minc_input_options *)NULL);
+                            NC_UNSPECIFIED, FALSE, 
+                            0.0, 0.0, TRUE, &data, 
+                            (minc_input_options *)NULL);
 
 
   if ( status != OK )
@@ -123,7 +128,7 @@ int main (int argc, char *argv[] )
 
   if (get_volume_n_dimensions(data)!=3) {
     print_error_and_line_num ("File %s has %d dimensions.  Only 3 dims supported.", 
-		 __FILE__, __LINE__, infilename, get_volume_n_dimensions(data),0,0,0);
+                 __FILE__, __LINE__, infilename, get_volume_n_dimensions(data),0,0,0);
   }
     
   get_volume_sizes(data, sizes);
@@ -134,33 +139,33 @@ int main (int argc, char *argv[] )
   v_minx = v_miny = v_minz = INT_MAX;
   v_maxx = v_maxy = v_maxz = -INT_MAX;
 
-  for_less(i, 0, sizes[0]) {
-    for_less(j, 0, sizes[1]) {
-      for_less(k, 0, sizes[2]) {
-	GET_VOXEL_3D(voxel, data, i,j,k);
-	value = CONVERT_VOXEL_TO_VALUE(data, voxel);
+  for(i=0; i<sizes[0]; i++) {
+    for(j=0; j<sizes[1]; j++) {
+      for(k=0; k<sizes[2]; k++) {
+        GET_VOXEL_3D(voxel, data, i,j,k);
+        value = CONVERT_VOXEL_TO_VALUE(data, voxel);
 
-	if (value>threshold) {
+        if (value>threshold) {
 
-	  convert_3D_voxel_to_world(data,(Real)i,(Real)j,(Real)k, &x,&y,&z);
-	  
-	  if (x<minx) minx = x;
-	  if (y<miny) miny = y;
-	  if (z<minz) minz = z;
+          convert_3D_voxel_to_world(data,(VIO_Real)i,(VIO_Real)j,(VIO_Real)k, &x,&y,&z);
+          
+          if (x<minx) minx = x;
+          if (y<miny) miny = y;
+          if (z<minz) minz = z;
 
-	  if (x>maxx) maxx = x;
-	  if (y>maxy) maxy = y;
-	  if (z>maxz) maxz = z;
+          if (x>maxx) maxx = x;
+          if (y>maxy) maxy = y;
+          if (z>maxz) maxz = z;
 
-	  if (i<v_minx) v_minx = i;
-	  if (j<v_miny) v_miny = j;
-	  if (k<v_minz) v_minz = k;
+          if (i<v_minx) v_minx = i;
+          if (j<v_miny) v_miny = j;
+          if (k<v_minz) v_minz = k;
 
-	  if (i>v_maxx) v_maxx = i;
-	  if (j>v_maxy) v_maxy = j;
-	  if (k>v_maxz) v_maxz = k;
+          if (i>v_maxx) v_maxx = i;
+          if (j>v_maxy) v_maxy = j;
+          if (k>v_maxz) v_maxz = k;
 
-	}
+        }
       }
     }
   }
@@ -173,13 +178,13 @@ int main (int argc, char *argv[] )
   else
   if (mincreshape) {
     print ("-start %d,%d,%d -count %d,%d,%d\n",
-	   v_minx,v_miny,v_minz,
-	   v_maxx-v_minx+1,v_maxy-v_miny+1,v_maxz-v_minz+1);
+           v_minx,v_miny,v_minz,
+           v_maxx-v_minx+1,v_maxy-v_miny+1,v_maxz-v_minz+1);
   }
   else
   if (mincresample)
     print ("-step 1.0 1.0 1.0 -start %f %f %f -nelements %d %d %d\n",
-	   minx, miny, minz, ROUND(maxx-minx)+1, ROUND(maxy-miny)+1, ROUND(maxz-minz)+1);
+           minx, miny, minz, ROUND(maxx-minx)+1, ROUND(maxy-miny)+1, ROUND(maxz-minz)+1);
   else
     if (two_lines)
       print ("%f %f %f\n%f %f %f\n",minx, miny, minz, maxx-minx+1, maxy-miny+1, maxz-minz+1);
