@@ -15,7 +15,10 @@
 
 @CREATED    : Wed Jun 23 09:04:34 EST 1993 Louis Collins
 @MODIFIED   : $Log: mincblur.h,v $
-@MODIFIED   : Revision 96.2  2004-02-12 05:53:48  rotor
+@MODIFIED   : Revision 96.3  2006-11-28 09:12:21  rotor
+@MODIFIED   :  * fixes to allow clean compile against minc 2.0
+@MODIFIED   :
+@MODIFIED   : Revision 96.2  2004/02/12 05:53:48  rotor
 @MODIFIED   :  * removed public/private defs
 @MODIFIED   :
 @MODIFIED   : Revision 96.1  2000/01/27 18:03:52  louis
@@ -35,34 +38,34 @@
  *
 ---------------------------------------------------------------------------- */
 
-Status blur3D_volume(Volume data,
-			    double  kernel1, double  kernel2, double  kernel3, 
-			    char *infile, 
-			    char *outfile, 
-			    FILE *reals_fp,
-			    int ndim, int kernel_type, char *history);
+VIO_Status blur3D_volume(VIO_Volume data,
+                            double  kernel1, double  kernel2, double  kernel3, 
+                            char *infile, 
+                            char *outfile, 
+                            FILE *reals_fp,
+                            int ndim, int kernel_type, char *history);
 
-Status gradient3D_volume(FILE *ifd, 
-				Volume data, 
-				char *infile, 
-				char *outfile, 
-				int ndim,
-				char *history,
-				int curvature_flg);
+VIO_Status gradient3D_volume(FILE *ifd, 
+                                VIO_Volume data, 
+                                char *infile, 
+                                char *outfile, 
+                                int ndim,
+                                char *history,
+                                int curvature_flg);
 
 
-void apodize_data(Volume data, 
-			 double xramp1,double xramp2,
-			 double yramp1,double yramp2,
-			 double zramp1,double zramp2);
+void apodize_data(VIO_Volume data, 
+                         double xramp1,double xramp2,
+                         double yramp1,double yramp2,
+                         double zramp1,double zramp2);
 
 void calc_gradient_magnitude(char *infilename, 
-				    char *output_basename,
-				    char *history, 
-				    Real *min_value, Real *max_value);
+                                    char *output_basename,
+                                    char *history, 
+                                    VIO_Real *min_value, VIO_Real *max_value);
 
 void calc_gaussian_curvature(char *infilename, char *history,
-				    Real min_value, Real max_value);
+                                    VIO_Real min_value, VIO_Real max_value);
 
 
 #define INTERNAL_X  2

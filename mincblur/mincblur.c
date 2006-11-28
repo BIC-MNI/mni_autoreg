@@ -2,22 +2,22 @@
    @NAME       : mincblur.c
    @INPUT      : -name of file corresponding to minc volume data
                  -basename for output file
-		 -size of blurring kernel
+                 -size of blurring kernel
    
    @OUTPUT     : one or more of five volumes, depending on the command-line args:
 
         1 - blurred volume - volume blurred by gaussian kernel (sigma = k/2.36)
-	2 - d/dx           - derivative along x of blurred volume.
-	3 - d/dy           - derivative along y of blurred volume.
-	4 - d/dz           - derivative along z of blurred volume.
-	5 - | d^3/dxdydz | = sqrt ( (d/dx)^2 + (d/dy)^2 + (d/dz)^2 ) 
-	                   i.e. the derivative magnitude of the blurred volume.
+        2 - d/dx           - derivative along x of blurred volume.
+        3 - d/dy           - derivative along y of blurred volume.
+        4 - d/dz           - derivative along z of blurred volume.
+        5 - | d^3/dxdydz | = sqrt ( (d/dx)^2 + (d/dy)^2 + (d/dz)^2 ) 
+                           i.e. the derivative magnitude of the blurred volume.
 
    @RETURNS    : TRUE if ok, ERROR if error.
 
    @DESCRIPTION: This program will read in a volumetric dataset in
                  .mnc format.  This file is assumed to contain rectangular 
-		 voxels.
+                 voxels.
 
    @METHOD     : The blurred volume calculated in the FOURIER domain by 
                  multiplying the FT(data) by the FT(Gaussian).
@@ -29,9 +29,9 @@
                       -1
         d/dx data = FT  ( is *  FT(blurred_data) ) ; where i = imag, s = freq var.
                       -1
-	d/dy data = FT  ( is *  FT(blurred_data) )
+        d/dy data = FT  ( is *  FT(blurred_data) )
                       -1
-	d/dz data = FT  ( is *  FT(blurred_data) )
+        d/dz data = FT  ( is *  FT(blurred_data) )
 
    the gradient magnitude is calculated so that at each voxel of the gradient volume,
    the intensity is equal to:
@@ -40,7 +40,7 @@
 
    @GLOBALS    : char *prog_name - stores the name of the program.
                  int  debug      - prints out debugging info   
-		 int  verbose    - prints out running info
+                 int  verbose    - prints out running info
 
    @COPYRIGHT  :
               Copyright 1995 Louis Collins, McConnell Brain Imaging Centre, 
@@ -54,7 +54,10 @@
               express or implied warranty.
    @CREATED    : January 25, 1992 louis collins (Original using .iff files)
    @MODIFIED   : $Log: mincblur.c,v $
-   @MODIFIED   : Revision 96.3  2005-07-20 20:45:39  rotor
+   @MODIFIED   : Revision 96.4  2006-11-28 09:12:21  rotor
+   @MODIFIED   :  * fixes to allow clean compile against minc 2.0
+   @MODIFIED   :
+   @MODIFIED   : Revision 96.3  2005/07/20 20:45:39  rotor
    @MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
    @MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
    @MODIFIED   :     * Removed old VOLUME_IO cruft #defines
@@ -109,7 +112,7 @@
         rewrite using mnc files and David Macdonald's libmni.a
    ---------------------------------------------------------------------------- */
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/mincblur.c,v 96.3 2005-07-20 20:45:39 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/mincblur.c,v 96.4 2006-11-28 09:12:21 rotor Exp $";
 #endif
 
 #include <config.h>
@@ -121,7 +124,7 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur
 #include "kernel.h"
 #include "mincblur.h"
 
-static char *default_dim_names[N_DIMENSIONS] = { MIzspace, MIyspace, MIxspace };
+static char *default_dim_names[VIO_N_DIMENSIONS] = { MIzspace, MIyspace, MIxspace };
  
 
 
@@ -138,12 +141,12 @@ int main (int argc, char *argv[] )
     *temp_basename,
     tempname[1024],
     reals_filename[1024];
-  Status 
+  VIO_Status 
     status;
   
-  Volume
+  VIO_Volume
     data;
-  Real
+  VIO_Real
     min_value, max_value,
     step[3];
   int
@@ -170,9 +173,9 @@ int main (int argc, char *argv[] )
   reals_fp             = (FILE *)NULL;
   dimensions           = 3;
   kernel_type          = KERN_GAUSSIAN;
-				/* init kernel size */
+                                /* init kernel size */
   fwhm = standard      =  0.0;
-  for_less(i,0,3) 
+  for(i=0; i<3; i++) 
     fwhm_3D[i] = -DBL_MAX;
 
   history = history_string(argc, argv);
@@ -183,8 +186,8 @@ int main (int argc, char *argv[] )
 
   if (ParseArgv(&argc, argv, argTable, 0) || (argc!=3)) {
     (void) fprintf(stderr, 
-		   "\nUsage: %s [<options>] <inputfile> <output_basename>\n", 
-		   prog_name);
+                   "\nUsage: %s [<options>] <inputfile> <output_basename>\n", 
+                   prog_name);
     (void) fprintf(stderr,"       %s [-help]\n\n", prog_name);
     exit(EXIT_FAILURE);
   }
@@ -194,27 +197,27 @@ int main (int argc, char *argv[] )
 
   if (standard==0.0 && fwhm==0.0 && 
       fwhm_3D[0]==-DBL_MAX && fwhm_3D[1]==-DBL_MAX && fwhm_3D[2]==-DBL_MAX ) {
-    print_error_and_line_num ("Must specify either -fwhm, -3D_fwhm or -standard on command line.", 
-		 __FILE__, __LINE__);
+    print_error_and_line_num ("Must specify either -fwhm, -3D_fwhm or -standard on command line.\n", 
+                 __FILE__, __LINE__);
   }
 
   if (fwhm==0.0) fwhm=standard*2.35;
   
   if (fwhm !=0.0 ) {
-    for_less(i,0,3) fwhm_3D[i] = fwhm;
-  };				
+    for(i=0; i<3; i++) fwhm_3D[i] = fwhm;
+  };                                
 
   /******************************************************************************/
   /*                   set up necessary file names                              */
   /******************************************************************************/
-  infilename      = argv[1];	
+  infilename      = argv[1];        
   output_basename = argv[2]; 
 
-  ALLOC(tname, strlen(output_basename)+strlen("_blur.mnc")+2);
+  tname = malloc(strlen(output_basename)+strlen("_blur.mnc")+2 * sizeof(char*));
   strcpy(tname,output_basename);
   strcat(tname,"_blur.mnc");
 
-				/* check to see if the output file can be written */
+                                /* check to see if the output file can be written */
 
   if (!clobber_flag && file_exists(tname)) {
     print ("File %s exists.\n",tname);
@@ -225,13 +228,13 @@ int main (int argc, char *argv[] )
   status = open_file( output_basename , WRITE_FILE, BINARY_FORMAT,  &ofd );
   if ( status != OK ) 
     print_error_and_line_num ("filename `%s' cannot be opened.", 
-			      __FILE__, __LINE__, output_basename);
+                              __FILE__, __LINE__, output_basename);
   status = close_file(ofd);
   remove(output_basename);   
 
        /* if any gradient data is needed, then we have to save the blurred
-	  volume in float representation, otherwise quantization errors can
-	  mess up the derivatives.  So get temporary file to save 'real data' */
+          volume in float representation, otherwise quantization errors can
+          mess up the derivatives.  So get temporary file to save 'real data' */
 
   if ((do_partials_flag || do_gradient_flag)) {
 
@@ -239,7 +242,7 @@ int main (int argc, char *argv[] )
     
     if (temp_basename == (char *)NULL) {
       print_error_and_line_num ("Can't build temporary filename.", 
-				__FILE__, __LINE__);
+                                __FILE__, __LINE__);
     }
 
     sprintf(reals_filename,"%s_reals.raw",temp_basename);
@@ -248,7 +251,7 @@ int main (int argc, char *argv[] )
     
     if (status != OK) {
       print_error_and_line_num ("Temporary file to save blurred volume cannot be opened.", 
-				__FILE__, __LINE__);
+                                __FILE__, __LINE__);
     }
 
   }
@@ -259,7 +262,7 @@ int main (int argc, char *argv[] )
   /******************************************************************************/
   
   status = input_volume(infilename, 3, default_dim_names, NC_UNSPECIFIED,
-			FALSE, 0.0, 0.0, TRUE, &data, (minc_input_options *)NULL);
+                        FALSE, 0.0, 0.0, TRUE, &data, (minc_input_options *)NULL);
   if ( status != OK )
     print_error_and_line_num("problems reading `%s'.\n",__FILE__, __LINE__,infilename);
     
@@ -270,9 +273,9 @@ int main (int argc, char *argv[] )
     printf ( "Data filename     = %s\n", infilename);
     printf ( "Output basename   = %s\n", output_basename);
     printf ( "Input volume      = %3d cols by %3d rows by %d slices\n",
-	    sizes[INTERNAL_X], sizes[INTERNAL_Y], sizes[INTERNAL_Z]);
+            sizes[INTERNAL_X], sizes[INTERNAL_Y], sizes[INTERNAL_Z]);
     printf ( "Input voxels are  = %8.3f %8.3f %8.3f\n", 
-	    step[INTERNAL_X], step[INTERNAL_Y], step[INTERNAL_Z]);
+            step[INTERNAL_X], step[INTERNAL_Y], step[INTERNAL_Z]);
     get_volume_real_range(data,&min_value, &max_value);
     printf ( "min/max value     = %8.3f %8.3f\n", min_value, max_value);
   }
@@ -280,22 +283,22 @@ int main (int argc, char *argv[] )
   n_dimensions = get_volume_n_dimensions (data);
   if (n_dimensions!=3) {
     print_error_and_line_num ("File %s has %d dimensions.  Only 3 dims supported.", 
-			      __FILE__, __LINE__, infilename, n_dimensions);
+                              __FILE__, __LINE__, infilename, n_dimensions);
   }
   
-				/* apodize data if needed */
+                                /* apodize data if needed */
   if (apodize_data_flg) {
     if (debug) print ("Apodizing data at %f\n",fwhm);
     apodize_data(data, fwhm_3D[0], fwhm_3D[0], fwhm_3D[1], fwhm_3D[1], fwhm_3D[2], fwhm_3D[2] );
   }
   
-				/* now _BLUR_ the DATA! */
+                                /* now _BLUR_ the DATA! */
   status = blur3D_volume(data,
-			 fwhm_3D[0],fwhm_3D[1],fwhm_3D[2],
-			 infilename,
-			 output_basename,
-			 reals_fp,
-			 dimensions,kernel_type,history);
+                         fwhm_3D[0],fwhm_3D[1],fwhm_3D[2],
+                         infilename,
+                         output_basename,
+                         reals_fp,
+                         dimensions,kernel_type,history);
 
 
   /******************************************************************************/
@@ -304,7 +307,7 @@ int main (int argc, char *argv[] )
 
   if ((do_partials_flag || do_gradient_flag)) {
 
-				/* reopen REALS file for READ */
+                                /* reopen REALS file for READ */
     status = close_file( reals_fp );
     if (status!=OK)
       print_error_and_line_num("Error closing <%s>.",__FILE__, __LINE__, reals_filename);
@@ -321,12 +324,12 @@ int main (int argc, char *argv[] )
 
 
     status = gradient3D_volume(reals_fp, data, infilename, partials_name, dimensions,
-			       history, FALSE);
+                               history, FALSE);
     if (status!=OK)
       print_error_and_line_num("Can't calculate the gradient volumes.",__FILE__, __LINE__);
 
 
-				/* close and delete the REALS temp data file */
+                                /* close and delete the REALS temp data file */
     status = close_file( reals_fp );
     if (status!=OK)
       print_error_and_line_num("Error closing <%s>.",__FILE__, __LINE__, reals_filename);
@@ -339,11 +342,11 @@ int main (int argc, char *argv[] )
     /*************************************************************************/
     
     calc_gradient_magnitude(partials_name, output_basename, history, 
-			    &min_value, &max_value);
+                            &min_value, &max_value);
       
-				/* remove the partial derivs, unless
-				   the user specifically wants to keep
-				   them */
+                                /* remove the partial derivs, unless
+                                   the user specifically wants to keep
+                                   them */
     if (!do_partials_flag) {
       sprintf (tempname,"%s_dx.mnc",partials_name); remove_file(tempname);
       sprintf (tempname,"%s_dy.mnc",partials_name); remove_file(tempname);

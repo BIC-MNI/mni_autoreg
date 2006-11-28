@@ -3,22 +3,22 @@
 @INPUT      : complex data signal stored in 
               real1 imag1 real2 imag2... realN imagN format, w_ith
 
-	      signal[1] = real1     <-- NOTE zero offset!
-	      signal[2] = imag1
-	      ...
-	      signal[2*N-1] = realN
-	      signal[2*N] = imagN
+              signal[1] = real1     <-- NOTE zero offset!
+              signal[2] = imag1
+              ...
+              signal[2*N-1] = realN
+              signal[2*N] = imagN
 
-	      where N is the number of points.
-	      
+              where N is the number of points.
+              
 @OUTPUT     : forward Fourier transform if direction==1,
               inverse Fourier transform if direction==-1;
-	      data signal is overwritten with result.
+              data signal is overwritten with result.
 @RETURNS    : nothing
 @DESCRIPTION: 
 @METHOD     : uses Cooley-Tukey type fast Fourier transform of
               data, constained to have length (stored in numpoints) equal
-	      to a power of two.
+              to a power of two.
 @GLOBALS    : none
 @CALLS      : nothing
 @COPYRIGHT  :
@@ -34,17 +34,20 @@
 
 @CREATED    : Wed Sep  6 09:15:07 MET DST 1995
               this routine was inspired by pascal code written by
-	      D. CLARK in Doctor Dobbs 1984 and by public domaine
-	      software made available by R. Hellman 2/21/86 from:
-	          qiclab.scn.rain.com:/pub/math
+              D. CLARK in Doctor Dobbs 1984 and by public domaine
+              software made available by R. Hellman 2/21/86 from:
+                  qiclab.scn.rain.com:/pub/math
               in file fft.c
 
-	      the routine was modified (individual routines removed,
-	      recoded in single procedure, sin and cos calculated by a
-	      recurrence relation ) to increase speed.
+              the routine was modified (individual routines removed,
+              recoded in single procedure, sin and cos calculated by a
+              recurrence relation ) to increase speed.
 
 @MODIFIED   : $Log: fft.c,v $
-@MODIFIED   : Revision 96.2  2004-02-12 05:53:48  rotor
+@MODIFIED   : Revision 96.3  2006-11-28 09:12:21  rotor
+@MODIFIED   :  * fixes to allow clean compile against minc 2.0
+@MODIFIED   :
+@MODIFIED   : Revision 96.2  2004/02/12 05:53:48  rotor
 @MODIFIED   :  * removed public/private defs
 @MODIFIED   :
 @MODIFIED   : Revision 96.1  2000/01/28 16:21:35  stever
@@ -75,7 +78,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/fft.c,v 96.2 2004-02-12 05:53:48 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/fft.c,v 96.3 2006-11-28 09:12:21 rotor Exp $";
 #endif
 
 
@@ -98,12 +101,12 @@ void fft1(float *signal, int numpoints, int direction)
     temp,
     temp_real,
     temp_imag;
-				/* scramble the entries into
-				   bit reversed order */
+                                /* scramble the entries into
+                                   bit reversed order */
   n = numpoints << 1;
   j = 1;
   for (i = 1; i < n; i += 2) {
-    if (j > i) {		/* swap entries i and j */
+    if (j > i) {                /* swap entries i and j */
       temp=signal[j];   signal[j]=signal[i];     signal[i]=temp;
       temp=signal[j+1]; signal[j+1]=signal[i+1]; signal[i+1]=temp;
     }
@@ -117,30 +120,30 @@ void fft1(float *signal, int numpoints, int direction)
 
   }
 
-				/* calculate the butterflies, but
-				   leave normalization to calling
-				   program if this is an inverse
-				   xform.  */
+                                /* calculate the butterflies, but
+                                   leave normalization to calling
+                                   program if this is an inverse
+                                   xform.  */
   mmax = 2;
   while (n > mmax) {
     angle = PI2/(direction*mmax); /* set up trig recurrance */
-    sin_a = sin(0.5*angle);	
-    wp_r = -2.0*sin_a*sin_a;	
+    sin_a = sin(0.5*angle);        
+    wp_r = -2.0*sin_a*sin_a;        
     wp_i = sin(angle);
 
-    istep = mmax<<1;		/* increment on i      */
-    w_r = 1.0;			/* initial sin and cos */
+    istep = mmax<<1;                /* increment on i      */
+    w_r = 1.0;                        /* initial sin and cos */
     w_i = 0.0;
 
-    for (m = 1; m<mmax; m+=2) {	
+    for (m = 1; m<mmax; m+=2) {        
       for (i = m; i<=n; i+=istep) {
-	j = i+mmax;
-	temp_real    = w_r*signal[j]   - w_i*signal[j+1]; /* mult */
-	temp_imag    = w_r*signal[j+1] + w_i*signal[j]; 
-	signal[j]    = signal[i]       - temp_real;       /* sub */
-	signal[j+1]  = signal[i+1]     - temp_imag;
-	signal[i]   += temp_real;                         /* add */
-	signal[i+1] += temp_imag;
+        j = i+mmax;
+        temp_real    = w_r*signal[j]   - w_i*signal[j+1]; /* mult */
+        temp_imag    = w_r*signal[j+1] + w_i*signal[j]; 
+        signal[j]    = signal[i]       - temp_real;       /* sub */
+        signal[j+1]  = signal[i+1]     - temp_imag;
+        signal[i]   += temp_real;                         /* add */
+        signal[i+1] += temp_imag;
       }
       sin_a = w_r;
       w_r = sin_a*wp_r - w_i*wp_i   + w_r; /* trig recurrence  */

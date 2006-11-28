@@ -18,13 +18,13 @@
               s2 - a zero offset array containing real,imag,real,imag
               n  - the number of complex pairs to be multiplied
 @OUTPUT     : r  - the result of the multiplication, a zero offset array 
-	           containing real,imag,real,imag
+                   containing real,imag,real,imag
 @RETURNS    : nothing
 @DESCRIPTION: 
               for c = a*b, all real:
 
-	              c.r=a.r*b.r-a.i*b.i;a
-	              c.i=a.i*b.r+a.r*b.i;
+                      c.r=a.r*b.r-a.i*b.i;a
+                      c.i=a.i*b.r+a.r*b.i;
 @METHOD     : 
 @GLOBALS    : 
 @CALLS      : 
@@ -37,9 +37,9 @@ void muli_vects(float *r, float *s1, float *s2, int n)
   float r1,i1,r2,i2;
 
   r++; s1++; s2++; /* all arrays start at r[1],s1[1] and s2[1], where the real
-		      part is r[1] and the imag in r[2], and so on... */
+                      part is r[1] and the imag in r[2], and so on... */
 
-  if (r!=s1 && r!=s2) {		/* if separate arrays */
+  if (r!=s1 && r!=s2) {                /* if separate arrays */
     for (i=0; i< n; ++i) { 
       *r = (*(s1) * *(s2))   - (*(s1+1) * *(s2+1)); 
       r++;
@@ -49,7 +49,7 @@ void muli_vects(float *r, float *s1, float *s2, int n)
       s2++;s2++;
     } 
   }
-  else {			/* if one array=result array */
+  else {                        /* if one array=result array */
     for (i=0; i< n; ++i) { 
       r1= *(s1); i1= *(s1+1);
       r2= *(s2); i2= *(s2+1);
@@ -99,8 +99,8 @@ int next_power_of_two(int x)
 @NAME       : normal_dist
 @INPUT      : c    - height of gaussian
               fwhm - full wifth half max of gaussian
-	      mu   - center of gaussian
-	      x    - value of x
+              mu   - center of gaussian
+              x    - value of x
 @OUTPUT     : 
 @RETURNS    : value of gaussian evaluated at x
 @DESCRIPTION: 
@@ -140,8 +140,8 @@ float normal_dist(float c, float fwhm, float mu, float x)
 @NAME       : rect_dist
 @INPUT      : c    - height of rect function
               fwhm - width of rect function
-	      mu   - center of rect function
-	      x    - value of x
+              mu   - center of rect function
+              x    - value of x
 @OUTPUT     : 
 @RETURNS    : value of rect function evaluated at x
 @CALLS      : 
@@ -174,7 +174,7 @@ float rect_dist(float c, float fwhm, float mu, float x)
 @NAME       : make_kernel_FT
 @INPUT      : kern - a zero offset array containing real,imag,real,imag
                      in which will be stored the kernel for the dirivitive
-	      size - the number of complex numbers in the kernel array
+              size - the number of complex numbers in the kernel array
 @OUTPUT     : 
 @RETURNS    : 
 @DESCRIPTION: 
@@ -211,9 +211,9 @@ void make_kernel_FT(float *kern, int size, float vsize)
 @NAME       : make_kernel
 @INPUT      : kern - a zero offset array containing real,imag,real,imag
                      in which will be stored the Gaussian kernel for convolution
-	      vsize- the size (in mm) of the sample along the kern array
-	      fwhm - full-width-half-maximum of gaussian (in mm)
-	      size - the number of complex numbers in the kernel array
+              vsize- the size (in mm) of the sample along the kern array
+              fwhm - full-width-half-maximum of gaussian (in mm)
+              size - the number of complex numbers in the kernel array
 @OUTPUT     : kern - the Gaussian kernel used for convolution
 @RETURNS    : nothing
 @DESCRIPTION: 
@@ -255,10 +255,10 @@ void make_kernel(float *kern, float vsize, float fwhm, int size, int type)
     case KERN_RECT:     kern[kindex] = rect_dist(1.0*vsize,fwhm,0.0,(float)(vsize*k)); break;
     default: 
       {
-	(void) fprintf (stderr,"Illegal kernel type = %d\n",type);
-	(void) fprintf (stderr,"Impossible error in make_kernel(), line %d of %s\n",
-			__LINE__,__FILE__);
-	k = size/2;
+        (void) fprintf (stderr,"Illegal kernel type = %d\n",type);
+        (void) fprintf (stderr,"Impossible error in make_kernel(), line %d of %s\n",
+                        __LINE__,__FILE__);
+        k = size/2;
       }
     }
   }
@@ -269,13 +269,13 @@ void make_kernel(float *kern, float vsize, float fwhm, int size, int type)
       if (kern[k]>max) max = kern[k];
     if (max != 0.0) {
       for(k=1; k<=size; k++)
-	kern[k] = kern[k] / max;
+        kern[k] = kern[k] / max;
       c = (int)( fwhm/vsize )==(int)(fwhm/vsize+0.5) ? (int)( fwhm/vsize )+1 : (int)( fwhm/vsize )+2;
       for(k=1; k<=size; k++)
-	kern[k] = kern[k] / (fwhm/vsize + 1);
+        kern[k] = kern[k] / (fwhm/vsize + 1);
       r = 0.0;
       for(k=1; k<=size; k++)
-	r +=kern[k];
+        r +=kern[k];
       kern[ (int)(c/2 + 0.5) + 1] += (1.0 - r)/2;
       kern[ size - (int)(c/2 + 0.5) + 1] += (1.0 - r)/2;
       

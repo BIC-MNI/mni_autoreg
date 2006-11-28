@@ -15,7 +15,10 @@
 @CREATED    : Wed Jun 30 13:25:33 EST 1993 Louis Collins
                 copied and modified from mincresample.h from Peter Neelin
 @MODIFIED   : $Log: gradmag_volume.h,v $
-@MODIFIED   : Revision 96.1  2004-02-12 05:53:48  rotor
+@MODIFIED   : Revision 96.2  2006-11-28 09:12:21  rotor
+@MODIFIED   :  * fixes to allow clean compile against minc 2.0
+@MODIFIED   :
+@MODIFIED   : Revision 96.1  2004/02/12 05:53:48  rotor
 @MODIFIED   :  * removed public/private defs
 @MODIFIED   :
 @MODIFIED   : Revision 96.0  1996/08/21 18:22:24  louis
@@ -64,42 +67,42 @@ typedef struct {
   int  ndims;
   nc_type datatype;
   int  is_signed;
-  double vrange[2];		/* [0]=min, [1]=max */
-  long nelements[MAX_VAR_DIMS];	/* Size of each dimension */
-  int  world_axes[MAX_VAR_DIMS];	/* Relates variable index to X, Y, Z 
-				   or NO_AXIS */ 
-  int  indices[VOL_NDIMS];	/* Indices of volume dimenions (subscripted
-				   from slowest to fastest) */
-  int  axes[WORLD_NDIMS];	/* Relates world X,Y,Z (index) to dimension 
-				   order (value=0,1,2; 0=slowest varying) */
+  double vrange[2];                /* [0]=min, [1]=max */
+  long nelements[MAX_VAR_DIMS];        /* Size of each dimension */
+  int  world_axes[MAX_VAR_DIMS];        /* Relates variable index to X, Y, Z 
+                                   or NO_AXIS */ 
+  int  indices[VOL_NDIMS];        /* Indices of volume dimenions (subscripted
+                                   from slowest to fastest) */
+  int  axes[WORLD_NDIMS];        /* Relates world X,Y,Z (index) to dimension 
+                                   order (value=0,1,2; 0=slowest varying) */
 } File_Info;
 
 typedef struct {
-  nc_type datatype;		/* Type of data in volume */
-  int is_signed;		/* Sign of data (TRUE if signed) */
-  int use_fill;			/* TRUE if fill values should be used in
-				   calculation of output image max/min */
-  double fillvalue;		/* Value to return when out of bounds */
-  int size[VOL_NDIMS];		/* Size of each dimension */
-  void *data;			/* Pointer to volume data */
-  double *scale;		/* Pointer to array of scales for slices */
-  double *offset;		/* Pointer to array of offsets for slices */
+  nc_type datatype;                /* Type of data in volume */
+  int is_signed;                /* Sign of data (TRUE if signed) */
+  int use_fill;                        /* TRUE if fill values should be used in
+                                   calculation of output image max/min */
+  double fillvalue;                /* Value to return when out of bounds */
+  int size[VOL_NDIMS];                /* Size of each dimension */
+  void *data;                        /* Pointer to volume data */
+  double *scale;                /* Pointer to array of scales for slices */
+  double *offset;                /* Pointer to array of offsets for slices */
 } Volume_Data;
 
 typedef struct {
-   long size[SLICE_NDIMS];	/* Size of each dimension */
-   double *data;		/* Pointer to slice data */
+   long size[SLICE_NDIMS];        /* Size of each dimension */
+   double *data;                /* Pointer to slice data */
 } Slice_Data;
 
 typedef struct {
-  File_Info   *file;		/* Information about associated file */
-  Volume_Data *volume;		/* Volume data for (input volume) */
-  Slice_Data  *slice;		/* Slice data for (output volume) */
+  File_Info   *file;                /* Information about associated file */
+  Volume_Data *volume;                /* VIO_Volume data for (input volume) */
+  Slice_Data  *slice;                /* Slice data for (output volume) */
 } MincVolume;
 
 typedef struct {
   int axes[WORLD_NDIMS];    /* Relates world X,Y,Z (index) to dimension 
-			       order (value=0,1,2; 0=slowest varying) */
+                               order (value=0,1,2; 0=slowest varying) */
   long nelements[WORLD_NDIMS]; /* These are subscripted by X, Y and Z */
   double step[WORLD_NDIMS];
   double start[WORLD_NDIMS];
@@ -142,49 +145,49 @@ void create_output_file(char *filename,
 double get_default_range(char *what, nc_type datatype, int is_signed);
 
 void finish_up(MincVolume *in_vol1, 
-		      MincVolume *in_vol2, 
-		      MincVolume *in_vol3, 
-		      MincVolume *out_vol);
+                      MincVolume *in_vol2, 
+                      MincVolume *in_vol3, 
+                      MincVolume *out_vol);
 
 void load_volume(File_Info *file, long start[], long count[], 
                         Volume_Data *volume);
 
 void get_mag_slice(Slice_Data *result,
-			  Slice_Data *slice_dx,
-			  Slice_Data *slice_dy,
-			  Slice_Data *slice_dz,			  
-			  double *minimum, double *maximum);
+                          Slice_Data *slice_dx,
+                          Slice_Data *slice_dy,
+                          Slice_Data *slice_dz,                          
+                          double *minimum, double *maximum);
 
 
 void get_curvature_slice(Slice_Data *result,
-				Slice_Data *slice_dx,
-				Slice_Data *slice_dy,
-				Slice_Data *slice_dz,
-				Slice_Data *slice_dxx,
-				Slice_Data *slice_dyy,
-				Slice_Data *slice_dzz,
-				double thresh,
-				double *minimum, double *maximum);
+                                Slice_Data *slice_dx,
+                                Slice_Data *slice_dy,
+                                Slice_Data *slice_dz,
+                                Slice_Data *slice_dxx,
+                                Slice_Data *slice_dyy,
+                                Slice_Data *slice_dzz,
+                                double thresh,
+                                double *minimum, double *maximum);
 
 void make_gradmag_volumes(MincVolume *in_vol1, 
-				 MincVolume *in_vol2, 
-				 MincVolume *in_vol3, 
-				 MincVolume *out_vol,
-				 double *min_value, double *max_value);
+                                 MincVolume *in_vol2, 
+                                 MincVolume *in_vol3, 
+                                 MincVolume *out_vol,
+                                 double *min_value, double *max_value);
 
 void make_curvature_volumes(MincVolume *in_vol1, 
-				   MincVolume *in_vol2, 
-				   MincVolume *in_vol3, 
-				   MincVolume *in_volxx, 
-				   MincVolume *in_volyy, 
-				   MincVolume *in_volzz, 
-				   MincVolume *out_vol,
-				   double thresh);
+                                   MincVolume *in_vol2, 
+                                   MincVolume *in_vol3, 
+                                   MincVolume *in_volxx, 
+                                   MincVolume *in_volyy, 
+                                   MincVolume *in_volzz, 
+                                   MincVolume *out_vol,
+                                   double thresh);
 
 void make_vol_icv(MincVolume *in_vol);
 
 void calc_gradient_magnitude(char *infilename, char *history, char *output_basename,
-				    double *min_value, double *max_value);
+                                    double *min_value, double *max_value);
 
 void calc_gaussian_curvature(char *infilename, char *history,
-				    double min_value, double max_value);
+                                    double min_value, double max_value);

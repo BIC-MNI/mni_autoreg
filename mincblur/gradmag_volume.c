@@ -19,7 +19,10 @@
 
 @CREATED    : some time in 1993
 @MODIFIED   : $Log: gradmag_volume.c,v $
-@MODIFIED   : Revision 96.3  2005-07-20 20:45:39  rotor
+@MODIFIED   : Revision 96.4  2006-11-28 09:12:21  rotor
+@MODIFIED   :  * fixes to allow clean compile against minc 2.0
+@MODIFIED   :
+@MODIFIED   : Revision 96.3  2005/07/20 20:45:39  rotor
 @MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
 @MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
 @MODIFIED   :     * Removed old VOLUME_IO cruft #defines
@@ -69,7 +72,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/gradmag_volume.c,v 96.3 2005-07-20 20:45:39 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/gradmag_volume.c,v 96.4 2006-11-28 09:12:21 rotor Exp $";
 #endif
 
 #include <config.h>             /* for EXIT_FAILURE (on some systems) */
@@ -91,9 +94,9 @@ extern int verbose;
 extern int debug;
 
 void calc_gradient_magnitude(char *infilename, 
-				    char *output_basename,
-				    char *history, 
-				    double *min_value, double *max_value)
+                                    char *output_basename,
+                                    char *history, 
+                                    double *min_value, double *max_value)
 {   
   MincVolume 
     in_vol_struct1, 
@@ -134,7 +137,7 @@ void calc_gradient_magnitude(char *infilename,
 }
 
 void calc_gaussian_curvature(char *infilename, char *history,
-				    double min_value, double max_value)
+                                    double min_value, double max_value)
 {
    
   MincVolume 
@@ -194,9 +197,9 @@ if (debug)
   
   /* calculate the gradient magnitude */
   make_curvature_volumes(in_volx, in_voly, in_volz, 
-			 in_volxx, in_volyy, in_volzz, 
-			 out_vol,
-			 thresh);
+                         in_volxx, in_volyy, in_volzz, 
+                         out_vol,
+                         thresh);
   
   /* Finish up */
   finish_up(in_volx, in_voly, in_volz, out_vol);
@@ -256,9 +259,9 @@ void make_vol_icv(MincVolume *in_vol)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 void build_vol_info(char   *infile,
-			   char   *outfile,
-			   MincVolume *in_vol, 
-			   MincVolume *out_vol, char *history)
+                           char   *outfile,
+                           MincVolume *in_vol, 
+                           MincVolume *out_vol, char *history)
 {
    /* Argument parsing information */
    static Default_Data defaults={
@@ -283,7 +286,7 @@ void build_vol_info(char   *infile,
    /* Other variables */
    int idim, index, ivar, varid;
    int ndims, dim[MAX_VAR_DIMS], imgdim[MAX_VAR_DIMS];
-   int in_vindex, out_vindex;  /* Volume indices (0, 1 or 2) */
+   int in_vindex, out_vindex;  /* VIO_Volume indices (0, 1 or 2) */
    int in_findex, out_findex;  /* File indices (0 to ndims-1) */
    long size, total_size, total_slice_size;
    File_Info *fp;
@@ -309,7 +312,7 @@ void build_vol_info(char   *infile,
       total_size *= size;
       in_vol->volume->size[index] = size;
       if (index != 0) 
-	total_slice_size *= size;
+        total_slice_size *= size;
    }
 
 
@@ -334,12 +337,12 @@ void build_vol_info(char   *infile,
        varid = (ivar==0 ? fp->maxid : fp->minid);
        (void) ncvarinq(fp->mincid, varid, NULL, NULL, &ndims, dim, NULL);
        for (idim=0; idim < ndims; idim++) {
-	 if ((dim[idim] == imgdim[fp->indices[1]]) ||
-	     (dim[idim] == imgdim[fp->indices[2]])) {
-	   (void) fprintf(stderr, 
-			  "MIimagemax/min vary over slice dimensions.\n");
-	   exit(EXIT_FAILURE);
-	 }
+         if ((dim[idim] == imgdim[fp->indices[1]]) ||
+             (dim[idim] == imgdim[fp->indices[2]])) {
+           (void) fprintf(stderr, 
+                          "MIimagemax/min vary over slice dimensions.\n");
+           exit(EXIT_FAILURE);
+         }
        }        /* End loop over MIimagemax/min dimensions */
      }        /* End loop over variables MIimagemax/min */
      
@@ -416,7 +419,7 @@ void build_vol_info(char   *infile,
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 void load_vol_info(char   *infile,
-			  MincVolume *in_vol)
+                          MincVolume *in_vol)
 {
   int idim, index, ivar, varid;
   int ndims, dim[MAX_VAR_DIMS], imgdim[MAX_VAR_DIMS];
@@ -470,12 +473,12 @@ void load_vol_info(char   *infile,
       varid = (ivar==0 ? fp->maxid : fp->minid);
       (void) ncvarinq(fp->mincid, varid, NULL, NULL, &ndims, dim, NULL);
       for (idim=0; idim < ndims; idim++) {
-	if ((dim[idim] == imgdim[fp->indices[1]]) ||
-	    (dim[idim] == imgdim[fp->indices[2]])) {
-	  (void) fprintf(stderr, 
-			 "MIimagemax/min vary over slice dimensions.\n");
-	  exit(EXIT_FAILURE);
-	}
+        if ((dim[idim] == imgdim[fp->indices[1]]) ||
+            (dim[idim] == imgdim[fp->indices[2]])) {
+          (void) fprintf(stderr, 
+                         "MIimagemax/min vary over slice dimensions.\n");
+          exit(EXIT_FAILURE);
+        }
       }        /* End loop over MIimagemax/min dimensions */
     }        /* End loop over variables MIimagemax/min */
     
@@ -965,9 +968,9 @@ double get_default_range(char *what, nc_type datatype, int is_signed)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 void finish_up(MincVolume *in_vol1, 
-		      MincVolume *in_vol2, 
-		      MincVolume *in_vol3, 
-		      MincVolume *out_vol)
+                      MincVolume *in_vol2, 
+                      MincVolume *in_vol3, 
+                      MincVolume *out_vol)
 {
    File_Info *in_file, *out_file;
 
@@ -1008,10 +1011,10 @@ void finish_up(MincVolume *in_vol1,
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 void make_gradmag_volumes(MincVolume *in_vol1, 
-				 MincVolume *in_vol2, 
-				 MincVolume *in_vol3, 
-				 MincVolume *out_vol,
-				 double *min_val, double *max_val)
+                                 MincVolume *in_vol2, 
+                                 MincVolume *in_vol3, 
+                                 MincVolume *out_vol,
+                                 double *min_val, double *max_val)
 {
    long in_start[MAX_VAR_DIMS], in_count[MAX_VAR_DIMS], in_end[MAX_VAR_DIMS];
    long out_start[MAX_VAR_DIMS], out_count[MAX_VAR_DIMS];
@@ -1093,7 +1096,7 @@ void make_gradmag_volumes(MincVolume *in_vol1,
      /* Get the slice */
      
      get_mag_slice(out_vol->slice, in_vol1->slice, in_vol2->slice, in_vol3->slice, 
-		   &minimum, &maximum);
+                   &minimum, &maximum);
 
      /* Update global max and min */
      if (maximum > valid_range[1]) valid_range[1] = maximum;
@@ -1101,17 +1104,17 @@ void make_gradmag_volumes(MincVolume *in_vol1,
      
      /* Write the max, min and slice */
      (void) mivarput1(ofp->mincid, ofp->maxid, 
-		      mitranslate_coords(ofp->mincid, 
-					 ofp->imgid, out_start,
-					 ofp->maxid, mm_start),
-		      NC_DOUBLE, NULL, &maximum);
+                      mitranslate_coords(ofp->mincid, 
+                                         ofp->imgid, out_start,
+                                         ofp->maxid, mm_start),
+                      NC_DOUBLE, NULL, &maximum);
      (void) mivarput1(ofp->mincid, ofp->minid, 
-		      mitranslate_coords(ofp->mincid, 
-					 ofp->imgid, out_start,
-					 ofp->minid, mm_start),
-		      NC_DOUBLE, NULL, &minimum);
+                      mitranslate_coords(ofp->mincid, 
+                                         ofp->imgid, out_start,
+                                         ofp->minid, mm_start),
+                      NC_DOUBLE, NULL, &minimum);
      (void) miicv_put(ofp->icvid, out_start, out_count,
-		      out_vol->slice->data);
+                      out_vol->slice->data);
      
    }    /* End loop over slices */
    
@@ -1149,13 +1152,13 @@ void make_gradmag_volumes(MincVolume *in_vol1,
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 void make_curvature_volumes(MincVolume *in_vol1, 
-				   MincVolume *in_vol2, 
-				   MincVolume *in_vol3, 
-				   MincVolume *in_volxx, 
-				   MincVolume *in_volyy, 
-				   MincVolume *in_volzz, 
-				   MincVolume *out_vol,
-				   double thresh)
+                                   MincVolume *in_vol2, 
+                                   MincVolume *in_vol3, 
+                                   MincVolume *in_volxx, 
+                                   MincVolume *in_volyy, 
+                                   MincVolume *in_volzz, 
+                                   MincVolume *out_vol,
+                                   double thresh)
 {
    long in_start[MAX_VAR_DIMS], in_count[MAX_VAR_DIMS], in_end[MAX_VAR_DIMS];
    long out_start[MAX_VAR_DIMS], out_count[MAX_VAR_DIMS];
@@ -1240,8 +1243,8 @@ void make_curvature_volumes(MincVolume *in_vol1,
      /* Get the slice */
      
      get_curvature_slice(out_vol->slice, in_vol1->slice, in_vol2->slice, in_vol3->slice, 
-			 in_volxx->slice, in_volyy->slice, in_volzz->slice, 
-			 thresh,&minimum, &maximum);
+                         in_volxx->slice, in_volyy->slice, in_volzz->slice, 
+                         thresh,&minimum, &maximum);
      
      /* Update global max and min */
      if (maximum > valid_range[1]) valid_range[1] = maximum;
@@ -1249,17 +1252,17 @@ void make_curvature_volumes(MincVolume *in_vol1,
      
      /* Write the max, min and slice */
      (void) mivarput1(ofp->mincid, ofp->maxid, 
-		      mitranslate_coords(ofp->mincid, 
-					 ofp->imgid, out_start,
-					 ofp->maxid, mm_start),
-		      NC_DOUBLE, NULL, &maximum);
+                      mitranslate_coords(ofp->mincid, 
+                                         ofp->imgid, out_start,
+                                         ofp->maxid, mm_start),
+                      NC_DOUBLE, NULL, &maximum);
      (void) mivarput1(ofp->mincid, ofp->minid, 
-		      mitranslate_coords(ofp->mincid, 
-					 ofp->imgid, out_start,
-					 ofp->minid, mm_start),
-		      NC_DOUBLE, NULL, &minimum);
+                      mitranslate_coords(ofp->mincid, 
+                                         ofp->imgid, out_start,
+                                         ofp->minid, mm_start),
+                      NC_DOUBLE, NULL, &minimum);
      (void) miicv_put(ofp->icvid, out_start, out_count,
-		      out_vol->slice->data);
+                      out_vol->slice->data);
      
    }    /* End loop over slices */
    
@@ -1283,7 +1286,7 @@ void make_curvature_volumes(MincVolume *in_vol1,
 @NAME       : get_mag_slice
 @INPUT      : slice_dx - slice data struct contains partial dirivitive in x dir
               slice_dy - slice data struct contains partial dirivitive in y dir
-	      slice_dz - slice data struct contains partial dirivitive in z dir
+              slice_dz - slice data struct contains partial dirivitive in z dir
 @OUTPUT     : result - slice data struct contains new slice
               minimum - slice minimum (excluding data from outside volume)
               maximum - slice maximum (excluding data from outside volume)
@@ -1296,10 +1299,10 @@ void make_curvature_volumes(MincVolume *in_vol1,
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 void get_mag_slice(Slice_Data *result,
-			  Slice_Data *slice_dx,
-			  Slice_Data *slice_dy,
-			  Slice_Data *slice_dz,
-			  double *minimum, double *maximum)
+                          Slice_Data *slice_dx,
+                          Slice_Data *slice_dy,
+                          Slice_Data *slice_dz,
+                          double *minimum, double *maximum)
 {
    double *dptr;
    double *dptr1;
@@ -1355,10 +1358,10 @@ void get_mag_slice(Slice_Data *result,
 @NAME       : get_curvature_slice
 @INPUT      : slice_dx - slice data struct contains 1st partial dirivitive in x dir
               slice_dy - slice data struct contains 1st partial dirivitive in y dir
-	      slice_dz - slice data struct contains 1st partial dirivitive in z dir
-	      slice_dxx - slice data struct contains 2nd partial dirivitive in x dir
+              slice_dz - slice data struct contains 1st partial dirivitive in z dir
+              slice_dxx - slice data struct contains 2nd partial dirivitive in x dir
               slice_dyy - slice data struct contains 2nd partial dirivitive in y dir
-	      slice_dzz - slice data struct contains 2nd partial dirivitive in z dir
+              slice_dzz - slice data struct contains 2nd partial dirivitive in z dir
 @OUTPUT     : result - slice data struct contains new slice
               minimum - slice minimum (excluding data from outside volume)
               maximum - slice maximum (excluding data from outside volume)
@@ -1374,14 +1377,14 @@ void get_mag_slice(Slice_Data *result,
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 void get_curvature_slice(Slice_Data *result,
-				Slice_Data *slice_dx,
-				Slice_Data *slice_dy,
-				Slice_Data *slice_dz,
-				Slice_Data *slice_dxx,
-				Slice_Data *slice_dyy,
-				Slice_Data *slice_dzz,
-				double thresh,
-				double *minimum, double *maximum)
+                                Slice_Data *slice_dx,
+                                Slice_Data *slice_dy,
+                                Slice_Data *slice_dz,
+                                Slice_Data *slice_dxx,
+                                Slice_Data *slice_dyy,
+                                Slice_Data *slice_dzz,
+                                double thresh,
+                                double *minimum, double *maximum)
 {
    double *dptr;
    double *dptrx;
@@ -1409,15 +1412,15 @@ void get_curvature_slice(Slice_Data *result,
        t = (*dptrx * *dptrx) + (*dptry * *dptry) + (*dptrz * *dptrz);
 
        if (t < thresh*thresh) {
-	 *dptr = 0.0;
+         *dptr = 0.0;
        }
        else {
 
-	 numerator = (*dptrx * *dptrx) * *dptryy * *dptrzz + 
-	             (*dptry * *dptry) * *dptrxx * *dptrzz +
-	             (*dptrz * *dptrz) * *dptrxx * *dptryy;
+         numerator = (*dptrx * *dptrx) * *dptryy * *dptrzz + 
+                     (*dptry * *dptry) * *dptrxx * *dptrzz +
+                     (*dptrz * *dptrz) * *dptrxx * *dptryy;
 
-	 *dptr = numerator / (t*t);
+         *dptr = numerator / (t*t);
 
        }
 
