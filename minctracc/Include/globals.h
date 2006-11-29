@@ -3,18 +3,18 @@
 
 char  *prog_name                 = NULL;
 
-Volume  mask_data                = NULL;
-Volume  mask_model               = NULL;
-Volume  model                    = NULL;
-Volume  model_dx                 = NULL;
-Volume  model_dy                 = NULL;
-Volume  model_dz                 = NULL;
-Volume  model_dxyz               = NULL;
-Volume  data                     = NULL;
-Volume  data_dx                  = NULL;
-Volume  data_dy                  = NULL;
-Volume  data_dz                  = NULL;
-Volume  data_dxyz                = NULL;
+VIO_Volume  mask_data                = NULL;
+VIO_Volume  mask_model               = NULL;
+VIO_Volume  model                    = NULL;
+VIO_Volume  model_dx                 = NULL;
+VIO_Volume  model_dy                 = NULL;
+VIO_Volume  model_dz                 = NULL;
+VIO_Volume  model_dxyz               = NULL;
+VIO_Volume  data                     = NULL;
+VIO_Volume  data_dx                  = NULL;
+VIO_Volume  data_dy                  = NULL;
+VIO_Volume  data_dz                  = NULL;
+VIO_Volume  data_dxyz                = NULL;
 
 double  ftol                     = 0.005;
 double  simplex_size             = 20.0;
@@ -37,7 +37,7 @@ static ArgvInfo argTable[] = {
   {NULL, ARGV_HELP, NULL, NULL,
      "---Transformation maps one to volume two---"},
   {NULL, ARGV_HELP, NULL, NULL,
-	"Initial transformation information."},
+        "Initial transformation information."},
   {"-no_clobber", ARGV_CONSTANT, (char *) FALSE, (char *) &clobber_flag,
      "Do not overwrite output file (default)."},
   {"-clobber", ARGV_CONSTANT, (char *) TRUE, (char *) &clobber_flag,

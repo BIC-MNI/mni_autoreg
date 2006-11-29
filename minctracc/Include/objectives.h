@@ -1,30 +1,30 @@
-float xcorr_objective(Volume d1,
-			     Volume d2,
-			     Volume m1,
-			     Volume m2, 
-			     Arg_Data *globals);
+float xcorr_objective(VIO_Volume d1,
+                             VIO_Volume d2,
+                             VIO_Volume m1,
+                             VIO_Volume m2, 
+                             Arg_Data *globals);
 
-float zscore_objective(Volume d1,
-			      Volume d2,
-			      Volume m1,
-			      Volume m2, 
-			      Arg_Data *globals);
+float zscore_objective(VIO_Volume d1,
+                              VIO_Volume d2,
+                              VIO_Volume m1,
+                              VIO_Volume m2, 
+                              Arg_Data *globals);
 
-float vr_objective(Volume d1,
-			  Volume d2,
-			  Volume m1,
-			  Volume m2, 
-			  Arg_Data *globals);
+float vr_objective(VIO_Volume d1,
+                          VIO_Volume d2,
+                          VIO_Volume m1,
+                          VIO_Volume m2, 
+                          Arg_Data *globals);
 
-float ssc_objective(Volume d1,
-			   Volume d2,
-			   Volume m1,
-			   Volume m2, 
-			   Arg_Data *globals);
+float ssc_objective(VIO_Volume d1,
+                           VIO_Volume d2,
+                           VIO_Volume m1,
+                           VIO_Volume m2, 
+                           Arg_Data *globals);
 
-float mutual_information_objective(Volume d1,
-			   Volume d2,
-			   Volume m1,
-			   Volume m2, 
-			   Arg_Data *globals);
+float mutual_information_objective(VIO_Volume d1,
+                           VIO_Volume d2,
+                           VIO_Volume m1,
+                           VIO_Volume m2, 
+                           Arg_Data *globals);
 

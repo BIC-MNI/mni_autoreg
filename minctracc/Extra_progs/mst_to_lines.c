@@ -23,9 +23,9 @@ int main(int argc, char *argv[])
     p;
   FILE 
     *fp;
-  Status 
+  VIO_Status 
     stat;
-  progress_struct
+  VIO_progress_struct
     progress;
 
   long int
@@ -45,12 +45,12 @@ int main(int argc, char *argv[])
   count = 0L;
   total = 0L;
   while( fscanf( fp, "%d%d%f%f%f%f", 
-		&mst[total].index,
-		&mst[total].parent_index,
-		&mst[total].xyz[0],
-		&mst[total].xyz[1],
-		&mst[total].xyz[2],
-		&mst[total].err) != EOF ) {
+                &mst[total].index,
+                &mst[total].parent_index,
+                &mst[total].xyz[0],
+                &mst[total].xyz[1],
+                &mst[total].xyz[2],
+                &mst[total].err) != EOF ) {
     ++total;
     if ( total >= NPTS ) {
       printf("\ntoo much data!");
@@ -76,24 +76,24 @@ int main(int argc, char *argv[])
 
 
   initialize_progress_report(&progress, FALSE, total+1,
-			     "Building vectors");
+                             "Building vectors");
   
 
 
-  for_less(i,1,total) {
+  for(i=1; i<total; i++) {
 
   start_new_line(lines);
   
   count = mst[i].index;
-  fill_Point(p, mst[count].xyz[0],mst[count].xyz[1],mst[count].xyz[2]);
+  VIO_fill_Point(p, mst[count].xyz[0],mst[count].xyz[1],mst[count].xyz[2]);
   add_point_to_line(lines, &p);
 
   count = mst[i].parent_index;
-  fill_Point(p, mst[count].xyz[0],mst[count].xyz[1],mst[count].xyz[2]);
+  VIO_fill_Point(p, mst[count].xyz[0],mst[count].xyz[1],mst[count].xyz[2]);
   add_point_to_line(lines, &p);
   
   update_progress_report( &progress, i );
-	
+        
   }
   
   terminate_progress_report(&progress);

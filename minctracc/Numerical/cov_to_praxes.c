@@ -27,9 +27,12 @@
 
 @CREATED    : July 16, 1991 (Peter Neelin)
                       using numerical recipes routines jacobi() and eigsrt().  
-		      See Hotelling Transform
+                      See Hotelling VIO_Transform
 @MODIFIED   : $Log: cov_to_praxes.c,v $
-@MODIFIED   : Revision 96.5  2005-07-20 20:45:48  rotor
+@MODIFIED   : Revision 96.6  2006-11-29 09:09:33  rotor
+@MODIFIED   :  * first bunch of changes for minc 2.0 compliance
+@MODIFIED   :
+@MODIFIED   : Revision 96.5  2005/07/20 20:45:48  rotor
 @MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
 @MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
 @MODIFIED   :     * Removed old VOLUME_IO cruft #defines
@@ -76,14 +79,14 @@
 
 ---------------------------------------------------------------------------- */
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/cov_to_praxes.c,v 96.5 2005-07-20 20:45:48 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/cov_to_praxes.c,v 96.6 2006-11-29 09:09:33 rotor Exp $";
 #endif
 
 #include <volume_io.h>
 
-BOOLEAN eigen(double **inputMat, int ndim, 
-		     double *eigen_val, double **eigen_vec, 
-		     int    *iters);
+VIO_BOOL eigen(double **inputMat, int ndim, 
+                     double *eigen_val, double **eigen_vec, 
+                     int    *iters);
 
 
 void cov_to_praxes(int ndim, float **covar, float **pr_axes)
@@ -132,13 +135,13 @@ void cov_to_praxes(int ndim, float **covar, float **pr_axes)
 
 
 #define ROTATE(a,i,j,k,l) g=a[i][j];h=a[k][l];a[i][j]=g-s*(h+g*tau);\
-	a[k][l]=h+s*(g-h*tau);
+        a[k][l]=h+s*(g-h*tau);
 
-static BOOLEAN jacobi(double **a,
-		       int n,
-		       double *d,
-		       double **v,
-		       int *nrot)
+static VIO_BOOL jacobi(double **a,
+                       int n,
+                       double *d,
+                       double **v,
+                       int *nrot)
 {
   int j,iq,ip,i;
   double tresh,theta,tau,t,sm,s,h,g,c,*b,*z;
@@ -158,12 +161,12 @@ static BOOLEAN jacobi(double **a,
     sm=0.0;
     for (ip=1;ip<=n-1;ip++) {
       for (iq=ip+1;iq<=n;iq++)
-	sm += fabs(a[ip][iq]);
+        sm += fabs(a[ip][iq]);
     }
     if (sm == 0.0) {
       FREE(z);
       FREE(b);
-      return(TRUE);		/* we have a result! */
+      return(TRUE);                /* we have a result! */
     }
     if (i < 4)
       tresh=0.2*sm/(n*n);
@@ -171,44 +174,44 @@ static BOOLEAN jacobi(double **a,
       tresh=0.0;
     for (ip=1;ip<=n-1;ip++) {
       for (iq=ip+1;iq<=n;iq++) {
-	g=100.0*fabs(a[ip][iq]);
-	if (i > 4 && (double)(fabs(d[ip])+g) == (double)fabs(d[ip])
-	    && (double)(fabs(d[iq])+g) == (double)fabs(d[iq]))
-	  a[ip][iq]=0.0;
-	else {
-	  if (fabs(a[ip][iq]) > tresh) {
-	    h=d[iq]-d[ip];
-	    if ((double)(fabs(h)+g) == (double)fabs(h))
-	      t=(a[ip][iq])/h;
-	    else {
-	      theta=0.5*h/(a[ip][iq]);
-	      t=1.0/(fabs(theta)+sqrt(1.0+theta*theta));
-	      if (theta < 0.0) t = -t;
-	    }
-	    c=1.0/sqrt(1+t*t);
-	    s=t*c;
-	    tau=s/(1.0+c);
-	    h=t*a[ip][iq];
-	    z[ip] -= h;
-	    z[iq] += h;
-	    d[ip] -= h;
-	    d[iq] += h;
-	    a[ip][iq]=0.0;
-	    for (j=1;j<=ip-1;j++) {
-	      ROTATE(a,j,ip,j,iq)
-	    }
-	    for (j=ip+1;j<=iq-1;j++) {
-	      ROTATE(a,ip,j,j,iq)
-	    }
-	    for (j=iq+1;j<=n;j++) {
-	      ROTATE(a,ip,j,iq,j)
-	    }
-	    for (j=1;j<=n;j++) {
-	      ROTATE(v,j,ip,j,iq)
-	    }
-	    ++(*nrot);
-	  }
-	}
+        g=100.0*fabs(a[ip][iq]);
+        if (i > 4 && (double)(fabs(d[ip])+g) == (double)fabs(d[ip])
+            && (double)(fabs(d[iq])+g) == (double)fabs(d[iq]))
+          a[ip][iq]=0.0;
+        else {
+          if (fabs(a[ip][iq]) > tresh) {
+            h=d[iq]-d[ip];
+            if ((double)(fabs(h)+g) == (double)fabs(h))
+              t=(a[ip][iq])/h;
+            else {
+              theta=0.5*h/(a[ip][iq]);
+              t=1.0/(fabs(theta)+sqrt(1.0+theta*theta));
+              if (theta < 0.0) t = -t;
+            }
+            c=1.0/sqrt(1+t*t);
+            s=t*c;
+            tau=s/(1.0+c);
+            h=t*a[ip][iq];
+            z[ip] -= h;
+            z[iq] += h;
+            d[ip] -= h;
+            d[iq] += h;
+            a[ip][iq]=0.0;
+            for (j=1;j<=ip-1;j++) {
+              ROTATE(a,j,ip,j,iq)
+            }
+            for (j=ip+1;j<=iq-1;j++) {
+              ROTATE(a,ip,j,j,iq)
+            }
+            for (j=iq+1;j<=n;j++) {
+              ROTATE(a,ip,j,iq,j)
+            }
+            for (j=1;j<=n;j++) {
+              ROTATE(v,j,ip,j,iq)
+            }
+            ++(*nrot);
+          }
+        }
       }
     }
     for (ip=1;ip<=n;ip++) {
@@ -217,9 +220,9 @@ static BOOLEAN jacobi(double **a,
       z[ip]=0.0;
     }
   }
-  return(FALSE);		/* if we fall through here, then the 
-				   maximum number of iterations has been
-				   exceeded, and there is no result possible */
+  return(FALSE);                /* if we fall through here, then the 
+                                   maximum number of iterations has been
+                                   exceeded, and there is no result possible */
 }
 
 #undef ROTATE
@@ -235,30 +238,30 @@ void eigsrt(double d[], double** v, int n)
       max_val=d[max_index];
 
       for (j=i+1;j<=n;j++)
-	  if (d[j] >= max_val) {
-	      max_index=j;
-	      max_val=d[max_index];
-	  }
+          if (d[j] >= max_val) {
+              max_index=j;
+              max_val=d[max_index];
+          }
       
       if (max_index != i) {
-	  d[max_index]=d[i];
-	  d[i]=max_val;
-	  for (j=1;j<=n;j++) {	/* swap columns */
-	      max_val=v[j][i];
-	      v[j][i]=v[j][max_index];
-	      v[j][max_index]=max_val;
-	  }
+          d[max_index]=d[i];
+          d[i]=max_val;
+          for (j=1;j<=n;j++) {        /* swap columns */
+              max_val=v[j][i];
+              v[j][i]=v[j][max_index];
+              v[j][max_index]=max_val;
+          }
       }
   }
   
 }
 
 
-BOOLEAN eigen(double **inputMat, 
-		     int    ndim, 
-		     double *eigen_val, 
-		     double **eigen_vec, 
-		     int    *iters)
+VIO_BOOL eigen(double **inputMat, 
+                     int    ndim, 
+                     double *eigen_val, 
+                     double **eigen_vec, 
+                     int    *iters)
 {
 
   double sum,**copy_of_input,**eigvec,*eigval;
@@ -268,8 +271,8 @@ BOOLEAN eigen(double **inputMat,
   ALLOC2D(eigvec,ndim+1,ndim+1);
   ALLOC(eigval,ndim+1);
 
-  for_less(i,0,ndim) {
-    for_less(j,0,ndim) {
+  for(i=0; i<ndim; i++) {
+    for(j=0; j<ndim; j++) {
       copy_of_input[i+1][j+1] = inputMat[i][j];
     }
   }
@@ -279,37 +282,37 @@ BOOLEAN eigen(double **inputMat,
   if (eig_flag) {
     eigsrt(eigval, eigvec, ndim);
     
-    for_less(i,0,ndim)		/* copy to calling parameters */
-      for_less(j,0,ndim)
-	eigen_vec[i][j] = eigvec[i+1][j+1];
+    for(i=0; i<ndim; i++)                /* copy to calling parameters */
+      for(j=0; j<ndim; j++)
+        eigen_vec[i][j] = eigvec[i+1][j+1];
     
-    for_less(i,0,ndim)
+    for(i=0; i<ndim; i++)
       eigen_val[i] = eigval[i+1];
     
-    for_less(i,0,ndim) {		/* normalize the eigen_Vectors */
+    for(i=0; i<ndim; i++) {                /* normalize the eigen_Vectors */
       
       sum = 0.0;
-      for_less(j,0,ndim)
-	sum += eigen_vec[j][i]*eigen_vec[j][i];
+      for(j=0; j<ndim; j++)
+        sum += eigen_vec[j][i]*eigen_vec[j][i];
       
       sum = sqrt(sum);
       if (sum > 0.0) {
-	for_less(j,0,ndim)
-	  eigen_vec[j][i] /= sum;
+        for(j=0; j<ndim; j++)
+          eigen_vec[j][i] /= sum;
       }
       else {
-	print ("Can't norm %d (%f) %f %f %f\n",i,sum,eigen_vec[0][i],eigen_vec[1][i],eigen_vec[2][i]);
+        print ("Can't norm %d (%f) %f %f %f\n",i,sum,eigen_vec[0][i],eigen_vec[1][i],eigen_vec[2][i]);
       }
       
     }
   }
   else {
 
-    for_less(i,0,ndim)		
-      for_less(j,0,ndim)
-	eigen_vec[i][j] = 0.0;
+    for(i=0; i<ndim; i++)                
+      for(j=0; j<ndim; j++)
+        eigen_vec[i][j] = 0.0;
 
-    for_less(i,0,ndim) {
+    for(i=0; i<ndim; i++) {
       eigen_val[i] = 0.0;
       eigen_vec[i][i] = 1.0;
     }
@@ -332,7 +335,7 @@ BOOLEAN eigen(double **inputMat,
               ndim       - dimension of input matrix
 @OUTPUT     : *eigen_val - array of sorted (decending order) eigen values
              **eigen_vec - matrix of eigen vectors (stored in columns)
-	      *iters     - the number of iterations required to find the 
+              *iters     - the number of iterations required to find the 
                            result
 @RETURNS    : FALSE if possible numerical error, TRUE otherwise
 @DESCRIPTION: 
@@ -354,11 +357,11 @@ BOOLEAN eigen(double **inputMat,
 @MODIFIED   :
 ---------------------------------------------------------------------------- */
 
-BOOLEAN eigen2(double **inputMat, 
-		     int    ndim, 
-		     double *eigen_val, 
-		     double **eigen_vec, 
-		     int    *iters)
+VIO_BOOL eigen2(double **inputMat, 
+                     int    ndim, 
+                     double *eigen_val, 
+                     double **eigen_vec, 
+                     int    *iters)
 
 {
 
@@ -381,8 +384,8 @@ BOOLEAN eigen2(double **inputMat,
 
 /*
   print ("[\n");
-  for_less(i,0,ndim) {
-    for_less(j,0,ndim) {
+  for(i=0; i<ndim; i++) {
+    for(j=0; j<ndim; j++) {
       print ("%f ",inputMat[i][j] );
     }
     print ("\n");
@@ -392,17 +395,17 @@ BOOLEAN eigen2(double **inputMat,
   /* NOTE: the code here actually treats and stores the eigen vectors
      in row format.  The matrix will be transposed below */
 
-  for_less(k,0,ndim) {
+  for(k=0; k<ndim; k++) {
 
-    for_less(i,0,ndim)		/* init vec to ones */
+    for(i=0; i<ndim; i++)                /* init vec to ones */
       vec[i]=1;
 
     iterations=0;
     val=0.0;
-    vec_sum=(double)ndim;	/* since  sum += vec[i]  */
+    vec_sum=(double)ndim;        /* since  sum += vec[i]  */
 
 
-    do {			/* iterate  */
+    do {                        /* iterate  */
 
       iterations++;
       previous_val=val;
@@ -410,24 +413,24 @@ BOOLEAN eigen2(double **inputMat,
       max_val=0.0;
       vec_sum=0.0;
 
-      for_less(i,0,ndim) {	/* for each row in the inputMat */
+      for(i=0; i<ndim; i++) {        /* for each row in the inputMat */
 
-	test_vec[i]=0.0;	/* test_vec = inputMat * vec'   */
-	for_less(j,0,ndim)	  
-	  test_vec[i] += inputMat[i][j]*vec[j];
+        test_vec[i]=0.0;        /* test_vec = inputMat * vec'   */
+        for(j=0; j<ndim; j++)          
+          test_vec[i] += inputMat[i][j]*vec[j];
 
-	vec_sum += test_vec[i];
+        vec_sum += test_vec[i];
 
-	x = ABS(test_vec[i]);	/* find max element in test_vec */
-	if(x>max_val) max_val=x;
+        x = ABS(test_vec[i]);        /* find max element in test_vec */
+        if(x>max_val) max_val=x;
 
       }
 
       val     = vec_sum/previous_sum;
       vec_sum = vec_sum/max_val;
 
-      for_less(i,0,ndim)	/* normalize to largest element*/
-	vec[i]=test_vec[i]/max_val;
+      for(i=0; i<ndim; i++)        /* normalize to largest element*/
+        vec[i]=test_vec[i]/max_val;
 
     } while( (iterations<3000) && (fabs(1.0-previous_val/val)>1e-15) );
 
@@ -440,15 +443,15 @@ print ("%3d (%5d) -> (%15.10f) %15.10f %15.10f %15.10f  \n", k, iterations, val,
     }
 
     vec_sum=0.0;
-    for_less(i,0,ndim) 
+    for(i=0; i<ndim; i++) 
       vec_sum += vec[i]*vec[i];
 
-    for_less(i,0,ndim)
-      for_less(j,0,ndim)
-	inputMat[i][j] -= (vec[i]*vec[j]/vec_sum)*val;
+    for(i=0; i<ndim; i++)
+      for(j=0; j<ndim; j++)
+        inputMat[i][j] -= (vec[i]*vec[j]/vec_sum)*val;
 
     vec_sum = sqrt(vec_sum);
-    for_less(i,0,ndim)
+    for(i=0; i<ndim; i++)
       eigen_vec[k][i]=vec[i]/vec_sum; /* store eig vec in row 'k' */
 
     eigen_val[k]=val;
@@ -456,30 +459,30 @@ print ("%3d (%5d) -> (%15.10f) %15.10f %15.10f %15.10f  \n", k, iterations, val,
 
 
 
-				/* sort eig vectors in order of eigval */
-  for_less(i,0,ndim) {
+                                /* sort eig vectors in order of eigval */
+  for(i=0; i<ndim; i++) {
     max_val=eigen_val[k=i];
-    for_less (j,i+1,ndim)
+    for(j=i+1; j<ndim; j++)
       if (eigen_val[j] >= max_val) max_val=eigen_val[k=j];
 
     if (k != i) {
       eigen_val[k]=eigen_val[i]; /* swap eigen values */
       eigen_val[i]=max_val;
 
-      for_less (j,0,ndim) {	/* swap eigen vectors (rows of eigen_vec)*/
-	val=            eigen_vec[i][j];
-	eigen_vec[i][j]=eigen_vec[k][j];
-	eigen_vec[k][j]=val;
+      for(j=0; j<ndim; j++) {        /* swap eigen vectors (rows of eigen_vec)*/
+        val=            eigen_vec[i][j];
+        eigen_vec[i][j]=eigen_vec[k][j];
+        eigen_vec[k][j]=val;
       }
 
     }
 
   }
-				/* transpose eigen vector matrix, to return
-				   eigen vectors in the columns */
+                                /* transpose eigen vector matrix, to return
+                                   eigen vectors in the columns */
 
-  for_less(i,0,ndim) {
-    for_less(j,i+1,ndim) {
+  for(i=0; i<ndim; i++) {
+    for(j=i+1; j<ndim; j++) {
       val = eigen_vec[i][j];
       eigen_vec[i][j] = eigen_vec[j][i];
       eigen_vec[j][i] = val;

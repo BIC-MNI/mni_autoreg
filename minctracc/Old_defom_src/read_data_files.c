@@ -8,10 +8,10 @@
 
 #include <def_voxels.h>
 
-extern Status
+extern VIO_Status
    open_file(), close_file();
 
-DATA 	
+DATA         
    *read_iff_data();
 
 extern Voxel_value_type 
@@ -22,13 +22,13 @@ extern float
 extern void             
    put_voxel_value();
 
-Status read_grad_data(dx,dy,dz,dxyz, name)
+VIO_Status read_grad_data(dx,dy,dz,dxyz, name)
 DATA **dx, **dy, **dz, **dxyz;
 char *name;
 {
    char fullname[500];
    FILE ifd;
-   Status status;
+   VIO_Status status;
    DATA *tx, *ty, *tz, *txyz;
 
    status = OK;
@@ -107,13 +107,13 @@ char *name;
 
 }
 
-Status read_deform_data(dx,dy,dz, name)
+VIO_Status read_deform_data(dx,dy,dz, name)
 DATA **dx, **dy, **dz;
 char *name;
 {
    char fullname[500];
    FILE ifd;
-   Status status;
+   VIO_Status status;
    DATA *tx, *ty, *tz;
 
    status = OK;
@@ -188,13 +188,13 @@ DATA *d;
 
    for (slice=0; slice<d->slices; ++slice)
       for (row=0; row<d->rows; ++row)
-	 for (col=0; col<d->cols; ++ col) {
-	    val = get_voxel_value(col, row, slice, d);
-	    
-	    if (val<=1)
-	       put_voxel_value(val_zero, col, row, slice, d);
-	    
-	 }
+         for (col=0; col<d->cols; ++ col) {
+            val = get_voxel_value(col, row, slice, d);
+            
+            if (val<=1)
+               put_voxel_value(val_zero, col, row, slice, d);
+            
+         }
 }
 
 

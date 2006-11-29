@@ -14,7 +14,10 @@
               express or implied warranty.
 
 @MODIFIED   : $Log: optimize.c,v $
-@MODIFIED   : Revision 96.13  2005-07-20 20:45:51  rotor
+@MODIFIED   : Revision 96.14  2006-11-29 09:09:34  rotor
+@MODIFIED   :  * first bunch of changes for minc 2.0 compliance
+@MODIFIED   :
+@MODIFIED   : Revision 96.13  2005/07/20 20:45:51  rotor
 @MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
 @MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
 @MODIFIED   :     * Removed old VOLUME_IO cruft #defines
@@ -151,7 +154,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 96.13 2005-07-20 20:45:51 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 96.14 2006-11-29 09:09:34 rotor Exp $";
 #endif
 
 #include <config.h>
@@ -168,61 +171,61 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 
 extern Arg_Data main_args;
 
-Volume   Gdata1, Gdata2, Gmask1, Gmask2;
+VIO_Volume   Gdata1, Gdata2, Gmask1, Gmask2;
 int      Ginverse_mapping_flag, Gndim;
 
 extern   double   ftol ;        
 extern   double   simplex_size ;
-extern   Real     initial_corr, final_corr;
+extern   VIO_Real     initial_corr, final_corr;
 
-         Segment_Table  *segment_table;	/* for variance of ratios */
+         Segment_Table  *segment_table;        /* for variance of ratios */
 
-         Real            **prob_hash_table;   /* for mutual information */
-         Real            *prob_fn1;      /*     for vol 1 */
-         Real            *prob_fn2;      /*     for vol 2 */
+         VIO_Real            **prob_hash_table;   /* for mutual information */
+         VIO_Real            *prob_fn1;      /*     for vol 1 */
+         VIO_Real            *prob_fn2;      /*     for vol 2 */
 
 
 /* external calls: */
 
- BOOLEAN  perform_amoeba(amoeba_struct  *amoeba, int *num_funks );
+ VIO_BOOL  perform_amoeba(amoeba_struct  *amoeba, int *num_funks );
  void  initialize_amoeba(
     amoeba_struct     *amoeba,
     int               n_parameters,
-    Real              initial_parameters[],
-    Real              parameter_delta,
+    VIO_Real              initial_parameters[],
+    VIO_Real              parameter_delta,
     amoeba_function   function,
     void              *function_data,
-    Real              tolerance );
+    VIO_Real              tolerance );
 
- Real  get_amoeba_parameters(
+ VIO_Real  get_amoeba_parameters(
     amoeba_struct  *amoeba,
-    Real           parameters[] );
+    VIO_Real           parameters[] );
 
  void  terminate_amoeba(
     amoeba_struct  *amoeba );
 
 
-void make_zscore_volume(Volume d1, Volume m1, 
-			       Real *threshold); 
+void make_zscore_volume(VIO_Volume d1, VIO_Volume m1, 
+                               VIO_Real *threshold); 
 
-void add_speckle_to_volume(Volume d1, 
-				  float speckle,
-				  double  *start, int *count, 
-				  VectorR directions[]);
+void add_speckle_to_volume(VIO_Volume d1, 
+                                  float speckle,
+                                  double  *start, int *count, 
+                                  VectorR directions[]);
 
-Status do_non_linear_optimization(Arg_Data *globals);
+VIO_Status do_non_linear_optimization(Arg_Data *globals);
 
-void normalize_data_to_match_target(Volume d1, Volume m1, Real thresh1,
-                                           Volume d2, Volume m2, Real thresh2,
+void normalize_data_to_match_target(VIO_Volume d1, VIO_Volume m1, VIO_Real thresh1,
+                                           VIO_Volume d2, VIO_Volume m2, VIO_Real thresh2,
                                            Arg_Data *globals);
 
 
 void parameters_to_vector_quater(double *trans, 
-					double *quats,
-					double *scales,
-					double *shears,
-					float  *op_vector,
-					double *weights) 
+                                        double *quats,
+                                        double *scales,
+                                        double *shears,
+                                        float  *op_vector,
+                                        double *weights) 
 {
   int i;
 
@@ -249,11 +252,11 @@ void parameters_to_vector_quater(double *trans,
 
 
 void parameters_to_vector(double *trans, 
-				 double *rots,
-				 double *scales,
-				 double *shears,
-				 float  *op_vector,
-				 double *weights) 
+                                 double *rots,
+                                 double *scales,
+                                 double *shears,
+                                 float  *op_vector,
+                                 double *weights) 
 {
   int i;
 
@@ -283,11 +286,11 @@ void parameters_to_vector(double *trans,
 
 
 static void vector_to_parameters(double *trans, 
-				  double *rots, 
-				  double *scales,
-				  double *shears,
-				  float  *op_vector,
-				  double *weights) 
+                                  double *rots, 
+                                  double *scales,
+                                  double *shears,
+                                  float  *op_vector,
+                                  double *weights) 
 {
   int i;
 
@@ -313,11 +316,11 @@ static void vector_to_parameters(double *trans,
 
 
 static void vector_to_parameters_quater(double *trans, 
-					 double *quats, 
-					 double *scales,
-					 double *shears,
-					 float  *op_vector,
-					 double *weights) 
+                                         double *quats, 
+                                         double *scales,
+                                         double *shears,
+                                         float  *op_vector,
+                                         double *weights) 
 {
   int i;
 
@@ -344,7 +347,7 @@ static void vector_to_parameters_quater(double *trans,
 }
 
 
-inline static BOOLEAN in_limits(double x,double lower,double upper)
+inline static VIO_BOOL in_limits(double x,double lower,double upper)
 {
     return lower <= x && x <= upper;
 }
@@ -366,7 +369,7 @@ inline static BOOLEAN in_limits(double x,double lower,double upper)
 float fit_function(float *params) 
 {
 
-  Transform *mat;
+  VIO_Transform *mat;
   int i;
   float r;
 
@@ -378,7 +381,7 @@ float fit_function(float *params)
   double shear[6];
 
 
-  for_less( i, 0, 3 ) {		/* set default values from GLOBAL MAIN_ARGS */
+  for(i=0; i<3; i++) {                /* set default values from GLOBAL MAIN_ARGS */
     shear[i] = main_args.trans_info.shears[i];
     scale[i] = main_args.trans_info.scales[i];
     trans[i] = main_args.trans_info.translations[i];
@@ -387,7 +390,7 @@ float fit_function(float *params)
   }
 
 
-				/* modify the parameters to be optimized */
+                                /* modify the parameters to be optimized */
   vector_to_parameters(trans, rots, scale, shear, params, main_args.trans_info.weights);
   
   if (main_args.trans_info.transform_type==TRANS_LSQ7) { /* adjust scaley and scalez only */
@@ -422,7 +425,7 @@ float fit_function(float *params)
     r = 1e10;
   }
   else {
-				/* get the linear transformation ptr */
+                                /* get the linear transformation ptr */
 
     if (get_transform_type(main_args.trans_info.transformation) == CONCATENATED_TRANSFORM) {
       mat = get_linear_transform_ptr(
@@ -445,15 +448,15 @@ float fit_function(float *params)
 }
 
 
-Real amoeba_obj_function(void *dummy, float d[])
+VIO_Real amoeba_obj_function(void *dummy, float d[])
 {
   int i;
   float p[13];
 
-  for_less(i,0,Gndim)
+  for(i=0; i<Gndim; i++)
     p[i+1] = d[i];
   
-  return ( (Real)fit_function(p) );
+  return ( (VIO_Real)fit_function(p) );
 }
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -473,7 +476,7 @@ Real amoeba_obj_function(void *dummy, float d[])
 float fit_function_quater(float *params) 
 {
 
-  Transform *mat;
+  VIO_Transform *mat;
   int i;
   float r;
 
@@ -485,7 +488,7 @@ float fit_function_quater(float *params)
   double quats[4];
 
 
-  for_less( i, 0, 3 ) {		/* set default values from GLOBAL MAIN_ARGS */
+  for(i=0; i<3; i++) {                /* set default values from GLOBAL MAIN_ARGS */
     shear[i] = main_args.trans_info.shears[i];
     scale[i] = main_args.trans_info.scales[i];
     trans[i] = main_args.trans_info.translations[i];
@@ -494,7 +497,7 @@ float fit_function_quater(float *params)
   }
 
 
-				/* modify the parameters to be optimized */
+                                /* modify the parameters to be optimized */
   vector_to_parameters_quater(trans, quats, scale, shear, params, main_args.trans_info.weights);
   
   if (main_args.trans_info.transform_type==TRANS_LSQ7) { /* adjust scaley and scalez only */
@@ -531,7 +534,7 @@ float fit_function_quater(float *params)
   else {
     quats[3]=sqrt(1-SQR(quats[0])-SQR(quats[1])-SQR(quats[2]));
 
-				/* get the linear transformation ptr */
+                                /* get the linear transformation ptr */
 
     if (get_transform_type(main_args.trans_info.transformation) == CONCATENATED_TRANSFORM) {
       mat = get_linear_transform_ptr(
@@ -554,31 +557,31 @@ float fit_function_quater(float *params)
 }
 
 
-Real amoeba_obj_function_quater(void *dummy, float d[])
+VIO_Real amoeba_obj_function_quater(void *dummy, float d[])
 {
   int i;
   float p[13];
 
-  for_less(i,0,Gndim)
+  for(i=0; i<Gndim; i++)
     p[i+1] = d[i];
   
-  return ( (Real)fit_function_quater(p) );
+  return ( (VIO_Real)fit_function_quater(p) );
 }
 
 
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : optimize_simplex
                 get the parameters necessary to map volume 1 to volume 2
-		using the simplex optimizaqtion algorithm and a user specified
-		objective function.
+                using the simplex optimizaqtion algorithm and a user specified
+                objective function.
 @INPUT      : d1,d2:
                 two volumes of data (already in memory).
-	      m1,m2:
+              m1,m2:
                 two mask volumes for data (already in memory).
-	      globals:
-	        a global data structure containing info from the command line,
-		including the input parameters to be optimized, the input matrix,
-		and a plethora of flags!
+              globals:
+                a global data structure containing info from the command line,
+                including the input parameters to be optimized, the input matrix,
+                and a plethora of flags!
 @OUTPUT     : 
 @RETURNS    : TRUE if ok, FALSE if error.
 @DESCRIPTION: 
@@ -588,13 +591,13 @@ Real amoeba_obj_function_quater(void *dummy, float d[])
 @CREATED    : Fri Jun 11 11:16:25 EST 1993 LC
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-BOOLEAN optimize_simplex(Volume d1,
-				Volume d2,
-				Volume m1,
-				Volume m2, 
-				Arg_Data *globals)
+VIO_BOOL optimize_simplex(VIO_Volume d1,
+                                VIO_Volume d2,
+                                VIO_Volume m1,
+                                VIO_Volume m2, 
+                                Arg_Data *globals)
 {
-  BOOLEAN 
+  VIO_BOOL 
     stat;
   float 
     local_ftol,
@@ -607,10 +610,10 @@ BOOLEAN optimize_simplex(Volume d1,
     i,j, 
     ndim;
 
-  Transform
+  VIO_Transform
     *mat;
 
-  Real
+  VIO_Real
     *parameters;
 
   double trans[3];
@@ -622,41 +625,41 @@ BOOLEAN optimize_simplex(Volume d1,
   
   stat = TRUE;
   local_ftol = ftol;
-				/* find number of dimensions for optimization */
+                                /* find number of dimensions for optimization */
   ndim = 0;
-  for_less(i,0,12)
+  for(i=0; i<12; i++)
     if (globals->trans_info.weights[i] != 0.0) ndim++;
 
-				/* set GLOBALS to communicate with the
-				   function to be fitted!              */
+                                /* set GLOBALS to communicate with the
+                                   function to be fitted!              */
   if (stat && ndim>0) {
     Gndim = ndim;
 
-    ALLOC(p,ndim+1+1);		/* my parameters for the simplex 
-				   [1..ndim+1]*/
+    ALLOC(p,ndim+1+1);                /* my parameters for the simplex 
+                                   [1..ndim+1]*/
 
-    ALLOC(parameters, ndim+1);	/* David's parmaters for the simplex
-				   [0..ndim] */
+    ALLOC(parameters, ndim+1);        /* David's parmaters for the simplex
+                                   [0..ndim] */
     
-				/* build the parameter vector from the 
-				   initial transformation parameters   */
+                                /* build the parameter vector from the 
+                                   initial transformation parameters   */
     parameters_to_vector(globals->trans_info.translations,
-			 globals->trans_info.rotations,
-			 globals->trans_info.scales,
-			 globals->trans_info.shears,
-			 p,
-			 globals->trans_info.weights);
+                         globals->trans_info.rotations,
+                         globals->trans_info.scales,
+                         globals->trans_info.shears,
+                         p,
+                         globals->trans_info.weights);
 
-    for_less(i,0,ndim+1)		/* copy initial guess into parameter list */
-      parameters[i] = (Real)p[i+1];
+    for(i=0; i<ndim+1; i++)                /* copy initial guess into parameter list */
+      parameters[i] = (VIO_Real)p[i+1];
 
     initialize_amoeba(&the_amoeba, ndim, parameters, 
-		      simplex_size, amoeba_obj_function, 
-		      NULL, (Real)local_ftol);
+                      simplex_size, amoeba_obj_function, 
+                      NULL, (VIO_Real)local_ftol);
 
     max_iters = 400;
     iteration_number = 0;
-				/* do the ameoba optimization */
+                                /* do the ameoba optimization */
     while ( iteration_number<max_iters && perform_amoeba(&the_amoeba, &iteration_number) ) 
       /* empty */ ;
 
@@ -664,28 +667,28 @@ BOOLEAN optimize_simplex(Volume d1,
     if (globals->flags.debug) {
       
       (void)print("done with simplex after %d iterations\n",iteration_number);
-      for_less(i,0,the_amoeba.n_parameters+1) {
-	
-	(void)print ("%d %7.5f:",i,the_amoeba.values[i]);
-	for_less(j,0,the_amoeba.n_parameters) {
-	  (void)print ("%8.5f ", the_amoeba.parameters[i][j]);
-	}
-	(void)print ("\n");
-	
+      for(i=0; i<the_amoeba.n_parameters+1; i++) {
+        
+        (void)print ("%d %7.5f:",i,the_amoeba.values[i]);
+        for(j=0; j<the_amoeba.n_parameters; j++) {
+          (void)print ("%8.5f ", the_amoeba.parameters[i][j]);
+        }
+        (void)print ("\n");
+        
       }
     }
 
-				/* copy result into main data structure */
+                                /* copy result into main data structure */
     get_amoeba_parameters(&the_amoeba,parameters);
-    for_less(i,0,ndim+1)		
+    for(i=0; i<ndim+1; i++)                
       p[i+1] = (float)parameters[i];
     
     vector_to_parameters(globals->trans_info.translations,
-			 globals->trans_info.rotations,
-			 globals->trans_info.scales,
-			 globals->trans_info.shears,
-			 p,
-			 globals->trans_info.weights);
+                         globals->trans_info.rotations,
+                         globals->trans_info.scales,
+                         globals->trans_info.shears,
+                         p,
+                         globals->trans_info.weights);
     terminate_amoeba(&the_amoeba);
 
     if (globals->trans_info.transform_type==TRANS_LSQ7) { /* adjust scaley and scalez only */
@@ -694,7 +697,7 @@ BOOLEAN optimize_simplex(Volume d1,
       globals->trans_info.scales[2] = globals->trans_info.scales[0];
     }
     
-    for_less( i, 0, 3 ) {		/* set translations */
+    for(i=0; i<3; i++) {                /* set translations */
       trans[i] = globals->trans_info.translations[i]; 
       rots[i]  = globals->trans_info.rotations[i];
       scale[i] = globals->trans_info.scales[i];
@@ -708,7 +711,7 @@ BOOLEAN optimize_simplex(Volume d1,
       print("-center      %10.5f %10.5f %10.5f\n", cent[0], cent[1], cent[2]);
       print("-translation %10.5f %10.5f %10.5f\n", trans[0], trans[1], trans[2]);
       print("-rotation    %10.5f %10.5f %10.5f\n", 
-	    rots[0]*180.0/3.1415927, rots[1]*180.0/3.1415927, rots[2]*180.0/3.1415927);
+            rots[0]*180.0/3.1415927, rots[1]*180.0/3.1415927, rots[2]*180.0/3.1415927);
       print("-scale       %10.5f %10.5f %10.5f\n", scale[0], scale[1], scale[2]);
       print("-shear       %10.5f %10.5f %10.5f\n", shear[0], shear[1], shear[2]);
     }
@@ -734,17 +737,17 @@ BOOLEAN optimize_simplex(Volume d1,
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : optimize_simplex_quater
                 get the parameters necessary to map volume 1 to volume 2
-		using the simplex optimizaqtion algorithm and a user specified
-		objective function.
+                using the simplex optimizaqtion algorithm and a user specified
+                objective function.
 @INPUT      : d1,d2:
                 two volumes of data (already in memory).
-	      m1,m2:
+              m1,m2:
                 two mask volumes for data (already in memory).
-	      globals:
-	        a global data structure containing info from the command line,
-		including the input parameters to be optimized, the input matrix,
-		and a plethora of flags!
-		same as optimize_simplex but with quaternions
+              globals:
+                a global data structure containing info from the command line,
+                including the input parameters to be optimized, the input matrix,
+                and a plethora of flags!
+                same as optimize_simplex but with quaternions
 @OUTPUT     : 
 @RETURNS    : TRUE if ok, FALSE if error.
 @DESCRIPTION: 
@@ -754,13 +757,13 @@ BOOLEAN optimize_simplex(Volume d1,
 @CREATED    : Fri Jun 11 11:16:25 EST 1993 LC
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-BOOLEAN optimize_simplex_quater(Volume d1,
-				       Volume d2,
-				       Volume m1,
-				       Volume m2, 
-				       Arg_Data *globals)
+VIO_BOOL optimize_simplex_quater(VIO_Volume d1,
+                                       VIO_Volume d2,
+                                       VIO_Volume m1,
+                                       VIO_Volume m2, 
+                                       Arg_Data *globals)
 {
-  BOOLEAN 
+  VIO_BOOL 
     stat;
   float 
     local_ftol,
@@ -773,10 +776,10 @@ BOOLEAN optimize_simplex_quater(Volume d1,
     i,j, 
     ndim;
 
-  Transform
+  VIO_Transform
     *mat;
 
-  Real
+  VIO_Real
     *parameters;
 
   double trans[3];
@@ -791,47 +794,47 @@ BOOLEAN optimize_simplex_quater(Volume d1,
   
   stat = TRUE;
   local_ftol = ftol;
-				/* find number of dimensions for optimization */
+                                /* find number of dimensions for optimization */
   ndim = 0;
-  for_less(i,0,12)
+  for(i=0; i<12; i++)
     if (globals->trans_info.weights[i] != 0.0) ndim++;
 
-				/* set GLOBALS to communicate with the
-				   function to be fitted!              */
+                                /* set GLOBALS to communicate with the
+                                   function to be fitted!              */
   if (stat && ndim>0) {
     Gndim = ndim;
 
-    ALLOC(p,ndim+1+1);		/* my parameters for the simplex 
+    ALLOC(p,ndim+1+1);                /* my parameters for the simplex 
                                         [1..ndim+1]*/
 
  
 
 
-    ALLOC(parameters, ndim+1);	/* David's parmaters for the simplex
-				   [0..ndim] */
+    ALLOC(parameters, ndim+1);        /* David's parmaters for the simplex
+                                   [0..ndim] */
     
-				/* build the parameter vector from the 
-				   initial transformation parameters   */
+                                /* build the parameter vector from the 
+                                   initial transformation parameters   */
     parameters_to_vector_quater(globals->trans_info.translations,
-				globals->trans_info.quaternions,
-				globals->trans_info.scales,
-				globals->trans_info.shears,
-				p,
-				globals->trans_info.weights);
+                                globals->trans_info.quaternions,
+                                globals->trans_info.scales,
+                                globals->trans_info.shears,
+                                p,
+                                globals->trans_info.weights);
 
-    for_less(i,0,ndim+1)		/* copy initial guess into parameter list */
-      parameters[i] = (Real)p[i+1];
+    for(i=0; i<ndim+1; i++)                /* copy initial guess into parameter list */
+      parameters[i] = (VIO_Real)p[i+1];
 
 
 
 
     initialize_amoeba(&the_amoeba, ndim, parameters, 
-		      simplex_size, amoeba_obj_function_quater, 
-		      NULL, (Real)local_ftol);
+                      simplex_size, amoeba_obj_function_quater, 
+                      NULL, (VIO_Real)local_ftol);
 
     max_iters = 400;
     iteration_number = 0;
-				/* do the ameoba optimization */
+                                /* do the ameoba optimization */
     while ( iteration_number<max_iters && perform_amoeba(&the_amoeba, &iteration_number) ) 
       /* empty */ ;
 
@@ -839,28 +842,28 @@ BOOLEAN optimize_simplex_quater(Volume d1,
     if (globals->flags.debug) {
       
       (void)print("done with simplex after %d iterations\n",iteration_number);
-      for_less(i,0,the_amoeba.n_parameters+1) {
-	
-	(void)print ("%d %7.5f:",i,the_amoeba.values[i]);
-	for_less(j,0,the_amoeba.n_parameters) {
-	  (void)print ("%8.5f ", the_amoeba.parameters[i][j]);
-	}
-	(void)print ("\n");
-	
+      for(i=0; i<the_amoeba.n_parameters+1; i++) {
+        
+        (void)print ("%d %7.5f:",i,the_amoeba.values[i]);
+        for(j=0; j<the_amoeba.n_parameters; j++) {
+          (void)print ("%8.5f ", the_amoeba.parameters[i][j]);
+        }
+        (void)print ("\n");
+        
       }
     }
 
-				/* copy result into main data structure */
+                                /* copy result into main data structure */
     get_amoeba_parameters(&the_amoeba,parameters);
-    for_less(i,0,ndim+1)		
+    for(i=0; i<ndim+1; i++)                
       p[i+1] = (float)parameters[i];
     
     vector_to_parameters_quater(globals->trans_info.translations,
-				globals->trans_info.quaternions,
-				globals->trans_info.scales,
-				globals->trans_info.shears,
-				p,
-				globals->trans_info.weights);
+                                globals->trans_info.quaternions,
+                                globals->trans_info.scales,
+                                globals->trans_info.shears,
+                                p,
+                                globals->trans_info.weights);
     terminate_amoeba(&the_amoeba);
 
     if (globals->trans_info.transform_type==TRANS_LSQ7) { /* adjust scaley and scalez only */
@@ -869,7 +872,7 @@ BOOLEAN optimize_simplex_quater(Volume d1,
       globals->trans_info.scales[2] = globals->trans_info.scales[0];
     }
     
-    for_less( i, 0, 3 ) {		/* set translations */
+    for(i=0; i<3; i++) {                /* set translations */
       trans[i] = globals->trans_info.translations[i]; 
       quats[i] = globals->trans_info.quaternions[i];
       scale[i] = globals->trans_info.scales[i];
@@ -910,12 +913,12 @@ BOOLEAN optimize_simplex_quater(Volume d1,
 }
 
 
-BOOLEAN replace_volume_data_with_ubyte(Volume data)
+VIO_BOOL replace_volume_data_with_ubyte(VIO_Volume data)
 {
-  Volume tmp_vol;
-  int sizes[MAX_DIMENSIONS];
+  VIO_Volume tmp_vol;
+  int sizes[VIO_MAX_DIMENSIONS];
   int i,j,k,count,n_dim;
-  progress_struct		
+  VIO_progress_struct                
     progress;
 
   n_dim = get_volume_n_dimensions(data);
@@ -925,28 +928,28 @@ BOOLEAN replace_volume_data_with_ubyte(Volume data)
     print ("Volume must have 3 dimensions for byte copy\n");
     return(FALSE);
   }
-				/* build a matching temporary ubyte 
-				   volume */
+                                /* build a matching temporary ubyte 
+                                   volume */
 
   tmp_vol = copy_volume_definition(data, NC_BYTE, FALSE, 0.0, 0.0);
 
-				/* copy the original voxel data into
-				   the byte voxels */
+                                /* copy the original voxel data into
+                                   the byte voxels */
   count = 0;
   initialize_progress_report(&progress, FALSE, sizes[0]*sizes[1]*sizes[2] + 1,
-			     "Converting" );
-  for_less(i,0,sizes[0])
-    for_less(j,0,sizes[1])
-      for_less(k,0,sizes[2]) {
-	set_volume_real_value(tmp_vol, i,j,k,0,0,
-			      get_volume_real_value(data,i,j,k,0,0));
-	count++;
-	update_progress_report( &progress, count);
+                             "Converting" );
+  for(i=0; i<sizes[0]; i++)
+    for(j=0; j<sizes[1]; j++)
+      for(k=0; k<sizes[2]; k++) {
+        set_volume_real_value(tmp_vol, i,j,k,0,0,
+                              get_volume_real_value(data,i,j,k,0,0));
+        count++;
+        update_progress_report( &progress, count);
       }
   terminate_progress_report( &progress );
 
   
-  free_volume_data( data );	/* get rid of original data */
+  free_volume_data( data );        /* get rid of original data */
 
    /* 
    * BLEAGHH!! This is an evil and nasty hack, made worse by the fact that
@@ -969,44 +972,44 @@ BOOLEAN replace_volume_data_with_ubyte(Volume data)
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : optimize_linear_transformation
                 get the parameters necessary to map volume 1 to volume 2
-		using a user specified optimization strategy and objective
-		function.
+                using a user specified optimization strategy and objective
+                function.
 @INPUT      : d1,d2:
                 two volumes of data (already in memory).
-	      m1,m2:
+              m1,m2:
                 two mask volumes for data (already in memory).
-	      globals:
-	        a global data structure containing info from the command line,
-		including the input parameters to be optimized, the input matrix,
-		and a plethora of flags!
+              globals:
+                a global data structure containing info from the command line,
+                including the input parameters to be optimized, the input matrix,
+                and a plethora of flags!
 @OUTPUT     : 
 @RETURNS    : TRUE if ok, FALSE if error.
 @DESCRIPTION: 
 @METHOD     :
                 1- this routine begins by initializing the volume data structures
-		to be used by the objective functions.
+                to be used by the objective functions.
 
-		2- optimization function is called
-		
-		3- the optimized parameters are returned in globals...
+                2- optimization function is called
+                
+                3- the optimized parameters are returned in globals...
 @GLOBALS    : 
 @CALLS      : 
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-BOOLEAN optimize_linear_transformation(Volume d1,
-					      Volume d2,
-					      Volume m1,
-					      Volume m2, 
-					      Arg_Data *globals)
+VIO_BOOL optimize_linear_transformation(VIO_Volume d1,
+                                              VIO_Volume d2,
+                                              VIO_Volume m1,
+                                              VIO_Volume m2, 
+                                              Arg_Data *globals)
 {
-  BOOLEAN 
+  VIO_BOOL 
     stat;
   int i;
-  Data_types
+  VIO_Data_types
     data_type;
   float *p;
-  Transform
+  VIO_Transform
     *mat;
 
   double trans[3];
@@ -1022,7 +1025,7 @@ BOOLEAN optimize_linear_transformation(Volume d1,
           /*----------------- prepare data for optimization -------------- */
   
   if (globals->obj_function == zscore_objective) 
-				/* normalize volumes before correlation */
+                                /* normalize volumes before correlation */
     { 
       /* replace volume d1 and d2 by zscore volume  */
 
@@ -1030,7 +1033,7 @@ BOOLEAN optimize_linear_transformation(Volume d1,
       make_zscore_volume(d2,m2,&globals->threshold[1]);
     } else
   if (globals->obj_function == ssc_objective)
-				/* Stocastic sign change (or zero-crossings) */
+                                /* Stocastic sign change (or zero-crossings) */
     {
       /* add speckle to the data set, after making both data sets
          comparable in mean and sd...                             */
@@ -1039,66 +1042,66 @@ BOOLEAN optimize_linear_transformation(Volume d1,
       make_zscore_volume(d2,m2,&globals->threshold[1]); 
 
       if (globals->smallest_vol == 1)
-	add_speckle_to_volume(d1, 
-			      globals->speckle,
-			      globals->start, globals->count, 
-			      globals->directions);
+        add_speckle_to_volume(d1, 
+                              globals->speckle,
+                              globals->start, globals->count, 
+                              globals->directions);
       else
-	add_speckle_to_volume(d2, 
-			      globals->speckle,
-			      globals->start, globals->count, 
-			      globals->directions);    
+        add_speckle_to_volume(d2, 
+                              globals->speckle,
+                              globals->start, globals->count, 
+                              globals->directions);    
     } else
   if (globals->obj_function == vr_objective)
-				/* Woods' variance of ratios */
+                                /* Woods' variance of ratios */
     {
 
       if (globals->smallest_vol == 1) {
-	if (!build_segment_table(&segment_table, d1, globals->groups))
-	  print_error_and_line_num(
-	    "Could not build segment table for SOURCE volume\n",
-	    __FILE__, __LINE__);
+        if (!build_segment_table(&segment_table, d1, globals->groups))
+          print_error_and_line_num(
+            "Could not build segment table for SOURCE volume\n",
+            __FILE__, __LINE__);
       }
       else {
-	if (!build_segment_table(&segment_table, d2, globals->groups))
-	  print_error_and_line_num(
-	    "Could not build segment table for TARGET volume\n",
-	    __FILE__, __LINE__);	
+        if (!build_segment_table(&segment_table, d2, globals->groups))
+          print_error_and_line_num(
+            "Could not build segment table for TARGET volume\n",
+            __FILE__, __LINE__);        
       }
       
       if (globals->flags.debug && globals->flags.verbose>1) {
-	print ("groups = %d\n",segment_table->groups);
-	for_less(i, segment_table->min, segment_table->max+1) {
-	  print ("%5d: table = %5d, function = %5d\n",i,segment_table->table[i],
-		 (segment_table->segment)(i,segment_table) );
-	}
+        print ("groups = %d\n",segment_table->groups);
+        for(i=segment_table->min; i<segment_table->max+1; i++) {
+          print ("%5d: table = %5d, function = %5d\n",i,segment_table->table[i],
+                 (segment_table->segment)(i,segment_table) );
+        }
       }
     } else
   if (globals->obj_function == mutual_information_objective)
-				/* Collignon's mutual information */
+                                /* Collignon's mutual information */
     {
 
       if ( globals->groups != 256 ) {
-	print ("WARNING: -groups was %d, but will be forced to 256 in this run\n",globals->groups);
-	globals->groups = 256;
+        print ("WARNING: -groups was %d, but will be forced to 256 in this run\n",globals->groups);
+        globals->groups = 256;
       }
 
       data_type = get_volume_data_type (d1);
       if (data_type != UNSIGNED_BYTE) {
-	print ("WARNING: source volume not UNSIGNED_BYTE, will do conversion now.\n");
-	if (!replace_volume_data_with_ubyte(d1)) {
-	  print_error_and_line_num("Can't replace volume data with unsigned bytes\n",
-			     __FILE__, __LINE__);
-	}
+        print ("WARNING: source volume not UNSIGNED_BYTE, will do conversion now.\n");
+        if (!replace_volume_data_with_ubyte(d1)) {
+          print_error_and_line_num("Can't replace volume data with unsigned bytes\n",
+                             __FILE__, __LINE__);
+        }
       }
 
       data_type = get_volume_data_type (d2);
       if (data_type != UNSIGNED_BYTE) {
-	print ("WARNING: target volume not UNSIGNED_BYTE, will do conversion now.\n");
-	if (!replace_volume_data_with_ubyte(d2)) {
-	  print_error_and_line_num("Can't replace volume data with unsigned bytes\n",
-			     __FILE__, __LINE__);
-	}
+        print ("WARNING: target volume not UNSIGNED_BYTE, will do conversion now.\n");
+        if (!replace_volume_data_with_ubyte(d2)) {
+          print_error_and_line_num("Can't replace volume data with unsigned bytes\n",
+                             __FILE__, __LINE__);
+        }
       }
 
       ALLOC(   prob_fn1,   globals->groups);
@@ -1107,11 +1110,11 @@ BOOLEAN optimize_linear_transformation(Volume d1,
 
     } else
   if (globals->obj_function == xcorr_objective) {
-				/*EMPTY*/
+                                /*EMPTY*/
   }
   else  {
     print_error_and_line_num("Unknown objective function value\n",
-			     __FILE__, __LINE__);
+                             __FILE__, __LINE__);
   }    
 
 
@@ -1121,53 +1124,53 @@ BOOLEAN optimize_linear_transformation(Volume d1,
   
   switch (globals->trans_info.transform_type) {
   case TRANS_LSQ3: 
-    for_less(i,3,12) globals->trans_info.weights[i] = 0.0;
-    for_less(i,0,3) {
+    for(i=3; i<12; i++) globals->trans_info.weights[i] = 0.0;
+    for(i=0; i<3; i++) {
       globals->trans_info.scales[i] = 1.0;
       globals->trans_info.rotations[i] = 0.0;
       globals->trans_info.shears[i] = 0.0;
     }
     break;
   case TRANS_LSQ6: 
-    for_less(i,6,12) globals->trans_info.weights[i] = 0.0;
-    for_less(i,0,3) {
+    for(i=6; i<12; i++) globals->trans_info.weights[i] = 0.0;
+    for(i=0; i<3; i++) {
       globals->trans_info.scales[i] = 1.0;
       globals->trans_info.shears[i] = 0.0;
     }
     break;
   case TRANS_LSQ7: 
-    for_less(i,7,12) globals->trans_info.weights[i] = 0.0;
-    for_less(i,0,3) {
+    for(i=7; i<12; i++) globals->trans_info.weights[i] = 0.0;
+    for(i=0; i<3; i++) {
       globals->trans_info.shears[i] = 0.0;
     }
     break;
   case TRANS_LSQ9: 
-    for_less(i,9,12) globals->trans_info.weights[i] = 0.0;
-    for_less(i,0,3) {
+    for(i=9; i<12; i++) globals->trans_info.weights[i] = 0.0;
+    for(i=0; i<3; i++) {
       globals->trans_info.shears[i] = 0.0;
     }
     break;
   case TRANS_LSQ10: 
-    for_less(i,10,12) globals->trans_info.weights[i] = 0.0;
-    for_less(i,1,3) {
+    for(i=10; i<12; i++) globals->trans_info.weights[i] = 0.0;
+    for(i=1; i<3; i++) {
       globals->trans_info.shears[i] = 0.0;
     }
     break;
   case TRANS_LSQ: 
-				/* nothing to be zeroed */
+                                /* nothing to be zeroed */
     break;
   case TRANS_LSQ12: 
-				/* nothing to be zeroed */
+                                /* nothing to be zeroed */
     break;
   default:
     (void)fprintf(stderr, "Unknown type of transformation requested (%d)\n",
-		   globals->trans_info.transform_type);
+                   globals->trans_info.transform_type);
     (void)fprintf(stderr, "Error in line %d, file %s\n",__LINE__, __FILE__);
     stat = FALSE;
   }
 
-	   /* ---------------- swap the volumes, so that the smallest
-	                       is first (to save on CPU)             ---------*/
+           /* ---------------- swap the volumes, so that the smallest
+                               is first (to save on CPU)             ---------*/
 
   if (globals->smallest_vol == 1) {
     Gdata1 = d1;      Gdata2 = d2;
@@ -1181,20 +1184,20 @@ BOOLEAN optimize_linear_transformation(Volume d1,
   }
 
 
-	   /* ---------------- call the requested obj_function to 
-	                       establish the initial fitting value  ---------*/
+           /* ---------------- call the requested obj_function to 
+                               establish the initial fitting value  ---------*/
 
   ALLOC(p,13);
   parameters_to_vector(globals->trans_info.translations,
-		       globals->trans_info.rotations,
-		       globals->trans_info.scales,
-		       globals->trans_info.shears,
-		       p,
-		       globals->trans_info.weights);
+                       globals->trans_info.rotations,
+                       globals->trans_info.scales,
+                       globals->trans_info.shears,
+                       p,
+                       globals->trans_info.weights);
 
   initial_corr = fit_function(p);
 
-	   /* ---------------- call requested optimization strategy ---------*/
+           /* ---------------- call requested optimization strategy ---------*/
 
   switch (globals->optimize_type) {
   case OPT_SIMPLEX:
@@ -1202,17 +1205,17 @@ BOOLEAN optimize_linear_transformation(Volume d1,
     break;
   default:
     (void)fprintf(stderr, "Unknown type of optimization requested (%d)\n",
-		  globals->optimize_type);
+                  globals->optimize_type);
     (void)fprintf(stderr, "Error in line %d, file %s\n",__LINE__, __FILE__);
     stat = FALSE;
   }
   
   parameters_to_vector(globals->trans_info.translations,
-		       globals->trans_info.rotations,
-		       globals->trans_info.scales,
-		       globals->trans_info.shears,
-		       p,
-		       globals->trans_info.weights);
+                       globals->trans_info.rotations,
+                       globals->trans_info.scales,
+                       globals->trans_info.shears,
+                       p,
+                       globals->trans_info.weights);
 
   final_corr = fit_function(p);
 
@@ -1222,12 +1225,12 @@ BOOLEAN optimize_linear_transformation(Volume d1,
 
   if (get_transform_type(globals->trans_info.transformation) == CONCATENATED_TRANSFORM) {
     mat = get_linear_transform_ptr(
-	   get_nth_general_transform(globals->trans_info.transformation,0));
+           get_nth_general_transform(globals->trans_info.transformation,0));
   }
   else
     mat = get_linear_transform_ptr(globals->trans_info.transformation);
   
-  for_less( i, 0, 3 ) {		/* set translations */
+  for(i=0; i<3; i++) {                /* set translations */
     trans[i] = globals->trans_info.translations[i]; 
     rots[i]  = globals->trans_info.rotations[i];
     scale[i] = globals->trans_info.scales[i];
@@ -1245,7 +1248,7 @@ BOOLEAN optimize_linear_transformation(Volume d1,
       stat = stat && free_segment_table(segment_table);
     } else
   if (globals->obj_function == mutual_information_objective)
-				/* Collignon's mutual information */
+                                /* Collignon's mutual information */
     {
       FREE(   prob_fn1 );
       FREE(   prob_fn2 );
@@ -1261,44 +1264,44 @@ BOOLEAN optimize_linear_transformation(Volume d1,
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : optimize_linear_transformation_quater
                 get the parameters necessary to map volume 1 to volume 2
-		using a user specified optimization strategy and objective
-		function.
+                using a user specified optimization strategy and objective
+                function.
 @INPUT      : d1,d2:
                 two volumes of data (already in memory).
-	      m1,m2:
+              m1,m2:
                 two mask volumes for data (already in memory).
-	      globals:
-	        a global data structure containing info from the command line,
-		including the input parameters to be optimized, the input matrix,
-		and a plethora of flags!
+              globals:
+                a global data structure containing info from the command line,
+                including the input parameters to be optimized, the input matrix,
+                and a plethora of flags!
 @OUTPUT     : 
 @RETURNS    : TRUE if ok, FALSE if error.
 @DESCRIPTION: same as optimize_linear_transformation but with quaternions
 @METHOD     :
                 1- this routine begins by initializing the volume data structures
-		to be used by the objective functions.
+                to be used by the objective functions.
 
-		2- optimization function is called
-		
-		3- the optimized parameters are returned in globals...
+                2- optimization function is called
+                
+                3- the optimized parameters are returned in globals...
 @GLOBALS    : 
 @CALLS      : 
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   : Wed May  1              2002 PL
 ---------------------------------------------------------------------------- */
-BOOLEAN optimize_linear_transformation_quater(Volume d1,
-						     Volume d2,
-						     Volume m1,
-						     Volume m2, 
-						     Arg_Data *globals)
+VIO_BOOL optimize_linear_transformation_quater(VIO_Volume d1,
+                                                     VIO_Volume d2,
+                                                     VIO_Volume m1,
+                                                     VIO_Volume m2, 
+                                                     Arg_Data *globals)
 {
-  BOOLEAN 
+  VIO_BOOL 
     stat;
   int i;
-  Data_types
+  VIO_Data_types
     data_type;
   float *p;
-  Transform
+  VIO_Transform
     *mat;
 
   double trans[3];
@@ -1314,7 +1317,7 @@ BOOLEAN optimize_linear_transformation_quater(Volume d1,
           /*----------------- prepare data for optimization -------------- */
   
   if (globals->obj_function == zscore_objective) 
-				/* normalize volumes before correlation */
+                                /* normalize volumes before correlation */
     { 
       /* replace volume d1 and d2 by zscore volume  */
 
@@ -1322,7 +1325,7 @@ BOOLEAN optimize_linear_transformation_quater(Volume d1,
       make_zscore_volume(d2,m2,&globals->threshold[1]);
     } else
   if (globals->obj_function == ssc_objective)
-				/* Stocastic sign change (or zero-crossings) */
+                                /* Stocastic sign change (or zero-crossings) */
     {
       /* add speckle to the data set, after making both data sets
          comparable in mean and sd...                             */
@@ -1331,66 +1334,66 @@ BOOLEAN optimize_linear_transformation_quater(Volume d1,
       make_zscore_volume(d2,m2,&globals->threshold[1]); 
 
       if (globals->smallest_vol == 1)
-	add_speckle_to_volume(d1, 
-			      globals->speckle,
-			      globals->start, globals->count, 
-			      globals->directions);
+        add_speckle_to_volume(d1, 
+                              globals->speckle,
+                              globals->start, globals->count, 
+                              globals->directions);
       else
-	add_speckle_to_volume(d2, 
-			      globals->speckle,
-			      globals->start, globals->count, 
-			      globals->directions);    
+        add_speckle_to_volume(d2, 
+                              globals->speckle,
+                              globals->start, globals->count, 
+                              globals->directions);    
     } else
   if (globals->obj_function == vr_objective)
-				/* Woods' variance of ratios */
+                                /* Woods' variance of ratios */
     {
 
       if (globals->smallest_vol == 1) {
-	if (!build_segment_table(&segment_table, d1, globals->groups))
-	  print_error_and_line_num(
-	    "Could not build segment table for SOURCE volume\n",
-	    __FILE__, __LINE__);
+        if (!build_segment_table(&segment_table, d1, globals->groups))
+          print_error_and_line_num(
+            "Could not build segment table for SOURCE volume\n",
+            __FILE__, __LINE__);
       }
       else {
-	if (!build_segment_table(&segment_table, d2, globals->groups))
-	  print_error_and_line_num(
-	    "Could not build segment table for TARGET volume\n",
-	    __FILE__, __LINE__);	
+        if (!build_segment_table(&segment_table, d2, globals->groups))
+          print_error_and_line_num(
+            "Could not build segment table for TARGET volume\n",
+            __FILE__, __LINE__);        
       }
       
       if (globals->flags.debug && globals->flags.verbose>1) {
-	print ("groups = %d\n",segment_table->groups);
-	for_less(i, segment_table->min, segment_table->max+1) {
-	  print ("%5d: table = %5d, function = %5d\n",i,segment_table->table[i],
-		 (segment_table->segment)(i,segment_table) );
-	}
+        print ("groups = %d\n",segment_table->groups);
+        for(i=segment_table->min; i<segment_table->max+1; i++) {
+          print ("%5d: table = %5d, function = %5d\n",i,segment_table->table[i],
+                 (segment_table->segment)(i,segment_table) );
+        }
       }
     } else
   if (globals->obj_function == mutual_information_objective)
-				/* Collignon's mutual information */
+                                /* Collignon's mutual information */
     {
 
       if ( globals->groups != 256 ) {
-	print ("WARNING: -groups was %d, but will be forced to 256 in this run\n",globals->groups);
-	globals->groups = 256;
+        print ("WARNING: -groups was %d, but will be forced to 256 in this run\n",globals->groups);
+        globals->groups = 256;
       }
 
       data_type = get_volume_data_type (d1);
       if (data_type != UNSIGNED_BYTE) {
-	print ("WARNING: source volume not UNSIGNED_BYTE, will do conversion now.\n");
-	if (!replace_volume_data_with_ubyte(d1)) {
-	  print_error_and_line_num("Can't replace volume data with unsigned bytes\n",
-			     __FILE__, __LINE__);
-	}
+        print ("WARNING: source volume not UNSIGNED_BYTE, will do conversion now.\n");
+        if (!replace_volume_data_with_ubyte(d1)) {
+          print_error_and_line_num("Can't replace volume data with unsigned bytes\n",
+                             __FILE__, __LINE__);
+        }
       }
 
       data_type = get_volume_data_type (d2);
       if (data_type != UNSIGNED_BYTE) {
-	print ("WARNING: target volume not UNSIGNED_BYTE, will do conversion now.\n");
-	if (!replace_volume_data_with_ubyte(d2)) {
-	  print_error_and_line_num("Can't replace volume data with unsigned bytes\n",
-			     __FILE__, __LINE__);
-	}
+        print ("WARNING: target volume not UNSIGNED_BYTE, will do conversion now.\n");
+        if (!replace_volume_data_with_ubyte(d2)) {
+          print_error_and_line_num("Can't replace volume data with unsigned bytes\n",
+                             __FILE__, __LINE__);
+        }
       }
 
       ALLOC(   prob_fn1,   globals->groups);
@@ -1399,11 +1402,11 @@ BOOLEAN optimize_linear_transformation_quater(Volume d1,
 
     } else
   if (globals->obj_function == xcorr_objective) {
-				/*EMPTY*/
+                                /*EMPTY*/
   }
   else  {
     print_error_and_line_num("Unknown objective function value\n",
-			     __FILE__, __LINE__);
+                             __FILE__, __LINE__);
   }    
 
 
@@ -1413,8 +1416,8 @@ BOOLEAN optimize_linear_transformation_quater(Volume d1,
   
   switch (globals->trans_info.transform_type) {
   case TRANS_LSQ3: 
-    for_less(i,3,12) globals->trans_info.weights[i] = 0.0;
-    for_less(i,0,3) {
+    for(i=3; i<12; i++) globals->trans_info.weights[i] = 0.0;
+    for(i=0; i<3; i++) {
       globals->trans_info.scales[i] = 1.0;
       globals->trans_info.quaternions[i] = 0.0;
       globals->trans_info.shears[i] = 0.0;
@@ -1422,45 +1425,45 @@ BOOLEAN optimize_linear_transformation_quater(Volume d1,
   /*  globals->trans_info.quaternions[3] = 1.0;*/
     break;
   case TRANS_LSQ6: 
-    for_less(i,6,12) globals->trans_info.weights[i] = 0.0;
-    for_less(i,0,3) {
+    for(i=6; i<12; i++) globals->trans_info.weights[i] = 0.0;
+    for(i=0; i<3; i++) {
       globals->trans_info.scales[i] = 1.0;
       globals->trans_info.shears[i] = 0.0;
     }
     break;
   case TRANS_LSQ7: 
-    for_less(i,7,12) globals->trans_info.weights[i] = 0.0;
-    for_less(i,0,3) {
+    for(i=7; i<12; i++) globals->trans_info.weights[i] = 0.0;
+    for(i=0; i<3; i++) {
       globals->trans_info.shears[i] = 0.0;
     }
     break;
   case TRANS_LSQ9: 
-    for_less(i,9,12) globals->trans_info.weights[i] = 0.0;
-    for_less(i,0,3) {
+    for(i=9; i<12; i++) globals->trans_info.weights[i] = 0.0;
+    for(i=0; i<3; i++) {
       globals->trans_info.shears[i] = 0.0;
     }
     break;
   case TRANS_LSQ10: 
-    for_less(i,10,12) globals->trans_info.weights[i] = 0.0;
-    for_less(i,1,3) {
+    for(i=10; i<12; i++) globals->trans_info.weights[i] = 0.0;
+    for(i=1; i<3; i++) {
       globals->trans_info.shears[i] = 0.0;
     }
     break;
   case TRANS_LSQ: 
-				/* nothing to be zeroed */
+                                /* nothing to be zeroed */
     break;
   case TRANS_LSQ12: 
-				/* nothing to be zeroed */
+                                /* nothing to be zeroed */
     break;
   default:
     (void)fprintf(stderr, "Unknown type of transformation requested (%d)\n",
-		   globals->trans_info.transform_type);
+                   globals->trans_info.transform_type);
     (void)fprintf(stderr, "Error in line %d, file %s\n",__LINE__, __FILE__);
     stat = FALSE;
   }
 
-	   /* ---------------- swap the volumes, so that the smallest
-	                       is first (to save on CPU)             ---------*/
+           /* ---------------- swap the volumes, so that the smallest
+                               is first (to save on CPU)             ---------*/
 
   if (globals->smallest_vol == 1) {
     Gdata1 = d1;      Gdata2 = d2;
@@ -1474,23 +1477,23 @@ BOOLEAN optimize_linear_transformation_quater(Volume d1,
   }
 
 
-	   /* ---------------- call the requested obj_function to 
-	                       establish the initial fitting value  ---------*/
+           /* ---------------- call the requested obj_function to 
+                               establish the initial fitting value  ---------*/
 
 
 
 
   ALLOC(p,13);
   parameters_to_vector_quater(globals->trans_info.translations,
-			      globals->trans_info.quaternions,
-			      globals->trans_info.scales,
-			      globals->trans_info.shears,
-			      p,
-			      globals->trans_info.weights);
+                              globals->trans_info.quaternions,
+                              globals->trans_info.scales,
+                              globals->trans_info.shears,
+                              p,
+                              globals->trans_info.weights);
 
   initial_corr = fit_function_quater(p);
 
-	   /* ---------------- call requested optimization strategy ---------*/
+           /* ---------------- call requested optimization strategy ---------*/
 
   switch (globals->optimize_type) {
   case OPT_SIMPLEX:
@@ -1498,17 +1501,17 @@ BOOLEAN optimize_linear_transformation_quater(Volume d1,
     break;
   default:
     (void)fprintf(stderr, "Unknown type of optimization requested (%d)\n",
-		  globals->optimize_type);
+                  globals->optimize_type);
     (void)fprintf(stderr, "Error in line %d, file %s\n",__LINE__, __FILE__);
     stat = FALSE;
   }
   
   parameters_to_vector_quater(globals->trans_info.translations,
-			      globals->trans_info.quaternions,
-			      globals->trans_info.scales,
-			      globals->trans_info.shears,
-			      p,
-			      globals->trans_info.weights);
+                              globals->trans_info.quaternions,
+                              globals->trans_info.scales,
+                              globals->trans_info.shears,
+                              p,
+                              globals->trans_info.weights);
 
   final_corr = fit_function_quater(p);
 
@@ -1518,12 +1521,12 @@ BOOLEAN optimize_linear_transformation_quater(Volume d1,
 
   if (get_transform_type(globals->trans_info.transformation) == CONCATENATED_TRANSFORM) {
     mat = get_linear_transform_ptr(
-	   get_nth_general_transform(globals->trans_info.transformation,0));
+           get_nth_general_transform(globals->trans_info.transformation,0));
   }
   else
     mat = get_linear_transform_ptr(globals->trans_info.transformation);
   
-  for_less( i, 0, 3 ) {		/* set translations */
+  for(i=0; i<3; i++) {                /* set translations */
     trans[i] = globals->trans_info.translations[i]; 
     quats[i] = globals->trans_info.quaternions[i];
     scale[i] = globals->trans_info.scales[i];
@@ -1542,7 +1545,7 @@ BOOLEAN optimize_linear_transformation_quater(Volume d1,
       stat = stat && free_segment_table(segment_table);
     } else
   if (globals->obj_function == mutual_information_objective)
-				/* Collignon's mutual information */
+                                /* Collignon's mutual information */
     {
       FREE(   prob_fn1 );
       FREE(   prob_fn2 );
@@ -1557,44 +1560,44 @@ BOOLEAN optimize_linear_transformation_quater(Volume d1,
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : measure_fit
                 evaluate the objective function comparing d1 to d2 a single
-		time.
+                time.
 @INPUT      : d1,d2:
                 two volumes of data (already in memory).
-	      m1,m2:
+              m1,m2:
                 two mask volumes for data (already in memory).
-	      globals:
-	        a global data structure containing info from the command line,
-		including the input parameters, the input matrix,
-		and a plethora of flags!
+              globals:
+                a global data structure containing info from the command line,
+                including the input parameters, the input matrix,
+                and a plethora of flags!
 @OUTPUT     : 
 @RETURNS    : TRUE if ok, FALSE if error.
 @DESCRIPTION: 
 @METHOD     :
                 1- this routine begins by initializing the volume data structures
-		to be used by the objective functions.
+                to be used by the objective functions.
 
-		2- the objective function is evaluated
-		
-		3- its value is returned
+                2- the objective function is evaluated
+                
+                3- its value is returned
 @GLOBALS    : 
 @CALLS      : 
 @CREATED    : Tue Jul 13 11:15:57 EST 1993 LC
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-float measure_fit(Volume d1,
-			 Volume d2,
-			 Volume m1,
-			 Volume m2, 
-			 Arg_Data *globals)
+float measure_fit(VIO_Volume d1,
+                         VIO_Volume d2,
+                         VIO_Volume m1,
+                         VIO_Volume m2, 
+                         Arg_Data *globals)
 {
-  BOOLEAN 
+  VIO_BOOL 
     stat;
   float 
     **p, y;
   int 
     i, 
     ndim;
-  Data_types
+  VIO_Data_types
     data_type;
 
 
@@ -1602,62 +1605,62 @@ float measure_fit(Volume d1,
   
   stat = TRUE;
 
-	     /*----------------- prepare data for objective function evaluation ------------ */
+             /*----------------- prepare data for objective function evaluation ------------ */
 
   
   if (globals->obj_function == zscore_objective) { /* replace volume d1 and d2 by zscore volume  */
     make_zscore_volume(d1,m1,&globals->threshold[0]);
     make_zscore_volume(d2,m2,&globals->threshold[1]);
   } 
-  else  if (globals->obj_function == ssc_objective) {	/* add speckle to the data set */
+  else  if (globals->obj_function == ssc_objective) {        /* add speckle to the data set */
 
     make_zscore_volume(d1,m1,&globals->threshold[0]); /* need to make data sets comparable */
     make_zscore_volume(d2,m2,&globals->threshold[1]); /* in mean and sd...                 */
 
     if (globals->smallest_vol == 1)
       add_speckle_to_volume(d1, 
-			    globals->speckle,
-			    globals->start, globals->count, globals->directions);
+                            globals->speckle,
+                            globals->start, globals->count, globals->directions);
     else
       add_speckle_to_volume(d2, 
-			    globals->speckle,
-			    globals->start, globals->count, globals->directions);    
+                            globals->speckle,
+                            globals->start, globals->count, globals->directions);    
   } else if (globals->obj_function == vr_objective) {
 
     if (globals->smallest_vol == 1) {
       if (!build_segment_table(&segment_table, d1, globals->groups))
-	print_error_and_line_num("Could not build segment table for source volume\n",__FILE__, __LINE__);
+        print_error_and_line_num("Could not build segment table for source volume\n",__FILE__, __LINE__);
     }
     else {
       if (!build_segment_table(&segment_table, d2, globals->groups))
-	print_error_and_line_num("Could not build segment table for target volume\n",__FILE__, __LINE__);
+        print_error_and_line_num("Could not build segment table for target volume\n",__FILE__, __LINE__);
     }
 
   } else if (globals->obj_function == mutual_information_objective)
-				/* Collignon's mutual information */
+                                /* Collignon's mutual information */
     {
 
       if ( globals->groups != 256 ) {
-	print ("WARNING: -groups was %d, but will be forced to 256 in this run\n",globals->groups);
-	globals->groups = 256;
+        print ("WARNING: -groups was %d, but will be forced to 256 in this run\n",globals->groups);
+        globals->groups = 256;
       }
 
       data_type = get_volume_data_type (d1);
       if (data_type != UNSIGNED_BYTE) {
-	print ("WARNING: source volume not UNSIGNED_BYTE, will do conversion now.\n");
-	if (!replace_volume_data_with_ubyte(d1)) {
-	  print_error_and_line_num("Can't replace volume data with unsigned bytes\n",
-			     __FILE__, __LINE__);
-	}
+        print ("WARNING: source volume not UNSIGNED_BYTE, will do conversion now.\n");
+        if (!replace_volume_data_with_ubyte(d1)) {
+          print_error_and_line_num("Can't replace volume data with unsigned bytes\n",
+                             __FILE__, __LINE__);
+        }
       }
 
       data_type = get_volume_data_type (d2);
       if (data_type != UNSIGNED_BYTE) {
-	print ("WARNING: target volume not UNSIGNED_BYTE, will do conversion now.\n");
-	if (!replace_volume_data_with_ubyte(d2)) {
-	  print_error_and_line_num("Can't replace volume data with unsigned bytes\n",
-			     __FILE__, __LINE__);
-	}
+        print ("WARNING: target volume not UNSIGNED_BYTE, will do conversion now.\n");
+        if (!replace_volume_data_with_ubyte(d2)) {
+          print_error_and_line_num("Can't replace volume data with unsigned bytes\n",
+                             __FILE__, __LINE__);
+        }
       }
 
       ALLOC(   prob_fn1,   globals->groups);
@@ -1673,59 +1676,59 @@ if(globals->trans_info.rotation_type == TRANS_ROT)
 
   switch (globals->trans_info.transform_type) {
   case TRANS_LSQ3: 
-    for_less(i,3,12) globals->trans_info.weights[i] = 0.0;
-    for_less(i,0,3) {
+    for(i=3; i<12; i++) globals->trans_info.weights[i] = 0.0;
+    for(i=0; i<3; i++) {
       globals->trans_info.scales[i] = 1.0;
       globals->trans_info.rotations[i] = 0.0;
       globals->trans_info.shears[i] = 0.0;
     }
     break;
   case TRANS_LSQ6: 
-    for_less(i,6,12) globals->trans_info.weights[i] = 0.0;
-    for_less(i,0,3) {
+    for(i=6; i<12; i++) globals->trans_info.weights[i] = 0.0;
+    for(i=0; i<3; i++) {
       globals->trans_info.scales[i] = 1.0;
       globals->trans_info.shears[i] = 0.0;
     }
     break;
   case TRANS_LSQ7: 
-    for_less(i,7,12) globals->trans_info.weights[i] = 0.0;
-    for_less(i,0,3) {
+    for(i=7; i<12; i++) globals->trans_info.weights[i] = 0.0;
+    for(i=0; i<3; i++) {
       globals->trans_info.shears[i] = 0.0;
     }
     break;
   case TRANS_LSQ9: 
-    for_less(i,9,12) globals->trans_info.weights[i] = 0.0;
-    for_less(i,0,3) {
+    for(i=9; i<12; i++) globals->trans_info.weights[i] = 0.0;
+    for(i=0; i<3; i++) {
       globals->trans_info.shears[i] = 0.0;
     }
     break;
   case TRANS_LSQ10: 
-    for_less(i,10,12) globals->trans_info.weights[i] = 0.0;
-    for_less(i,1,3) {
+    for(i=10; i<12; i++) globals->trans_info.weights[i] = 0.0;
+    for(i=1; i<3; i++) {
       globals->trans_info.shears[i] = 0.0;
     }
     break;
   case TRANS_LSQ: 
-				/* nothing to be zeroed */
+                                /* nothing to be zeroed */
     break;
   case TRANS_LSQ12: 
-				/* nothing to be zeroed */
+                                /* nothing to be zeroed */
     break;
   default:
     (void)fprintf(stderr, "Unknown type of transformation requested (%d)\n",
-		   globals->trans_info.transform_type);
+                   globals->trans_info.transform_type);
     (void)fprintf(stderr, "Error in line %d, file %s\n",__LINE__, __FILE__);
     stat = FALSE;
   }
 
-	
+        
 
   ndim = 0;
-  for_less(i,0,12)
+  for(i=0; i<12; i++)
     if (globals->trans_info.weights[i] != 0.0) ndim++;
 
-				/* set GLOBALS to communicate with the
-				   function to be fitted!              */
+                                /* set GLOBALS to communicate with the
+                                   function to be fitted!              */
   y = -1e10; 
 
   if (stat) {
@@ -1748,13 +1751,13 @@ if(globals->trans_info.rotation_type == TRANS_ROT)
     ALLOC2D(p,ndim+1+1,ndim+1); /* simplex */
     
     parameters_to_vector(globals->trans_info.translations,
-			 globals->trans_info.rotations,
-			 globals->trans_info.scales,
-			 globals->trans_info.shears,
-			 p[1],
-			 globals->trans_info.weights);
+                         globals->trans_info.rotations,
+                         globals->trans_info.scales,
+                         globals->trans_info.shears,
+                         p[1],
+                         globals->trans_info.weights);
 
-    y = fit_function(p[1]);	/* evaluate the objective  function */
+    y = fit_function(p[1]);        /* evaluate the objective  function */
 
     FREE2D(p); /* simplex */
 
@@ -1766,8 +1769,8 @@ if(globals->trans_info.rotation_type == TRANS_ROT)
 
   switch (globals->trans_info.transform_type) {
   case TRANS_LSQ3: 
-    for_less(i,3,12) globals->trans_info.weights[i] = 0.0;
-    for_less(i,0,3) {
+    for(i=3; i<12; i++) globals->trans_info.weights[i] = 0.0;
+    for(i=0; i<3; i++) {
       globals->trans_info.scales[i] = 1.0;
       globals->trans_info.quaternions[i] = 0.0;
       globals->trans_info.shears[i] = 0.0;
@@ -1775,51 +1778,51 @@ if(globals->trans_info.rotation_type == TRANS_ROT)
  
     break;
   case TRANS_LSQ6: 
-    for_less(i,6,12) globals->trans_info.weights[i] = 0.0;
-    for_less(i,0,3) {
+    for(i=6; i<12; i++) globals->trans_info.weights[i] = 0.0;
+    for(i=0; i<3; i++) {
       globals->trans_info.scales[i] = 1.0;
       globals->trans_info.shears[i] = 0.0;
     }
     break;
   case TRANS_LSQ7: 
-    for_less(i,7,12) globals->trans_info.weights[i] = 0.0;
-    for_less(i,0,3) {
+    for(i=7; i<12; i++) globals->trans_info.weights[i] = 0.0;
+    for(i=0; i<3; i++) {
       globals->trans_info.shears[i] = 0.0;
     }
     break;
   case TRANS_LSQ9: 
-    for_less(i,9,12) globals->trans_info.weights[i] = 0.0;
-    for_less(i,0,3) {
+    for(i=9; i<12; i++) globals->trans_info.weights[i] = 0.0;
+    for(i=0; i<3; i++) {
       globals->trans_info.shears[i] = 0.0;
     }
     break;
   case TRANS_LSQ10: 
-    for_less(i,9,12) globals->trans_info.weights[i] = 0.0;
-    for_less(i,1,3) {
+    for(i=9; i<12; i++) globals->trans_info.weights[i] = 0.0;
+    for(i=1; i<3; i++) {
       globals->trans_info.shears[i] = 0.0;
     }
     break;
   case TRANS_LSQ: 
-				/* nothing to be zeroed */
+                                /* nothing to be zeroed */
     break;
   case TRANS_LSQ12: 
-				/* nothing to be zeroed */
+                                /* nothing to be zeroed */
     break;
   default:
     (void)fprintf(stderr, "Unknown type of transformation requested (%d)\n",
-		   globals->trans_info.transform_type);
+                   globals->trans_info.transform_type);
     (void)fprintf(stderr, "Error in line %d, file %s\n",__LINE__, __FILE__);
     stat = FALSE;
   }
 
-	
+        
 
   ndim = 0;
-  for_less(i,0,13)
+  for(i=0; i<13; i++)
     if (globals->trans_info.weights[i] != 0.0) ndim++;
 
-				/* set GLOBALS to communicate with the
-				   function to be fitted!              */
+                                /* set GLOBALS to communicate with the
+                                   function to be fitted!              */
   y = -1e10; 
 
   if (stat) {
@@ -1842,13 +1845,13 @@ if(globals->trans_info.rotation_type == TRANS_ROT)
     ALLOC2D(p,ndim+1+1,ndim+1); /* simplex */
     
     parameters_to_vector_quater(globals->trans_info.translations,
-				globals->trans_info.quaternions,
-				globals->trans_info.scales,
-				globals->trans_info.shears,
-				p[1],
-				globals->trans_info.weights);
+                                globals->trans_info.quaternions,
+                                globals->trans_info.scales,
+                                globals->trans_info.shears,
+                                p[1],
+                                globals->trans_info.weights);
 
-    y = fit_function_quater(p[1]);	/* evaluate the objective  function */
+    y = fit_function_quater(p[1]);        /* evaluate the objective  function */
 
     FREE2D(p); /* simplex */
   }
@@ -1863,7 +1866,7 @@ if(globals->trans_info.rotation_type == TRANS_ROT)
     }
   } else
   if (globals->obj_function == mutual_information_objective)
-				/* Collignon's mutual information */
+                                /* Collignon's mutual information */
     {
       FREE(   prob_fn1 );
       FREE(   prob_fn2 );
@@ -1882,120 +1885,120 @@ if(globals->trans_info.rotation_type == TRANS_ROT)
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : optimize_non_linear_transformation
                 get the parameters necessary to map volume 1 to volume 2
-		using non-linear deformation fields.
+                using non-linear deformation fields.
 @INPUT      : d1,d2:
                 two volumes of data (already in memory).
-	      m1,m2:
+              m1,m2:
                 two mask volumes for data (already in memory).
-	      d1_dx, d1_dy, d1_dz, d1_dxyz,
-	      d2_dx, d2_dy, d2_dz, d2_dxyz:
-	        data sets corresponding to the intensity derivative in the x,y, 
-		and z dirs.
-	      globals:
-	        a global data structure containing info from the command line,
-		including the input parameters to be optimized, the input matrix,
-		and a plethora of flags!
+              d1_dx, d1_dy, d1_dz, d1_dxyz,
+              d2_dx, d2_dy, d2_dz, d2_dxyz:
+                data sets corresponding to the intensity derivative in the x,y, 
+                and z dirs.
+              globals:
+                a global data structure containing info from the command line,
+                including the input parameters to be optimized, the input matrix,
+                and a plethora of flags!
 @OUTPUT     : 
 @RETURNS    : TRUE if ok, FALSE if error.
 @DESCRIPTION: 
 @METHOD     :
                 1- this routine begins by initializing the volume data structures
-		to be used by the objective functions.
+                to be used by the objective functions.
 
-		2- optimization function is called
-		
-		3- the optimized parameters are returned in globals...
+                2- optimization function is called
+                
+                3- the optimized parameters are returned in globals...
 @GLOBALS    : 
 @CALLS      : 
 @CREATED    : Tue Nov 16 14:27:10 EST 1993 LC
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-BOOLEAN optimize_non_linear_transformation(Arg_Data *globals)
+VIO_BOOL optimize_non_linear_transformation(Arg_Data *globals)
 {
-  BOOLEAN 
+  VIO_BOOL 
     stat;
   int i;
 
   stat = TRUE;
   
-	     /*----------------- prepare data for optimization ------------ */
+             /*----------------- prepare data for optimization ------------ */
   
   if (globals->obj_function == zscore_objective) 
     {                                                             /* replace volumes 
-								     globals->features.data[0] and 
-								     globals->features.model[0] 
-								     by zscore volume  */
+                                                                     globals->features.data[0] and 
+                                                                     globals->features.model[0] 
+                                                                     by zscore volume  */
 
       make_zscore_volume(globals->features.data[0],
-			 globals->features.data_mask[0],
-			 &globals->threshold[0]);
+                         globals->features.data_mask[0],
+                         &globals->threshold[0]);
       make_zscore_volume(globals->features.model[0],
-			 globals->features.model_mask[0],
-			 &globals->threshold[1]);
+                         globals->features.model_mask[0],
+                         &globals->threshold[1]);
 
     } 
   else  if (globals->obj_function == ssc_objective) 
-    {                                                    	/* add speckle to the data set */
+    {                                                            /* add speckle to the data set */
 
       make_zscore_volume(globals->features.data[0],             /* need to make data sets comparable */
-			 globals->features.data_mask[0],        /* in mean and sd...                 */
-			 &globals->threshold[0]); 
+                         globals->features.data_mask[0],        /* in mean and sd...                 */
+                         &globals->threshold[0]); 
       make_zscore_volume(globals->features.model[0],
-			 globals->features.model_mask[0],
-			 &globals->threshold[1]); 
+                         globals->features.model_mask[0],
+                         &globals->threshold[1]); 
       
       if (globals->smallest_vol == 1)
-	add_speckle_to_volume(globals->features.data[0], 
-			      globals->speckle,
-			      globals->start, globals->count, globals->directions);
+        add_speckle_to_volume(globals->features.data[0], 
+                              globals->speckle,
+                              globals->start, globals->count, globals->directions);
       else
-	add_speckle_to_volume(globals->features.model[0], 
-			      globals->speckle,
-			      globals->start, globals->count, globals->directions);    
+        add_speckle_to_volume(globals->features.model[0], 
+                              globals->speckle,
+                              globals->start, globals->count, globals->directions);    
     } 
   else if (globals->obj_function == vr_objective) 
     {
       if (globals->smallest_vol == 1) 
-	{
-	  if (!build_segment_table(&segment_table, globals->features.data[0], globals->groups))
-	    print_error_and_line_num("Could not build segment table for source volume\n",__FILE__, __LINE__);
-	}
+        {
+          if (!build_segment_table(&segment_table, globals->features.data[0], globals->groups))
+            print_error_and_line_num("Could not build segment table for source volume\n",__FILE__, __LINE__);
+        }
       else 
-	{
-	  if (!build_segment_table(&segment_table, globals->features.model[0], globals->groups))
-	    print_error_and_line_num("Could not build segment table for target volume\n",__FILE__, __LINE__);
-	}
+        {
+          if (!build_segment_table(&segment_table, globals->features.model[0], globals->groups))
+            print_error_and_line_num("Could not build segment table for target volume\n",__FILE__, __LINE__);
+        }
 
       if (globals->flags.debug && globals->flags.verbose>1) 
-	{
-	  print ("groups = %d\n",segment_table->groups);
-	  for_less(i, segment_table->min, segment_table->max+1) 
-	    {
-	      print ("%5d: table = %5d, function = %5d\n",i,segment_table->table[i],
-		     (segment_table->segment)(i,segment_table) );
-	    }
-	}
+        {
+          print ("groups = %d\n",segment_table->groups);
+          for(i=segment_table->min; i<segment_table->max+1; i++) 
+            {
+              print ("%5d: table = %5d, function = %5d\n",i,segment_table->table[i],
+                     (segment_table->segment)(i,segment_table) );
+            }
+        }
       
     }
 
-  for_less(i,0, globals->features.number_of_features) 
+  for(i=0; i<globals->features.number_of_features; i++) 
     {
       
       if (globals->features.obj_func[i] == NONLIN_OPTICALFLOW ) 
-	{
-	  normalize_data_to_match_target(globals->features.data[i],
-					 globals->features.data_mask[i],
-					 globals->features.thresh_data[i],
-					 globals->features.model[i],
-					 globals->features.model_mask[i],
-					 globals->features.thresh_model[i],
-					 globals);
-	}
+        {
+          normalize_data_to_match_target(globals->features.data[i],
+                                         globals->features.data_mask[i],
+                                         globals->features.thresh_data[i],
+                                         globals->features.model[i],
+                                         globals->features.model_mask[i],
+                                         globals->features.thresh_model[i],
+                                         globals);
+        }
     }
 
 
 
-	   /* ---------------- call requested optimization strategy ---------*/
+           /* ---------------- call requested optimization strategy ---------*/
 
 
   stat = ( do_non_linear_optimization(globals)==OK );

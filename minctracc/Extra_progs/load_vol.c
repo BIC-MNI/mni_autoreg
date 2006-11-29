@@ -1,7 +1,7 @@
 
 #include <volume_io.h>
 
-static char *default_dim_names[N_DIMENSIONS] =
+static char *default_dim_names[VIO_N_DIMENSIONS] =
    { MIzspace, MIyspace, MIxspace };
 
 
@@ -13,17 +13,17 @@ main(int argc, char *argv[])
   int 
     i,j,k,
     sizes[3];
-  Real
+  VIO_Real
      start[3],pt[3];
-  Status status;
+  VIO_Status status;
 
-  Volume 
+  VIO_Volume 
     data1;
 
 
   status = input_volume(argv[1], 3, default_dim_names, 
                         NC_UNSPECIFIED, FALSE, 0.0,0.0,
-			TRUE, &data1, (minc_input_options *)NULL); 
+                        TRUE, &data1, (minc_input_options *)NULL); 
 
 
   if (status!=OK) {

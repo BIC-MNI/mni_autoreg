@@ -51,7 +51,7 @@
  */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/quaternion.c,v 96.3 2005-07-20 20:45:49 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/quaternion.c,v 96.4 2006-11-29 09:09:33 rotor Exp $";
 #endif
 
 #include <volume_io.h>
@@ -250,7 +250,7 @@ void extract_quaternions(float **m, double *quat){
 
  max =a[0];
  indice = 0;
- for_less( i, 1, 4)
+ for(i=1; i<4; i++)
    if(a[i]>max){max=a[i]; indice=i;}
    
 

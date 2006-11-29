@@ -62,10 +62,10 @@ void make_kernel(float *kern, float vsize, float fwhm, int size, int type)
     case KERN_RECT:     kern[kindex] = rect_dist(1.0*vsize,fwhm,0.0,(float)(vsize*k)); break;
     default: 
       {
-	(void) fprintf (stderr,"Illegal kernel type = %d\n",type);
-	(void) fprintf (stderr,"Impossible error in make_kernel(), line %d of %s\n",
-			__LINE__,__FILE__);
-	k = size/2;
+        (void) fprintf (stderr,"Illegal kernel type = %d\n",type);
+        (void) fprintf (stderr,"Impossible error in make_kernel(), line %d of %s\n",
+                        __LINE__,__FILE__);
+        k = size/2;
       }
     }
   }
@@ -92,7 +92,7 @@ int main(int argc, char *argv[])
   /* Check arguments */
   if (argc != 4) {
     (void) fprintf(stderr, "Usage: %s fwhm(mm) vsize(mm) nvoxels\n",
-		   argv[0]);
+                   argv[0]);
     exit(EXIT_FAILURE);
   }
   
@@ -105,7 +105,7 @@ int main(int argc, char *argv[])
   make_kernel(complex_kernel,(float)vsize,fwhm,nvoxels,KERN_GAUSSIAN);
 
   sum2, sum = 0.0;
-  for_less(i,0,nvoxels) {
+  for(i=0; i<nvoxels; i++) {
     print ("%f\n",complex_kernel[i*2 + 1]);
     sum += complex_kernel[i*2 + 1];
     sum2 += complex_kernel[i*2 + 1] * complex_kernel[i*2 + 1];

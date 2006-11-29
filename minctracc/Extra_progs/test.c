@@ -9,7 +9,10 @@
 @CALLS      : 
 @CREATED    : Mon Nov 29 11:01:47 EST 1993 Louis
 @MODIFIED   : $Log: test.c,v $
-@MODIFIED   : Revision 1.3  2005-07-20 20:45:47  rotor
+@MODIFIED   : Revision 1.4  2006-11-29 09:09:31  rotor
+@MODIFIED   :  * first bunch of changes for minc 2.0 compliance
+@MODIFIED   :
+@MODIFIED   : Revision 1.3  2005/07/20 20:45:47  rotor
 @MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
 @MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
 @MODIFIED   :     * Removed old VOLUME_IO cruft #defines
@@ -68,34 +71,34 @@ char *prog_name;
 
 int main(int argc, char *argv[])
 {
-   General_transform transform, new_transform;
-   Transform
+   VIO_General_transform transform, new_transform;
+   VIO_Transform
      lt;
-   static Real 
+   static VIO_Real 
      scales[3], trans[3], rots[3], skews[3], center[3];
    static int clobber = FALSE;
    int i;
 
    static ArgvInfo argTable[] = {
      {"-center",      ARGV_FLOAT, (char *) 3, (char *)center,
-	"Force center of rotation and scale."},
+        "Force center of rotation and scale."},
      {"-translation", ARGV_FLOAT, (char *) 3, (char *)trans,
-	"Translation x,y,z."},
+        "Translation x,y,z."},
      {"-rotations",   ARGV_FLOAT, (char *) 3, (char *)rots,
-	"Rotation angle (in degrees)."},
+        "Rotation angle (in degrees)."},
      {"-scales",      ARGV_FLOAT, (char *) 3, (char *)scales,
-	"Scaling factors."},
+        "Scaling factors."},
      {"-shears",      ARGV_FLOAT, (char *) 3, (char *)skews,
-	"Scaling factors."},
+        "Scaling factors."},
      {"-clobber",     ARGV_CONSTANT, (char *) TRUE, (char *) &clobber,
-	"Overwrite existing file (default = no clobber)."},
+        "Overwrite existing file (default = no clobber)."},
      {NULL, ARGV_END, NULL, NULL, NULL}
    };
    
    
    prog_name = argv[0];
 
-   for_less(i,0,3) {
+   for(i=0; i<3; i++) {
      trans[i] = 0.0;
      center[i] = 0.0;
      rots[i] = 0.0;
@@ -117,17 +120,17 @@ int main(int argc, char *argv[])
       exit(EXIT_FAILURE);
    }
 
-   for_less(i,0,3) {
+   for(i=0; i<3; i++) {
      
      rots[i] = rots[i] * 3.1415927/ 180;
    }
 
    build_transformation_matrix(&lt,
-			       center,
-			       trans,
-			       scales,
-			       skews,
-			       rots);
+                               center,
+                               trans,
+                               scales,
+                               skews,
+                               rots);
 
    create_linear_transform(&new_transform, &lt);
    

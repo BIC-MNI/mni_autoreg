@@ -7,17 +7,17 @@ enum Interpolating_Type { TRILINEAR, TRICUBIC, N_NEIGHBOUR };
 enum Objective_Type { XCORR, ZSCORE, SSC, VR, MUTUAL_INFORMATION };
 
 
-typedef float (*Objective_Function) (Volume d1,
-				     Volume d2,
-				     Volume m1,
-				     Volume m2, 
-				     Arg_Data *globals);
+typedef float (*Objective_Function) (VIO_Volume d1,
+                                     VIO_Volume d2,
+                                     VIO_Volume m1,
+                                     VIO_Volume m2, 
+                                     Arg_Data *globals);
 
 typedef void (*Transform_Function)(PointR *result,
-                                   General_transform *trans_data, PointR *coordinate); /* transforme un point dans ces nouvelles coordonnees */
+                                   VIO_General_transform *trans_data, PointR *coordinate); /* transforme un point dans ces nouvelles coordonnees */
 
 typedef int (*Interpolating_Function) 
-     (Volume volume, PointR *coord, double *result);
+     (VIO_Volume volume, PointR *coord, double *result);
 
 typedef struct {
    int verbose;
@@ -44,25 +44,25 @@ typedef struct {
 
 typedef struct {
   int number_of_features;
-  Volume *data;
-  Volume *model;
-  Volume *data_mask;
-  Volume *model_mask;
+  VIO_Volume *data;
+  VIO_Volume *model;
+  VIO_Volume *data_mask;
+  VIO_Volume *model_mask;
   char **data_name;
   char **model_name;
   char **mask_data_name;
   char **mask_model_name;
   char *obj_func;
-  Real *weight;
-  Real *thresh_data;
-  Real *thresh_model;
+  VIO_Real *weight;
+  VIO_Real *thresh_data;
+  VIO_Real *thresh_model;
 } Feature_volumes;
 
 typedef struct {
   int use_identity;
   int use_default;
   int use_magnitude;
-  Real max_def_magnitude;	/* maximum size of deformation in def field */
+  VIO_Real max_def_magnitude;        /* maximum size of deformation in def field */
   int use_simplex;
   int use_super;
   int use_local_smoothing;
@@ -70,23 +70,23 @@ typedef struct {
   char *file_name;
   char *file_contents;
   long buffer_length;
-  General_transform *transformation;     /* optimized world to world transformation */
-  General_transform *orig_transformation;/* input world to world transformation */
-  int transform_type;		/* type of transformation to optimize */
-  double center[3];		/* parameters corresponding to trans matrix */
+  VIO_General_transform *transformation;     /* optimized world to world transformation */
+  VIO_General_transform *orig_transformation;/* input world to world transformation */
+  int transform_type;                /* type of transformation to optimize */
+  double center[3];                /* parameters corresponding to trans matrix */
   double scales[3];
   double shears[3];
   double translations[3];
   double quaternions[4];  
   double rotations[3];
   double weights[12];        /* optimization weighting function with quaternions */
-  int invert_mapping_flag;	/* true if input transform maps model to source */
+  int invert_mapping_flag;        /* true if input transform maps model to source */
   int rotation_type;            /* type of rotation quaternion used or not */
 } Program_Transformation;
 
 struct Arg_Data_struct {
   Program_Filenames      filenames;    /* names of all data filename to be used      */
-  Program_Flags          flags;	       /* flags (debug, verbose etc...               */ 
+  Program_Flags          flags;               /* flags (debug, verbose etc...               */ 
   Program_Transformation trans_info;   /* world to world transformation information  */
   Feature_volumes        features;     /* struct contain extra feature info */
 

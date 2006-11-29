@@ -23,16 +23,16 @@ int main(int argc, char *argv[])
 
   start_new_line(lines);
 
-  fill_Point(p, 0.0, 0.0, 0.0);
+  VIO_fill_Point(p, 0.0, 0.0, 0.0);
   add_point_to_line(lines, &p);
-  fill_Point(p, 0.0, 2.0, 1.0);
+  VIO_fill_Point(p, 0.0, 2.0, 1.0);
   add_point_to_line(lines, &p);
 
   start_new_line(lines);
 
-  fill_Point(p, 0.0, 0.0, 0.0);
+  VIO_fill_Point(p, 0.0, 0.0, 0.0);
   add_point_to_line(lines, &p);
-  fill_Point(p, 2.0, 2.0, 0.0);
+  VIO_fill_Point(p, 2.0, 2.0, 0.0);
   add_point_to_line(lines, &p);
 
 

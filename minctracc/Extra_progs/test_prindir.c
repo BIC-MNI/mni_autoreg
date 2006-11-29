@@ -9,7 +9,10 @@
 @CALLS      : 
 @CREATED    : Mon Sep 25 08:45:43 MET 1995
 @MODIFIED   : $Log: test_prindir.c,v $
-@MODIFIED   : Revision 1.4  2005-07-20 20:45:47  rotor
+@MODIFIED   : Revision 1.5  2006-11-29 09:09:31  rotor
+@MODIFIED   :  * first bunch of changes for minc 2.0 compliance
+@MODIFIED   :
+@MODIFIED   : Revision 1.4  2005/07/20 20:45:47  rotor
 @MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
 @MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
 @MODIFIED   :     * Removed old VOLUME_IO cruft #defines
@@ -40,7 +43,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/test_prindir.c,v 1.4 2005-07-20 20:45:47 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/test_prindir.c,v 1.5 2006-11-29 09:09:31 rotor Exp $";
 #endif
 
 #include <stdio.h>
@@ -53,52 +56,52 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #  define FALSE 0
 #endif
 
-#define VERY_SMALL_EPS 0.0001	/* this is data dependent! */
+#define VERY_SMALL_EPS 0.0001        /* this is data dependent! */
 
-static char *default_dim_names[N_DIMENSIONS] = { MIxspace, MIyspace, MIzspace };
+static char *default_dim_names[VIO_N_DIMENSIONS] = { MIxspace, MIyspace, MIzspace };
 
-BOOLEAN return_local_eigen(Real r[3][3][3],
-				  Real dir_1[3],
-				  Real dir_2[3],
-				  Real dir_3[3],
-				  Real val[3]);
+VIO_BOOL return_local_eigen(VIO_Real r[3][3][3],
+                                  VIO_Real dir_1[3],
+                                  VIO_Real dir_2[3],
+                                  VIO_Real dir_3[3],
+                                  VIO_Real val[3]);
 
-BOOLEAN return_principal_directions(Real r[3][3][3],
-					   Real dir_1[3],
-					   Real dir_2[3],
-					   Real *r_K,
-					   Real *r_S,
-					   Real *r_k1,
-					   Real *r_k2,
-					   Real *r_norm,
-					   Real *r_Lvv,
-					   Real eps);
+VIO_BOOL return_principal_directions(VIO_Real r[3][3][3],
+                                           VIO_Real dir_1[3],
+                                           VIO_Real dir_2[3],
+                                           VIO_Real *r_K,
+                                           VIO_Real *r_S,
+                                           VIO_Real *r_k1,
+                                           VIO_Real *r_k2,
+                                           VIO_Real *r_norm,
+                                           VIO_Real *r_Lvv,
+                                           VIO_Real eps);
 
-BOOLEAN return_local_eigen_from_hessian(Real r[3][3][3],
-				  Real dir_1[3],
-				  Real dir_2[3],
-				  Real dir_3[3],
-				  Real val[3]);
+VIO_BOOL return_local_eigen_from_hessian(VIO_Real r[3][3][3],
+                                  VIO_Real dir_1[3],
+                                  VIO_Real dir_2[3],
+                                  VIO_Real dir_3[3],
+                                  VIO_Real val[3]);
 
-void build_def_field(Volume vol,
-		     General_transform **grid_trans);
+void build_def_field(VIO_Volume vol,
+                     VIO_General_transform **grid_trans);
 
-void init_the_volume_to_zero(Volume volume);
+void init_the_volume_to_zero(VIO_Volume volume);
 
-void get_volume_XYZV_indices(Volume data, int xyzv[]);
+void get_volume_XYZV_indices(VIO_Volume data, int xyzv[]);
 
 char *prog_name;
 
 int main(int argc, char *argv[])
 {
 
-  progress_struct
+  VIO_progress_struct
     progress;
 
-  Status 
+  VIO_Status 
     stat;
 
-  Real 
+  VIO_Real 
     tmp, max_val, min_val, intensity_threshold,
     max_val_x, max_val_y, max_val_z,
     min_val_x, min_val_y, min_val_z,
@@ -109,19 +112,19 @@ int main(int argc, char *argv[])
     dir_vals[3],
     val[3][3][3];
   
-  Volume 
+  VIO_Volume 
     data, defs, max;
 
-  General_transform
+  VIO_General_transform
     *output_trans;
 
   int
     vectors,
     count,
-    index[MAX_DIMENSIONS],
-    defs_xyzv[MAX_DIMENSIONS],
-    data_xyzv[MAX_DIMENSIONS],
-    sizes[MAX_DIMENSIONS],
+    index[VIO_MAX_DIMENSIONS],
+    defs_xyzv[VIO_MAX_DIMENSIONS],
+    data_xyzv[VIO_MAX_DIMENSIONS],
+    sizes[VIO_MAX_DIMENSIONS],
     m,n,o,i,j,k;
 
   char 
@@ -137,7 +140,7 @@ int main(int argc, char *argv[])
   }
 
   stat = input_volume(argv[1],3,default_dim_names, NC_UNSPECIFIED, FALSE, 
-		      0.0,0.0,TRUE, &data, (minc_input_options *)NULL);
+                      0.0,0.0,TRUE, &data, (minc_input_options *)NULL);
 
   if (stat != OK) {
     print ("Error: cannot read %s.\n",argv[1]);
@@ -161,12 +164,12 @@ int main(int argc, char *argv[])
   min_val = min_val_x = min_val_y = min_val_z =  1000000.0;
 
 
-  for_less(i,0,sizes[0])
-    for_less(j,0,sizes[1])
-      for_less(k,0,sizes[2]) {
-	tmp = get_volume_real_value(data, i,j,k,0,0);
-	if (tmp>max_val) max_val = tmp;
-	if (tmp<min_val) min_val = tmp;
+  for(i=0; i<sizes[0]; i++)
+    for(j=0; j<sizes[1]; j++)
+      for(k=0; k<sizes[2]; k++) {
+        tmp = get_volume_real_value(data, i,j,k,0,0);
+        if (tmp>max_val) max_val = tmp;
+        if (tmp<min_val) min_val = tmp;
       }
 
   intensity_threshold = 0.01 * max_val;
@@ -174,104 +177,104 @@ int main(int argc, char *argv[])
   print ("For %s, max = %f, min = %f, thresh = %f\n",argv[1], max_val, min_val, intensity_threshold);
 
   initialize_progress_report(&progress, FALSE, sizes[0]*sizes[1]*sizes[2]+1,
-			     "Calc principal directions");
+                             "Calc principal directions");
   vectors = count = 0;
 
-  for_less(index[ defs_xyzv[X] ],1,sizes[data_xyzv[X]]-1)
-    for_less(index[ defs_xyzv[Y] ],1,sizes[data_xyzv[Y]]-1)
-      for_less(index[ defs_xyzv[Z] ],1,sizes[data_xyzv[Z]]-1) {
-	
-	tmp = get_volume_real_value(data, 
-				    index[defs_xyzv[X]], 
-				    index[defs_xyzv[Y]], 
-				    index[defs_xyzv[Z]], 0,0);
+  for(index[defs_xyzv[VIO_X]]=1; index[defs_xyzv[VIO_X]]<sizes[data_xyzv[VIO_X]]-1; index[defs_xyzv[VIO_X]]++)
+    for(index[defs_xyzv[VIO_Y]]=1; index[defs_xyzv[VIO_Y]]<sizes[data_xyzv[VIO_Y]]-1; index[defs_xyzv[VIO_Y]]++)
+      for(index[defs_xyzv[VIO_Z]]=1; index[defs_xyzv[VIO_Z]]<sizes[data_xyzv[VIO_Z]]-1; index[defs_xyzv[VIO_Z]]++) {
+        
+        tmp = get_volume_real_value(data, 
+                                    index[defs_xyzv[VIO_X]], 
+                                    index[defs_xyzv[VIO_Y]], 
+                                    index[defs_xyzv[VIO_Z]], 0,0);
 
 
-	dir_max[X] = dir_max[Y] = dir_max[Z] = 0.0;
-	dir_min[X] = dir_min[Y] = dir_min[Z] = 0.0;
-	K = S = k1 = k2 = 0.0;
-	
-	if (tmp > intensity_threshold) {
+        dir_max[VIO_X] = dir_max[VIO_Y] = dir_max[VIO_Z] = 0.0;
+        dir_min[VIO_X] = dir_min[VIO_Y] = dir_min[VIO_Z] = 0.0;
+        K = S = k1 = k2 = 0.0;
+        
+        if (tmp > intensity_threshold) {
 
-	  for_inclusive(m,-1,1)
-	    for_inclusive(n,-1,1)
-	      for_inclusive(o,-1,1)
-		val[m+1][n+1][o+1] = 
-		  get_volume_real_value(data, 
-					index[defs_xyzv[X]]+m, 
-					index[defs_xyzv[Y]]+n, 
-					index[defs_xyzv[Z]]+o, 0,0);
-	  
-	  if (FALSE) {		/* test principal directions */
-	    if (!return_principal_directions(val, 
-					     dir_mid, dir_min,
-					     &K, &S, &k1, &k2, dir_max, &Lvv,
-					     (Real)VERY_SMALL_EPS)) {
-	      
-	      dir_max[X] = dir_max[Y] = dir_max[Z] = 0.0;
-	      dir_min[X] = dir_min[Y] = dir_min[Z] = 0.0;
-	      K = S = k1 = k2 = Lvv = 0.0;
-	    }
-	    
-	    tmp = sqrt(dir_max[0] * dir_max[0] +
-		       dir_max[1] * dir_max[1] +
-		       dir_max[2] * dir_max[2]);
-	    
-	    if (tmp>0.00001) {
-	      dir_max[0] *= 10.0/tmp;
-	      dir_max[1] *= 10.0/tmp;
-	      dir_max[2] *= 10.0/tmp;
-	      vectors++;
-	    }
+          for(m=-1; m<=1; m++)
+            for(n=-1; n<=1; n++)
+              for(o=-1; o<=1; o++)
+                val[m+1][n+1][o+1] = 
+                  get_volume_real_value(data, 
+                                        index[defs_xyzv[VIO_X]]+m, 
+                                        index[defs_xyzv[VIO_Y]]+n, 
+                                        index[defs_xyzv[VIO_Z]]+o, 0,0);
+          
+          if (FALSE) {                /* test principal directions */
+            if (!return_principal_directions(val, 
+                                             dir_mid, dir_min,
+                                             &K, &S, &k1, &k2, dir_max, &Lvv,
+                                             (VIO_Real)VERY_SMALL_EPS)) {
+              
+              dir_max[VIO_X] = dir_max[VIO_Y] = dir_max[VIO_Z] = 0.0;
+              dir_min[VIO_X] = dir_min[VIO_Y] = dir_min[VIO_Z] = 0.0;
+              K = S = k1 = k2 = Lvv = 0.0;
+            }
+            
+            tmp = sqrt(dir_max[0] * dir_max[0] +
+                       dir_max[1] * dir_max[1] +
+                       dir_max[2] * dir_max[2]);
+            
+            if (tmp>0.00001) {
+              dir_max[0] *= 10.0/tmp;
+              dir_max[1] *= 10.0/tmp;
+              dir_max[2] *= 10.0/tmp;
+              vectors++;
+            }
 
-	    
-	    if (max_val_x < dir_max[X]) max_val_x=dir_max[X];
-	    if (min_val_x > dir_max[X]) min_val_x=dir_max[X];
-	    if (max_val_y < dir_max[Y]) max_val_y=dir_max[Y];
-	    if (min_val_y > dir_max[Y]) min_val_y=dir_max[Y];
-	    if (max_val_z < dir_max[Z]) max_val_z=dir_max[Z];
-	    if (min_val_z > dir_max[Z]) min_val_z=dir_max[Z];
-	    
-	  }
-	
-	  else {			/* test eigen values */
-	    
-	    if (return_local_eigen_from_hessian(val, dir_max, dir_mid, dir_min, 
-						dir_vals)) {
-	      
-	      dir_max[0] *= 2.0;
-	      dir_max[1] *= 2.0;
-	      dir_max[2] *= 2.0;
-	      
-	      if (max_val_x < dir_max[X]) max_val_x=dir_max[X];
-	      if (min_val_x > dir_max[X]) min_val_x=dir_max[X];
-	      if (max_val_y < dir_max[Y]) max_val_y=dir_max[Y];
-	      if (min_val_y > dir_max[Y]) min_val_y=dir_max[Y];
-	      if (max_val_z < dir_max[Z]) max_val_z=dir_max[Z];
-	      if (min_val_z > dir_max[Z]) min_val_z=dir_max[Z];	
-	      
-	      vectors++;
+            
+            if (max_val_x < dir_max[VIO_X]) max_val_x=dir_max[VIO_X];
+            if (min_val_x > dir_max[VIO_X]) min_val_x=dir_max[VIO_X];
+            if (max_val_y < dir_max[VIO_Y]) max_val_y=dir_max[VIO_Y];
+            if (min_val_y > dir_max[VIO_Y]) min_val_y=dir_max[VIO_Y];
+            if (max_val_z < dir_max[VIO_Z]) max_val_z=dir_max[VIO_Z];
+            if (min_val_z > dir_max[VIO_Z]) min_val_z=dir_max[VIO_Z];
+            
+          }
+        
+          else {                        /* test eigen values */
+            
+            if (return_local_eigen_from_hessian(val, dir_max, dir_mid, dir_min, 
+                                                dir_vals)) {
+              
+              dir_max[0] *= 2.0;
+              dir_max[1] *= 2.0;
+              dir_max[2] *= 2.0;
+              
+              if (max_val_x < dir_max[VIO_X]) max_val_x=dir_max[VIO_X];
+              if (min_val_x > dir_max[VIO_X]) min_val_x=dir_max[VIO_X];
+              if (max_val_y < dir_max[VIO_Y]) max_val_y=dir_max[VIO_Y];
+              if (min_val_y > dir_max[VIO_Y]) min_val_y=dir_max[VIO_Y];
+              if (max_val_z < dir_max[VIO_Z]) max_val_z=dir_max[VIO_Z];
+              if (min_val_z > dir_max[VIO_Z]) min_val_z=dir_max[VIO_Z];        
+              
+              vectors++;
 
-	    }
-	    
-	  }
+            }
+            
+          }
 
-	  
-	  for_inclusive(index[ defs_xyzv[Z+1]],X,Z) 
-	    set_volume_real_value(defs, 
-				  index[0], index[1], index[2],
-				  index[3], index[5], 
-				  dir_max[index[ defs_xyzv[Z+1]] ]);
-	  
-	  index[ defs_xyzv[Z+1]] = 0;
-	  set_volume_real_value(max, 
-				index[defs_xyzv[X]], 
-				index[defs_xyzv[Y]], 
-				index[defs_xyzv[Z]], 0,0, dir_max[0]);
-	}
-	count++;
-	update_progress_report( &progress, count );
-	
+          
+          for(index[defs_xyzv[Z+1]]=X; index[defs_xyzv[Z+1]]<=Z; index[defs_xyzv[Z+1]]++) 
+            set_volume_real_value(defs, 
+                                  index[0], index[1], index[2],
+                                  index[3], index[5], 
+                                  dir_max[index[ defs_xyzv[Z+1]] ]);
+          
+          index[ defs_xyzv[Z+1]] = 0;
+          set_volume_real_value(max, 
+                                index[defs_xyzv[VIO_X]], 
+                                index[defs_xyzv[VIO_Y]], 
+                                index[defs_xyzv[VIO_Z]], 0,0, dir_max[0]);
+        }
+        count++;
+        update_progress_report( &progress, count );
+        
       }
   terminate_progress_report(&progress);
 
@@ -289,7 +292,7 @@ int main(int argc, char *argv[])
 
   sprintf(output_filename,"%s_k1.mnc",argv[2]);
   stat = output_modified_volume(output_filename, NC_UNSPECIFIED, FALSE, 
-				0.0, 0.0,  max, argv[1], history, NULL);
+                                0.0, 0.0,  max, argv[1], history, NULL);
 
   if (stat != OK) {
     print ("Error: cannot write %s.\n",output_filename);
@@ -303,10 +306,10 @@ int main(int argc, char *argv[])
 
 
 
-void init_the_volume_to_zero(Volume volume)
+void init_the_volume_to_zero(VIO_Volume volume)
 {
     int             v0, v1, v2, v3, v4;
-    Real            zero;
+    VIO_Real            zero;
   
     zero = 0.0;
 
@@ -318,50 +321,50 @@ void init_the_volume_to_zero(Volume volume)
 
 }
 
-void build_def_field(Volume vol,
-		     General_transform **grid_trans)
+void build_def_field(VIO_Volume vol,
+                     VIO_General_transform **grid_trans)
 {
 
-  Volume
+  VIO_Volume
     new_field;  
-  Real 
-    start[MAX_DIMENSIONS],
-    orig_steps[MAX_DIMENSIONS],  
-    steps[MAX_DIMENSIONS],  
-    voxel[MAX_DIMENSIONS];
+  VIO_Real 
+    start[VIO_MAX_DIMENSIONS],
+    orig_steps[VIO_MAX_DIMENSIONS],  
+    steps[VIO_MAX_DIMENSIONS],  
+    voxel[VIO_MAX_DIMENSIONS];
   int 
     i,
-    orig_xyzv[MAX_DIMENSIONS],
-    orig_count[MAX_DIMENSIONS],
-    xyzv[MAX_DIMENSIONS],
-    count[MAX_DIMENSIONS],
-    index[MAX_DIMENSIONS];
+    orig_xyzv[VIO_MAX_DIMENSIONS],
+    orig_count[VIO_MAX_DIMENSIONS],
+    xyzv[VIO_MAX_DIMENSIONS],
+    count[VIO_MAX_DIMENSIONS],
+    index[VIO_MAX_DIMENSIONS];
   
   
   static  char *dim_name_vector_vol[] = 
     { MIvector_dimension, MIzspace,MIyspace, MIxspace };
   
-  /* build a vector volume to store the Grid Transform */
+  /* build a vector volume to store the Grid VIO_Transform */
   
   ALLOC(new_field,1);
   
   new_field = create_volume(4, dim_name_vector_vol, NC_SHORT, TRUE, 0.0, 0.0);
   get_volume_XYZV_indices(new_field, xyzv);
 
-				/* get the global voxel count and voxel size */
+                                /* get the global voxel count and voxel size */
   get_volume_sizes(       vol, orig_count);
   get_volume_XYZV_indices(vol, orig_xyzv);
   get_volume_separations( vol, orig_steps);
 
-  for_inclusive(i,X,Z) {
+  for(i=X; i<=Z; i++) {
     count[xyzv[i]] = orig_count[orig_xyzv[i]];
     steps[ xyzv[i]] = orig_steps[ orig_xyzv[i]];
   } 
-				/* add info for the vector dimension */
+                                /* add info for the vector dimension */
   count[xyzv[Z+1]] = 3;
   steps[ xyzv[Z+1]] = 0.0;
 
-  for_less(i,0,MAX_DIMENSIONS)  /* set the voxel origin, used in the vol def */
+  for(i=0; i<MAX_DIMENSIONS; i++)  /* set the voxel origin, used in the vol def */
     voxel[i] = 0.0; 
 
   get_volume_translation( vol, voxel, start);
@@ -375,7 +378,7 @@ void build_def_field(Volume vol,
               /* allocate space for the deformation field data */
   alloc_volume_data(new_field);
 
-	      /* Initilize the field to zero deformation */
+              /* Initilize the field to zero deformation */
   init_the_volume_to_zero(new_field);
 
   ALLOC(*grid_trans, 1);
@@ -385,7 +388,7 @@ void build_def_field(Volume vol,
 
 }
 
-void get_volume_XYZV_indices(Volume data, int xyzv[])
+void get_volume_XYZV_indices(VIO_Volume data, int xyzv[])
 {
   
   int 
@@ -396,8 +399,8 @@ void get_volume_XYZV_indices(Volume data, int xyzv[])
   vol_dims       = get_volume_n_dimensions(data);
   data_dim_names = get_volume_dimension_names(data);
   
-  for_less(i,0,N_DIMENSIONS+1) xyzv[i] = -1;
-  for_less(i,0,vol_dims) {
+  for(i=0; i<N_DIMENSIONS+1; i++) xyzv[i] = -1;
+  for(i=0; i<vol_dims; i++) {
     if (convert_dim_name_to_spatial_axis(data_dim_names[i], &axis )) {
       xyzv[axis] = i; 
     } 

@@ -9,7 +9,10 @@
 @CALLS      : 
 @CREATED    : Mon May  8 11:29:40 MET DST 1995  LC
 @MODIFIED   : $Log: test_deriv.c,v $
-@MODIFIED   : Revision 1.4  2005-07-20 20:45:47  rotor
+@MODIFIED   : Revision 1.5  2006-11-29 09:09:31  rotor
+@MODIFIED   :  * first bunch of changes for minc 2.0 compliance
+@MODIFIED   :
+@MODIFIED   : Revision 1.4  2005/07/20 20:45:47  rotor
 @MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
 @MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
 @MODIFIED   :     * Removed old VOLUME_IO cruft #defines
@@ -40,7 +43,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/test_deriv.c,v 1.4 2005-07-20 20:45:47 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/test_deriv.c,v 1.5 2006-11-29 09:09:31 rotor Exp $";
 #endif
 
 #include <stdio.h>
@@ -53,34 +56,34 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #endif
 
 typedef struct {
-  Real 
+  VIO_Real 
     u,v,w,
     uu,vv,ww,
     uv,uw,vw;
 } deriv_3D_struct;
 
-static char *default_dim_names[N_DIMENSIONS] =
+static char *default_dim_names[VIO_N_DIMENSIONS] =
    { MIzspace, MIyspace, MIxspace };
 
- void    estimate_3D_derivatives(Real r[3][3][3], 
-					deriv_3D_struct *c);	     
+ void    estimate_3D_derivatives(VIO_Real r[3][3][3], 
+                                        deriv_3D_struct *c);             
 
 
 int main(int argc, char *argv[])
 {
   float tmp[3][3][3];
-  Real local_corr[3][3][3];
-  Real 
+  VIO_Real local_corr[3][3][3];
+  VIO_Real 
     r[3][3][3];
   int 
-    sizes[MAX_DIMENSIONS],
+    sizes[VIO_MAX_DIMENSIONS],
     i,j,k,
     u,v,w,flag;
   float test_val;
-  Status status;
+  VIO_Status status;
 
   deriv_3D_struct d;
-  Volume
+  VIO_Volume
     data,
     v_du, v_dv, v_dw,
     v_uu, v_vv, v_ww,
@@ -92,7 +95,7 @@ int main(int argc, char *argv[])
   }
 
   if (input_volume(argv[1], 3, default_dim_names, NC_UNSPECIFIED, FALSE, 0.0,0.0,
-		   TRUE, &data, (minc_input_options *)NULL) != OK) { 
+                   TRUE, &data, (minc_input_options *)NULL) != OK) { 
     print ("Error reading %s.\n",argv[1]);
     exit(EXIT_FAILURE);
   }
@@ -111,59 +114,59 @@ int main(int argc, char *argv[])
 
   get_volume_sizes(data, sizes);
 
-  for_less(i, 1, sizes[0]-1) {
+  for(i=1; i<sizes[0]-1; i++) {
     print ("slice %3d:%3d\n",i,sizes[0]-1);
-    for_less(j, 1, sizes[1]-1) 
-      for_less(k, 1, sizes[2]-1) {
-	
-	
-	for_inclusive(u, -1, 1)
-	  for_inclusive(v, -1, 1)
-	    for_inclusive(w, -1, 1) {
-	      GET_VALUE_3D( r[u+1][v+1][w+1], data, i+w, j+v, k+u );
-	    }
-	     
-	estimate_3D_derivatives(r, &d);
-	      
-	set_volume_real_value(v_du, i, j, k, 0, 0, d.u  );
-	set_volume_real_value(v_dv, i, j, k, 0, 0, d.v  );
-	set_volume_real_value(v_dw, i, j, k, 0, 0, d.w  );
-	set_volume_real_value(v_uu, i, j, k, 0, 0, d.uu );
-	set_volume_real_value(v_vv, i, j, k, 0, 0, d.vv );
-	set_volume_real_value(v_ww, i, j, k, 0, 0, d.ww );
-	set_volume_real_value(v_uv, i, j, k, 0, 0, d.uv );
-	set_volume_real_value(v_uw, i, j, k, 0, 0, d.uw );
-	set_volume_real_value(v_vw, i, j, k, 0, 0, d.vw );
-	
+    for(j=1; j<sizes[1]-1; j++) 
+      for(k=1; k<sizes[2]-1; k++) {
+        
+        
+        for(u=-1; u<=1; u++)
+          for(v=-1; v<=1; v++)
+            for(w=-1; w<=1; w++) {
+              GET_VALUE_3D( r[u+1][v+1][w+1], data, i+w, j+v, k+u );
+            }
+             
+        estimate_3D_derivatives(r, &d);
+              
+        set_volume_real_value(v_du, i, j, k, 0, 0, d.u  );
+        set_volume_real_value(v_dv, i, j, k, 0, 0, d.v  );
+        set_volume_real_value(v_dw, i, j, k, 0, 0, d.w  );
+        set_volume_real_value(v_uu, i, j, k, 0, 0, d.uu );
+        set_volume_real_value(v_vv, i, j, k, 0, 0, d.vv );
+        set_volume_real_value(v_ww, i, j, k, 0, 0, d.ww );
+        set_volume_real_value(v_uv, i, j, k, 0, 0, d.uv );
+        set_volume_real_value(v_uw, i, j, k, 0, 0, d.uw );
+        set_volume_real_value(v_vw, i, j, k, 0, 0, d.vw );
+        
       }
   }  
 
   status = output_volume("v_du.mnc", NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-			 v_du, NULL, (minc_output_options *)NULL);
+                         v_du, NULL, (minc_output_options *)NULL);
   if (status == OK)
     status = output_volume("v_dv.mnc", NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-			   v_dv, NULL, (minc_output_options *)NULL);
+                           v_dv, NULL, (minc_output_options *)NULL);
   if (status == OK)
     status = output_volume("v_dw.mnc", NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-			   v_dw, NULL, (minc_output_options *)NULL);
+                           v_dw, NULL, (minc_output_options *)NULL);
   if (status == OK)
     status = output_volume("v_uu.mnc", NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-			   v_uu, NULL, (minc_output_options *)NULL);
+                           v_uu, NULL, (minc_output_options *)NULL);
   if (status == OK)
     status = output_volume("v_vv.mnc", NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-			   v_vv, NULL, (minc_output_options *)NULL);
+                           v_vv, NULL, (minc_output_options *)NULL);
   if (status == OK)
     status = output_volume("v_ww.mnc", NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-			   v_ww, NULL, (minc_output_options *)NULL);
+                           v_ww, NULL, (minc_output_options *)NULL);
   if (status == OK)
     status = output_volume("v_uv.mnc", NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-			   v_uv, NULL, (minc_output_options *)NULL);
+                           v_uv, NULL, (minc_output_options *)NULL);
   if (status == OK)
     status = output_volume("v_uw.mnc", NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-			   v_uw, NULL, (minc_output_options *)NULL);
+                           v_uw, NULL, (minc_output_options *)NULL);
   if (status == OK)
     status = output_volume("v_vw.mnc", NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-			   v_vw, NULL, (minc_output_options *)NULL);
+                           v_vw, NULL, (minc_output_options *)NULL);
   if (status != OK)
     print("error in output\n");
 

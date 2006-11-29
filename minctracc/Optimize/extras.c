@@ -5,29 +5,29 @@
                procedures.               
 @CREATED    : Mon Nov  3, 1997 , Louis Collins
 @MODIFIED   : not yet!
-@VERSION    : $Id: extras.c,v 1.7 2005-07-20 20:45:50 rotor Exp $
+@VERSION    : $Id: extras.c,v 1.8 2006-11-29 09:09:34 rotor Exp $
 #-----------------------------------------------------------------------------
 */
 
 
-#include <config.h>		
+#include <config.h>                
 #include <float.h>
-#include <volume_io.h>	
+#include <volume_io.h>        
 #include <time.h>
 
-void report_time(long start_time, STRING text) 
+void report_time(long start_time, VIO_STR text) 
 {
 
-  Real 
+  VIO_Real 
     time_total;
   long 
     present_time;
-  STRING 
+  VIO_STR 
     time_total_string;
     
   present_time = time(NULL);
   
-  time_total = (Real)(present_time - start_time);
+  time_total = (VIO_Real)(present_time - start_time);
   time_total_string = format_time("%g %s", time_total);
   
   print ("\n%s : %s", text, time_total_string);
@@ -42,36 +42,50 @@ void report_time(long start_time, STRING text)
 }
 
 
-void init_the_volume_to_zero(Volume volume)
+void init_the_volume_to_zero(VIO_Volume volume)
 {
     int             v0, v1, v2, v3, v4;
-    Real            zero;
-  
+    VIO_Real            zero;
+    int    sizes[VIO_MAX_DIMENSIONS];
 
+    get_volume_sizes(volume, sizes);
+
+    /* figure out what 0 is */
     zero = CONVERT_VALUE_TO_VOXEL(volume,0.0);
     
-    BEGIN_ALL_VOXELS( volume, v0, v1, v2, v3, v4 )
-      
-      set_volume_voxel_value( volume, v0, v1, v2, v3, v4, zero );
-    
-    END_ALL_VOXELS
-
+    for(v0=sizes[0]; v0--; ){
+       for(v1=sizes[1]; v1--; ){
+          for(v2=sizes[2]; v2--; ){
+             for(v3=sizes[3]; v3--; ){
+                set_volume_voxel_value( volume, v0, v1, v2, v3, 0, zero );
+                }
+             }
+          }
+       }
 }
 
-Real get_volume_maximum_real_value(Volume volume)
+VIO_Real get_volume_maximum_real_value(VIO_Volume volume)
 {
     int             v0, v1, v2, v3, v4;
-    Real            val,max;
-  
-
+    VIO_Real            val,max;
+    int    sizes[VIO_MAX_DIMENSIONS];
+    
+    get_volume_sizes(volume, sizes);
+    
     max = -DBL_MAX;
-
-    BEGIN_ALL_VOXELS( volume, v0, v1, v2, v3, v4 )
-      
-      val = get_volume_real_value( volume, v0, v1, v2, v3, v4 );
-      if (val > max) max = val;
-
-    END_ALL_VOXELS
+    
+    for(v0=sizes[0]; v0--; ){
+       for(v1=sizes[1]; v1--; ){
+          for(v2=sizes[2]; v2--; ){
+             for(v3=sizes[3]; v3--; ){
+                val = get_volume_real_value( volume, v0, v1, v2, v3, 0 );
+                if(val > max){
+                   max = val;
+                   }
+                }
+             }
+          }
+       }
 
     return(max);
 }
@@ -81,12 +95,12 @@ Real get_volume_maximum_real_value(Volume volume)
 /* debug procedure called to save the deformation at each iterative step */
 
 void save_data(char *basename, int i, int j,
-		      General_transform *transform)
+                      VIO_General_transform *transform)
 {
 
-  Status 
+  VIO_Status 
     status;
-  STRING 
+  VIO_STR 
     comments,name;
   FILE *file;
 
@@ -96,15 +110,15 @@ void save_data(char *basename, int i, int j,
   
   (void)sprintf(name,"%s%d",basename,i);
   status = open_file_with_default_suffix(name,
-					 get_default_transform_file_suffix(),
-					 WRITE_FILE, ASCII_FORMAT, &file );
+                                         get_default_transform_file_suffix(),
+                                         WRITE_FILE, ASCII_FORMAT, &file );
   
   if( status == OK )
     status = output_transform(file,
-			      basename,
-			      &i,
-			      comments,
-			      transform);
+                              basename,
+                              &i,
+                              comments,
+                              transform);
   
   if( status == OK )
     status = close_file( file );

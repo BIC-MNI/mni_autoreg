@@ -2,7 +2,7 @@
 
 find_N_closest(x,y,z)
      float
-	x,y,z;
+        x,y,z;
 {
    int i;
    APOINT a_point;
@@ -30,9 +30,9 @@ find_N_closest(x,y,z)
 
 interpolate_displacement(x,y,z,dx,dy,dz)
      float
-	*x,*y,*z;
+        *x,*y,*z;
      DATA
-	*dx,*dy,*dz;
+        *dx,*dy,*dz;
 {
    int 
       i;
@@ -50,28 +50,28 @@ interpolate_displacement(x,y,z,dx,dy,dz)
 
 
       my_f_to_v(closest_neighbour[i].xyz[0],closest_neighbour[i].xyz[1],closest_neighbour[i].xyz[2],
-		&(tmpxyz[0]),&(tmpxyz[1]),&(tmpxyz[2]),dx);
+                &(tmpxyz[0]),&(tmpxyz[1]),&(tmpxyz[2]),dx);
       c = U_interpolation(dx,tmpxyz,'f');
       tx= get_float_DATA(c, dx);
       
       my_f_to_v(closest_neighbour[i].xyz[0],closest_neighbour[i].xyz[1],closest_neighbour[i].xyz[2],
-		&(tmpxyz[0]),&(tmpxyz[1]),&(tmpxyz[2]),dy);
+                &(tmpxyz[0]),&(tmpxyz[1]),&(tmpxyz[2]),dy);
       c = U_interpolation(dy,tmpxyz,'f');
       ty = get_float_DATA(c, dy);
       
       my_f_to_v(closest_neighbour[i].xyz[0],closest_neighbour[i].xyz[1],closest_neighbour[i].xyz[2],
-		&(tmpxyz[0]),&(tmpxyz[1]),&(tmpxyz[2]),dz);
+                &(tmpxyz[0]),&(tmpxyz[1]),&(tmpxyz[2]),dz);
       c = U_interpolation(dz,tmpxyz,'f');
       tz = get_float_DATA(c, dz);
 
       tot_x += tx;
       tot_y += ty;
       tot_z += tz;
-	 
+         
 
       printf ("%3d: %7.3f (%7.3f,%7.3f,%7.3f) %7.3f %7.3f %7.3f\n",i,minima[i],
-	closest_neighbour[i].xyz[0],closest_neighbour[i].xyz[1],closest_neighbour[i].xyz[2],
-	tx,ty,tz);
+        closest_neighbour[i].xyz[0],closest_neighbour[i].xyz[1],closest_neighbour[i].xyz[2],
+        tx,ty,tz);
 
    }
 
@@ -86,20 +86,20 @@ interpolate_displacement(x,y,z,dx,dy,dz)
 void 
 insert_closest(closest, nn, r,c,dist)
      float
-	**closest;
+        **closest;
      int 
-	nn,  r,c;
+        nn,  r,c;
      float 
-	dist;
+        dist;
 {
    int
       i,j;
    
-   for (i=1; i<=nn; ++i)	        /* find position in the list */
+   for (i=1; i<=nn; ++i)                /* find position in the list */
       if (dist<closest[i][3]) 
-	 break;
+         break;
 
-   for (j=nn-1; j>=i; --j)	{	/* make space in the list */
+   for (j=nn-1; j>=i; --j)        {        /* make space in the list */
       closest[j+1][1] = closest[j][1];
       closest[j+1][2] = closest[j][2];
       closest[j+1][3] = closest[j][3];
@@ -114,14 +114,14 @@ insert_closest(closest, nn, r,c,dist)
 /* given row,col and r,c,  
    check to see is r,c is an orig point, and if so,
       calc dist of row,col to r,c and insert r,c,dist into the list */
-void	 
+void         
 check_closest(closest, nn, row,col, r,c,s, d)
      float
-	**closest;
+        **closest;
      int 
-	nn, row,col ,r,c,  s;
+        nn, row,col ,r,c,  s;
      DATA 
-	*d;
+        *d;
 {
    int 
       i,dr,dc;
@@ -147,13 +147,13 @@ check_closest(closest, nn, row,col, r,c,s, d)
 void
 get_value_from_nn_closest(closest, nn, cx,cy,s, dx,dy)
      float
-	**closest;
+        **closest;
      int 
-	nn,s;
+        nn,s;
      Voxel_value_type
-	*cx,*cy;
+        *cx,*cy;
      DATA
-	*dx,*dy;
+        *dx,*dy;
 {
    Voxel_value_type
       c_dx, c_dy;
@@ -176,9 +176,9 @@ get_value_from_nn_closest(closest, nn, cx,cy,s, dx,dy)
 
 /*
       c_dx = dx->voxels + (s*dx->slice_size) + 
-	 (ROUND(closest[i][1])*dx->cols + ROUND(closest[i][2]))*dx->bytes_per_voxel;
+         (ROUND(closest[i][1])*dx->cols + ROUND(closest[i][2]))*dx->bytes_per_voxel;
       c_dy = dy->voxels + (s*dy->slice_size) +
-	 (ROUND(closest[i][1])*dy->cols + ROUND(closest[i][2]))*dy->bytes_per_voxel;
+         (ROUND(closest[i][1])*dy->cols + ROUND(closest[i][2]))*dy->bytes_per_voxel;
 */
       c_dx = get_voxel_value(ROUND(closest[i][1]),ROUND(closest[i][2]),s, dx);
       c_dy = get_voxel_value(ROUND(closest[i][1]),ROUND(closest[i][2]),s, dy);
@@ -195,11 +195,11 @@ get_value_from_nn_closest(closest, nn, cx,cy,s, dx,dy)
 
 void interpolate_from_nn_closest (row,col,cx,cy, nn, slice, dx,dy,dz)
      int
-	row,col,nn,slice;
+        row,col,nn,slice;
      Voxel_value_type
-	*cx,*cy;
+        *cx,*cy;
      DATA
-	*dx,*dy,*dz;
+        *dx,*dy,*dz;
 {
    Voxel_value_type
       c_dx,
@@ -222,8 +222,8 @@ void interpolate_from_nn_closest (row,col,cx,cy, nn, slice, dx,dy,dz)
    closest = matrix( 1,nn,1,3);
 
    for (i=1; i<=nn; ++i) {        /* init the closest list */
-      closest[i][1] = 9999.0;	  /* col */
-      closest[i][2] = 9999.0;	  /* row */
+      closest[i][1] = 9999.0;          /* col */
+      closest[i][2] = 9999.0;          /* row */
       closest[i][3] = 99999999.0; /* dist */
    }
 
@@ -237,21 +237,21 @@ void interpolate_from_nn_closest (row,col,cx,cy, nn, slice, dx,dy,dz)
       if (c1<0)          c1 = 0;
       if (c2>dx->cols-1) c2 = dx->cols-1;
 
-				/* check a ring of pixels around row,col */
-				/* and place values in closest list      */
+                                /* check a ring of pixels around row,col */
+                                /* and place values in closest list      */
       for (r=r1; r<=r2; ++r)                
-	 check_closest(closest, nn, row,col,r,c1, slice, dz);
+         check_closest(closest, nn, row,col,r,c1, slice, dz);
       for (r=r1; r<=r2; ++r)
-	 check_closest(closest, nn, row,col,r,c2, slice, dz);
+         check_closest(closest, nn, row,col,r,c2, slice, dz);
       for (c=c1+1; c<c2; ++c)
-	 check_closest(closest, nn, row,col,r1,c, slice, dz);
+         check_closest(closest, nn, row,col,r1,c, slice, dz);
       for (c=c1+1; c<c2; ++c)
-	 check_closest(closest, nn, row,col,r2,c, slice, dz);
+         check_closest(closest, nn, row,col,r2,c, slice, dz);
 
 
       /* end when the farthest of the closest list is closer than closest pixel checked.*/
       if (closest[nn][3]< step*MIN(dx->pixel_size_row,dx->pixel_size_col))
-	 break;
+         break;
    }
 
    get_value_from_nn_closest(closest, nn, cx,cy, slice, dx,dy);
@@ -269,7 +269,7 @@ void interpolate_from_nn_closest (row,col,cx,cy, nn, slice, dx,dy,dz)
 */
 void interpolate_deform_slice(deform_dx,deform_dy,deform_dz)
      DATA 
-	*deform_dx,*deform_dy,*deform_dz;
+        *deform_dx,*deform_dy,*deform_dz;
 {
    Voxel_value_type
       cx,cy,
@@ -292,18 +292,18 @@ void interpolate_deform_slice(deform_dx,deform_dy,deform_dz)
    for (row = 0; row < deform_dx->rows; row++) {
             
       for (col = 0; col < deform_dx->cols; col++) {
-	 
-	 c_dx = get_voxel_value(col, row, slice, deform_dx);
-	 c_dy = get_voxel_value(col, row, slice, deform_dy);
+         
+         c_dx = get_voxel_value(col, row, slice, deform_dx);
+         c_dy = get_voxel_value(col, row, slice, deform_dy);
 
-	 total++;
+         total++;
 
-	 if ((c_dx != 0) || (c_dy != 0) ) {
-	    origs++;
-	    put_voxel_value( (Voxel_value_type)1, col, row, slice, deform_dz);
-	 } 
-	 else
-	    put_voxel_value( (Voxel_value_type)0, col, row, slice, deform_dz);
+         if ((c_dx != 0) || (c_dy != 0) ) {
+            origs++;
+            put_voxel_value( (Voxel_value_type)1, col, row, slice, deform_dz);
+         } 
+         else
+            put_voxel_value( (Voxel_value_type)0, col, row, slice, deform_dz);
 
       }
    }
@@ -329,19 +329,19 @@ void interpolate_deform_slice(deform_dx,deform_dy,deform_dz)
    for (row = 0; row < deform_dx->rows; row++) {
       
       for (col = 0; col < deform_dx->cols; col++) {
-	 
-	 c_dz = get_voxel_value(col, row, slice, deform_dz);
+         
+         c_dz = get_voxel_value(col, row, slice, deform_dz);
 
-	 if (!(c_dz>0)) {
-	    
-	    resamps++;
-	    
-	    interpolate_from_nn_closest (row,col,&cx,&cy, nn, 0, deform_dx,deform_dy,deform_dz);
+         if (!(c_dz>0)) {
+            
+            resamps++;
+            
+            interpolate_from_nn_closest (row,col,&cx,&cy, nn, 0, deform_dx,deform_dy,deform_dz);
 
-	    put_voxel_value(cx, col, row, slice, deform_dx);
-	    put_voxel_value(cy, col, row, slice, deform_dy);
+            put_voxel_value(cx, col, row, slice, deform_dx);
+            put_voxel_value(cy, col, row, slice, deform_dy);
 
-	 }
+         }
       }
    }
 
@@ -371,7 +371,7 @@ void interpolate_deform_slice(deform_dx,deform_dy,deform_dz)
 */
 void interpolate_deform_volume(deform_dx,deform_dy,deform_dz,labels,ndim)
      DATA 
-	*deform_dx,*deform_dy,*deform_dz,*labels;
+        *deform_dx,*deform_dy,*deform_dz,*labels;
      int ndim;
 {
    Voxel_value_type
@@ -400,9 +400,9 @@ void interpolate_deform_volume(deform_dx,deform_dy,deform_dz,labels,ndim)
      *tmp_dx, *tmp_dy, *tmp_dz;
    int zlimit;
    
-   progress_struct progress;
+   VIO_progress_struct progress;
    
-   Status status;
+   VIO_Status status;
    
 
    if (ndim==2) {
@@ -425,12 +425,12 @@ void interpolate_deform_volume(deform_dx,deform_dy,deform_dz,labels,ndim)
    for (slice = 0; slice < zlimit ; slice++) {
      for (row = 0; row < deform_dx->rows; row++) {
        for (col = 0; col < deform_dx->cols; col++) {
-	 
-	 label = get_voxel_value(col, row, slice, labels);
+         
+         label = get_voxel_value(col, row, slice, labels);
 
-	 if (label == MAPPING_FOUND)
-	   count++;
-	 
+         if (label == MAPPING_FOUND)
+           count++;
+         
        }
       }
    }
@@ -439,27 +439,27 @@ void interpolate_deform_volume(deform_dx,deform_dy,deform_dz,labels,ndim)
    /* build the list of true samples  ------------------------------------------------ */
 
    ALLOC1(status, list, count, APOINT);
-   count = 0;			
+   count = 0;                        
    the_list = list;
 
    for (slice = 0; slice < zlimit; slice++) {
      for (row = 0; row < deform_dx->rows; row++) {
        for (col = 0; col < deform_dx->cols; col++) {
-	 
-	 label = get_voxel_value(col, row, slice, labels);
-	 
-	 if (label == MAPPING_FOUND) {
-	   
-      	   count++;
-	   
-	   my_v_to_f((float)(col), (float)(row), (float)(slice),
-		     &(the_list->xyz[0]),&(the_list->xyz[1]),&(the_list->xyz[2]),
-		     deform_dx);
-	   
-	   the_list++;
-	   
-	 }
-	 
+         
+         label = get_voxel_value(col, row, slice, labels);
+         
+         if (label == MAPPING_FOUND) {
+           
+                 count++;
+           
+           my_v_to_f((float)(col), (float)(row), (float)(slice),
+                     &(the_list->xyz[0]),&(the_list->xyz[1]),&(the_list->xyz[2]),
+                     deform_dx);
+           
+           the_list++;
+           
+         }
+         
        }
      }
    }
@@ -474,8 +474,8 @@ void interpolate_deform_volume(deform_dx,deform_dy,deform_dz,labels,ndim)
 /*
    for (i=0; i<MESH_SIZE; i++)
       for (j=0; j<MESH_SIZE; j++)
-	 for (k=0; k<MESH_SIZE; k++)
-	    printf ("%3d %3d %3d -> %3d\n",i,j,k,z_size[i][j][k]);
+         for (k=0; k<MESH_SIZE; k++)
+            printf ("%3d %3d %3d -> %3d\n",i,j,k,z_size[i][j][k]);
 
 printf("after divide cubes\n");
 */
@@ -484,46 +484,46 @@ printf("after divide cubes\n");
    count = 0;
 
    initialize_progress_report( &progress, FALSE, deform_dx->slices*deform_dx->rows+1, 
-			      "Estimating deformations");
+                              "Estimating deformations");
 
    for (slice = 0; slice < zlimit; slice++)
       for (row = 0; row < deform_dx->rows; row++) {
-	 for (col = 0; col < deform_dx->cols; col++) {
-		 
+         for (col = 0; col < deform_dx->cols; col++) {
+                 
 
-	   label = get_voxel_value(col, row, slice, labels);
-	   
-	   if (label != MAPPING_FOUND) {
-	     
-	     count++;
-	     
-	     my_v_to_f((float)(col), (float)(row), (float)(slice), 
-		       &xpf, &ypf, &zpf, deform_dx);
-	     
+           label = get_voxel_value(col, row, slice, labels);
+           
+           if (label != MAPPING_FOUND) {
+             
+             count++;
+             
+             my_v_to_f((float)(col), (float)(row), (float)(slice), 
+                       &xpf, &ypf, &zpf, deform_dx);
+             
 /* 1
 printf ("for point %12.4f, %12.4f, %12.4f\n",xpf,ypf,zpf);
 */
 
-	     find_N_closest(xpf,ypf,zpf);
-	     
-	     interpolate_displacement(&x_displacement,&y_displacement,&z_displacement,
-				      deform_dx,deform_dy,deform_dz);
-	     
+             find_N_closest(xpf,ypf,zpf);
+             
+             interpolate_displacement(&x_displacement,&y_displacement,&z_displacement,
+                                      deform_dx,deform_dy,deform_dz);
+             
 
 /* 1
 printf ("and the displacement is: %12.5f, %12.5f, %12.5f\n\n",
-	x_displacement,y_displacement,z_displacement);
+        x_displacement,y_displacement,z_displacement);
 */
-	     c_dx = get_voxel_value_DATA(x_displacement, deform_dx);  
-	     put_voxel_value(c_dx, col, row, slice, deform_dx);
-	     c_dy = get_voxel_value_DATA(y_displacement, deform_dy);
-	     put_voxel_value(c_dy, col, row, slice, deform_dy);
-	     c_dz = get_voxel_value_DATA(z_displacement, deform_dz);
-	     put_voxel_value(c_dz, col, row, slice, deform_dz);
-	   }
-	   
-	 }
-	 update_progress_report( &progress, slice*deform_dx->rows + row +1 );
+             c_dx = get_voxel_value_DATA(x_displacement, deform_dx);  
+             put_voxel_value(c_dx, col, row, slice, deform_dx);
+             c_dy = get_voxel_value_DATA(y_displacement, deform_dy);
+             put_voxel_value(c_dy, col, row, slice, deform_dy);
+             c_dz = get_voxel_value_DATA(z_displacement, deform_dz);
+             put_voxel_value(c_dz, col, row, slice, deform_dz);
+           }
+           
+         }
+         update_progress_report( &progress, slice*deform_dx->rows + row +1 );
        }
 
    terminate_progress_report(&progress);
@@ -568,7 +568,7 @@ void divide_volume( APOINT *lst, int lst_size, int ndim )
 
 /*
 printf (" in divide cubes: range %f %f, %f %f, %f %f\n",
-	min_x,max_x,min_y,max_y,min_z,max_z);
+        min_x,max_x,min_y,max_y,min_z,max_z);
 */
    rangex = max_x - min_x;
    rangey = max_y - min_y;
@@ -606,22 +606,22 @@ for (i=0; i<lst_size; i++)
       while( (lst+incx)->xyz[0] <= xdiv[i] && incx < qcount ) ++incx;
       x_size = incx - x_size;
       if ( x_size > 1 ) (void) qsort((char *)(lst+incx-x_size), (size_t)x_size, 
-				     (size_t)sizeof(APOINT), comparey );
+                                     (size_t)sizeof(APOINT), comparey );
       incy = 0;
       for ( j = 0; j < MESH_SIZE; j++ ) {
-	 y_size = incy;
-	 while( (lst+incx-x_size+incy)->xyz[1] <= ydiv[j] && incy < x_size ) ++incy;
-	 y_size = incy - y_size;
-	 if ( y_size > 1 ) (void) qsort((char *)(lst+incx-x_size+incy-y_size), 
-					(size_t)y_size, (size_t)sizeof(APOINT), comparez );
-	 incz = 0;
-	 for ( k = 0; k < MESH_SIZE; k++ ) {
-	    list_ptr[i][j][k] = incx - x_size + incy - y_size + incz;
-	    z_size[i][j][k] = incz;
-	    while( (lst+incx-x_size+incy-y_size+incz)->xyz[2] <= zdiv[k] && incz < y_size ) ++incz;
-	    z_size[i][j][k] = incz - z_size[i][j][k];
-	    /*printf("%2d %2d %2d --> %d\n",i,j,k,z_size[i][j][k]);*/
-	 }
+         y_size = incy;
+         while( (lst+incx-x_size+incy)->xyz[1] <= ydiv[j] && incy < x_size ) ++incy;
+         y_size = incy - y_size;
+         if ( y_size > 1 ) (void) qsort((char *)(lst+incx-x_size+incy-y_size), 
+                                        (size_t)y_size, (size_t)sizeof(APOINT), comparez );
+         incz = 0;
+         for ( k = 0; k < MESH_SIZE; k++ ) {
+            list_ptr[i][j][k] = incx - x_size + incy - y_size + incz;
+            z_size[i][j][k] = incz;
+            while( (lst+incx-x_size+incy-y_size+incz)->xyz[2] <= zdiv[k] && incz < y_size ) ++incz;
+            z_size[i][j][k] = incz - z_size[i][j][k];
+            /*printf("%2d %2d %2d --> %d\n",i,j,k,z_size[i][j][k]);*/
+         }
       }
    }
 
@@ -822,17 +822,17 @@ float min_dist( float xyz[3], APOINT *search_list, long int num_in_search_list )
       }
       for ( k = 0; k < (j-1); k++ ) {
          minima[N_NEIGHBOURS-k-1] = minima[N_NEIGHBOURS-k-2];
-	 closest_neighbour[N_NEIGHBOURS-k-1].xyz[0] = closest_neighbour[N_NEIGHBOURS-k-2].xyz[0];
-	 closest_neighbour[N_NEIGHBOURS-k-1].xyz[1] = closest_neighbour[N_NEIGHBOURS-k-2].xyz[1];
-	 closest_neighbour[N_NEIGHBOURS-k-1].xyz[2] = closest_neighbour[N_NEIGHBOURS-k-2].xyz[2];
-	 closest_neighbour[N_NEIGHBOURS-k-1].err = closest_neighbour[N_NEIGHBOURS-k-2].err;
+         closest_neighbour[N_NEIGHBOURS-k-1].xyz[0] = closest_neighbour[N_NEIGHBOURS-k-2].xyz[0];
+         closest_neighbour[N_NEIGHBOURS-k-1].xyz[1] = closest_neighbour[N_NEIGHBOURS-k-2].xyz[1];
+         closest_neighbour[N_NEIGHBOURS-k-1].xyz[2] = closest_neighbour[N_NEIGHBOURS-k-2].xyz[2];
+         closest_neighbour[N_NEIGHBOURS-k-1].err = closest_neighbour[N_NEIGHBOURS-k-2].err;
       }
       if ( j > 0 ) {
          minima[N_NEIGHBOURS-j] = dist;
-	 closest_neighbour[N_NEIGHBOURS-j].xyz[0] = (search_list+i)->xyz[0];
-	 closest_neighbour[N_NEIGHBOURS-j].xyz[1] = (search_list+i)->xyz[1];
-	 closest_neighbour[N_NEIGHBOURS-j].xyz[2] = (search_list+i)->xyz[2];
-	 closest_neighbour[N_NEIGHBOURS-j].err = (search_list+i)->err;
+         closest_neighbour[N_NEIGHBOURS-j].xyz[0] = (search_list+i)->xyz[0];
+         closest_neighbour[N_NEIGHBOURS-j].xyz[1] = (search_list+i)->xyz[1];
+         closest_neighbour[N_NEIGHBOURS-j].xyz[2] = (search_list+i)->xyz[2];
+         closest_neighbour[N_NEIGHBOURS-j].err = (search_list+i)->err;
       }
       else if ( (dz = dz*dz) > minima[N_NEIGHBOURS-1] ) break;
    }

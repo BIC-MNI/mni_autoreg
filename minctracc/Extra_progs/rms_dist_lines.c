@@ -2,8 +2,8 @@
 #include <config.h>
 
 double minimum_distance_point_to_object (Point           *p, 
-					 object_struct   *targ,
-					 BOOLEAN         *end_point)
+                                         object_struct   *targ,
+                                         VIO_BOOL         *end_point)
 {
   double 
     dx,dy,dz, 
@@ -20,7 +20,7 @@ double minimum_distance_point_to_object (Point           *p,
   if (num_pts_targ > 0) {
     min_d = DBL_MAX;
 
-    for_less(j,0,num_pts_targ) { 
+    for(j=0; j<num_pts_targ; j++) { 
 
       dx =  Point_x(the_points_targ[j]) -  Point_x(*p);
       dy =  Point_y(the_points_targ[j]) -  Point_y(*p);
@@ -29,14 +29,14 @@ double minimum_distance_point_to_object (Point           *p,
       dist = dx*dx + dy*dy + dz*dz;
       
       if (dist < min_d) {
-	  min_d = dist;
-	  if ((j == 0) || (j == num_pts_targ-1)) 
-	      *end_point = TRUE;
-	  else 
-	  {
-	      *end_point = FALSE;
-	  }
-	  
+          min_d = dist;
+          if ((j == 0) || (j == num_pts_targ-1)) 
+              *end_point = TRUE;
+          else 
+          {
+              *end_point = FALSE;
+          }
+          
       }
       
     }
@@ -50,13 +50,13 @@ double minimum_distance_point_to_object (Point           *p,
 }
 
 double calc_rms_distance_between_objects(object_struct   *src, 
-					 object_struct   *targ)
+                                         object_struct   *targ)
 {
   int 
     i,j, num_pts,num_pts_src, num_pts_targ;
   double 
     var, std,rms,  min_d_sum, min_d_sum2, min_d;
-  BOOLEAN end_point;
+  VIO_BOOL end_point;
   
   Point *the_points_src, *the_points_targ;
 
@@ -69,18 +69,18 @@ double calc_rms_distance_between_objects(object_struct   *src,
   
   if (num_pts_targ > num_pts_src) {
   if (num_pts_src > 0) {
-      for_less(i,0,num_pts_src) {
-	
-	min_d = minimum_distance_point_to_object(&the_points_src[i], targ, &end_point);
-	
-	if (!end_point) 
-	{
+      for(i=0; i<num_pts_src; i++) {
+        
+        min_d = minimum_distance_point_to_object(&the_points_src[i], targ, &end_point);
+        
+        if (!end_point) 
+        {
 
-	    min_d_sum  += min_d;
-	    min_d_sum2 += min_d * min_d;
-	    num_pts++;
-	}
-	
+            min_d_sum  += min_d;
+            min_d_sum2 += min_d * min_d;
+            num_pts++;
+        }
+        
       }
       
 /*      rms = sqrt( min_d_sum2 / num_pts_src );*/
@@ -88,17 +88,17 @@ double calc_rms_distance_between_objects(object_struct   *src,
   }
   else {
     if (num_pts_targ > 0) {
-      for_less(i,0,num_pts_targ) {
-	
-	min_d = minimum_distance_point_to_object(&the_points_targ[i], src, &end_point);
-	
-	if (!end_point) 
-	{
-	    min_d_sum  += min_d;
-	    min_d_sum2 += min_d * min_d;
-	    num_pts++;
-	}
-	
+      for(i=0; i<num_pts_targ; i++) {
+        
+        min_d = minimum_distance_point_to_object(&the_points_targ[i], src, &end_point);
+        
+        if (!end_point) 
+        {
+            min_d_sum  += min_d;
+            min_d_sum2 += min_d * min_d;
+            num_pts++;
+        }
+        
       }
       
     }
@@ -114,20 +114,20 @@ double calc_rms_distance_between_objects(object_struct   *src,
 
 }
 
-void apply_transform_to_object(General_transform *xform, 
-			       object_struct   *object )
+void apply_transform_to_object(VIO_General_transform *xform, 
+                               object_struct   *object )
 {
   int i,num_points;
   Point *the_points;
-  Real tx,ty,tz;
+  VIO_Real tx,ty,tz;
 
   num_points = get_object_points( object, &the_points);
-  for_less(i,0,num_points) {
+  for(i=0; i<num_points; i++) {
     general_transform_point(xform, 
-			    Point_x(the_points[i]),
-			    Point_y(the_points[i]),
-			    Point_z(the_points[i]),
-			    &tx, &ty, &tz);
+                            Point_x(the_points[i]),
+                            Point_y(the_points[i]),
+                            Point_z(the_points[i]),
+                            &tx, &ty, &tz);
     Point_x(the_points[i]) = tx; 
     Point_y(the_points[i]) = ty; 
     Point_z(the_points[i]) = tz; 
@@ -137,7 +137,7 @@ void apply_transform_to_object(General_transform *xform,
 
 int main(int argc, char *argv[])
 {
-  General_transform 
+  VIO_General_transform 
     xform;
 
   object_struct 
@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
 
   File_formats   
     format;
-  progress_struct
+  VIO_progress_struct
     progress;
 
   int 
@@ -170,21 +170,21 @@ int main(int argc, char *argv[])
   
   format = BINARY_FORMAT;
   if (input_graphics_file(argv[2], 
-			  &format,
-			  &num_objects,
-			  &list_of_objs) != OK) {
+                          &format,
+                          &num_objects,
+                          &list_of_objs) != OK) {
     print("error: problems reading %s.\n", argv[2]);
     exit(EXIT_FAILURE);
   }
   if (input_graphics_file(argv[3], 
-			  &format,
-			  &num_objects2,
-			  &list_of_objs2) != OK) {
+                          &format,
+                          &num_objects2,
+                          &list_of_objs2) != OK) {
     print("error: problems reading %s.\n", argv[3]);
     exit(EXIT_FAILURE);
   }
 
-  for_less(i,0,num_objects) {
+  for(i=0; i<num_objects; i++) {
     type = get_object_type( list_of_objs[i] );
     switch (type) {
     case MARKER:print ("markers unsupported, sorry\n"); break;
@@ -214,10 +214,10 @@ int main(int argc, char *argv[])
 
   
   
-  for_less(i,0,num_objects)
+  for(i=0; i<num_objects; i++)
     delete_object(list_of_objs[i]);
 
-  for_less(i,0,num_objects2)
+  for(i=0; i<num_objects2; i++)
     delete_object(list_of_objs2[i]);
   
   exit(EXIT_SUCCESS);

@@ -17,14 +17,14 @@
 /* function prototypes */
 
 void parse_arguments(int argc, char* argv[]);
-void load_volume(char *, Volume * );
-void create_empty_crisp_volume(Volume volume_example);
-void scan_fuzzy_volumes(Volume in_vol, char* label, Volume max_vol, Volume crisp_vol);
+void load_volume(char *, VIO_Volume * );
+void create_empty_crisp_volume(VIO_Volume volume_example);
+void scan_fuzzy_volumes(VIO_Volume in_vol, char* label, VIO_Volume max_vol, VIO_Volume crisp_vol);
 void write_crisp_volume(void);
 
 /* global variables */
 
-Status     status;
+VIO_Status     status;
 int        verbose = FALSE;
 int        clobber = FALSE;
 int        debug = 0;
@@ -33,14 +33,14 @@ char       **fuzzy_label;
 char       **input_filename;
 int        fuzzy_vol_index = 0;           /* index into fuzzy vol array */
 
-Volume     in_volume, max_volume, crisp_volume;
+VIO_Volume     in_volume, max_volume, crisp_volume;
 int        num_volumes;
 int        max_class_index = 0;           /* highest label value */
 char       *crisp_vol_filename;           /* name of the crisp volume */
 int        fuzz_vol;                      /* index to  number of fuzzy volumes */
 int        block_sizes[3] = { 1, -1, -1}; /* set the block size for slice access */
 
-int        first_volume_sizes[MAX_DIMENSIONS];       /* 1D array to hold sizes for 1st vol */
+int        first_volume_sizes[VIO_MAX_DIMENSIONS];       /* 1D array to hold sizes for 1st vol */
 int        first_volume_num_dims;     /* to hold num of dimensions */
 char       **first_volume_dim_names;  /* 1D array of char* to hold the dim names */
 char       *history;          /* command line added to volume's history */
@@ -88,9 +88,9 @@ int main(int argc, char *argv[])
 
                                 /* init the discrete crisp volume */
    create_empty_crisp_volume(in_volume);
-   for_less(i,0,first_volume_sizes[0])
-      for_less(j,0,first_volume_sizes[1])
-         for_less(k,0,first_volume_sizes[2])
+   for(i=0; i<first_volume_sizes[0]; i++)
+      for(j=0; j<first_volume_sizes[1]; j++)
+         for(k=0; k<first_volume_sizes[2]; k++)
             set_volume_real_value(crisp_volume,
                                   i,j,k,0,0, 0.0);
 
@@ -99,9 +99,9 @@ int main(int argc, char *argv[])
                                        NC_FLOAT,
                                        FALSE,
                                        0.0, 0.0 );
-   for_less(i,0,first_volume_sizes[0])
-      for_less(j,0,first_volume_sizes[1])
-         for_less(k,0,first_volume_sizes[2])
+   for(i=0; i<first_volume_sizes[0]; i++)
+      for(j=0; j<first_volume_sizes[1]; j++)
+         for(k=0; k<first_volume_sizes[2]; k++)
             set_volume_real_value(max_volume,
                                   i,j,k,0,0, 0.0);
 
@@ -111,7 +111,7 @@ int main(int argc, char *argv[])
 
   /* allocate memory for first volume sizes */
    
-   for_less ( fuzz_vol, 1, num_volumes ) {
+   for(fuzz_vol=1; fuzz_vol<num_volumes; fuzz_vol++) {
 
       fuzzy_vol_index++;
       load_volume( input_filename[fuzz_vol], &in_volume );
@@ -157,10 +157,10 @@ void parse_arguments(int argc, char* argv[])
   /* Call ParseArgv */
   if ( ParseArgv(&argc, argv, argTable, 0) || (argc < 2 )) {
     (void) fprintf(stderr, 
-		   "\nUsage: %s <options> <infile> <class> ... \n", 
-		   argv[0]);
+                   "\nUsage: %s <options> <infile> <class> ... \n", 
+                   argv[0]);
     (void) fprintf(stderr,   
-		   "       %s [-help]\n\n", argv[0]);
+                   "       %s [-help]\n\n", argv[0]);
     exit(EXIT_FAILURE);
   }
 
@@ -205,7 +205,7 @@ void parse_arguments(int argc, char* argv[])
 
   ALLOC( fuzzy_label, num_volumes );
 
-  for_less ( k, 0, num_volumes) {
+  for(k=0; k<num_volumes; k++) {
     
     if (!file_exists(argv[(k*m)+1])) {
 
@@ -224,13 +224,13 @@ void parse_arguments(int argc, char* argv[])
       fprintf( stdout, "fuzzy_label[%d] = %s\n", k, fuzzy_label[k]);
     }
     
-  } /* for_less ( k...) */
+for(=; <; ++)
 
   /* determine the maximum label value input by user */
-  for_less ( k, 0, num_volumes ) {
+  for(k=0; k<num_volumes; k++) {
 
     if ( max_class_index < atoi(fuzzy_label[k]) ) 
-	max_class_index = atoi(fuzzy_label[k]);
+        max_class_index = atoi(fuzzy_label[k]);
   }
 
 } /* parse_arguments() */
@@ -249,7 +249,7 @@ void parse_arguments(int argc, char* argv[])
 @CREATED    : Feb. 28, 1995 (Vasco KOLLOKIAN)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-void load_volume(char *in_filename, Volume *volume)
+void load_volume(char *in_filename, VIO_Volume *volume)
 {
 
 
@@ -260,8 +260,8 @@ void load_volume(char *in_filename, Volume *volume)
 
   /* load the volume */
   status = input_volume( in_filename, 3, NULL, NC_UNSPECIFIED, 
-			FALSE, 0.0, 0.0,
-			(fuzzy_vol_index >= 1 ? FALSE: TRUE), volume, (minc_input_options *) NULL ) ;
+                        FALSE, 0.0, 0.0,
+                        (fuzzy_vol_index >= 1 ? FALSE: TRUE), volume, (minc_input_options *) NULL ) ;
 
   if( status != OK )
     exit(EXIT_FAILURE);
@@ -280,8 +280,8 @@ void load_volume(char *in_filename, Volume *volume)
       fprintf(stdout, "Vol number of dims. = %d\n", first_volume_num_dims);
       
       fprintf(stdout, "Vol dimension names = ");
-      for_less ( k, 0, first_volume_num_dims ) 
-	fprintf(stdout, "%s ", first_volume_dim_names[k]);
+      for(k=0; k<first_volume_num_dims; k++) 
+        fprintf(stdout, "%s ", first_volume_dim_names[k]);
       fprintf(stdout, "\n");
       
     }
@@ -317,14 +317,14 @@ void load_volume(char *in_filename, Volume *volume)
 @CREATED    : Aug 25, 1996 (Vasco KOLLOKIAN)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-void scan_fuzzy_volumes(Volume in_vol, char* label, Volume max_vol, Volume crisp_vol)
+void scan_fuzzy_volumes(VIO_Volume in_vol, char* label, VIO_Volume max_vol, VIO_Volume crisp_vol)
 {
 
   int v1, v2, v3, j;
 
-  Real max_fuzzy_val;      /* var to hold the highest fuzzy value */
+  VIO_Real max_fuzzy_val;      /* var to hold the highest fuzzy value */
   int  class_val;          /* var to hold the corresponding class label */ 
-  Real fuzzy_value;        /* var to hold the current fuzzy value */
+  VIO_Real fuzzy_value;        /* var to hold the current fuzzy value */
 
 
   class_val = atoi(label);
@@ -334,20 +334,20 @@ void scan_fuzzy_volumes(Volume in_vol, char* label, Volume max_vol, Volume crisp
 
 
   /* take the size of volume 0, since they should all be the same */
-  for_less (v1, 0, first_volume_sizes[0]) {
+  for(v1=0; v1<first_volume_sizes[0]; v1++) {
 
     if ( verbose ) 
       write(2,"*",1);
 
-    for_less (v2, 0, first_volume_sizes[1]) {
+    for(v2=0; v2<first_volume_sizes[1]; v2++) {
 
       if ( debug > 10 )
-	write(2,"-",1);
+        write(2,"-",1);
       
-      for_less (v3, 0, first_volume_sizes[2]) {
+      for(v3=0; v3<first_volume_sizes[2]; v3++) {
 
-	if ( debug >= 20 )
-	  write(2,"+",1);
+        if ( debug >= 20 )
+          write(2,"+",1);
 
         fuzzy_value   = get_volume_real_value(in_vol,  v1, v2, v3, 0, 0);
         
@@ -356,7 +356,7 @@ void scan_fuzzy_volumes(Volume in_vol, char* label, Volume max_vol, Volume crisp
         
         if ( max_fuzzy_val <  fuzzy_value ) {
            
-           set_volume_real_value(crisp_vol, v1, v2, v3, 0, 0, (Real)class_val);
+           set_volume_real_value(crisp_vol, v1, v2, v3, 0, 0, (VIO_Real)class_val);
            set_volume_real_value(max_vol,   v1, v2, v3, 0, 0, fuzzy_value);
                                 
         }
@@ -383,7 +383,7 @@ void scan_fuzzy_volumes(Volume in_vol, char* label, Volume max_vol, Volume crisp
 @CREATED    : February 6, 1995 (Vasco KOLLOKIAN)
 @MODIFIED   : 
 -------------------------------------------------------------------------- */
-void create_empty_crisp_volume(Volume volume_example)
+void create_empty_crisp_volume(VIO_Volume volume_example)
 {
 
   /* create the classification volume here */   
@@ -396,10 +396,10 @@ void create_empty_crisp_volume(Volume volume_example)
   crisp_volume = copy_volume_definition(volume_example,
                                         NC_BYTE,
                                         FALSE,
-                                        0.0, (Real) max_class_index );
+                                        0.0, (VIO_Real) max_class_index );
 
-  set_volume_voxel_range(crisp_volume, 0.0, (Real) max_class_index );
-  set_volume_real_range(crisp_volume,  0.0, (Real) max_class_index );
+  set_volume_voxel_range(crisp_volume, 0.0, (VIO_Real) max_class_index );
+  set_volume_real_range(crisp_volume,  0.0, (VIO_Real) max_class_index );
 
 
 
@@ -418,7 +418,7 @@ void create_empty_crisp_volume(Volume volume_example)
 @CREATED    : Feb 10, 1996 (Vasco KOLLOKIAN)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-int volume_size_is_ok( Volume loaded_volume) 
+int volume_size_is_ok( VIO_Volume loaded_volume) 
 {
 
 
@@ -427,7 +427,7 @@ int volume_size_is_ok( Volume loaded_volume)
   STRING *loaded_volume_dim_names;
   
   /* allocate memory for first volume sizes */
-  ALLOC(loaded_volume_sizes, MAX_DIMENSIONS); 
+  ALLOC(loaded_volume_sizes, VIO_MAX_DIMENSIONS); 
 
   /* get dim size, nums, order */
   get_volume_sizes(loaded_volume, loaded_volume_sizes);
@@ -441,7 +441,7 @@ int volume_size_is_ok( Volume loaded_volume)
     fprintf(stdout, "Vol number of dims. = %d\n", loaded_volume_num_dims);
     
     fprintf(stdout, "Vol dimension names = ");
-    for_less ( k, 0, loaded_volume_num_dims ) 
+    for(k=0; k<loaded_volume_num_dims; k++) 
       fprintf(stdout, "%s ", loaded_volume_dim_names[k]);
     fprintf(stdout, "\n");
     
@@ -458,21 +458,21 @@ int volume_size_is_ok( Volume loaded_volume)
 
      
   /* check for volume size mismatches */
-  if (loaded_volume_sizes[X] != first_volume_sizes[X]) {
+  if (loaded_volume_sizes[VIO_X] != first_volume_sizes[VIO_X]) {
 
-    (void) fprintf(stderr,"Error - Volume size mismatch in X dimension ");
+    (void) fprintf(stderr,"Error - VIO_Volume size mismatch in X dimension ");
     return FALSE;
   }
 
-  if (loaded_volume_sizes[Y] != first_volume_sizes[Y]) {
+  if (loaded_volume_sizes[VIO_Y] != first_volume_sizes[VIO_Y]) {
 
-    (void) fprintf(stderr,"Error - Volume size mismatch in Y dimension ");
+    (void) fprintf(stderr,"Error - VIO_Volume size mismatch in Y dimension ");
     return FALSE;
   }
 
-  if (loaded_volume_sizes[Z] != first_volume_sizes[Z]) {
+  if (loaded_volume_sizes[VIO_Z] != first_volume_sizes[VIO_Z]) {
 
-    (void) fprintf(stderr,"Error - Volume size mismatch in Z dimension ");
+    (void) fprintf(stderr,"Error - VIO_Volume size mismatch in Z dimension ");
     return FALSE;
   }
 
@@ -551,3 +551,4 @@ void write_crisp_volume(void)
                               
 
 } /* write_crisp_volume */
+

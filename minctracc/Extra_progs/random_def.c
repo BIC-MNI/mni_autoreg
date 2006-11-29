@@ -8,7 +8,10 @@
 
 @CREATED    : Tue Oct 24 14:22:51 MET 1995 Collins
 @MODIFIED   : $Log: random_def.c,v $
-@MODIFIED   : Revision 1.3  2005-07-20 20:45:46  rotor
+@MODIFIED   : Revision 1.4  2006-11-29 09:09:31  rotor
+@MODIFIED   :  * first bunch of changes for minc 2.0 compliance
+@MODIFIED   :
+@MODIFIED   : Revision 1.3  2005/07/20 20:45:46  rotor
 @MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
 @MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
 @MODIFIED   :     * Removed old VOLUME_IO cruft #defines
@@ -47,7 +50,7 @@ static char rcsid[]="$Header:";
 
 
 
-void get_volume_XYZV_indices(Volume data, int xyzv[])
+void get_volume_XYZV_indices(VIO_Volume data, int xyzv[])
 {
   
   int 
@@ -58,8 +61,8 @@ void get_volume_XYZV_indices(Volume data, int xyzv[])
   vol_dims       = get_volume_n_dimensions(data);
   data_dim_names = get_volume_dimension_names(data);
  
-  for_less(i,0,N_DIMENSIONS+1) xyzv[i] = -1;
-  for_less(i,0,vol_dims) {
+  for(i=0; i<N_DIMENSIONS+1; i++) xyzv[i] = -1;
+  for(i=0; i<vol_dims; i++) {
     if (convert_dim_name_to_spatial_axis(data_dim_names[i], &axis )) {
       xyzv[axis] = i; 
     } 
@@ -73,34 +76,34 @@ void get_volume_XYZV_indices(Volume data, int xyzv[])
 
 time_t time(time_t *tloc);
 
-Real uniform_random_in_range(Real min, Real max);
-Real gaussian_random_w_std(Real sigma);
+VIO_Real uniform_random_in_range(VIO_Real min, VIO_Real max);
+VIO_Real gaussian_random_w_std(VIO_Real sigma);
 
 /* Main program */
 char *prog_name;
 
 int main(int argc, char *argv[])
 {
-   General_transform 
+   VIO_General_transform 
      transform, 
      random_trans, 
      *grid_transform_ptr, 
      forward_transform;
-   Volume 
+   VIO_Volume 
      volume;
-   Real
+   VIO_Real
      variability,
      upper_limit, lower_limit,
-     voxel[MAX_DIMENSIONS],
-     def_values[MAX_DIMENSIONS];
+     voxel[VIO_MAX_DIMENSIONS],
+     def_values[VIO_MAX_DIMENSIONS];
    int 
      prog_count,
-     sizes[MAX_DIMENSIONS],
-     xyzv[MAX_DIMENSIONS],
-     index[MAX_DIMENSIONS],
+     sizes[VIO_MAX_DIMENSIONS],
+     xyzv[VIO_MAX_DIMENSIONS],
+     index[VIO_MAX_DIMENSIONS],
      i,j,k,
      trans_count;
-   progress_struct
+   VIO_progress_struct
      progress;
 
    prog_name = argv[0];
@@ -133,7 +136,7 @@ int main(int argc, char *argv[])
      grid_transform_ptr = get_nth_general_transform(&transform, trans_count );
      trans_count++;
    } while ((grid_transform_ptr->type != GRID_TRANSFORM) &&
-	    (trans_count < get_n_concated_transforms(&transform)));
+            (trans_count < get_n_concated_transforms(&transform)));
    
    if (grid_transform_ptr->type != GRID_TRANSFORM) {
       (void) fprintf(stderr, "Error: no deformation field to use as template in\n");
@@ -151,45 +154,45 @@ int main(int argc, char *argv[])
    set_volume_real_range(volume, lower_limit, upper_limit);
 
 
-   for_less(i,0,MAX_DIMENSIONS) index[i] = 0;
+   for(i=0; i<MAX_DIMENSIONS; i++) index[i] = 0;
 
-				/* initialize drand function */
+                                /* initialize drand function */
    init_random();
 
-   for_less( index[ xyzv[X] ], 0, sizes[ xyzv[X] ])
-     for_less( index[ xyzv[Y] ], 0, sizes[ xyzv[Y] ])
-       for_less( index[ xyzv[Z] ], 0, sizes[ xyzv[Z] ]) 
-	 for_less(index[ xyzv[Z+1] ],0,3)
-	   set_volume_real_value(volume,
-				 index[0],index[1],index[2],index[3],index[4],
-				 0.0);
+   for(index[xyzv[VIO_X]]=0; index[xyzv[VIO_X]]<sizes[xyzv[VIO_X]]; index[xyzv[VIO_X]]++)
+     for(index[xyzv[VIO_Y]]=0; index[xyzv[VIO_Y]]<sizes[xyzv[VIO_Y]]; index[xyzv[VIO_Y]]++)
+       for(index[xyzv[VIO_Z]]=0; index[xyzv[VIO_Z]]<sizes[xyzv[VIO_Z]]; index[xyzv[VIO_Z]]++) 
+         for(index[xyzv[Z+1]]=0; index[xyzv[Z+1]]<3; index[xyzv[Z+1]]++)
+           set_volume_real_value(volume,
+                                 index[0],index[1],index[2],index[3],index[4],
+                                 0.0);
    
 
    initialize_progress_report(&progress, FALSE, 
-			      sizes[xyzv[X]]*sizes[xyzv[Y]]*sizes[xyzv[Z]]+1,
-			      "Randomizing def field");
+                              sizes[xyzv[VIO_X]]*sizes[xyzv[VIO_Y]]*sizes[xyzv[VIO_Z]]+1,
+                              "Randomizing def field");
    prog_count = 0;
 
-   for_less( index[ xyzv[X] ], 1, sizes[ xyzv[X] ]-1)
-     for_less( index[ xyzv[Y] ], 1, sizes[ xyzv[Y] ]-1)
-       for_less( index[ xyzv[Z] ], 1, sizes[ xyzv[Z] ]-1) {
-	     
-	 for_inclusive(i,X,Z) {
-	   def_values[i] = gaussian_random_w_std(variability);
-	   if (def_values[i] < lower_limit)
-	     def_values[i] = lower_limit;
-	   if (def_values[i] > upper_limit)
-	     def_values[i] = upper_limit;
-	 }
- 	  /*or: variablity * uniform_random_in_range(-1.0, 1.0);*/
-	 
-	 for_less(index[ xyzv[Z+1] ],0,3)
-	   set_volume_real_value(volume,
-				 index[0],index[1],index[2],index[3],index[4],
-				 def_values[ index[ xyzv[Z+1] ]]);
-	 
-	 prog_count++;
-	 update_progress_report(&progress, prog_count);
+   for(index[xyzv[VIO_X]]=1; index[xyzv[VIO_X]]<sizes[xyzv[VIO_X]]-1; index[xyzv[VIO_X]]++)
+     for(index[xyzv[VIO_Y]]=1; index[xyzv[VIO_Y]]<sizes[xyzv[VIO_Y]]-1; index[xyzv[VIO_Y]]++)
+       for(index[xyzv[VIO_Z]]=1; index[xyzv[VIO_Z]]<sizes[xyzv[VIO_Z]]-1; index[xyzv[VIO_Z]]++) {
+             
+         for(i=X; i<=Z; i++) {
+           def_values[i] = gaussian_random_w_std(variability);
+           if (def_values[i] < lower_limit)
+             def_values[i] = lower_limit;
+           if (def_values[i] > upper_limit)
+             def_values[i] = upper_limit;
+         }
+           /*or: variablity * uniform_random_in_range(-1.0, 1.0);*/
+         
+         for(index[xyzv[Z+1]]=0; index[xyzv[Z+1]]<3; index[xyzv[Z+1]]++)
+           set_volume_real_value(volume,
+                                 index[0],index[1],index[2],index[3],index[4],
+                                 def_values[ index[ xyzv[Z+1] ]]);
+         
+         prog_count++;
+         update_progress_report(&progress, prog_count);
        }
    
    terminate_progress_report(&progress);

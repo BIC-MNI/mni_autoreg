@@ -15,7 +15,10 @@
 
 @CREATED    : February 23, 1996
 @MODIFIED   : $Log: stats.h,v $
-@MODIFIED   : Revision 1.5  2004-02-12 05:54:16  rotor
+@MODIFIED   : Revision 1.6  2006-11-29 09:09:32  rotor
+@MODIFIED   :  * first bunch of changes for minc 2.0 compliance
+@MODIFIED   :
+@MODIFIED   : Revision 1.5  2004/02/12 05:54:16  rotor
 @MODIFIED   :  * removed public/private defs
 @MODIFIED   :
 @MODIFIED   : Revision 1.4  2002/12/13 21:09:45  lenezet
@@ -40,35 +43,35 @@
 typedef  struct
 {
   char   name[512];
-  Real   mean;
-  Real   standard_deviation;
-  Real   variance;
-  Real   rms;
-  Real   sum;
-  Real   sum_squared;
+  VIO_Real   mean;
+  VIO_Real   standard_deviation;
+  VIO_Real   variance;
+  VIO_Real   rms;
+  VIO_Real   sum;
+  VIO_Real   sum_squared;
   int    count;
-  Real   max_val;
-  Real   min_val;
+  VIO_Real   max_val;
+  VIO_Real   min_val;
 } stats_struct;
 
 void init_stats(stats_struct *stat,
-		  char         title[]);
+                  char         title[]);
 
 void tally_stats(stats_struct *stat,
-		   Real         val);
+                   VIO_Real         val);
 
 void report_stats(stats_struct *stat);
 
 void stat_title(void);
 
 
-Real stat_get_mean(stats_struct *stat);
+VIO_Real stat_get_mean(stats_struct *stat);
 
-Real stat_get_rms(stats_struct *stat);
+VIO_Real stat_get_rms(stats_struct *stat);
 
-Real stat_get_standard_deviation(stats_struct *stat);
+VIO_Real stat_get_standard_deviation(stats_struct *stat);
 
-Real stat_get_variance(stats_struct *stat);
+VIO_Real stat_get_variance(stats_struct *stat);
 
 int stat_get_count(stats_struct *stat);
 

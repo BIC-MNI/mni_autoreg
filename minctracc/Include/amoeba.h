@@ -3,17 +3,17 @@
 
 #include  <volume_io.h>
 
-typedef  Real    (*amoeba_function) ( void *, float [] );
+typedef  VIO_Real    (*amoeba_function) ( void *, float [] );
 
 typedef  struct
 {
     int               n_parameters;
     float             **parameters;
-    Real              *values;
+    VIO_Real              *values;
     amoeba_function   function;
     void              *function_data;
-    Real              tolerance;
-    Real              *sum;
+    VIO_Real              tolerance;
+    VIO_Real              *sum;
     int               n_steps_no_improvement;
 } amoeba_struct;
 

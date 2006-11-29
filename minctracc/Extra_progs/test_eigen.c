@@ -9,7 +9,10 @@
 @CALLS      : 
 @CREATED    : Mon Sep 25 08:45:43 MET 1995
 @MODIFIED   : $Log: test_eigen.c,v $
-@MODIFIED   : Revision 1.4  2005-07-20 20:45:47  rotor
+@MODIFIED   : Revision 1.5  2006-11-29 09:09:31  rotor
+@MODIFIED   :  * first bunch of changes for minc 2.0 compliance
+@MODIFIED   :
+@MODIFIED   : Revision 1.4  2005/07/20 20:45:47  rotor
 @MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
 @MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
 @MODIFIED   :     * Removed old VOLUME_IO cruft #defines
@@ -40,7 +43,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/test_eigen.c,v 1.4 2005-07-20 20:45:47 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/test_eigen.c,v 1.5 2006-11-29 09:09:31 rotor Exp $";
 #endif
 
 #include <volume_io.h>
@@ -51,32 +54,32 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #  define FALSE 0
 #endif
 
-#define VERY_SMALL_EPS 0.0001	/* this is data dependent! */
+#define VERY_SMALL_EPS 0.0001        /* this is data dependent! */
 
-BOOLEAN return_local_eigen(Real r[3][3][3],
-				  Real dir_1[3],
-				  Real dir_2[3],
-				  Real dir_3[3],
-				  Real val[3]);
+VIO_BOOL return_local_eigen(VIO_Real r[3][3][3],
+                                  VIO_Real dir_1[3],
+                                  VIO_Real dir_2[3],
+                                  VIO_Real dir_3[3],
+                                  VIO_Real val[3]);
 
-BOOLEAN return_local_eigen_from_hessian(Real r[3][3][3],
-				  Real dir_1[3],
-				  Real dir_2[3],
-				  Real dir_3[3],
-				  Real val[3]);
+VIO_BOOL return_local_eigen_from_hessian(VIO_Real r[3][3][3],
+                                  VIO_Real dir_1[3],
+                                  VIO_Real dir_2[3],
+                                  VIO_Real dir_3[3],
+                                  VIO_Real val[3]);
 
-BOOLEAN return_3D_disp_from_quad_fit(Real r[3][3][3], 
-					    Real *dispu, 
-					    Real *dispv, 
-					    Real *dispw);	
+VIO_BOOL return_3D_disp_from_quad_fit(VIO_Real r[3][3][3], 
+                                            VIO_Real *dispu, 
+                                            VIO_Real *dispv, 
+                                            VIO_Real *dispw);        
 
-BOOLEAN return_3D_disp_from_min_quad_fit(Real r[3][3][3], 
-						Real *dispu, 
-						Real *dispv, 
-						Real *dispw);	
+VIO_BOOL return_3D_disp_from_min_quad_fit(VIO_Real r[3][3][3], 
+                                                VIO_Real *dispu, 
+                                                VIO_Real *dispv, 
+                                                VIO_Real *dispw);        
 
 
-void setup_val(Real val[3][3][3]) {
+void setup_val(VIO_Real val[3][3][3]) {
   int i,j,k;
 
 /*
@@ -106,12 +109,12 @@ void setup_val(Real val[3][3][3]) {
   val[0][2][2] = 0.7;  val[1][2][2] = 0.6;  val[2][2][2] = 0.7;
 
 
-  for_inclusive(i,0,2)
-    for_inclusive(j,0,2)
-      for_inclusive(k,0,2) 
-	val[i][j][k] = 1.0;
+  for(i=0; i<=2; i++)
+    for(j=0; j<=2; j++)
+      for(k=0; k<=2; k++) 
+        val[i][j][k] = 1.0;
 
-  for_inclusive(i,0,2) {
+  for(i=0; i<=2; i++) {
     val[0][0][i] *= 1.21;
     val[0][1][i] *= 1.2;
     val[0][2][i] *= 1.21;
@@ -124,15 +127,15 @@ void setup_val(Real val[3][3][3]) {
 
 }
 
-print_val(Real r[3][3][3]) 
+print_val(VIO_Real r[3][3][3]) 
 {
   int u,v,w;
 
   print ("input data:\n");
-  for_less(v,0,3) {
-    for_less(w,0,3) {
-      for_less(u,0,3)
-	print ("%5.3f ",r[u][v][w]);
+  for(v=0; v<3; v++) {
+    for(w=0; w<3; w++) {
+      for(u=0; u<3; u++)
+        print ("%5.3f ",r[u][v][w]);
       print ("    ");
     } 
     print ("\n");
@@ -141,16 +144,16 @@ print_val(Real r[3][3][3])
 
 }
 
-BOOLEAN return_principal_directions(Real r[3][3][3],
-					   Real dir_1[3],
-					   Real dir_2[3],
-					   Real *r_K,
-					   Real *r_S,
-					   Real *r_k1,
-					   Real *r_k2,
-					   Real *r_norm,
-					   Real *r_Lvv,
-					   Real eps);
+VIO_BOOL return_principal_directions(VIO_Real r[3][3][3],
+                                           VIO_Real dir_1[3],
+                                           VIO_Real dir_2[3],
+                                           VIO_Real *r_K,
+                                           VIO_Real *r_S,
+                                           VIO_Real *r_k1,
+                                           VIO_Real *r_k2,
+                                           VIO_Real *r_norm,
+                                           VIO_Real *r_Lvv,
+                                           VIO_Real eps);
 
 
 char *prog_name;
@@ -158,7 +161,7 @@ char *prog_name;
 int main(int argc, char *argv[])
 {
 
-  Real 
+  VIO_Real 
     tmp, max_val, min_val, intensity_threshold,
     max_val_x, max_val_y, max_val_z,
     min_val_x, min_val_y, min_val_z,
@@ -182,10 +185,10 @@ int main(int argc, char *argv[])
   }
 
 
-		/* eigen value analysis on Hessian */
+                /* eigen value analysis on Hessian */
 
   print ("\n***************** Eigen value analysis on Hessian matrix\n");
-  for_less(i,0,3)  {
+  for(i=0; i<3; i++)  {
     dir_min[i] = dir_mid[i] = dir_max[i] = dir_vals[i] = -1000000.0;
   }
   setup_val(val);
@@ -198,12 +201,12 @@ int main(int argc, char *argv[])
     print ("flag is False (covar is not pos semidef, or no eigen vals found)\n");
 
   print ("val:");
-  for_less(i,0,3)
+  for(i=0; i<3; i++)
     print ("%12.8f ",dir_vals[i]);
   print ("\n");
 
   print ("vecs:\n");
-  for_less(i,0,3) 
+  for(i=0; i<3; i++) 
     print ("     %12.8f %12.8f %12.8f\n",dir_min[i], dir_mid[i],dir_max[i]);
 
   if (flag) {
@@ -219,11 +222,11 @@ int main(int argc, char *argv[])
 
 
 
-		/* eigen value analysis on intensities */
+                /* eigen value analysis on intensities */
 
   print ("\n***************** Eigen value analysis on intensities\n");
 
-  for_less(i,0,3)  {
+  for(i=0; i<3; i++)  {
     dir_min[i] = dir_mid[i] = dir_max[i] = dir_vals[i] = -1000000.0;
   }
 
@@ -232,11 +235,11 @@ int main(int argc, char *argv[])
 
   if (flag) print ("flag is True\n"); else print ("flag is False\n");
 
-  for_less(i,0,3)
+  for(i=0; i<3; i++)
     print ("%12.8f ",dir_vals[i]);
   print ("\n");
 
-  for_less(i,0,3) 
+  for(i=0; i<3; i++) 
     print ("%12.8f %12.8f %12.8f\n",dir_min[i], dir_mid[i],dir_max[i]);
 
 
@@ -244,31 +247,31 @@ int main(int argc, char *argv[])
     
   print ("\n***************** Principal direction analysis\n");
 
-  for_less(i,0,3)  {
+  for(i=0; i<3; i++)  {
     dir_min[i] = dir_mid[i] = dir_max[i] = dir_vals[i] = -1000000;
   }
   setup_val(val);
 
   flag = return_principal_directions(val,dir_mid,dir_min, &K, &S, 
-				     &k1, &k2, dir_max, &Lvv, 0.0000001);
+                                     &k1, &k2, dir_max, &Lvv, 0.0000001);
   
   dir_vals[0] = k2;
   dir_vals[1] = k1;
   dir_vals[2] = sqrt(dir_max[0]*dir_max[0] + 
-		     dir_max[1]*dir_max[1] + 
-		     dir_max[2]*dir_max[2]);
+                     dir_max[1]*dir_max[1] + 
+                     dir_max[2]*dir_max[2]);
   
   if (dir_vals[2] > 0.0) {
-    for_less(i,0,3)
+    for(i=0; i<3; i++)
       dir_max[i] /= dir_vals[2];
   }
   
   if (flag) print ("flag is True\n"); else print ("flag is False\n");
-  for_less(i,0,3)
+  for(i=0; i<3; i++)
     print ("%12.8f ",dir_vals[i]);
   print ("\n");
 
-  for_less(i,0,3) 
+  for(i=0; i<3; i++) 
     print ("%12.8f %12.8f %12.8f\n",dir_min[i], dir_mid[i],dir_max[i]);
 
 

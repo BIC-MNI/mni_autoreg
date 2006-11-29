@@ -8,13 +8,13 @@ time_t time(time_t *tloc);
 
 char *prog_name;
 
-BOOLEAN eigen(double **inputMat, int ndim, 
-		     double *eigen_val, double **eigen_vec, 
-		     int    *iters);
+VIO_BOOL eigen(double **inputMat, int ndim, 
+                     double *eigen_val, double **eigen_vec, 
+                     int    *iters);
 
 main(int argc, char *argv[]) {
 
-  Real
+  VIO_Real
     **mat, **mat_saved,**mat_input, *eig_val, **eig_vec, **diag_val,
     temp;
   int
@@ -62,8 +62,8 @@ main(int argc, char *argv[]) {
   mat_input[2][3] = mat_input[3][2] = drand48();
   
 
-  for_inclusive(i,1,3) {
-    for_inclusive(j,1,3)
+  for(i=1; i<=3; i++) {
+    for(j=1; j<=3; j++)
       print ("%10.6f ",mat_input[i][j]);
     print ("\n");
   }
@@ -93,20 +93,20 @@ main(int argc, char *argv[]) {
     mat_input[1][2] = mat_input[2][1] = drand48();
     
     
-    for_inclusive(i,0,2) 
-      for_inclusive(j,0,2) 
-	mat_saved[i][j]=mat_input[i][j];
+    for(i=0; i<=2; i++) 
+      for(j=0; j<=2; j++) 
+        mat_saved[i][j]=mat_input[i][j];
 
     flag = (mat_input[0][0]>0.0 &&
-	    (mat_input[0][0]*mat_input[1][1] - mat_input[0][1]*mat_input[1][0])>0 &&
-	    ((mat_input[0][0] * (mat_input[1][1]*mat_input[2][2] - mat_input[1][2]*mat_input[2][1])) -
-	     (mat_input[0][1] * (mat_input[1][0]*mat_input[2][2] - mat_input[1][2]*mat_input[2][0])) +
-	     (mat_input[0][2] * (mat_input[1][0]*mat_input[2][1] - mat_input[1][1]*mat_input[2][0]))
-	     ) > 0.0
-	    );
+            (mat_input[0][0]*mat_input[1][1] - mat_input[0][1]*mat_input[1][0])>0 &&
+            ((mat_input[0][0] * (mat_input[1][1]*mat_input[2][2] - mat_input[1][2]*mat_input[2][1])) -
+             (mat_input[0][1] * (mat_input[1][0]*mat_input[2][2] - mat_input[1][2]*mat_input[2][0])) +
+             (mat_input[0][2] * (mat_input[1][0]*mat_input[2][1] - mat_input[1][1]*mat_input[2][0]))
+             ) > 0.0
+            );
     
     (void)eigen(mat_saved, 3, 
-		eig_val, eig_vec, &iters); 
+                eig_val, eig_vec, &iters); 
     
     if (flag) {
       counter++;
@@ -115,77 +115,77 @@ main(int argc, char *argv[]) {
 
     if ( !flag && eig_val[0]>0.0 &&eig_val[1]>0.0 &&eig_val[2]>0.0 ) {
       
-      for_inclusive(i,0,2) {
-	for_inclusive(j,0,2) {
-	  print ("%10.6f ",mat_input[i][j]);
-	  mat[i][j] = mat_input[i][j];
-	}
-	print ("\n");
+      for(i=0; i<=2; i++) {
+        for(j=0; j<=2; j++) {
+          print ("%10.6f ",mat_input[i][j]);
+          mat[i][j] = mat_input[i][j];
+        }
+        print ("\n");
       }
       
       if (flag) 
-	print ("positive def\n");
+        print ("positive def\n");
       else
-	print ("not positive def\n");
+        print ("not positive def\n");
 
       
       print ("iters: %d\n",iters);
-      for_inclusive(i,0,2) {
-	for_inclusive(j,0,2) {
-	  if (i==j)
-	    diag_val[i][j] = eig_val[i];
-	  else
-	    diag_val[i][j] = 0.0;
-	}
+      for(i=0; i<=2; i++) {
+        for(j=0; j<=2; j++) {
+          if (i==j)
+            diag_val[i][j] = eig_val[i];
+          else
+            diag_val[i][j] = 0.0;
+        }
       }
       
       
       
-      for_inclusive(i,0,2) {
-	for_inclusive(j,0,2) {
-	  print ("%10.6f ",eig_vec[i][j]);
-	}
-	print ("   ");
-	for_inclusive(j,0,2) {
-	  print ("%10.6f ",diag_val[i][j]);
-	}
-	print ("\n");
+      for(i=0; i<=2; i++) {
+        for(j=0; j<=2; j++) {
+          print ("%10.6f ",eig_vec[i][j]);
+        }
+        print ("   ");
+        for(j=0; j<=2; j++) {
+          print ("%10.6f ",diag_val[i][j]);
+        }
+        print ("\n");
       }
       
       
-      for_inclusive(i,0,2) {
-	for_inclusive(j,0,2) {
-	  mat_input[i][j] = 0.0;
-	  for_inclusive(k,0,2) {
-	    mat_input[i][j] += mat[i][k] * eig_vec[k][j];
-	  }
-	}
+      for(i=0; i<=2; i++) {
+        for(j=0; j<=2; j++) {
+          mat_input[i][j] = 0.0;
+          for(k=0; k<=2; k++) {
+            mat_input[i][j] += mat[i][k] * eig_vec[k][j];
+          }
+        }
       }
       
       print ("input_mat * eig_vec:\n");
-      for_inclusive(i,0,2) {
-	for_inclusive(j,0,2) {
-	  print ("%10.6f ",mat_input[i][j]);
-	}
-	print ("\n");
+      for(i=0; i<=2; i++) {
+        for(j=0; j<=2; j++) {
+          print ("%10.6f ",mat_input[i][j]);
+        }
+        print ("\n");
       }
     
-      for_inclusive(i,0,2) {
-	for_inclusive(j,0,2) {
-	  mat_input[i][j] = 0.0;
-	  for_inclusive(k,0,2) {
-	    mat_input[i][j] += eig_vec[i][k] * diag_val[k][j];
-	  }
-	}
+      for(i=0; i<=2; i++) {
+        for(j=0; j<=2; j++) {
+          mat_input[i][j] = 0.0;
+          for(k=0; k<=2; k++) {
+            mat_input[i][j] += eig_vec[i][k] * diag_val[k][j];
+          }
+        }
       }
       
       print ("eig_vec * diag(eig_val):\n");
       
-      for_inclusive(i,0,2) {
-	for_inclusive(j,0,2) {
-	  print ("%10.6f ",mat_input[i][j]);
-	}
-	print ("\n");
+      for(i=0; i<=2; i++) {
+        for(j=0; j<=2; j++) {
+          print ("%10.6f ",mat_input[i][j]);
+        }
+        print ("\n");
       }
     }
   } while (TRUE);

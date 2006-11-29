@@ -4,54 +4,54 @@
                          by the calling program.
 @OUTPUT     : ang      - vector giving rx,ry and rz rotation angles (in 
                          radians). This vector must be defined by the 
-			 calling routine.
+                         calling routine.
 @RETURNS    : TRUE if ok, FALSE if error.
 @DESCRIPTION: this routine extracts the rotation angles from the rotation
               matrix.  The rotation matrix is assumed to be a 3x3 matrix in
-	      zero offset form [1..3][1..3].  It is locally copied into a 
-	      4x4 homogeneous matrix for manipulation.
+              zero offset form [1..3][1..3].  It is locally copied into a 
+              4x4 homogeneous matrix for manipulation.
 
-	      we assume that the matrix rotation center is (0,0,0).
-	      we assume that the application of this matrix to a vector
-	         is done with rot_mat*vec = premultiplication by matrix
+              we assume that the matrix rotation center is (0,0,0).
+              we assume that the application of this matrix to a vector
+                 is done with rot_mat*vec = premultiplication by matrix
 
-	      the resulting angles rx=ang[1],ry=ang[2],rz=ang[3], follow
-	      the following assumptions:
+              the resulting angles rx=ang[1],ry=ang[2],rz=ang[3], follow
+              the following assumptions:
 
-	      -all rotations are assumed to be in the range -pi/2..pi/2
-	       routine returns FALSE is this is found not to hold
-	      -rotations are applied 1 - rx, 2 - ry and 3 - rz
-	      -applying these rotations to an identity matrix will
+              -all rotations are assumed to be in the range -pi/2..pi/2
+               routine returns FALSE is this is found not to hold
+              -rotations are applied 1 - rx, 2 - ry and 3 - rz
+              -applying these rotations to an identity matrix will
                result in a matrix equal to `rot' (the input matrix)
-	      -positive rotations are counter-clockwise when looking
-	       down the axis, from the positive end towards the origin.
-	      -I assume a coordinate system:
-	                  ^ Y
-	                  |
-	                  |
-	                  |
-			  |
-	                  +---------> X
-	                 /
-	                /
-	               / Z  (towards the viewer).
+              -positive rotations are counter-clockwise when looking
+               down the axis, from the positive end towards the origin.
+              -I assume a coordinate system:
+                          ^ Y
+                          |
+                          |
+                          |
+                          |
+                          +---------> X
+                         /
+                        /
+                       / Z  (towards the viewer).
 
-	      -The problem is posed as:  
-	         given a rotation matrix ROT, determine the rotations
-		 rx,ry,rz applied in order to give ROT
-	       solution:
-	         assume the rot matrix is equivalent to a normalized
-		 orthogonal local coord sys.  i.e.  row 1 of ROT is
-		 the local x direction, row 2 is the local y and row 3
-		 is the local z.
-	     
-		 (note local is lower case, world is UPPER)
+              -The problem is posed as:  
+                 given a rotation matrix ROT, determine the rotations
+                 rx,ry,rz applied in order to give ROT
+               solution:
+                 assume the rot matrix is equivalent to a normalized
+                 orthogonal local coord sys.  i.e.  row 1 of ROT is
+                 the local x direction, row 2 is the local y and row 3
+                 is the local z.
+             
+                 (note local is lower case, world is UPPER)
 
-	         1- find RZ that brings local x into the XZ plane
-		 2- find RY that brings local x*RZ onto X
-		 3- find RX that brings local y*RZ*RY onto Y
+                 1- find RZ that brings local x into the XZ plane
+                 2- find RY that brings local x*RZ onto X
+                 3- find RX that brings local y*RZ*RY onto Y
 
-		 the required rotations are -RX,-RY and -RZ!
+                 the required rotations are -RX,-RY and -RZ!
 
 @GLOBALS    : 
 @CALLS      : mfmult(), rotx(),roty(),rotz()
@@ -68,7 +68,10 @@
 
 @CREATED    : Feb 9, 1992 lc
 @MODIFIED   :  $Log: rotmat_to_ang.c,v $
-@MODIFIED   :  Revision 96.4  2005-07-20 20:45:49  rotor
+@MODIFIED   :  Revision 96.5  2006-11-29 09:09:33  rotor
+@MODIFIED   :   * first bunch of changes for minc 2.0 compliance
+@MODIFIED   :
+@MODIFIED   :  Revision 96.4  2005/07/20 20:45:49  rotor
 @MODIFIED   :      * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
 @MODIFIED   :      * Many changes to includes of files (float.h, limits.h, etc)
 @MODIFIED   :      * Removed old VOLUME_IO cruft #defines
@@ -125,7 +128,7 @@ Tue Jun  8 08:44:59 EST 1993 LC
 
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/rotmat_to_ang.c,v 96.4 2005-07-20 20:45:49 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/rotmat_to_ang.c,v 96.5 2006-11-29 09:09:33 rotor Exp $";
 #endif
 
 
@@ -136,11 +139,11 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 extern char *prog_name;
 
 
-#define EPS  0.00000000001	/* epsilon, should be calculated */
+#define EPS  0.00000000001        /* epsilon, should be calculated */
 
 
 
-BOOLEAN rotmat_to_ang(float **rot, float *ang)
+VIO_BOOL rotmat_to_ang(float **rot, float *ang)
 {
 
    float 
@@ -156,39 +159,39 @@ BOOLEAN rotmat_to_ang(float **rot, float *ang)
    int
       m,n;
 
-   ALLOC2D(t  ,5,5);	/* make two column vectors */
+   ALLOC2D(t  ,5,5);        /* make two column vectors */
    ALLOC2D(s  ,5,5);
 
-   ALLOC2D(R  ,5,5);	/* working space matrices */
+   ALLOC2D(R  ,5,5);        /* working space matrices */
    ALLOC2D(Rx ,5,5);
    ALLOC2D(Ry ,5,5);
    ALLOC2D(Rz ,5,5);
 
-   nr_identf(R,1,4,1,4);	/* init R homogeneous matrix */
+   nr_identf(R,1,4,1,4);        /* init R homogeneous matrix */
 
-   for (m=1; m<=3; ++m)		/* copy rot matrix into R */
+   for (m=1; m<=3; ++m)                /* copy rot matrix into R */
       for (n=1; n<=3; ++n)
-	 R[m][n] = rot[m][n];
+         R[m][n] = rot[m][n];
    
 /* ---------------------------------------------------------------
    step one,  find the RZ rotation reqd to bring 
               the local x into the world XZ plane
 */
 
-   for (m=1; m<=3; ++m)		/* extract local x vector, ie the first column */
+   for (m=1; m<=3; ++m)                /* extract local x vector, ie the first column */
       t[m][1] = R[m][1];
    t[4][1] = 1.0;
 
-   i = t[1][1];			/* make local vector componants */
+   i = t[1][1];                        /* make local vector componants */
    j = t[2][1]; 
    k = t[3][1];
 
-   if (i<EPS) {			/* if i is not already in the positive X range, */
+   if (i<EPS) {                        /* if i is not already in the positive X range, */
       print("WARNING: (%s:%d) %s\n",__FILE__, __LINE__,"step one: rz not in the range -pi/2..pi/2");
       return(FALSE);
    }
 
-   len = sqrt(i*i + j*j);	/* length of vect x on XY plane */
+   len = sqrt(i*i + j*j);        /* length of vect x on XY plane */
    if (ABS(len)<EPS) {
       print("WARNING: (%s:%d) %s\n",__FILE__, __LINE__,"step one: length of vect x null.");
       return(FALSE);
@@ -201,7 +204,7 @@ BOOLEAN rotmat_to_ang(float **rot, float *ang)
       rz = ABS(acos((double)(i/len)));
    }
 
-   if (j>0)			/* what is the counter clockwise angle */
+   if (j>0)                        /* what is the counter clockwise angle */
       rz = -rz;                 /* necessary to bring vect x ont XY plane? */
       
   
@@ -212,7 +215,7 @@ BOOLEAN rotmat_to_ang(float **rot, float *ang)
   (since i was positive above, RY should already by in range -pi/2..pi/2 
   but we'll check it  anyway)                                             */
 
-   for (m=1; m<=3; ++m)		/* extract local x vector */
+   for (m=1; m<=3; ++m)                /* extract local x vector */
       t[m][1] = R[m][1];
    t[4][1] = 1.0;
 
@@ -220,7 +223,7 @@ BOOLEAN rotmat_to_ang(float **rot, float *ang)
  
    nr_multf(Rz,1,4,1,4,  t,1,4,1,1,   s);   /* apply RZ, to get x in XZ plane */
 
-   i = s[1][1];			/* make local vector componants */
+   i = s[1][1];                        /* make local vector componants */
    j = s[2][1]; 
    k = s[3][1];
 
@@ -229,7 +232,7 @@ BOOLEAN rotmat_to_ang(float **rot, float *ang)
       return(FALSE);
    }
 
-   len = sqrt(i*i + k*k);		/* length of vect x in XZ plane, after RZ */
+   len = sqrt(i*i + k*k);                /* length of vect x in XZ plane, after RZ */
 
    if (ABS(len)<EPS) {
       print("WARNING: (%s:%d) %s\n",__FILE__, __LINE__,"step two: length of vect z null.");
@@ -253,21 +256,21 @@ BOOLEAN rotmat_to_ang(float **rot, float *ang)
    /*   step three,rotate around RX to */
    /*              align the local y with Y and z with Z */
 
-   for (m=1; m<=3; ++m)		/* extract local z vector */
+   for (m=1; m<=3; ++m)                /* extract local z vector */
       t[m][1] = R[m][3];
    t[4][1] = 1.0;
 
    nr_rotyf(Ry,ry);             /* create the rotate Y matrix */
 
-				/* t =  roty(ry*180/pi) *(rotz(rz*180/pi) *r(3,:)); */
+                                /* t =  roty(ry*180/pi) *(rotz(rz*180/pi) *r(3,:)); */
    nr_multf(Rz,1,4,1,4,  t,1,4,1,1,  s); /* apply RZ, to get x in XZ plane */
    nr_multf(Ry,1,4,1,4,  s,1,4,1,1,  t); /* apply RY, to get x onto X      */
 
-   i = t[1][1];			/* make local vector componants */
+   i = t[1][1];                        /* make local vector componants */
    j = t[2][1]; 
    k = t[3][1];
 
-   len = sqrt(j*j + k*k);	/* length of vect x in Y,Z plane */
+   len = sqrt(j*j + k*k);        /* length of vect x in Y,Z plane */
 
    if (ABS(len)<EPS) {
       print("WARNING: (%s:%d) %s\n",__FILE__, __LINE__,"step three: length of vect z null.");
@@ -284,7 +287,7 @@ BOOLEAN rotmat_to_ang(float **rot, float *ang)
    if (j< 0) { 
       rx = -rx;
    }
-	
+        
    rx = -rx;  /* these are the required rotations */
    ry = -ry;
    rz = -rz;

@@ -12,7 +12,7 @@
 
 #@CREATED    : Wed Jun 25, 1997, Louis Collins
 #@MODIFIED   : not yet!
-#@VERSION    : $Id: vox_space.c,v 1.8 2005-07-20 20:45:51 rotor Exp $
+#@VERSION    : $Id: vox_space.c,v 1.9 2006-11-29 09:09:34 rotor Exp $
 #----------------------------------------------------------------------------- */
 
 #include <volume_io.h>
@@ -29,7 +29,7 @@ Voxel_space_struct* new_voxel_space_struct(void) {
    
    ALLOC(vox_space->voxel_to_voxel_space, 1);
 
-   create_linear_transform(vox_space->voxel_to_voxel_space, (Transform *)NULL);
+   create_linear_transform(vox_space->voxel_to_voxel_space, (VIO_Transform *)NULL);
 
    return(vox_space);
 }
@@ -43,26 +43,26 @@ void delete_voxel_space_struct( Voxel_space_struct *vox_space) {
 
 }
 
-void build_reorder_matrix_vox2xyz(General_transform *trans, Volume volume) {
+void build_reorder_matrix_vox2xyz(VIO_General_transform *trans, VIO_Volume volume) {
    
    int axis;
-   Transform *lin;
+   VIO_Transform *lin;
 
    lin = get_linear_transform_ptr(trans);
 
-   axis = volume->spatial_axes[X];
+   axis = volume->spatial_axes[VIO_X];
    if( axis >= 0 ) {
       Transform_elem( *lin, 0, axis ) = 1.0;
       Transform_elem( *lin, 1, axis ) = 0.0;
       Transform_elem( *lin, 2, axis ) = 0.0;
    }
-   axis = volume->spatial_axes[Y];
+   axis = volume->spatial_axes[VIO_Y];
    if( axis >= 0 ) {
       Transform_elem( *lin, 0, axis ) = 0.0;
       Transform_elem( *lin, 1, axis ) = 1.0;
       Transform_elem( *lin, 2, axis ) = 0.0;
    }
-   axis = volume->spatial_axes[Z];
+   axis = volume->spatial_axes[VIO_Z];
    if( axis >= 0 ) {
       Transform_elem( *lin, 0, axis ) = 0.0;
       Transform_elem( *lin, 1, axis ) = 0.0;
@@ -71,26 +71,26 @@ void build_reorder_matrix_vox2xyz(General_transform *trans, Volume volume) {
    
 }
 
-void build_reorder_matrix_xyz2vox(General_transform *trans, Volume volume) {
+void build_reorder_matrix_xyz2vox(VIO_General_transform *trans, VIO_Volume volume) {
    
    int axis;
-   Transform *lin;
+   VIO_Transform *lin;
 
    lin = get_linear_transform_ptr(trans);
 
-   axis = volume->spatial_axes[X];
+   axis = volume->spatial_axes[VIO_X];
    if( axis >= 0 ) {
       Transform_elem( *lin, axis, 0 ) = 1.0;
       Transform_elem( *lin, axis, 1 ) = 0.0;
       Transform_elem( *lin, axis, 2 ) = 0.0;
    }
-   axis = volume->spatial_axes[Y];
+   axis = volume->spatial_axes[VIO_Y];
    if( axis >= 0 ) {
       Transform_elem( *lin, axis, 0 ) = 0.0;
       Transform_elem( *lin, axis, 1 ) = 1.0;
       Transform_elem( *lin, axis, 2 ) = 0.0;
    }
-   axis = volume->spatial_axes[Z];
+   axis = volume->spatial_axes[VIO_Z];
    if( axis >= 0 ) {
       Transform_elem( *lin, axis, 0 ) = 0.0;
       Transform_elem( *lin, axis, 1 ) = 0.0;
@@ -101,34 +101,34 @@ void build_reorder_matrix_xyz2vox(General_transform *trans, Volume volume) {
 
 void get_into_voxel_space(Arg_Data *globals,
                                  Voxel_space_struct *vox,
-                                 Volume v1, Volume v2) {
-   Transform 
+                                 VIO_Volume v1, VIO_Volume v2) {
+   VIO_Transform 
       *lin;
-   General_transform 
+   VIO_General_transform 
       *reorder,
       *w2v;
-   Real 
+   VIO_Real 
      sign,
      tx,ty,tz;
    PointR pnt,tmp_pt;
-   Real 
-      voxel_vector[MAX_DIMENSIONS],
-      s_voxel_xyz[MAX_DIMENSIONS],
-      s_voxel[MAX_DIMENSIONS],
-      s_world[N_DIMENSIONS],
-      t_voxel[MAX_DIMENSIONS],
-      t_world[N_DIMENSIONS];
+   VIO_Real 
+      voxel_vector[VIO_MAX_DIMENSIONS],
+      s_voxel_xyz[VIO_MAX_DIMENSIONS],
+      s_voxel[VIO_MAX_DIMENSIONS],
+      s_world[VIO_N_DIMENSIONS],
+      t_voxel[VIO_MAX_DIMENSIONS],
+      t_world[VIO_N_DIMENSIONS];
    int i;
                                 /* take care of the starting coordinate */
    convert_3D_world_to_voxel(v1,
-                             globals->start[X], globals->start[Y], globals->start[Z],
+                             globals->start[VIO_X], globals->start[VIO_Y], globals->start[VIO_Z],
                              &vox->start[0],    &vox->start[1],    &vox->start[2]);
 
                                 /* take care of the directions required to step
                                    through the volume */
 
 
-   for_less(i,0,3) {
+   for(i=0; i<3; i++) {
 
 
      if (globals->step[i] > 0.0) {
@@ -138,10 +138,10 @@ void get_into_voxel_space(Arg_Data *globals,
        sign = -1.0;
      }
      convert_world_vector_to_voxel(v1,
-				   RVector_x(globals->directions[i]) * sign,
-				   RVector_y(globals->directions[i]) * sign,
-				   RVector_z(globals->directions[i]) * sign,
-				   voxel_vector);
+                                   RVector_x(globals->directions[i]) * sign,
+                                   RVector_y(globals->directions[i]) * sign,
+                                   RVector_z(globals->directions[i]) * sign,
+                                   voxel_vector);
      
      fill_Vector(vox->directions[i], voxel_vector[0],voxel_vector[1],voxel_vector[2]);
    }
@@ -151,7 +151,7 @@ void get_into_voxel_space(Arg_Data *globals,
                                    transformation */
    ALLOC(w2v,1);
    ALLOC(reorder,1);
-   create_linear_transform(reorder, (Transform *)NULL); /* build identity */
+   create_linear_transform(reorder, (VIO_Transform *)NULL); /* build identity */
    
 
    create_inverse_general_transform(get_voxel_to_world_transform( v2 ),
@@ -198,10 +198,10 @@ void get_into_voxel_space(Arg_Data *globals,
              Transform_elem( *lin, 2, 3 ));
 
       print ("start:  w- %9.3f %9.3f %9.3f -> v- %9.3f %9.3f %9.3f\n",
-             globals->start[X], globals->start[Y], globals->start[Z],
+             globals->start[VIO_X], globals->start[VIO_Y], globals->start[VIO_Z],
              vox->start[0],     vox->start[1],     vox->start[2]);
 
-      for_less(i,0,3) {
+      for(i=0; i<3; i++) {
          print ("dir[%d]: w- %9.3f %9.3f %9.3f -> v- %9.3f %9.3f %9.3f\n", 
                 i,
                 RVector_x(globals->directions[i]),
@@ -221,7 +221,7 @@ void get_into_voxel_space(Arg_Data *globals,
 
       reorder_xyz_to_voxel( v1, s_voxel_xyz, s_voxel );
       convert_voxel_to_world(v1,s_voxel,&s_world[0],&s_world[1],&s_world[2]);
-      fill_Point(pnt, s_world[0], s_world[1], s_world[2]);
+      VIO_fill_Point(pnt, s_world[0], s_world[1], s_world[2]);
 
       print ("source: w- %9.3f %9.3f %9.3f -> v- %9.3f %9.3f %9.3f\n",
              s_world[0], s_world[1], s_world[2],
@@ -259,16 +259,16 @@ void get_into_voxel_space(Arg_Data *globals,
 }
 
  void  my_homogenous_transform_point(
-    Transform  *transform,
-    Real       x,
-    Real       y,
-    Real       z,
-    Real       w,
-    Real       *x_trans,
-    Real       *y_trans,
-    Real       *z_trans )
+    VIO_Transform  *transform,
+    VIO_Real       x,
+    VIO_Real       y,
+    VIO_Real       z,
+    VIO_Real       w,
+    VIO_Real       *x_trans,
+    VIO_Real       *y_trans,
+    VIO_Real       *z_trans )
 {
-    Real       w_trans;
+    VIO_Real       w_trans;
 
     *x_trans = Transform_elem(*transform,0,0) * x +
                Transform_elem(*transform,0,1) * y +

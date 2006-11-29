@@ -16,7 +16,10 @@
 @CREATED    : Tue Nov 16 14:51:04 EST 1993 lc
                     based on transformations.c from fit_vol
 @MODIFIED   : $Log: transformations.c,v $
-@MODIFIED   : Revision 1.2  2004-02-12 06:09:12  rotor
+@MODIFIED   : Revision 1.3  2006-11-29 09:09:33  rotor
+@MODIFIED   :  * first bunch of changes for minc 2.0 compliance
+@MODIFIED   :
+@MODIFIED   : Revision 1.2  2004/02/12 06:09:12  rotor
 @MODIFIED   :  * removed public/private defs
 @MODIFIED   :
 @MODIFIED   : Revision 1.1  1999/10/25 19:52:24  louis
@@ -66,7 +69,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/Other_progs/transformations.c,v 1.2 2004-02-12 06:09:12 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/Other_progs/transformations.c,v 1.3 2006-11-29 09:09:33 rotor Exp $";
 #endif
 
 
@@ -77,9 +80,9 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 extern Arg_Data main_args;
 
 
-General_transform *get_linear_part_of_transformation(General_transform *trans)
+VIO_General_transform *get_linear_part_of_transformation(VIO_General_transform *trans)
 {
-  General_transform *result,*concated,*current_lin;
+  VIO_General_transform *result,*concated,*current_lin;
   int i;
 
   ALLOC(result, 1);
@@ -88,7 +91,7 @@ General_transform *get_linear_part_of_transformation(General_transform *trans)
 
   create_linear_transform(result, NULL); /* start with identity */
 
-  for_less(i,0,get_n_concated_transforms(trans)) {
+  for(i=0; i<get_n_concated_transforms(trans; i++)) {
     if (get_transform_type( get_nth_general_transform(trans, i-0) ) == LINEAR){
 
       copy_general_transform( get_nth_general_transform(trans, i-0), current_lin);

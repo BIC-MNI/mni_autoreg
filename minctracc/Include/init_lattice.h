@@ -3,7 +3,7 @@
 
 #include "point_vector.h"
 
-void get_volume_XYZV_indices(Volume data, int xyzv[]);
+void get_volume_XYZV_indices(VIO_Volume data, int xyzv[]);
 
 /* 
    find the largest lattice array, aligned with the existing data volume,
@@ -20,12 +20,12 @@ void get_volume_XYZV_indices(Volume data, int xyzv[]);
 
 */
 
-void set_up_lattice(Volume data,       /* in: volume  */
-			   double *user_step, /* in: user requested spacing for lattice */
-			   double *start,     /* out:world starting position of lattice */
-			   int    *count,     /* out:number of steps in each direction */
-			   double *step,      /* out:step size in each direction */
-			   VectorR directions[]); /* out: vector directions for each index*/
+void set_up_lattice(VIO_Volume data,       /* in: volume  */
+                           double *user_step, /* in: user requested spacing for lattice */
+                           double *start,     /* out:world starting position of lattice */
+                           int    *count,     /* out:number of steps in each direction */
+                           double *step,      /* out:step size in each direction */
+                           VectorR directions[]); /* out: vector directions for each index*/
 
 
 /* 
@@ -44,11 +44,11 @@ void set_up_lattice(Volume data,       /* in: volume  */
 */
 
 
-void init_lattice(Volume d1,
-			 Volume d2,
-			 Volume m1,
-			 Volume m2, 
-			 Arg_Data *globals);
+void init_lattice(VIO_Volume d1,
+                         VIO_Volume d2,
+                         VIO_Volume m1,
+                         VIO_Volume m2, 
+                         Arg_Data *globals);
 
 
 

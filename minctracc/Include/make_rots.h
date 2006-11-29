@@ -20,38 +20,38 @@
 
 void   
   make_resampling_matrix(float **xmat,
-			 float trans_x,float trans_y,float trans_z,
-			 float center_x,float center_y,float center_z,
-			 float rot_x,float rot_y,float rot_z,
-			 float scale_x,float scale_y,float scale_z);
+                         float trans_x,float trans_y,float trans_z,
+                         float center_x,float center_y,float center_z,
+                         float rot_x,float rot_y,float rot_z,
+                         float scale_x,float scale_y,float scale_z);
 void
   make_inverted_resampling_matrix(float **xmat,
-				  float *trans_x,float *trans_y,float *trans_z,
-				  float *center_x,float *center_y,float *center_z,
-				  float *rot_x,float *rot_y,float *rot_z,
-				  float *scale_x,float *scale_y,float *scale_z);
+                                  float *trans_x,float *trans_y,float *trans_z,
+                                  float *center_x,float *center_y,float *center_z,
+                                  float *rot_x,float *rot_y,float *rot_z,
+                                  float *scale_x,float *scale_y,float *scale_z);
 
 
 
-void build_transformation_matrix_quater(Transform *trans,
-					       double *center,
-					       double *translations,
-					       double *scales,
-					       double *shears,
-					       double *quaternions);
+void build_transformation_matrix_quater(VIO_Transform *trans,
+                                               double *center,
+                                               double *translations,
+                                               double *scales,
+                                               double *shears,
+                                               double *quaternions);
 
 
-void build_inverse_transformation_matrix_quater(Transform *trans,
-						       double *center,
-						       double *translations,
-						       double *scales,
-						       double *shears,
-						       double *quaternions);
+void build_inverse_transformation_matrix_quater(VIO_Transform *trans,
+                                                       double *center,
+                                                       double *translations,
+                                                       double *scales,
+                                                       double *shears,
+                                                       double *quaternions);
 
 
-BOOLEAN extract2_parameters_from_matrix_quater(Transform *trans,
-						      double *center,
-						      double *translations,
-						      double *scales,
-						      double *shears,
-						      double *quaternions);
+VIO_BOOL extract2_parameters_from_matrix_quater(VIO_Transform *trans,
+                                                      double *center,
+                                                      double *translations,
+                                                      double *scales,
+                                                      double *shears,
+                                                      double *quaternions);

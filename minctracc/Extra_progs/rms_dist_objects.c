@@ -5,11 +5,11 @@
 #@OUTPUT     : 
                the rms minimum distance for all points on the first object
                (after transformation) and the second object.
-#@RETURNS    : 0 if no error, Status otherwise
+#@RETURNS    : 0 if no error, VIO_Status otherwise
 #@DESCRIPTION: 
 #@CREATED    : Tuesday, Feb 10, 1998, Louis Collins
 #@MODIFIED   : from rms_dist_lines
-#@VERSION    : $Id: rms_dist_objects.c,v 1.2 2004-02-12 05:54:06 rotor Exp $
+#@VERSION    : $Id: rms_dist_objects.c,v 1.3 2006-11-29 09:09:31 rotor Exp $
 #-----------------------------------------------------------------------------
 */
 
@@ -17,10 +17,10 @@
 #include <config.h>
 
 
-BOOLEAN end_point(object_struct   *object, 
+VIO_BOOL end_point(object_struct   *object, 
                   int             obj_index)
 {
-   BOOLEAN is_an_end;
+   VIO_BOOL is_an_end;
    int     i,j,m,n;
    
    is_an_end = FALSE;
@@ -57,9 +57,9 @@ BOOLEAN end_point(object_struct   *object,
 
 
 double calc_rms_distance_between_objects(object_struct   **src, int num_src ,
-					 object_struct   **targ, int num_targ)
+                                         object_struct   **targ, int num_targ)
 {
-   Real 
+   VIO_Real 
       dist;
    double 
       var, std,rms,  min_d_sum, min_d_sum2, min_d, d;
@@ -74,16 +74,16 @@ double calc_rms_distance_between_objects(object_struct   **src, int num_src ,
       i,j,num_pts, num_pts_src, s,t, object_index,
       closest_t, closest_index;
 
-   progress_struct
+   VIO_progress_struct
       progress;
 
-   BOOLEAN flag;
+   VIO_BOOL flag;
 
    rms = 0.0; min_d_sum2 = min_d_sum = 0.0; num_pts = 0;
 
 
 
-   for_less(s,0,num_src) {      /* for all objects in the source list */
+   for(s=0; s<num_src; s++) {      /* for all objects in the source list */
 
       num_pts_src  = get_object_points( src[s], &the_points_src);
 
@@ -93,11 +93,11 @@ double calc_rms_distance_between_objects(object_struct   **src, int num_src ,
 
       print ("num_pts_src = %d\n",num_pts_src);
 
-      for_less(i,0,num_pts_src) { /* for all points in the object */
+      for(i=0; i<num_pts_src; i++) { /* for all points in the object */
 
          min_d = 1e20;
 
-         for_less(t,0,num_targ) { /* search through all targ objects */
+         for(t=0; t<num_targ; t++) { /* search through all targ objects */
 
             d = find_closest_point_on_object(&the_points_src[i], targ[t],
                                              &object_index, &point);
@@ -159,20 +159,20 @@ else {
 
 
 
-void apply_transform_to_object(General_transform *xform, 
-			       object_struct   *object )
+void apply_transform_to_object(VIO_General_transform *xform, 
+                               object_struct   *object )
 {
   int i,num_points;
   Point *the_points;
-  Real tx,ty,tz;
+  VIO_Real tx,ty,tz;
 
   num_points = get_object_points( object, &the_points);
-  for_less(i,0,num_points) {
+  for(i=0; i<num_points; i++) {
     general_transform_point(xform, 
-			    Point_x(the_points[i]),
-			    Point_y(the_points[i]),
-			    Point_z(the_points[i]),
-			    &tx, &ty, &tz);
+                            Point_x(the_points[i]),
+                            Point_y(the_points[i]),
+                            Point_z(the_points[i]),
+                            &tx, &ty, &tz);
     Point_x(the_points[i]) = tx; 
     Point_y(the_points[i]) = ty; 
     Point_z(the_points[i]) = tz; 
@@ -182,7 +182,7 @@ void apply_transform_to_object(General_transform *xform,
 
 int main(int argc, char *argv[])
 {
-  General_transform 
+  VIO_General_transform 
     xform;
 
   object_struct 
@@ -192,7 +192,7 @@ int main(int argc, char *argv[])
 
   File_formats   
     format;
-  progress_struct
+  VIO_progress_struct
     progress;
 
   int 
@@ -215,21 +215,21 @@ int main(int argc, char *argv[])
   
   format = BINARY_FORMAT;
   if (input_graphics_file(argv[2], 
-			  &format,
-			  &num_objects,
-			  &list_of_objs) != OK) {
+                          &format,
+                          &num_objects,
+                          &list_of_objs) != OK) {
     print("error: problems reading %s.\n", argv[2]);
     exit(EXIT_FAILURE);
   }
   if (input_graphics_file(argv[3], 
-			  &format,
-			  &num_objects2,
-			  &list_of_objs2) != OK) {
+                          &format,
+                          &num_objects2,
+                          &list_of_objs2) != OK) {
     print("error: problems reading %s.\n", argv[3]);
     exit(EXIT_FAILURE);
   }
 
-  for_less(i,0,num_objects) {
+  for(i=0; i<num_objects; i++) {
      switch (get_object_type(list_of_objs[i])) {
         case MARKER:   print ("markers \n"); break;
         case MODEL:    print ("models \n"); break;
@@ -245,7 +245,7 @@ int main(int argc, char *argv[])
      apply_transform_to_object(&xform,  list_of_objs[i] );
   }
 
-  for_less(i,0,num_objects2) {
+  for(i=0; i<num_objects2; i++) {
      if (get_object_type(list_of_objs2[i]) == QUADMESH) {
         create_quadmesh_bintree(get_quadmesh_ptr(list_of_objs2[i]) ,200);
      }
@@ -259,10 +259,10 @@ int main(int argc, char *argv[])
 
   
   
-  for_less(i,0,num_objects)
+  for(i=0; i<num_objects; i++)
     delete_object(list_of_objs[i]);
 
-  for_less(i,0,num_objects2)
+  for(i=0; i<num_objects2; i++)
     delete_object(list_of_objs2[i]);
   
   exit(EXIT_SUCCESS);

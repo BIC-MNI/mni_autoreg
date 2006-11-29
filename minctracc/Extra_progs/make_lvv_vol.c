@@ -10,7 +10,10 @@
 @CALLS      : 
 @CREATED    : Thur Oct 5 08:45:43 MET 1995
 @MODIFIED   : $Log: make_lvv_vol.c,v $
-@MODIFIED   : Revision 1.5  2005-07-20 20:45:46  rotor
+@MODIFIED   : Revision 1.6  2006-11-29 09:09:31  rotor
+@MODIFIED   :  * first bunch of changes for minc 2.0 compliance
+@MODIFIED   :
+@MODIFIED   : Revision 1.5  2005/07/20 20:45:46  rotor
 @MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
 @MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
 @MODIFIED   :     * Removed old VOLUME_IO cruft #defines
@@ -44,7 +47,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/make_lvv_vol.c,v 1.5 2005-07-20 20:45:46 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/make_lvv_vol.c,v 1.6 2006-11-29 09:09:31 rotor Exp $";
 #endif
 
 #include <stdio.h>
@@ -58,25 +61,25 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #  define FALSE 0
 #endif
 
-#define VERY_SMALL_EPS 0.0001	/* this is data dependent! */
+#define VERY_SMALL_EPS 0.0001        /* this is data dependent! */
 #define sqr(a) (a)*(a)
 
 typedef struct {
-  Real 
+  VIO_Real 
     u,v,w,
     uu,vv,ww,
     uv,uw,vw;
 } deriv_3D_struct;
 
-static char *default_dim_names[N_DIMENSIONS] = { MIxspace, MIyspace, MIzspace };
+static char *default_dim_names[VIO_N_DIMENSIONS] = { MIxspace, MIyspace, MIzspace };
 
 
-Real return_Lvv(Real r[3][3][3],
-		       Real eps);
+VIO_Real return_Lvv(VIO_Real r[3][3][3],
+                       VIO_Real eps);
 
-void init_the_volume_to_zero(Volume volume);
+void init_the_volume_to_zero(VIO_Volume volume);
 
-void get_volume_XYZV_indices(Volume data, int xyzv[]);
+void get_volume_XYZV_indices(VIO_Volume data, int xyzv[]);
 
 char *prog_name;
 int stat_quad_total;
@@ -90,26 +93,26 @@ int stat_quad_semi;
 int main(int argc, char *argv[])
 {
 
-  progress_struct
+  VIO_progress_struct
     progress;
 
-  Status 
+  VIO_Status 
     stat;
 
-  Real 
+  VIO_Real 
     tmp, max_val, min_val, intensity_threshold,Lvv,
     val[3][3][3];
   
-  Volume 
+  VIO_Volume 
     data, lvv;
 
   float ***float_vol,*f_ptr;
 
   int
     count,
-    index[MAX_DIMENSIONS],
-    data_xyzv[MAX_DIMENSIONS],
-    sizes[MAX_DIMENSIONS],
+    index[VIO_MAX_DIMENSIONS],
+    data_xyzv[VIO_MAX_DIMENSIONS],
+    sizes[VIO_MAX_DIMENSIONS],
     m,n,o,i,j,k,
     state;
 
@@ -126,7 +129,7 @@ int main(int argc, char *argv[])
   }
 
   stat = input_volume(argv[1],3,default_dim_names, NC_UNSPECIFIED, FALSE, 
-		      0.0,0.0,TRUE, &data, (minc_input_options *)NULL);
+                      0.0,0.0,TRUE, &data, (minc_input_options *)NULL);
 
   if (stat != OK) {
     print ("Error: cannot read %s.\n",argv[1]);
@@ -144,54 +147,54 @@ int main(int argc, char *argv[])
   
   ALLOC3D(float_vol  , sizes[0], sizes[1], sizes[2]);
   
-  for_less(i,0,sizes[0])
-    for_less(j,0,sizes[1])
-      for_less(k,0,sizes[2]) {
-	float_vol  [i][j][k] = 0.0;
-	tmp = get_volume_real_value(data, i,j,k,0,0);
-	if (tmp>max_val) max_val = tmp;
-	if (tmp<min_val) min_val = tmp;
+  for(i=0; i<sizes[0]; i++)
+    for(j=0; j<sizes[1]; j++)
+      for(k=0; k<sizes[2]; k++) {
+        float_vol  [i][j][k] = 0.0;
+        tmp = get_volume_real_value(data, i,j,k,0,0);
+        if (tmp>max_val) max_val = tmp;
+        if (tmp<min_val) min_val = tmp;
       }
   intensity_threshold = 0.01 * max_val;
   print("\nintensity_threshold = %f\n",intensity_threshold);
 
   initialize_progress_report(&progress, FALSE, sizes[0]*sizes[1]*sizes[2]+1,
-			     "Building Lvv:");
+                             "Building Lvv:");
   count = 0;
   max_val = -1000000.0;
   min_val =  1000000.0;
  
-  for_less(index[ data_xyzv[X] ],1,sizes[data_xyzv[X]]-1)
-    for_less(index[ data_xyzv[Y] ],1,sizes[data_xyzv[Y]]-1)
-      for_less(index[ data_xyzv[Z] ],1,sizes[data_xyzv[Z]]-1) {
+  for(index[data_xyzv[VIO_X]]=1; index[data_xyzv[VIO_X]]<sizes[data_xyzv[VIO_X]]-1; index[data_xyzv[VIO_X]]++)
+    for(index[data_xyzv[VIO_Y]]=1; index[data_xyzv[VIO_Y]]<sizes[data_xyzv[VIO_Y]]-1; index[data_xyzv[VIO_Y]]++)
+      for(index[data_xyzv[VIO_Z]]=1; index[data_xyzv[VIO_Z]]<sizes[data_xyzv[VIO_Z]]-1; index[data_xyzv[VIO_Z]]++) {
 
-	tmp = get_volume_real_value(data, 
-				    index[data_xyzv[X]], 
-				    index[data_xyzv[Y]], 
-				    index[data_xyzv[Z]], 0,0);
+        tmp = get_volume_real_value(data, 
+                                    index[data_xyzv[VIO_X]], 
+                                    index[data_xyzv[VIO_Y]], 
+                                    index[data_xyzv[VIO_Z]], 0,0);
 
-	Lvv=0.0;
+        Lvv=0.0;
      
-	if (tmp > intensity_threshold) {
-	  for_inclusive(m,-1,1)
-	    for_inclusive(n,-1,1)
-	      for_inclusive(o,-1,1)
-		val[m+1][n+1][o+1] =  
-		  get_volume_real_value(data, 
-					index[data_xyzv[X]]+m, 
-					index[data_xyzv[Y]]+n, 
-					index[data_xyzv[Z]]+o, 0,0);
-	  Lvv = return_Lvv(val, (Real)VERY_SMALL_EPS);
-	}
+        if (tmp > intensity_threshold) {
+          for(m=-1; m<=1; m++)
+            for(n=-1; n<=1; n++)
+              for(o=-1; o<=1; o++)
+                val[m+1][n+1][o+1] =  
+                  get_volume_real_value(data, 
+                                        index[data_xyzv[VIO_X]]+m, 
+                                        index[data_xyzv[VIO_Y]]+n, 
+                                        index[data_xyzv[VIO_Z]]+o, 0,0);
+          Lvv = return_Lvv(val, (VIO_Real)VERY_SMALL_EPS);
+        }
        
-	if (max_val < Lvv) max_val = Lvv;
-	if (min_val > Lvv) min_val = Lvv;
-	 
-	float_vol  [index[data_xyzv[X]]][index[data_xyzv[Y]]][index[data_xyzv[Z]]]=Lvv;
-	
-	count++;
-	update_progress_report( &progress, count );
-	
+        if (max_val < Lvv) max_val = Lvv;
+        if (min_val > Lvv) min_val = Lvv;
+         
+        float_vol  [index[data_xyzv[VIO_X]]][index[data_xyzv[VIO_Y]]][index[data_xyzv[VIO_Z]]]=Lvv;
+        
+        count++;
+        update_progress_report( &progress, count );
+        
   }
   terminate_progress_report(&progress);
  
@@ -204,16 +207,16 @@ int main(int argc, char *argv[])
 
 
 
-  for_less(i,0,sizes[0])
-    for_less(j,0,sizes[1])
-      for_less(k,0,sizes[2]) 
+  for(i=0; i<sizes[0]; i++)
+    for(j=0; j<sizes[1]; j++)
+      for(k=0; k<sizes[2]; k++) 
        {
-	Lvv = float_vol[i][j][k];
-	if (Lvv < min_val) Lvv = min_val;
-	if (Lvv > max_val) Lvv = max_val;
-	  
+        Lvv = float_vol[i][j][k];
+        if (Lvv < min_val) Lvv = min_val;
+        if (Lvv > max_val) Lvv = max_val;
+          
 
-	set_volume_real_value(lvv  , i,j,k, 0, 0, Lvv);
+        set_volume_real_value(lvv  , i,j,k, 0, 0, Lvv);
       }
 
   FREE3D(float_vol);
@@ -223,7 +226,7 @@ int main(int argc, char *argv[])
 
   sprintf(output_filename,"%s_Lvv.mnc",argv[2]);
   stat = output_modified_volume(output_filename, NC_UNSPECIFIED, FALSE, 
-				0.0, 0.0,  lvv, argv[1], history, NULL);
+                                0.0, 0.0,  lvv, argv[1], history, NULL);
   if (stat != OK) {
     print ("Error: cannot write Lvv %s.\n",output_filename);
     exit(EXIT_FAILURE);
@@ -236,10 +239,10 @@ int main(int argc, char *argv[])
 
 
 
-void init_the_volume_to_zero(Volume volume)
+void init_the_volume_to_zero(VIO_Volume volume)
 {
     int             v0, v1, v2, v3, v4;
-    Real            zero;
+    VIO_Real            zero;
   
     zero = CONVERT_VALUE_TO_VOXEL(volume, 0.0);
 
@@ -251,7 +254,7 @@ void init_the_volume_to_zero(Volume volume)
 
 }
 
-void get_volume_XYZV_indices(Volume data, int xyzv[])
+void get_volume_XYZV_indices(VIO_Volume data, int xyzv[])
 {
   
   int 
@@ -262,8 +265,8 @@ void get_volume_XYZV_indices(Volume data, int xyzv[])
   vol_dims       = get_volume_n_dimensions(data);
   data_dim_names = get_volume_dimension_names(data);
   
-  for_less(i,0,N_DIMENSIONS+1) xyzv[i] = -1;
-  for_less(i,0,vol_dims) {
+  for(i=0; i<N_DIMENSIONS+1; i++) xyzv[i] = -1;
+  for(i=0; i<vol_dims; i++) {
     if (convert_dim_name_to_spatial_axis(data_dim_names[i], &axis )) {
       xyzv[axis] = i; 
     } 
@@ -276,28 +279,28 @@ void get_volume_XYZV_indices(Volume data, int xyzv[])
 }
 
 
-void estimate_3D_derivatives(Real r[3][3][3], 
-				    deriv_3D_struct *d) 
+void estimate_3D_derivatives(VIO_Real r[3][3][3], 
+                                    deriv_3D_struct *d) 
 
 {
 
-  Real	*p11, *p12, *p13;
-  Real	*p21, *p22, *p23;
-  Real	*p31, *p32, *p33;
+  VIO_Real        *p11, *p12, *p13;
+  VIO_Real        *p21, *p22, *p23;
+  VIO_Real        *p31, *p32, *p33;
 
-  Real	slice_u1, slice_u2, slice_u3;
-  Real	slice_v1, slice_v2, slice_v3;
-  Real	slice_w1, slice_w2, slice_w3;
+  VIO_Real        slice_u1, slice_u2, slice_u3;
+  VIO_Real        slice_v1, slice_v2, slice_v3;
+  VIO_Real        slice_w1, slice_w2, slice_w3;
   
-  Real	edge_u1_v1, /* edge_u1_v2,*/ edge_u1_v3;
-/*  Real	edge_u2_v1, edge_u2_v2, edge_u2_v3; */
-  Real	edge_u3_v1,  /* edge_u3_v2,*/ edge_u3_v3;
-  Real	edge_u1_w1, edge_u1_w2, edge_u1_w3;
-  Real	edge_u2_w1, edge_u2_w2, edge_u2_w3;
-  Real	edge_u3_w1, edge_u3_w2, edge_u3_w3;
-  Real	edge_v1_w1, edge_v1_w2, edge_v1_w3;
-  Real	edge_v2_w1, edge_v2_w2, edge_v2_w3;
-  Real	edge_v3_w1, edge_v3_w2, edge_v3_w3;
+  VIO_Real        edge_u1_v1, /* edge_u1_v2,*/ edge_u1_v3;
+/*  VIO_Real        edge_u2_v1, edge_u2_v2, edge_u2_v3; */
+  VIO_Real        edge_u3_v1,  /* edge_u3_v2,*/ edge_u3_v3;
+  VIO_Real        edge_u1_w1, edge_u1_w2, edge_u1_w3;
+  VIO_Real        edge_u2_w1, edge_u2_w2, edge_u2_w3;
+  VIO_Real        edge_u3_w1, edge_u3_w2, edge_u3_w3;
+  VIO_Real        edge_v1_w1, edge_v1_w2, edge_v1_w3;
+  VIO_Real        edge_v2_w1, edge_v2_w2, edge_v2_w3;
+  VIO_Real        edge_v3_w1, edge_v3_w2, edge_v3_w3;
   
   /* --- 3x3x3 [u][v][w] --- */
   
@@ -311,7 +314,7 @@ void estimate_3D_derivatives(Real r[3][3][3],
   p32 = r[2][1]; 
   p33 = r[2][2]; 
   
-				/* lines varying along w */
+                                /* lines varying along w */
   edge_u1_v1 = ( *p11     + *(p11+1) + *(p11+2));
 
 /*  edge_u1_v2 = ( *p12     + *(p12+1) + *(p12+2)); */
@@ -323,7 +326,7 @@ void estimate_3D_derivatives(Real r[3][3][3],
 /*  edge_u3_v2 = ( *p32     + *(p32+1) + *(p32+2)); */
   edge_u3_v3 = ( *p33     + *(p33+1) + *(p33+2));
   
-				/* lines varying along v */
+                                /* lines varying along v */
   edge_u1_w1 = (  *p11    +  *p12    +  *p13   );
   edge_u1_w2 = ( *(p11+1) + *(p12+1) + *(p13+1));
   edge_u1_w3 = ( *(p11+2) + *(p12+2) + *(p13+2));
@@ -334,7 +337,7 @@ void estimate_3D_derivatives(Real r[3][3][3],
   edge_u3_w2 = ( *(p31+1) + *(p32+1) + *(p33+1)); 
   edge_u3_w3 = ( *(p31+2) + *(p32+2) + *(p33+2));
   
-				/* lines varying along u */
+                                /* lines varying along u */
   edge_v1_w1 = (  *p11    +  *p21    +  *p31   );
   edge_v1_w2 = ( *(p11+1) + *(p21+1) + *(p31+1));
   edge_v1_w3 = ( *(p11+2) + *(p21+2) + *(p31+2));
@@ -369,19 +372,19 @@ void estimate_3D_derivatives(Real r[3][3][3],
 
 
 
-Real return_Lvv(Real r[3][3][3],
-		       Real eps)
+VIO_Real return_Lvv(VIO_Real r[3][3][3],
+                       VIO_Real eps)
      
 {
   deriv_3D_struct 
-    d;			
+    d;                        
 
-  Real
-    S,				/* mean curvature          */
+  VIO_Real
+    S,                                /* mean curvature          */
     Lvv,
-    sq_mag_grad,		/* square of magnitude of gradient   */
-    x,y,z,			/* first order derivatives */
-    xx,yy,zz,xy,xz,yz;		/* second order derivative */
+    sq_mag_grad,                /* square of magnitude of gradient   */
+    x,y,z,                        /* first order derivatives */
+    xx,yy,zz,xy,xz,yz;                /* second order derivative */
 
 
   d.u  = (r[2][1][1] - r[0][1][1] ) / 2.0;
@@ -402,12 +405,12 @@ Real return_Lvv(Real r[3][3][3],
   sq_mag_grad = x*x + y*y + z*z;
 
   if ( ABS(sq_mag_grad) > eps )  {
-				/* Mean curvature */
+                                /* Mean curvature */
     S = (
-	 x*x*(yy + zz) - 2*y*z*yz +
-	 y*y*(xx + zz) - 2*x*z*xz +
-	 z*z*(xx + yy) - 2*x*y*xy
-	 )
+         x*x*(yy + zz) - 2*y*z*yz +
+         y*y*(xx + zz) - 2*x*z*xz +
+         z*z*(xx + yy) - 2*x*y*xy
+         )
           / (2 * sqrt(sq_mag_grad*sq_mag_grad*sq_mag_grad));
 
     Lvv = sq_mag_grad * S;

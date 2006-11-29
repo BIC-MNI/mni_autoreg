@@ -14,7 +14,10 @@
               express or implied warranty.
 @CREATED    : Tue Jun  8 08:44:59 EST 1993 LC
 @MODIFIED   : $Log: make_rots.c,v $
-@MODIFIED   : Revision 96.6  2005-07-20 20:45:49  rotor
+@MODIFIED   : Revision 96.7  2006-11-29 09:09:33  rotor
+@MODIFIED   :  * first bunch of changes for minc 2.0 compliance
+@MODIFIED   :
+@MODIFIED   : Revision 96.6  2005/07/20 20:45:49  rotor
 @MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
 @MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
 @MODIFIED   :     * Removed old VOLUME_IO cruft #defines
@@ -79,7 +82,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/make_rots.c,v 96.6 2005-07-20 20:45:49 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/make_rots.c,v 96.7 2006-11-29 09:09:33 rotor Exp $";
 #endif
 
 #include <volume_io.h>
@@ -89,53 +92,53 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 
 #define  FILL_NR_COLVEC( vector, x, y, z ) \
             { \
-		vector[1][1] = (x); \
-		vector[2][1] = (y); \
-		vector[3][1] = (z); \
-		vector[4][1] = 1.0; \
+                vector[1][1] = (x); \
+                vector[2][1] = (y); \
+                vector[3][1] = (z); \
+                vector[4][1] = 1.0; \
             }
 
 #define  ADD_NR_COLVEC( vector, v1, v2 ) \
             { \
-		vector[1][1] = v1[1][1] + v2[1][1]; \
-		vector[2][1] = v1[2][1] + v2[2][1]; \
-		vector[3][1] = v1[3][1] + v2[3][1]; \
-		vector[4][1] = 1.0; \
+                vector[1][1] = v1[1][1] + v2[1][1]; \
+                vector[2][1] = v1[2][1] + v2[2][1]; \
+                vector[3][1] = v1[3][1] + v2[3][1]; \
+                vector[4][1] = 1.0; \
             }
 
 #define  SUB_NR_COLVEC( vector, v1, v2 ) \
             { \
-		vector[1][1] = v1[1][1] - v2[1][1]; \
-		vector[2][1] = v1[2][1] - v2[2][1]; \
-		vector[3][1] = v1[3][1] - v2[3][1]; \
-		vector[4][1] = 1.0; \
+                vector[1][1] = v1[1][1] - v2[1][1]; \
+                vector[2][1] = v1[2][1] - v2[2][1]; \
+                vector[3][1] = v1[3][1] - v2[3][1]; \
+                vector[4][1] = 1.0; \
             }
 
 #define  DOT_NR_COLVEC( vector, v1, v2 ) \
             { \
-		vector[1][1] = v1[1][1]*v2[1][1]; \
-		vector[2][1] = v1[2][1]*v2[2][1]; \
-		vector[3][1] = v1[3][1]*v2[3][1]; \
-		vector[4][1] = 1.0; \
+                vector[1][1] = v1[1][1]*v2[1][1]; \
+                vector[2][1] = v1[2][1]*v2[2][1]; \
+                vector[3][1] = v1[3][1]*v2[3][1]; \
+                vector[4][1] = 1.0; \
             }
 
 #define  SCALAR_MULT_NR_COLVEC( vector, v1, sc ) \
             { \
-		vector[1][1] = v1[1][1]*sc; \
-		vector[2][1] = v1[2][1]*sc; \
-		vector[3][1] = v1[3][1]*sc; \
-		vector[4][1] = 1.0; \
+                vector[1][1] = v1[1][1]*sc; \
+                vector[2][1] = v1[2][1]*sc; \
+                vector[3][1] = v1[3][1]*sc; \
+                vector[4][1] = 1.0; \
             }
 
 #define  DOTSUM_NR_COLVEC( v1, v2 ) \
                 (v1[1][1] * v2[1][1] + \
-		v1[2][1] * v2[2][1] + \
-		v1[3][1] * v2[3][1]) 
+                v1[2][1] * v2[2][1] + \
+                v1[3][1] * v2[3][1]) 
 
 #define  MAG_NR_COLVEC( v1 ) \
             ( sqrt( v1[1][1] * v1[1][1] + \
-		v1[2][1] * v1[2][1] + \
-		v1[3][1] * v1[3][1] ) )
+                v1[2][1] * v1[2][1] + \
+                v1[3][1] * v1[3][1] ) )
 
 
 void build_rotmatrix(float **m, double *quat);
@@ -195,17 +198,17 @@ void   make_rots(float **xmat, float rot_x, float rot_y, float rot_z)
                          e f 1 0
                          0 0 0 1 ];
 
-		where shear[] = [a b c d e f]     
+                where shear[] = [a b c d e f]     
 
 @CREATED    : Sat Apr 16 10:44:26 EST 1994
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-void   make_shears(float **xmat, 					
-		 double *shears)
+void   make_shears(float **xmat,                                         
+                 double *shears)
 {
 
-    nr_identf(xmat,1,4,1,4);	/* start with identity */
+    nr_identf(xmat,1,4,1,4);        /* start with identity */
     xmat[2][1] = shears[0];
     xmat[3][1] = shears[1];
     xmat[3][2] = shears[2];
@@ -222,7 +225,7 @@ void   make_shears(float **xmat,
 @RETURNS    : nothing
 @DESCRIPTION: mat = (T)(C)(S)(SH)(R)(-C)
                the matrix is to be  PREmultiplied with a column vector (mat*colvec)
-	       when used in the application
+               when used in the application
 @METHOD     : 
 @GLOBALS    : 
 @CALLS      : 
@@ -230,12 +233,12 @@ void   make_shears(float **xmat,
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-void build_transformation_matrix(Transform *trans,
-					double *center,
-					double *translations,
-					double *scales,
-					double *shears,
-					double *rotations)
+void build_transformation_matrix(VIO_Transform *trans,
+                                        double *center,
+                                        double *translations,
+                                        double *scales,
+                                        double *shears,
+                                        double *rotations)
 {
   
   float
@@ -261,30 +264,30 @@ void build_transformation_matrix(Transform *trans,
   ALLOC2D(T3 ,5,5);
   ALLOC2D(T4 ,5,5);
   
-				             /* mat = (T)(C)(SH)(S)(R)(-C) */
+                                             /* mat = (T)(C)(SH)(S)(R)(-C) */
 
-  nr_identf(T,1,4,1,4);	             /* make (T)(C) */
-  for_less( i, 0, 3 ) {
-    T[1+i][4] = translations[i] + center[i];		
+  nr_identf(T,1,4,1,4);                     /* make (T)(C) */
+  for(i=0; i<3; i++) {
+    T[1+i][4] = translations[i] + center[i];                
   }
                                 /* make rotation matix */
   make_rots(R,
-	    (float)(rotations[0]),
-	    (float)(rotations[1]),
-	    (float)(rotations[2])); 
+            (float)(rotations[0]),
+            (float)(rotations[1]),
+            (float)(rotations[2])); 
 
                                 /* make shear rotation matrix */
   make_shears(SH, shears);
 
                                 /* make scaling matrix */
-  nr_identf(S,1,4,1,4);	           
-  for_less( i, 0, 3 ) {
+  nr_identf(S,1,4,1,4);                   
+  for(i=0; i<3; i++) {
     S[1+i][1+i] = scales[i];
   }
 
   nr_identf(C,1,4,1,4);      /* make center          */
-  for_less( i, 0, 3 ) {
-    C[1+i][4] = -center[i];		
+  for(i=0; i<3; i++) {
+    C[1+i][4] = -center[i];                
   }
 
   nr_multf(T, 1,4,1,4, S  ,1,4,1,4, T1 );  
@@ -292,8 +295,8 @@ void build_transformation_matrix(Transform *trans,
   nr_multf(T2,1,4,1,4, R  ,1,4,1,4, T3 );  
   nr_multf(T3,1,4,1,4, C  ,1,4,1,4, T4 );  
 
-  for_less(i,0,4)
-    for_less(j,0,4)
+  for(i=0; i<4; i++)
+    for(j=0; j<4; j++)
       Transform_elem(*trans, i, j ) = T4[i+1][j+1];
 
   FREE2D(T    );
@@ -314,8 +317,8 @@ void build_transformation_matrix(Transform *trans,
 @RETURNS    : nothing
 @DESCRIPTION: mat = (T)(C)(S)(SH)(R)(-C)
                the matrix is to be  PREmultiplied with a column vector (mat*colvec)
-	       when used in the application
-	       same as build_transformation_matrix but with quaternions
+               when used in the application
+               same as build_transformation_matrix but with quaternions
 @METHOD     : 
 @GLOBALS    : 
 @CALLS      : 
@@ -323,12 +326,12 @@ void build_transformation_matrix(Transform *trans,
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-void build_transformation_matrix_quater(Transform *trans,
-					       double *center,
-					       double *translations,
-					       double *scales,
-					       double *shears,
-					       double *quaternions)
+void build_transformation_matrix_quater(VIO_Transform *trans,
+                                               double *center,
+                                               double *translations,
+                                               double *scales,
+                                               double *shears,
+                                               double *quaternions)
 {
   
   float
@@ -378,8 +381,8 @@ void build_transformation_matrix_quater(Transform *trans,
 
 
                                              /* make (T)(C) */
-  for_less( i, 0, 3 ) {
-    T[1+i][4] = translations[i] + center[i];		
+  for(i=0; i<3; i++) {
+    T[1+i][4] = translations[i] + center[i];                
   }
    
   
@@ -391,15 +394,15 @@ void build_transformation_matrix_quater(Transform *trans,
   make_shears(SH, shears);
 
                                 /* make scaling matrix */
-  nr_identf(S,1,4,1,4);	           
-  for_less( i, 0, 3 ) {
+  nr_identf(S,1,4,1,4);                   
+  for(i=0; i<3; i++) {
     S[1+i][1+i] = scales[i];
   }
 
 
   nr_identf(C,1,4,1,4);      /* make center          */
-  for_less( i, 0, 3 ) {
-    C[1+i][4] = -center[i];		
+  for(i=0; i<3; i++) {
+    C[1+i][4] = -center[i];                
   }
 
   nr_multf(T, 1,4,1,4, S  ,1,4,1,4, T1 );  
@@ -407,8 +410,8 @@ void build_transformation_matrix_quater(Transform *trans,
   nr_multf(T2,1,4,1,4, R  ,1,4,1,4, T3 );  
   nr_multf(T3,1,4,1,4, C  ,1,4,1,4, T4 );  
 
-  for_less(i,0,4)
-    for_less(j,0,4)
+  for(i=0; i<4; i++)
+    for(j=0; j<4; j++)
       Transform_elem(*trans, i, j ) = T4[i+1][j+1];
 
   FREE2D(T    );
@@ -428,24 +431,24 @@ void build_transformation_matrix_quater(Transform *trans,
 @OUTPUT     : the inverse linear transformation matrix of mat:
                 since mat = (T)(C)(SH)(S)(R)(-C), then
 
-		invmat = (C)(inv(r))(inv(S))(inv(SH))(-C)(-T)
+                invmat = (C)(inv(r))(inv(S))(inv(SH))(-C)(-T)
 
 @RETURNS    : nothing
 @DESCRIPTION: 
                the matrix is to be  PREmultiplied with a vector (mat*vec)
-	       when used in the application
+               when used in the application
 @METHOD     : 
 @GLOBALS    : 
 @CALLS      : 
 @CREATED    : Tue Jun 15 16:45:35 EST 1993 LC
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-void build_inverse_transformation_matrix(Transform *trans,
-						double *center,
-						double *translations,
-						double *scales,
-						double *shears,
-						double *rotations)
+void build_inverse_transformation_matrix(VIO_Transform *trans,
+                                                double *center,
+                                                double *translations,
+                                                double *scales,
+                                                double *shears,
+                                                double *rotations)
 {
   float
     **T,
@@ -470,30 +473,30 @@ void build_inverse_transformation_matrix(Transform *trans,
   ALLOC2D(T3  ,5,5);
   ALLOC2D(T4  ,5,5);
   
-				/* invmat = (C)(inv(r))(inv(S))(inv(SH))(-C)(-T)
-				   mat = (T)(C)(SH)(S)(R)(-C) */
+                                /* invmat = (C)(inv(r))(inv(S))(inv(SH))(-C)(-T)
+                                   mat = (T)(C)(SH)(S)(R)(-C) */
 
-  nr_identf(T,1,4,1,4);	             /* make (-T)(-C) */
-  for_less( i, 0, 3 ) {
-    T[1+i][4] = -translations[i] - center[i];		
+  nr_identf(T,1,4,1,4);                     /* make (-T)(-C) */
+  for(i=0; i<3; i++) {
+    T[1+i][4] = -translations[i] - center[i];                
   }
 
                                 /* make rotation matix */
   make_rots(T1,
-	    (float)(rotations[0]),
-	    (float)(rotations[1]),
-	    (float)(rotations[2])); 
+            (float)(rotations[0]),
+            (float)(rotations[1]),
+            (float)(rotations[2])); 
 
 
   transpose(4,4,T1,R);
   
 
-  make_shears(T1,shears);	/* make shear rotation matrix */
-  invertmatrix(4, T1, SH);	/* get inverse of the matrix */
+  make_shears(T1,shears);        /* make shear rotation matrix */
+  invertmatrix(4, T1, SH);        /* get inverse of the matrix */
 
                                 /* make scaling matrix */
-  nr_identf(S,1,4,1,4);	           
-  for_less( i, 0, 3 ) {
+  nr_identf(S,1,4,1,4);                   
+  for(i=0; i<3; i++) {
     if (scales[i] != 0.0)
       S[1+i][1+i] = 1/scales[i];
     else
@@ -501,8 +504,8 @@ void build_inverse_transformation_matrix(Transform *trans,
   }
 
   nr_identf(C,1,4,1,4);      /* make center          */
-  for_less( i, 0, 3 ) {
-    C[1+i][4] = center[i];		
+  for(i=0; i<3; i++) {
+    C[1+i][4] = center[i];                
   }
 
   nr_multf(C,1,4,1,4,  R ,1,4,1,4, T1 );  
@@ -510,8 +513,8 @@ void build_inverse_transformation_matrix(Transform *trans,
   nr_multf(T2,1,4,1,4, S ,1,4,1,4, T3 );  
   nr_multf(T3,1,4,1,4, T ,1,4,1,4, T4 );  
 
-  for_less(i,0,4)
-    for_less(j,0,4)
+  for(i=0; i<4; i++)
+    for(j=0; j<4; j++)
       Transform_elem(*trans, i, j ) = T4[i+1][j+1];
 
   FREE2D(T    );
@@ -532,25 +535,25 @@ void build_inverse_transformation_matrix(Transform *trans,
 @OUTPUT     : the inverse linear transformation matrix of mat:
                 since mat = (T)(C)(SH)(S)(R)(-C), then
 
-		invmat = (C)(inv(r))(inv(S))(inv(SH))(-C)(-T)
+                invmat = (C)(inv(r))(inv(S))(inv(SH))(-C)(-T)
 
 @RETURNS    : nothing
 @DESCRIPTION: 
                the matrix is to be  PREmultiplied with a vector (mat*vec)
-	       when used in the application
-	       same as build_inverse_transformation_matrix but with quaternions
+               when used in the application
+               same as build_inverse_transformation_matrix but with quaternions
 @METHOD     : 
 @GLOBALS    : 
 @CALLS      : 
 @CREATED    : Thr Apr 18 10:45:56 EST 2002 pln
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-void build_inverse_transformation_matrix_quater(Transform *trans,
-						       double *center,
-						       double *translations,
-						       double *scales,
-						       double *shears,
-						       double *quaternions)
+void build_inverse_transformation_matrix_quater(VIO_Transform *trans,
+                                                       double *center,
+                                                       double *translations,
+                                                       double *scales,
+                                                       double *shears,
+                                                       double *quaternions)
 {
   float
     **T,
@@ -576,12 +579,12 @@ void build_inverse_transformation_matrix_quater(Transform *trans,
   ALLOC2D(T3  ,5,5);
   ALLOC2D(T4  ,5,5);
   
-				/* invmat = (C)(inv(r))(inv(S))(inv(SH))(-C)(-T)
-				   mat = (T)(C)(SH)(S)(R)(-C) */
+                                /* invmat = (C)(inv(r))(inv(S))(inv(SH))(-C)(-T)
+                                   mat = (T)(C)(SH)(S)(R)(-C) */
 
-  nr_identf(T,1,4,1,4);	             /* make (-T)(-C) */
-  for_less( i, 0, 3 ) {
-    T[1+i][4] = -translations[i] - center[i];		
+  nr_identf(T,1,4,1,4);                     /* make (-T)(-C) */
+  for(i=0; i<3; i++) {
+    T[1+i][4] = -translations[i] - center[i];                
   }
 
   
@@ -590,12 +593,12 @@ void build_inverse_transformation_matrix_quater(Transform *trans,
   transpose(4,4,T1,R);
   
 
-  make_shears(T1,shears);	/* make shear rotation matrix */
-  invertmatrix(4, T1, SH);	/* get inverse of the matrix */
+  make_shears(T1,shears);        /* make shear rotation matrix */
+  invertmatrix(4, T1, SH);        /* get inverse of the matrix */
 
                                 /* make scaling matrix */
-  nr_identf(S,1,4,1,4);	           
-  for_less( i, 0, 3 ) {
+  nr_identf(S,1,4,1,4);                   
+  for(i=0; i<3; i++) {
     if (scales[i] != 0.0)
       S[1+i][1+i] = 1/scales[i];
     else
@@ -603,8 +606,8 @@ void build_inverse_transformation_matrix_quater(Transform *trans,
   }
 
   nr_identf(C,1,4,1,4);      /* make center          */
-  for_less( i, 0, 3 ) {
-    C[1+i][4] = center[i];		
+  for(i=0; i<3; i++) {
+    C[1+i][4] = center[i];                
   }
 
   nr_multf(C,1,4,1,4,  R ,1,4,1,4, T1 );  
@@ -612,8 +615,8 @@ void build_inverse_transformation_matrix_quater(Transform *trans,
   nr_multf(T2,1,4,1,4, S ,1,4,1,4, T3 );  
   nr_multf(T3,1,4,1,4, T ,1,4,1,4, T4 );  
 
-  for_less(i,0,4)
-    for_less(j,0,4)
+  for(i=0; i<4; i++)
+    for(j=0; j<4; j++)
       Transform_elem(*trans, i, j ) = T4[i+1][j+1];
 
   FREE2D(T    );
@@ -646,12 +649,12 @@ void build_inverse_transformation_matrix_quater(Transform *trans,
       inv(R1).
 ---------------------------------------------------------------------------- */
 
-BOOLEAN extract_parameters_from_matrix(Transform *trans,
-					      double *center,
-					      double *translations,
-					      double *scales,
-					      double *shears,
-					      double *rotations)
+VIO_BOOL extract_parameters_from_matrix(VIO_Transform *trans,
+                                              double *center,
+                                              double *translations,
+                                              double *scales,
+                                              double *shears,
+                                              double *rotations)
 {
   int 
     i,j;
@@ -676,7 +679,7 @@ BOOLEAN extract_parameters_from_matrix(Transform *trans,
   ALLOC2D(C     ,5,5); nr_identf(C    ,1,4,1,4);
   ALLOC2D(R     ,5,5); nr_identf(R    ,1,4,1,4);
 
-  ALLOC2D(center_of_rotation ,5,5);	/* make column vectors */
+  ALLOC2D(center_of_rotation ,5,5);        /* make column vectors */
   ALLOC2D(result             ,5,5);
   ALLOC2D(unit_vec           ,5,5);
 
@@ -684,38 +687,38 @@ BOOLEAN extract_parameters_from_matrix(Transform *trans,
   ALLOC(ang ,4);
 
 
-  for_inclusive( i, 0, 3)	/* copy the input matrix */
-    for_inclusive( j, 0, 3)
+  for(i=0; i<=3; i++)        /* copy the input matrix */
+    for(j=0; j<=3; j++)
       xmat[i+1][j+1] = (float)Transform_elem(*trans,i,j);
 
   
 
   /* -------------DETERMINE THE TRANSLATION FIRST! ---------  */
 
-				/* see where the center of rotation is displaced... */
+                                /* see where the center of rotation is displaced... */
 
   FILL_NR_COLVEC( center_of_rotation, center[0], center[1], center[2] );
 
 
-  invertmatrix(4, xmat, TMP1);	/* get inverse of the matrix */
+  invertmatrix(4, xmat, TMP1);        /* get inverse of the matrix */
 
   matrix_multiply( 4, 4, 1, xmat, center_of_rotation, result); /* was TMP! in place of xmat */
 
   SUB_NR_COLVEC( result, result, center_of_rotation );
 
-  for_inclusive( i, 0, 2) 
+  for(i=0; i<=2; i++) 
     translations[i] = result[i+1][1];
 
   /* -------------NOW GET THE SCALING VALUES! ----------------- */
 
-  for_inclusive( i, 0, 2) 
+  for(i=0; i<=2; i++) 
     tmp[i+1] = -translations[i];
   translation_to_homogeneous(3, tmp, Tinv); 
 
-  for_inclusive( i, 0, 2) 
+  for(i=0; i<=2; i++) 
     tmp[i+1] = center[i];
   translation_to_homogeneous(3, tmp, C); 
-  for_inclusive( i, 0, 2) 
+  for(i=0; i<=2; i++) 
     tmp[i+1] = -center[i];
   translation_to_homogeneous(3, tmp, Cinv); 
 
@@ -728,10 +731,10 @@ BOOLEAN extract_parameters_from_matrix(Transform *trans,
 
   matrix_multiply(4,4,4, Cinv, TMP1,    SR);
 
-  invertmatrix(4, SR, SRinv);	/* get inverse of scaling*rotation */
+  invertmatrix(4, SR, SRinv);        /* get inverse of scaling*rotation */
 
-				/* find each scale by mapping a unit vector backwards,
-				   and finding the magnitude of the result. */
+                                /* find each scale by mapping a unit vector backwards,
+                                   and finding the magnitude of the result. */
   FILL_NR_COLVEC( unit_vec, 1.0, 0.0, 0.0 );
   matrix_multiply( 4, 4, 1, SRinv, unit_vec, result);
   magnitude = MAG_NR_COLVEC( result );
@@ -770,17 +773,17 @@ BOOLEAN extract_parameters_from_matrix(Transform *trans,
 
   /* ------------NOW GET THE ROTATION ANGLES!----- */
 
-				/* extract rotation matrix */
+                                /* extract rotation matrix */
   matrix_multiply(4,4, 4, Sinv, SR,   R);
 
-				/* get rotation angles */
+                                /* get rotation angles */
   if (!rotmat_to_ang(R, ang)) {
     (void)fprintf(stderr,"Cannot convert R to radians!");
     printmatrix(3,3,R);
     return(FALSE);
   }
 
-  for_inclusive( i, 0, 2 )
+  for(i=0; i<=2; i++)
     rotations[i] = ang[i+1];
 
 
@@ -858,32 +861,32 @@ BOOLEAN extract_parameters_from_matrix(Transform *trans,
   
   
   procedure: 
-  	start with t = inv(tran) (after removing translation from tran )
+          start with t = inv(tran) (after removing translation from tran )
   
-  	t = inv(r)*inv(sh)*inv(sc)
-  		t maps the talairach space unit vectors into native
-		space, which means that the columns of T are the
-		direction cosines of these vectors x,y,z
+          t = inv(r)*inv(sh)*inv(sc)
+                  t maps the talairach space unit vectors into native
+                space, which means that the columns of T are the
+                direction cosines of these vectors x,y,z
 
    (1)  the length of the vectors x,y,z give the inverse scaling
         parameters:
              sx = 1/norm(x); sy = 1/norm(y); sz = 1/norm(z);
 
    (2)  with the constraints on the form of sh above, inv(sh) has the
-	same form.  let inv(sh) be as above in terms of a,b and c.
+        same form.  let inv(sh) be as above in terms of a,b and c.
           inv(sh) = [1 0 0 0; a 1 0 0; b c 1 0; 0 0 0 1];
 
         for c: project y onto z and normalize:
 
-		  /     |y.z|^2     \(1/2)
+                  /     |y.z|^2     \(1/2)
              c = <  ---------------  >
-		  \ |y|^2 - |y.z|^2 /
+                  \ |y|^2 - |y.z|^2 /
 
         for b: project x onto z and normalize
 
-		  /        |x.z|^2        \(1/2)
+                  /        |x.z|^2        \(1/2)
              b = <  ---------------------  >
-		  \ |x|^2 - |x.z|^2 - a^2 /
+                  \ |x|^2 - |x.z|^2 - a^2 /
      
           where a is the projection of x onto the coordinate sys Y axis.
 
@@ -898,12 +901,12 @@ BOOLEAN extract_parameters_from_matrix(Transform *trans,
 
 
 */
-BOOLEAN extract2_parameters_from_matrix(Transform *trans,
-					       double *center,
-					       double *translations,
-					       double *scales,
-					       double *shears,
-					       double *rotations)
+VIO_BOOL extract2_parameters_from_matrix(VIO_Transform *trans,
+                                               double *center,
+                                               double *translations,
+                                               double *scales,
+                                               double *shears,
+                                               double *rotations)
 {
   int 
     i,j;
@@ -930,7 +933,7 @@ BOOLEAN extract2_parameters_from_matrix(Transform *trans,
   ALLOC2D(C     ,5,5); nr_identf(C    ,1,4,1,4);
   ALLOC2D(R     ,5,5); nr_identf(R    ,1,4,1,4);
 
-  ALLOC2D(center_of_rotation ,5,5);	/* make column vectors */
+  ALLOC2D(center_of_rotation ,5,5);        /* make column vectors */
   ALLOC2D(result             ,5,5);
   ALLOC2D(unit_vec           ,5,5);
   ALLOC2D(x                  ,5,5);
@@ -943,36 +946,36 @@ BOOLEAN extract2_parameters_from_matrix(Transform *trans,
   ALLOC(tmp ,4);
   ALLOC(ang ,4);
 
-  for_inclusive( i, 0, 3)	/* copy the input matrix */
-    for_inclusive( j, 0, 3)
+  for(i=0; i<=3; i++)        /* copy the input matrix */
+    for(j=0; j<=3; j++)
       xmat[i+1][j+1] = (float)Transform_elem(*trans,i,j);
 
   /* -------------DETERMINE THE TRANSLATION FIRST! ---------  */
 
-				/* see where the center of rotation is displaced... */
+                                /* see where the center of rotation is displaced... */
 
   FILL_NR_COLVEC( center_of_rotation, center[0], center[1], center[2] );
 
 
-  invertmatrix(4, xmat, TMP1);	/* get inverse of the matrix */
+  invertmatrix(4, xmat, TMP1);        /* get inverse of the matrix */
 
   matrix_multiply( 4, 4, 1, xmat, center_of_rotation, result); /* was TMP! in place of xmat */
 
   SUB_NR_COLVEC( result, result, center_of_rotation );
 
-  for_inclusive( i, 0, 2) 
+  for(i=0; i<=2; i++) 
     translations[i] = result[i+1][1];
 
   /* -------------NOW GET THE SCALING VALUES! ----------------- */
 
-  for_inclusive( i, 0, 2) 
+  for(i=0; i<=2; i++) 
     tmp[i+1] = -translations[i];
   translation_to_homogeneous(3, tmp, Tinv); 
 
-  for_inclusive( i, 0, 2) 
+  for(i=0; i<=2; i++) 
     tmp[i+1] = center[i];
   translation_to_homogeneous(3, tmp, C); 
-  for_inclusive( i, 0, 2) 
+  for(i=0; i<=2; i++) 
     tmp[i+1] = -center[i];
   translation_to_homogeneous(3, tmp, Cinv); 
 
@@ -985,10 +988,10 @@ BOOLEAN extract2_parameters_from_matrix(Transform *trans,
 
   matrix_multiply(4,4,4, Cinv, TMP1,    SR);
 
-  invertmatrix(4, SR, SRinv);	/* get inverse of scaling*shear*rotation */
+  invertmatrix(4, SR, SRinv);        /* get inverse of scaling*shear*rotation */
 
-				/* find each scale by mapping a unit vector backwards,
-				   and finding the magnitude of the result. */
+                                /* find each scale by mapping a unit vector backwards,
+                                   and finding the magnitude of the result. */
   FILL_NR_COLVEC( unit_vec, 1.0, 0.0, 0.0 );
   matrix_multiply( 4, 4, 1, SRinv, unit_vec, result);
   magnitude = MAG_NR_COLVEC( result );
@@ -1030,11 +1033,11 @@ BOOLEAN extract2_parameters_from_matrix(Transform *trans,
   /* SR contains the [scale][shear][rot], must multiply [inv(scale)]*SR
      to get shear*rot. */
 
-				/* make [scale][rot] */
+                                /* make [scale][rot] */
   matrix_multiply(4,4, 4, Sinv, SR,  TMP1);
 
-				/* get inverse of [scale][rot] */
-  invertmatrix(4, TMP1, SRinv);	
+                                /* get inverse of [scale][rot] */
+  invertmatrix(4, TMP1, SRinv);        
 
 
   FILL_NR_COLVEC(x, SRinv[1][1], SRinv[2][1], SRinv[3][1]);
@@ -1043,12 +1046,12 @@ BOOLEAN extract2_parameters_from_matrix(Transform *trans,
 
 
 
-				/* get normalized z direction  */
+                                /* get normalized z direction  */
   magz = MAG_NR_COLVEC(z);
   SCALAR_MULT_NR_COLVEC( nz, z, 1/magz );
 
-				/* get a direction perpendicular 
-				   to z, in the yz plane.  */
+                                /* get a direction perpendicular 
+                                   to z, in the yz plane.  */
   scalar = DOTSUM_NR_COLVEC(  y, nz );
   SCALAR_MULT_NR_COLVEC( y_on_z, nz, scalar );
 
@@ -1057,31 +1060,31 @@ BOOLEAN extract2_parameters_from_matrix(Transform *trans,
   SCALAR_MULT_NR_COLVEC( ortho_y, result, 1/scalar);
 
 
-				/* GET C for the skew matrix */
+                                /* GET C for the skew matrix */
 
   scalar = DOTSUM_NR_COLVEC( y, nz ); /* project y onto z */
   magy   = MAG_NR_COLVEC(y);
   ci = scalar / sqrt((double)( magy*magy - scalar*scalar)) ;
-				/* GET B for the skew matrix */
+                                /* GET B for the skew matrix */
 
-				/*    first need a1 */
+                                /*    first need a1 */
 
   a1     = DOTSUM_NR_COLVEC( x, ortho_y ); /* project x onto ortho_y */
   magx   = MAG_NR_COLVEC(x);
 
-				/*    now get B  */
+                                /*    now get B  */
 
   scalar = DOTSUM_NR_COLVEC( x, nz );
   bi = scalar / sqrt((double)( magx*magx - scalar*scalar - a1*a1)) ;
 
-				/* GET A for skew matrix  */
+                                /* GET A for skew matrix  */
 
   ai = a1 / sqrt((double)( magx*magx - scalar*scalar - a1*a1));
 
-				/* normalize the inverse shear parameters.
-				   so that there is no scaling in the matrix 
-				   (all scaling is already accounted for 
-				   in sx,sy and sz. */
+                                /* normalize the inverse shear parameters.
+                                   so that there is no scaling in the matrix 
+                                   (all scaling is already accounted for 
+                                   in sx,sy and sz. */
 
   n1 = sqrt((double)(1 + ai*ai + bi*bi));
   n2 = sqrt((double)(1 + ci*ci));
@@ -1090,22 +1093,22 @@ BOOLEAN extract2_parameters_from_matrix(Transform *trans,
   bi = bi / n1;
   ci = ci / n2;
 
-				/* ai,bi,c1 now contain the parameters for 
-				   the inverse NORMALIZED shear matrix 
-				   (i.e., norm(col_i) = 1.0). */
+                                /* ai,bi,c1 now contain the parameters for 
+                                   the inverse NORMALIZED shear matrix 
+                                   (i.e., norm(col_i) = 1.0). */
 
   
   /* ------------NOW GET THE ROTATION ANGLES!----- */
 
-  				/*  since SR = [scale][shear][rot], then
-				    rot = [inv(shear)][inv(scale)][SR] */
+                                  /*  since SR = [scale][shear][rot], then
+                                    rot = [inv(shear)][inv(scale)][SR] */
 
-  nr_identf(TMP1 ,1,4,1,4);	/* make inverse scale matrix */
+  nr_identf(TMP1 ,1,4,1,4);        /* make inverse scale matrix */
   TMP1[1][1] = 1/scales[0];
   TMP1[2][2] = 1/scales[1];
   TMP1[3][3] = 1/scales[2];
 
-  nr_identf(TMP2 ,1,4,1,4);	/* make_inverse normalized shear matrix */
+  nr_identf(TMP2 ,1,4,1,4);        /* make_inverse normalized shear matrix */
   TMP2[1][1] = sqrt((double)(1 - ai*ai - bi*bi));
   TMP2[2][2] = sqrt((double)(1 - ci*ci));
   TMP2[2][1] = ai;
@@ -1113,23 +1116,23 @@ BOOLEAN extract2_parameters_from_matrix(Transform *trans,
   TMP2[3][2] = ci;
 
 
-				/* extract rotation matrix */
+                                /* extract rotation matrix */
   matrix_multiply(4,4, 4, TMP2, TMP1, T);
   matrix_multiply(4,4, 4, T,    SR,   R);
 
-				/* get rotation angles */
+                                /* get rotation angles */
   if (!rotmat_to_ang(R, ang)) {
     (void)fprintf(stderr,"Cannot convert R to radians!");
     printmatrix(3,3,R);
     return(FALSE);
   }
 
-  for_inclusive( i, 0, 2 )
+  for(i=0; i<=2; i++)
     rotations[i] = ang[i+1];
 
   /* ------------NOW ADJUST THE SCALE AND SKEW PARAMETERS ------------ */
 
-  invertmatrix(4, T, Tinv);	/* get inverse of the matrix */
+  invertmatrix(4, T, Tinv);        /* get inverse of the matrix */
   
 
   scales[0] = Tinv[1][1];
@@ -1218,32 +1221,32 @@ BOOLEAN extract2_parameters_from_matrix(Transform *trans,
   
   
   procedure: 
-  	start with t = inv(tran) (after removing translation from tran )
+          start with t = inv(tran) (after removing translation from tran )
   
-  	t = inv(r)*inv(sh)*inv(sc)
-  		t maps the talairach space unit vectors into native
-		space, which means that the columns of T are the
-		direction cosines of these vectors x,y,z
+          t = inv(r)*inv(sh)*inv(sc)
+                  t maps the talairach space unit vectors into native
+                space, which means that the columns of T are the
+                direction cosines of these vectors x,y,z
 
    (1)  the length of the vectors x,y,z give the inverse scaling
         parameters:
              sx = 1/norm(x); sy = 1/norm(y); sz = 1/norm(z);
 
    (2)  with the constraints on the form of sh above, inv(sh) has the
-	same form.  let inv(sh) be as above in terms of a,b and c.
+        same form.  let inv(sh) be as above in terms of a,b and c.
           inv(sh) = [1 0 0 0; a 1 0 0; b c 1 0; 0 0 0 1];
 
         for c: project y onto z and normalize:
 
-		  /     |y.z|^2     \(1/2)
+                  /     |y.z|^2     \(1/2)
              c = <  ---------------  >
-		  \ |y|^2 - |y.z|^2 /
+                  \ |y|^2 - |y.z|^2 /
 
         for b: project x onto z and normalize
 
-		  /        |x.z|^2        \(1/2)
+                  /        |x.z|^2        \(1/2)
              b = <  ---------------------  >
-		  \ |x|^2 - |x.z|^2 - a^2 /
+                  \ |x|^2 - |x.z|^2 - a^2 /
      
           where a is the projection of x onto the coordinate sys Y axis.
 
@@ -1261,12 +1264,12 @@ BOOLEAN extract2_parameters_from_matrix(Transform *trans,
 
 
 
-BOOLEAN extract2_parameters_from_matrix_quater(Transform *trans,
-						      double *center,
-						      double *translations,
-						      double *scales,
-						      double *shears,
-						      double *quaternions)
+VIO_BOOL extract2_parameters_from_matrix_quater(VIO_Transform *trans,
+                                                      double *center,
+                                                      double *translations,
+                                                      double *scales,
+                                                      double *shears,
+                                                      double *quaternions)
 {
   int 
     i,j;
@@ -1293,7 +1296,7 @@ BOOLEAN extract2_parameters_from_matrix_quater(Transform *trans,
   ALLOC2D(C     ,5,5); nr_identf(C    ,1,4,1,4);
   ALLOC2D(R     ,5,5); nr_identf(R    ,1,4,1,4);
 
-  ALLOC2D(center_of_rotation ,5,5);	/* make column vectors */
+  ALLOC2D(center_of_rotation ,5,5);        /* make column vectors */
   ALLOC2D(result             ,5,5);
   ALLOC2D(unit_vec           ,5,5);
   ALLOC2D(x                  ,5,5);
@@ -1306,36 +1309,36 @@ BOOLEAN extract2_parameters_from_matrix_quater(Transform *trans,
   ALLOC(tmp ,4);
   ALLOC(ang ,4);
 
-  for_inclusive( i, 0, 3)	/* copy the input matrix */
-    for_inclusive( j, 0, 3)
+  for(i=0; i<=3; i++)        /* copy the input matrix */
+    for(j=0; j<=3; j++)
       xmat[i+1][j+1] = (float)Transform_elem(*trans,i,j);
   
   /* -------------DETERMINE THE TRANSLATION FIRST! ---------  */
 
-				/* see where the center of rotation is displaced... */
+                                /* see where the center of rotation is displaced... */
 
   FILL_NR_COLVEC( center_of_rotation, center[0], center[1], center[2] );
 
 
-  invertmatrix(4, xmat, TMP1);	/* get inverse of the matrix */
+  invertmatrix(4, xmat, TMP1);        /* get inverse of the matrix */
 
   matrix_multiply( 4, 4, 1, xmat, center_of_rotation, result); /* was TMP1 in place of xmat */
 
   SUB_NR_COLVEC( result, result, center_of_rotation );
 
-  for_inclusive( i, 0, 2) 
+  for(i=0; i<=2; i++) 
     translations[i] = result[i+1][1];
 
   /* -------------NOW GET THE SCALING VALUES! ----------------- */
 
-  for_inclusive( i, 0, 2) 
+  for(i=0; i<=2; i++) 
     tmp[i+1] = -translations[i];
   translation_to_homogeneous(3, tmp, Tinv); 
 
-  for_inclusive( i, 0, 2) 
+  for(i=0; i<=2; i++) 
     tmp[i+1] = center[i];
   translation_to_homogeneous(3, tmp, C); 
-  for_inclusive( i, 0, 2) 
+  for(i=0; i<=2; i++) 
     tmp[i+1] = -center[i];
   translation_to_homogeneous(3, tmp, Cinv); 
 
@@ -1348,11 +1351,11 @@ BOOLEAN extract2_parameters_from_matrix_quater(Transform *trans,
 
   matrix_multiply(4,4,4, Cinv, TMP1,    SR);
 
-  invertmatrix(4, SR, SRinv);	/* get inverse of scaling*shear*rotation */
+  invertmatrix(4, SR, SRinv);        /* get inverse of scaling*shear*rotation */
   
  
-				/* find each scale by mapping a unit vector backwards,
-				   and finding the magnitude of the result. */
+                                /* find each scale by mapping a unit vector backwards,
+                                   and finding the magnitude of the result. */
   FILL_NR_COLVEC( unit_vec, 1.0, 0.0, 0.0 );
   matrix_multiply( 4, 4, 1, SRinv, unit_vec, result);
   magnitude = MAG_NR_COLVEC( result );
@@ -1395,11 +1398,11 @@ BOOLEAN extract2_parameters_from_matrix_quater(Transform *trans,
   /* SR contains the [scale][shear][rot], must multiply [inv(scale)]*SR
      to get shear*rot. */
 
-				/* make [scale][rot] */
+                                /* make [scale][rot] */
   matrix_multiply(4,4, 4, Sinv, SR,  TMP1);
 
-				/* get inverse of [scale][rot] */
-  invertmatrix(4, TMP1, SRinv);	
+                                /* get inverse of [scale][rot] */
+  invertmatrix(4, TMP1, SRinv);        
 
 
   FILL_NR_COLVEC(x, SRinv[1][1], SRinv[2][1], SRinv[3][1]);
@@ -1408,12 +1411,12 @@ BOOLEAN extract2_parameters_from_matrix_quater(Transform *trans,
 
 
 
-				/* get normalized z direction  */
+                                /* get normalized z direction  */
   magz = MAG_NR_COLVEC(z);
   SCALAR_MULT_NR_COLVEC( nz, z, 1/magz );
 
-				/* get a direction perpendicular 
-				   to z, in the yz plane.  */
+                                /* get a direction perpendicular 
+                                   to z, in the yz plane.  */
   scalar = DOTSUM_NR_COLVEC(  y, nz );
   SCALAR_MULT_NR_COLVEC( y_on_z, nz, scalar );
 
@@ -1422,31 +1425,31 @@ BOOLEAN extract2_parameters_from_matrix_quater(Transform *trans,
   SCALAR_MULT_NR_COLVEC( ortho_y, result, 1/scalar);
 
 
-				/* GET C for the skew matrix */
+                                /* GET C for the skew matrix */
 
   scalar = DOTSUM_NR_COLVEC( y, nz ); /* project y onto z */
   magy   = MAG_NR_COLVEC(y);
   ci = scalar / sqrt((double)( magy*magy - scalar*scalar)) ;
-				/* GET B for the skew matrix */
+                                /* GET B for the skew matrix */
 
-				/*    first need a1 */
+                                /*    first need a1 */
 
   a1     = DOTSUM_NR_COLVEC( x, ortho_y ); /* project x onto ortho_y */
   magx   = MAG_NR_COLVEC(x);
 
-				/*    now get B  */
+                                /*    now get B  */
 
   scalar = DOTSUM_NR_COLVEC( x, nz );
   bi = scalar / sqrt((double)( magx*magx - scalar*scalar - a1*a1)) ;
 
-				/* GET A for skew matrix  */
+                                /* GET A for skew matrix  */
 
   ai = a1 / sqrt((double)( magx*magx - scalar*scalar - a1*a1));
 
-				/* normalize the inverse shear parameters.
-				   so that there is no scaling in the matrix 
-				   (all scaling is already accounted for 
-				   in sx,sy and sz. */
+                                /* normalize the inverse shear parameters.
+                                   so that there is no scaling in the matrix 
+                                   (all scaling is already accounted for 
+                                   in sx,sy and sz. */
 
   n1 = sqrt((double)(1 + ai*ai + bi*bi));
   n2 = sqrt((double)(1 + ci*ci));
@@ -1455,22 +1458,22 @@ BOOLEAN extract2_parameters_from_matrix_quater(Transform *trans,
   bi = bi / n1;
   ci = ci / n2;
 
-				/* ai,bi,c1 now contain the parameters for 
-				   the inverse NORMALIZED shear matrix 
-				   (i.e., norm(col_i) = 1.0). */
+                                /* ai,bi,c1 now contain the parameters for 
+                                   the inverse NORMALIZED shear matrix 
+                                   (i.e., norm(col_i) = 1.0). */
 
   
   /* ------------NOW GET THE ROTATION ANGLES!----- */
 
-  				/*  since SR = [scale][shear][rot], then
-				    rot = [inv(shear)][inv(scale)][SR] */
+                                  /*  since SR = [scale][shear][rot], then
+                                    rot = [inv(shear)][inv(scale)][SR] */
 
-  nr_identf(TMP1 ,1,4,1,4);	/* make inverse scale matrix */
+  nr_identf(TMP1 ,1,4,1,4);        /* make inverse scale matrix */
   TMP1[1][1] = 1/scales[0];
   TMP1[2][2] = 1/scales[1];
   TMP1[3][3] = 1/scales[2];
 
-  nr_identf(TMP2 ,1,4,1,4);	/* make_inverse normalized shear matrix */
+  nr_identf(TMP2 ,1,4,1,4);        /* make_inverse normalized shear matrix */
   TMP2[1][1] = sqrt((double)(1 - ai*ai - bi*bi));
   TMP2[2][2] = sqrt((double)(1 - ci*ci));
   TMP2[2][1] = ai;
@@ -1478,17 +1481,17 @@ BOOLEAN extract2_parameters_from_matrix_quater(Transform *trans,
   TMP2[3][2] = ci;
 
 
-				/* extract rotation matrix */
+                                /* extract rotation matrix */
   matrix_multiply(4,4, 4, TMP2, TMP1, T);
   matrix_multiply(4,4, 4, T,    SR,   R);
 
  
-				/* get rotation angles */
+                                /* get rotation angles */
   extract_quaternions(R,quaternions);
 
   /* ------------NOW ADJUST THE SCALE AND SKEW PARAMETERS ------------ */
 
-  invertmatrix(4, T, Tinv);	/* get inverse of the matrix */
+  invertmatrix(4, T, Tinv);        /* get inverse of the matrix */
   
 
   scales[0] = Tinv[1][1];

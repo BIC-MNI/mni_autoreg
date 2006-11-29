@@ -5,13 +5,16 @@
 @RETURNS    : status
 @DESCRIPTION: Program designed to invert the representation of 
         a deformation field to speed up resampling into the target
-	space. 
+        space. 
 @METHOD     : 
 @GLOBALS    : 
 @CALLS      : 
 @CREATED    : Mon May 29 09:07:14 MET DST 1995 Collins
 @MODIFIED   : $Log: reversedef.c,v $
-@MODIFIED   : Revision 1.5  2005-07-20 20:45:47  rotor
+@MODIFIED   : Revision 1.6  2006-11-29 09:09:31  rotor
+@MODIFIED   :  * first bunch of changes for minc 2.0 compliance
+@MODIFIED   :
+@MODIFIED   : Revision 1.5  2005/07/20 20:45:47  rotor
 @MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
 @MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
 @MODIFIED   :     * Removed old VOLUME_IO cruft #defines
@@ -45,7 +48,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/reversedef.c,v 1.5 2005-07-20 20:45:47 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/reversedef.c,v 1.6 2006-11-29 09:09:31 rotor Exp $";
 #endif
 
 #include <config.h>
@@ -64,7 +67,7 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 
 void print_usage_and_exit(char *pname);
 
-void get_volume_XYZV_indices(Volume data, int xyzv[])
+void get_volume_XYZV_indices(VIO_Volume data, int xyzv[])
 {
   
   int 
@@ -75,8 +78,8 @@ void get_volume_XYZV_indices(Volume data, int xyzv[])
   vol_dims       = get_volume_n_dimensions(data);
   data_dim_names = get_volume_dimension_names(data);
  
-  for_less(i,0,N_DIMENSIONS+1) xyzv[i] = -1;
-  for_less(i,0,vol_dims) {
+  for(i=0; i<N_DIMENSIONS+1; i++) xyzv[i] = -1;
+  for(i=0; i<vol_dims; i++) {
     if (convert_dim_name_to_spatial_axis(data_dim_names[i], &axis )) {
       xyzv[axis] = i; 
     } 
@@ -97,22 +100,22 @@ void get_volume_XYZV_indices(Volume data, int xyzv[])
 }
 
  void  general_transform_point_in_trans_plane(
-    General_transform   *transform,
-    Real                x,
-    Real                y,
-    Real                z,
-    Real                *x_transformed,
-    Real                *y_transformed,
-    Real                *z_transformed );
+    VIO_General_transform   *transform,
+    VIO_Real                x,
+    VIO_Real                y,
+    VIO_Real                z,
+    VIO_Real                *x_transformed,
+    VIO_Real                *y_transformed,
+    VIO_Real                *z_transformed );
 
  void  general_inverse_transform_point_in_trans_plane(
-    General_transform   *transform,
-    Real                x,
-    Real                y,
-    Real                z,
-    Real                *x_transformed,
-    Real                *y_transformed,
-    Real                *z_transformed );
+    VIO_General_transform   *transform,
+    VIO_Real                x,
+    VIO_Real                y,
+    VIO_Real                z,
+    VIO_Real                *x_transformed,
+    VIO_Real                *y_transformed,
+    VIO_Real                *z_transformed );
 
 
 
@@ -121,22 +124,22 @@ char *prog_name;
 
 int main(int argc, char *argv[])
 {
-   General_transform 
+   VIO_General_transform 
      transform, 
      *grid_transform_ptr, 
      forward_transform;
-   Volume 
+   VIO_Volume 
      target_vol,
      volume;
    volume_input_struct 
      input_info;
-   Real
-     voxel[MAX_DIMENSIONS],
-     steps[MAX_DIMENSIONS],
-     start[N_DIMENSIONS],
-     target_steps[MAX_DIMENSIONS],
+   VIO_Real
+     voxel[VIO_MAX_DIMENSIONS],
+     steps[VIO_MAX_DIMENSIONS],
+     start[VIO_N_DIMENSIONS],
+     target_steps[VIO_MAX_DIMENSIONS],
      wx,wy,wz, inv_x, inv_y, inv_z,
-     def_values[MAX_DIMENSIONS];
+     def_values[VIO_MAX_DIMENSIONS];
 
    static int 
      clobber_flag = FALSE,
@@ -148,30 +151,30 @@ int main(int argc, char *argv[])
    int 
      parse_flag,
      prog_count,
-     sizes[MAX_DIMENSIONS],
-     target_sizes[MAX_DIMENSIONS],
-     xyzv[MAX_DIMENSIONS],
-     target_xyzv[MAX_DIMENSIONS],
-     index[MAX_DIMENSIONS],
+     sizes[VIO_MAX_DIMENSIONS],
+     target_sizes[VIO_MAX_DIMENSIONS],
+     xyzv[VIO_MAX_DIMENSIONS],
+     target_xyzv[VIO_MAX_DIMENSIONS],
+     index[VIO_MAX_DIMENSIONS],
      i,
      trans_count;
-   progress_struct
+   VIO_progress_struct
      progress;
 
 
    static ArgvInfo argTable[] = {
      {"-like",       ARGV_STRING,   (char *) 0,     (char *) &target_file,
-	"Specify target volume sampling information."},
+        "Specify target volume sampling information."},
      {"-no_clobber", ARGV_CONSTANT, (char *) FALSE, (char *) &clobber_flag,
-	"Do not overwrite output file (default)."},
+        "Do not overwrite output file (default)."},
      {"-clobber",    ARGV_CONSTANT, (char *) TRUE,  (char *) &clobber_flag,
-	"Overwrite output file."},
+        "Overwrite output file."},
      {"-verbose",    ARGV_CONSTANT, (char *) TRUE,     (char *) &verbose,
-	"Write messages indicating progress (default)"},
+        "Write messages indicating progress (default)"},
      {"-quiet",      ARGV_CONSTANT, (char *) FALSE,    (char *) &verbose,
-	"Do not write log messages"},
+        "Do not write log messages"},
      {"-debug",      ARGV_CONSTANT, (char *) TRUE,  (char *) &debug,
-	"Print out debug info."},
+        "Print out debug info."},
      {NULL, ARGV_END, NULL, NULL, NULL}
    };
 
@@ -194,110 +197,110 @@ int main(int argc, char *argv[])
    }
 
 
-   for_less(trans_count,0, get_n_concated_transforms(&transform) ) {
+   for(trans_count=0; trans_count<get_n_concated_transforms(&transform; trans_count++) ) {
 
      grid_transform_ptr = get_nth_general_transform(&transform, trans_count );
      
      if (grid_transform_ptr->type == GRID_TRANSFORM) {
 
        copy_general_transform(grid_transform_ptr,
-			      &forward_transform);
+                              &forward_transform);
 
        /* 
-	  this is the call that should be made
-	  with the latest version of internal_libvolume_io
-	
-	  invert_general_transform(&forward_transform); */
+          this is the call that should be made
+          with the latest version of internal_libvolume_io
+        
+          invert_general_transform(&forward_transform); */
 
        forward_transform.inverse_flag = !(forward_transform.inverse_flag);
 
        volume = grid_transform_ptr->displacement_volume;
 
        if (strlen(target_file)!=0) {
-	 if (debug) print ("Def field will be resampled like %s\n",target_file);
-	 
-	 if (!file_exists( target_file ) ) {
-	   (void) fprintf(stderr, "%s: Target file '%s' does not exist\n",
-			  prog_name,target_file);
-	   exit(EXIT_FAILURE);
-	 }
+         if (debug) print ("Def field will be resampled like %s\n",target_file);
+         
+         if (!file_exists( target_file ) ) {
+           (void) fprintf(stderr, "%s: Target file '%s' does not exist\n",
+                          prog_name,target_file);
+           exit(EXIT_FAILURE);
+         }
 
-	 start_volume_input(target_file, 3, (char **)NULL, 
-			    NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-			    TRUE, &target_vol, 
-			    (minc_input_options *)NULL,
-			    &input_info);
-	 get_volume_XYZV_indices(volume, xyzv);
-	 get_volume_separations (volume, steps);
-	 get_volume_sizes       (volume, sizes);
+         start_volume_input(target_file, 3, (char **)NULL, 
+                            NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+                            TRUE, &target_vol, 
+                            (minc_input_options *)NULL,
+                            &input_info);
+         get_volume_XYZV_indices(volume, xyzv);
+         get_volume_separations (volume, steps);
+         get_volume_sizes       (volume, sizes);
 
-	 get_volume_XYZV_indices(target_vol, target_xyzv);
-	 get_volume_separations (target_vol, target_steps);
-	 get_volume_sizes       (target_vol, target_sizes);
+         get_volume_XYZV_indices(target_vol, target_xyzv);
+         get_volume_separations (target_vol, target_steps);
+         get_volume_sizes       (target_vol, target_sizes);
 
-	 for_less(i,0,MAX_DIMENSIONS) {
-	   index[i] = 0;
-	   voxel[i] = 0.0;
-	 }
-	 convert_voxel_to_world(target_vol, voxel, &start[X], &start[Y], &start[Z]);
+         for(i=0; i<MAX_DIMENSIONS; i++) {
+           index[i] = 0;
+           voxel[i] = 0.0;
+         }
+         convert_voxel_to_world(target_vol, voxel, &start[VIO_X], &start[VIO_Y], &start[VIO_Z]);
 
-	 if( VOXEL_DATA(volume) != (void *) NULL )
-	   free_volume_data( volume );
+         if( VOXEL_DATA(volume) != (void *) NULL )
+           free_volume_data( volume );
 
-	 for_inclusive(i,X,Z) {
-	   steps[ xyzv[i] ] = target_steps[ target_xyzv[i] ] ;
-	   sizes[ xyzv[i] ] = target_sizes[ target_xyzv[i] ] ;
-	 }
-	 set_volume_separations(volume, steps);
-	 set_volume_sizes(      volume, sizes);
-	 set_volume_starts(volume, start);
-	 alloc_volume_data( volume );
+         for(i=X; i<=Z; i++) {
+           steps[ xyzv[i] ] = target_steps[ target_xyzv[i] ] ;
+           sizes[ xyzv[i] ] = target_sizes[ target_xyzv[i] ] ;
+         }
+         set_volume_separations(volume, steps);
+         set_volume_sizes(      volume, sizes);
+         set_volume_starts(volume, start);
+         alloc_volume_data( volume );
        }
 
        get_volume_sizes(volume, sizes);
        get_volume_XYZV_indices(volume,xyzv);
 
-       for_less(i,0,MAX_DIMENSIONS) index[i] = 0;
+       for(i=0; i<MAX_DIMENSIONS; i++) index[i] = 0;
 
        if (verbose)
-	initialize_progress_report(&progress, FALSE, 
-				   sizes[xyzv[X]]*sizes[xyzv[Y]]*sizes[xyzv[Z]]+1,
-				   "Inverting def field");
+        initialize_progress_report(&progress, FALSE, 
+                                   sizes[xyzv[VIO_X]]*sizes[xyzv[VIO_Y]]*sizes[xyzv[VIO_Z]]+1,
+                                   "Inverting def field");
        prog_count = 0;
 
-       for_less( index[ xyzv[X] ], 0, sizes[ xyzv[X] ])
-	 for_less( index[ xyzv[Y] ], 0, sizes[ xyzv[Y] ])
-	   for_less( index[ xyzv[Z] ], 0, sizes[ xyzv[Z] ]) {
-	     
-	     index[ xyzv[Z+1] ] = 0;
-	     for_less(i,0,MAX_DIMENSIONS) voxel[i] = (Real)index[i];
+       for(index[xyzv[VIO_X]]=0; index[xyzv[VIO_X]]<sizes[xyzv[VIO_X]]; index[xyzv[VIO_X]]++)
+         for(index[xyzv[VIO_Y]]=0; index[xyzv[VIO_Y]]<sizes[xyzv[VIO_Y]]; index[xyzv[VIO_Y]]++)
+           for(index[xyzv[VIO_Z]]=0; index[xyzv[VIO_Z]]<sizes[xyzv[VIO_Z]]; index[xyzv[VIO_Z]]++) {
+             
+             index[ xyzv[Z+1] ] = 0;
+             for(i=0; i<MAX_DIMENSIONS; i++) voxel[i] = (VIO_Real)index[i];
        
-	     convert_voxel_to_world(volume, voxel, &wx, &wy, &wz);
-	     
-	     if (sizes[ xyzv[Z] ] ==1)
-	        general_inverse_transform_point_in_trans_plane(&forward_transform,
-					    wx, wy, wz,
-					    &inv_x, &inv_y, &inv_z);
-	     else
-	       grid_inverse_transform_point(&forward_transform,
-					    wx, wy, wz,
-					    &inv_x, &inv_y, &inv_z);
-	     def_values[X] = inv_x - wx;
-	     def_values[Y] = inv_y - wy;
-	     def_values[Z] = inv_z - wz;
+             convert_voxel_to_world(volume, voxel, &wx, &wy, &wz);
+             
+             if (sizes[ xyzv[VIO_Z] ] ==1)
+                general_inverse_transform_point_in_trans_plane(&forward_transform,
+                                            wx, wy, wz,
+                                            &inv_x, &inv_y, &inv_z);
+             else
+               grid_inverse_transform_point(&forward_transform,
+                                            wx, wy, wz,
+                                            &inv_x, &inv_y, &inv_z);
+             def_values[VIO_X] = inv_x - wx;
+             def_values[VIO_Y] = inv_y - wy;
+             def_values[VIO_Z] = inv_z - wz;
 
-	     for_less(index[ xyzv[Z+1] ],0,3)
-	       set_volume_real_value(volume,
-				     index[0],index[1],index[2],index[3],index[4],
-				     def_values[ index[ xyzv[Z+1] ]]);
+             for(index[xyzv[Z+1]]=0; index[xyzv[Z+1]]<3; index[xyzv[Z+1]]++)
+               set_volume_real_value(volume,
+                                     index[0],index[1],index[2],index[3],index[4],
+                                     def_values[ index[ xyzv[Z+1] ]]);
 
-	     prog_count++;
-	     if (verbose)
-	       update_progress_report(&progress, prog_count);
-	   }
+             prog_count++;
+             if (verbose)
+               update_progress_report(&progress, prog_count);
+           }
        
        if (verbose)
-	 terminate_progress_report(&progress);
+         terminate_progress_report(&progress);
 
        delete_general_transform(&forward_transform);
 
@@ -324,7 +327,7 @@ void print_usage_and_exit(char *pname) {
   (void) fprintf(stderr, "This program is used to invert the internal representation\n");
   (void) fprintf(stderr, "of a GRID_TRANSFORM in order to speed up resampling.\n\n");
   (void) fprintf(stderr, "Usage: %s [options] <input.xfm> <result.xfm>\n",
-		 pname);
+                 pname);
   exit(EXIT_FAILURE);
 
 }

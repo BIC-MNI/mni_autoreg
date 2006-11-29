@@ -311,7 +311,7 @@
 
 #define  CUBIC_UNIVAR_VAL_DERIV1( v0, v1, v2, v3, u, val, deriv )              \
      {                                                                         \
-         Real   _c1, _c2, _c3;                                                 \
+         VIO_Real   _c1, _c2, _c3;                                                 \
                                                                                \
          _c1 = CUBIC_COEF_1(v0,v1,v2,v3);                                      \
          _c2 = CUBIC_COEF_2(v0,v1,v2,v3);                                      \
@@ -322,7 +322,7 @@
 
 #define  CUBIC_UNIVAR_VAL_DERIV2( v0, v1, v2, v3, u, val, deriv1, deriv2 )     \
      {                                                                         \
-         Real   _c1, _c2, _c3;                                                 \
+         VIO_Real   _c1, _c2, _c3;                                                 \
                                                                                \
          _c1 = CUBIC_COEF_1(v0,v1,v2,v3);                                      \
          _c2 = CUBIC_COEF_2(v0,v1,v2,v3);                                      \
@@ -428,7 +428,7 @@
         c22 = CUBIC_UNIVAR(GLUE(c,220),GLUE(c,221),GLUE(c,222),GLUE(c,223), w ); \
         c23 = CUBIC_UNIVAR(GLUE(c,230),GLUE(c,231),GLUE(c,232),GLUE(c,233), w ); \
  \
-	c30 = CUBIC_UNIVAR(GLUE(c,300),GLUE(c,301),GLUE(c,302),GLUE(c,303), w ); \
+        c30 = CUBIC_UNIVAR(GLUE(c,300),GLUE(c,301),GLUE(c,302),GLUE(c,303), w ); \
         c31 = CUBIC_UNIVAR(GLUE(c,310),GLUE(c,311),GLUE(c,312),GLUE(c,313), w ); \
         c32 = CUBIC_UNIVAR(GLUE(c,320),GLUE(c,321),GLUE(c,322),GLUE(c,323), w ); \
         c33 = CUBIC_UNIVAR(GLUE(c,330),GLUE(c,331),GLUE(c,332),GLUE(c,333), w ); \

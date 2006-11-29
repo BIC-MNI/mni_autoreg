@@ -2,56 +2,56 @@
 #include "louis_splines.h"
 #include <Proglib.h>
 
-void get_volume_XYZV_indices(Volume data, int xyzv[]);
+void get_volume_XYZV_indices(VIO_Volume data, int xyzv[]);
 
-void interpolate_deformation_slice(Volume volume, 
-					  Real wx,Real wy,Real wz,
-					  Real def[]);
+void interpolate_deformation_slice(VIO_Volume volume, 
+                                          VIO_Real wx,Real wy,Real wz,
+                                          VIO_Real def[]);
 
  void  grid_transform_point_in_trans_plane(
-    General_transform   *transform,
-    Real                x,
-    Real                y,
-    Real                z,
-    Real                *x_transformed,
-    Real                *y_transformed,
-    Real                *z_transformed );
+    VIO_General_transform   *transform,
+    VIO_Real                x,
+    VIO_Real                y,
+    VIO_Real                z,
+    VIO_Real                *x_transformed,
+    VIO_Real                *y_transformed,
+    VIO_Real                *z_transformed );
 
  void  grid_inverse_transform_point_in_trans_plane(
-    General_transform   *transform,
-    Real                x,
-    Real                y,
-    Real                z,
-    Real                *x_transformed,
-    Real                *y_transformed,
-    Real                *z_transformed );
+    VIO_General_transform   *transform,
+    VIO_Real                x,
+    VIO_Real                y,
+    VIO_Real                z,
+    VIO_Real                *x_transformed,
+    VIO_Real                *y_transformed,
+    VIO_Real                *z_transformed );
 
-static void transform_or_inverse_point_in_trans_plane(General_transform *transform,
-					  BOOLEAN           inverse_flag,
-					  Real              x, 
-					  Real              y, 
-					  Real              z,
-					  Real              *x_transformed,  
-					  Real              *y_transformed,  
-					  Real              *z_transformed);
+static void transform_or_inverse_point_in_trans_plane(VIO_General_transform *transform,
+                                          VIO_BOOL           inverse_flag,
+                                          VIO_Real              x, 
+                                          VIO_Real              y, 
+                                          VIO_Real              z,
+                                          VIO_Real              *x_transformed,  
+                                          VIO_Real              *y_transformed,  
+                                          VIO_Real              *z_transformed);
 
  void  general_transform_point_in_trans_plane(
-    General_transform   *transform,
-    Real                x,
-    Real                y,
-    Real                z,
-    Real                *x_transformed,
-    Real                *y_transformed,
-    Real                *z_transformed );
+    VIO_General_transform   *transform,
+    VIO_Real                x,
+    VIO_Real                y,
+    VIO_Real                z,
+    VIO_Real                *x_transformed,
+    VIO_Real                *y_transformed,
+    VIO_Real                *z_transformed );
 
  void  general_inverse_transform_point_in_trans_plane(
-    General_transform   *transform,
-    Real                x,
-    Real                y,
-    Real                z,
-    Real                *x_transformed,
-    Real                *y_transformed,
-    Real                *z_transformed );
+    VIO_General_transform   *transform,
+    VIO_Real                x,
+    VIO_Real                y,
+    VIO_Real                z,
+    VIO_Real                *x_transformed,
+    VIO_Real                *y_transformed,
+    VIO_Real                *z_transformed );
 
 
 
@@ -63,14 +63,14 @@ static void transform_or_inverse_point_in_trans_plane(General_transform *transfo
   this routine will use interpolation on the 2D deformation
   field to calculate the inverse position */
 
-static void transform_or_inverse_point_in_trans_plane(General_transform *transform,
-					  BOOLEAN           inverse_flag,
-					  Real              x, 
-					  Real              y, 
-					  Real              z,
-					  Real              *x_transformed,  
-					  Real              *y_transformed,  
-					  Real              *z_transformed) {
+static void transform_or_inverse_point_in_trans_plane(VIO_General_transform *transform,
+                                          VIO_BOOL           inverse_flag,
+                                          VIO_Real              x, 
+                                          VIO_Real              y, 
+                                          VIO_Real              z,
+                                          VIO_Real              *x_transformed,  
+                                          VIO_Real              *y_transformed,  
+                                          VIO_Real              *z_transformed) {
   
   int      trans;
   
@@ -78,67 +78,67 @@ static void transform_or_inverse_point_in_trans_plane(General_transform *transfo
     {
     case LINEAR:
       if( inverse_flag )
-	transform_point( transform->inverse_linear_transform,
-			x, y, z,
-			x_transformed, y_transformed, z_transformed );
+        transform_point( transform->inverse_linear_transform,
+                        x, y, z,
+                        x_transformed, y_transformed, z_transformed );
       else
-	transform_point( transform->linear_transform,
-			x, y, z,
-			x_transformed, y_transformed, z_transformed );
+        transform_point( transform->linear_transform,
+                        x, y, z,
+                        x_transformed, y_transformed, z_transformed );
       break;
       
     case THIN_PLATE_SPLINE:
       if( inverse_flag )
         {
-	  thin_plate_spline_inverse_transform( transform->n_dimensions,
-					      transform->n_points,
-					      transform->points,
-					      transform->displacements,
-					      x, y, z,
-					      x_transformed, y_transformed,
-					      z_transformed );
+          thin_plate_spline_inverse_transform( transform->n_dimensions,
+                                              transform->n_points,
+                                              transform->points,
+                                              transform->displacements,
+                                              x, y, z,
+                                              x_transformed, y_transformed,
+                                              z_transformed );
         }
       else
         {
-	  thin_plate_spline_transform( transform->n_dimensions,
-				      transform->n_points,
-				      transform->points,
-				      transform->displacements,
-				      x, y, z,
-				      x_transformed, y_transformed,
-				      z_transformed );
+          thin_plate_spline_transform( transform->n_dimensions,
+                                      transform->n_points,
+                                      transform->points,
+                                      transform->displacements,
+                                      x, y, z,
+                                      x_transformed, y_transformed,
+                                      z_transformed );
         }
       break;
       
     case GRID_TRANSFORM:
       if( inverse_flag )
         {
-	  grid_inverse_transform_point_in_trans_plane( transform,
-					  x, y, z,
-					  x_transformed, y_transformed,
-					  z_transformed );
+          grid_inverse_transform_point_in_trans_plane( transform,
+                                          x, y, z,
+                                          x_transformed, y_transformed,
+                                          z_transformed );
         }
       else
         {
-	  grid_transform_point_in_trans_plane( transform,
-				  x, y, z,
-				  x_transformed, y_transformed,
-				  z_transformed );
+          grid_transform_point_in_trans_plane( transform,
+                                  x, y, z,
+                                  x_transformed, y_transformed,
+                                  z_transformed );
         }
       break;
       
     case USER_TRANSFORM:
       if( inverse_flag )
         {
-	  transform->user_inverse_transform_function(
-		transform->user_data, x, y, z,
-		x_transformed, y_transformed, z_transformed );
+          transform->user_inverse_transform_function(
+                transform->user_data, x, y, z,
+                x_transformed, y_transformed, z_transformed );
         }
       else
         {
-	  transform->user_transform_function(
-		transform->user_data, x, y, z,
-		x_transformed, y_transformed, z_transformed );
+          transform->user_transform_function(
+                transform->user_data, x, y, z,
+                x_transformed, y_transformed, z_transformed );
         }
       break;
       
@@ -148,24 +148,24 @@ static void transform_or_inverse_point_in_trans_plane(General_transform *transfo
       *z_transformed = z;
       
       if( transform->inverse_flag )
-	inverse_flag = !inverse_flag;
+        inverse_flag = !inverse_flag;
       
       if( inverse_flag )
         {
-	  for( trans = transform->n_transforms-1;  trans >= 0;  --trans )
+          for( trans = transform->n_transforms-1;  trans >= 0;  --trans )
             {
-	      general_inverse_transform_point_in_trans_plane(&transform->transforms[trans],
-		  *x_transformed, *y_transformed, *z_transformed,
-		  x_transformed, y_transformed, z_transformed );
+              general_inverse_transform_point_in_trans_plane(&transform->transforms[trans],
+                  *x_transformed, *y_transformed, *z_transformed,
+                  x_transformed, y_transformed, z_transformed );
             }
         }
       else
         {
-	  for_less( trans, 0, transform->n_transforms )
+          for(trans=0; trans<transform->n_transforms; trans++)
             {
-	      general_transform_point_in_trans_plane( &transform->transforms[trans],
-		  *x_transformed, *y_transformed, *z_transformed,
-		  x_transformed, y_transformed, z_transformed );
+              general_transform_point_in_trans_plane( &transform->transforms[trans],
+                  *x_transformed, *y_transformed, *z_transformed,
+                  x_transformed, y_transformed, z_transformed );
             }
         }
       break;
@@ -177,20 +177,20 @@ static void transform_or_inverse_point_in_trans_plane(General_transform *transfo
 }
 
  void  general_transform_point_in_trans_plane(
-    General_transform   *transform,
-    Real                x,
-    Real                y,
-    Real                z,
-    Real                *x_transformed,
-    Real                *y_transformed,
-    Real                *z_transformed )
+    VIO_General_transform   *transform,
+    VIO_Real                x,
+    VIO_Real                y,
+    VIO_Real                z,
+    VIO_Real                *x_transformed,
+    VIO_Real                *y_transformed,
+    VIO_Real                *z_transformed )
 {
 
     transform_or_inverse_point_in_trans_plane( transform, transform->inverse_flag, 
-				       x, y, z,
-				       x_transformed, 
-				       y_transformed, 
-				       z_transformed );
+                                       x, y, z,
+                                       x_transformed, 
+                                       y_transformed, 
+                                       z_transformed );
 }
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -212,67 +212,67 @@ static void transform_or_inverse_point_in_trans_plane(General_transform *transfo
 ---------------------------------------------------------------------------- */
 
  void  general_inverse_transform_point_in_trans_plane(
-    General_transform   *transform,
-    Real                x,
-    Real                y,
-    Real                z,
-    Real                *x_transformed,
-    Real                *y_transformed,
-    Real                *z_transformed )
+    VIO_General_transform   *transform,
+    VIO_Real                x,
+    VIO_Real                y,
+    VIO_Real                z,
+    VIO_Real                *x_transformed,
+    VIO_Real                *y_transformed,
+    VIO_Real                *z_transformed )
 {
 
     transform_or_inverse_point_in_trans_plane( transform, !transform->inverse_flag, 
-				       x, y, z,
-				       x_transformed, 
-				       y_transformed, 
-				       z_transformed );
+                                       x, y, z,
+                                       x_transformed, 
+                                       y_transformed, 
+                                       z_transformed );
 }
 
 
 
  void  grid_transform_point_in_trans_plane(
-    General_transform   *transform,
-    Real                x,
-    Real                y,
-    Real                z,
-    Real                *x_transformed,
-    Real                *y_transformed,
-    Real                *z_transformed )
+    VIO_General_transform   *transform,
+    VIO_Real                x,
+    VIO_Real                y,
+    VIO_Real                z,
+    VIO_Real                *x_transformed,
+    VIO_Real                *y_transformed,
+    VIO_Real                *z_transformed )
 {
-    Real    displacements[MAX_DIMENSIONS];
-    Volume  volume;
+    VIO_Real    displacements[VIO_MAX_DIMENSIONS];
+    VIO_Volume  volume;
 
     /* --- the volume that defines the transform is an offset vector,
            so evaluate the volume at the given position and add the
            resulting offset to the given position */
 
-    volume = (Volume) transform->displacement_volume;
+    volume = (VIO_Volume) transform->displacement_volume;
 
     interpolate_deformation_slice(volume, x, y, z, displacements);
 
-    *x_transformed = x + displacements[X];
-    *y_transformed = y + displacements[Y];
-    *z_transformed = z + displacements[Z];
+    *x_transformed = x + displacements[VIO_X];
+    *y_transformed = y + displacements[VIO_Y];
+    *z_transformed = z + displacements[VIO_Z];
 }
 
 
 #define  NUMBER_TRIES  10
 
  void  grid_inverse_transform_point_in_trans_plane(
-    General_transform   *transform,
-    Real                x,
-    Real                y,
-    Real                z,
-    Real                *x_transformed,
-    Real                *y_transformed,
-    Real                *z_transformed )
+    VIO_General_transform   *transform,
+    VIO_Real                x,
+    VIO_Real                y,
+    VIO_Real                z,
+    VIO_Real                *x_transformed,
+    VIO_Real                *y_transformed,
+    VIO_Real                *z_transformed )
 {
     int    tries;
-    Real   best_x, best_y, best_z;
-    Real   tx, ty, tz;
-    Real   gx, gy, gz;
-    Real   error_x, error_y, error_z, error, smallest_e;
-    Real   ftol;
+    VIO_Real   best_x, best_y, best_z;
+    VIO_Real   tx, ty, tz;
+    VIO_Real   gx, gy, gz;
+    VIO_Real   error_x, error_y, error_z, error, smallest_e;
+    VIO_Real   ftol;
 
     ftol = 0.05;
 
@@ -324,30 +324,30 @@ static void transform_or_inverse_point_in_trans_plane(General_transform *transfo
     *z_transformed = best_z;
 }
 
-void interpolate_deformation_slice(Volume volume, 
-					  Real wx,Real wy,Real wz,
-					  Real def[])
+void interpolate_deformation_slice(VIO_Volume volume, 
+                                          VIO_Real wx,Real wy,Real wz,
+                                          VIO_Real def[])
 {
-  Real
-    world[N_DIMENSIONS],
+  VIO_Real
+    world[VIO_N_DIMENSIONS],
     v00,v01,v02,v03, 
     v10,v11,v12,v13, 
     v20,v21,v22,v23, 
     v30,v31,v32,v33;
   long 
     ind0, ind1, ind2;
-  Real
-    voxel[MAX_DIMENSIONS],
-    frac[MAX_DIMENSIONS];
+  VIO_Real
+    voxel[VIO_MAX_DIMENSIONS],
+    frac[VIO_MAX_DIMENSIONS];
   int 
     i,
-    xyzv[MAX_DIMENSIONS],
-    sizes[MAX_DIMENSIONS];
+    xyzv[VIO_MAX_DIMENSIONS],
+    sizes[VIO_MAX_DIMENSIONS];
   double temp_result;
   
   
-  def[X] = def[Y] = def[Z] = 0.0;
-  world[X] = wx; world[Y] = wy; world[Z] = wz;
+  def[VIO_X] = def[VIO_Y] = def[VIO_Z] = 0.0;
+  world[VIO_X] = wx; world[VIO_Y] = wy; world[VIO_Z] = wz;
   convert_world_to_voxel(volume, wx, wy, wz, voxel);
   
   /* Check that the coordinate is inside the volume */
@@ -355,47 +355,47 @@ void interpolate_deformation_slice(Volume volume,
   get_volume_sizes(volume, sizes);
   get_volume_XYZV_indices(volume, xyzv);
 
-  if ((voxel[ xyzv[X] ] < 0) || (voxel[ xyzv[X] ] >=sizes[ xyzv[X]]) ||
-      (voxel[ xyzv[Y] ] < 0) || (voxel[ xyzv[Y] ] >=sizes[ xyzv[Y]]) ||
-      (voxel[ xyzv[Z] ] < 0) || (voxel[ xyzv[Z] ] >=sizes[ xyzv[Z]]))  {
+  if ((voxel[ xyzv[VIO_X] ] < 0) || (voxel[ xyzv[VIO_X] ] >=sizes[ xyzv[VIO_X]]) ||
+      (voxel[ xyzv[VIO_Y] ] < 0) || (voxel[ xyzv[VIO_Y] ] >=sizes[ xyzv[VIO_Y]]) ||
+      (voxel[ xyzv[VIO_Z] ] < 0) || (voxel[ xyzv[VIO_Z] ] >=sizes[ xyzv[VIO_Z]]))  {
     return ;
   }
   
-  if (/*(sizes[ xyzv[Z] ] == 1) &&*/ xyzv[Z]==1) {
+  if (/*(sizes[ xyzv[VIO_Z] ] == 1) &&*/ xyzv[VIO_Z]==1) {
     
     /* Get the whole and fractional part of the coordinate */
-    ind0 = FLOOR( voxel[ xyzv[Z] ] );
-    ind1 = FLOOR( voxel[ xyzv[Y] ] );
-    ind2 = FLOOR( voxel[ xyzv[X] ] );
-    frac[Y] = voxel[ xyzv[Y] ] - ind1;
-    frac[X] = voxel[ xyzv[X] ] - ind2;
+    ind0 = FLOOR( voxel[ xyzv[VIO_Z] ] );
+    ind1 = FLOOR( voxel[ xyzv[VIO_Y] ] );
+    ind2 = FLOOR( voxel[ xyzv[VIO_X] ] );
+    frac[VIO_Y] = voxel[ xyzv[VIO_Y] ] - ind1;
+    frac[VIO_X] = voxel[ xyzv[VIO_X] ] - ind2;
     
-    if (sizes[xyzv[X]] < 4 || sizes[xyzv[Y]] < 4) {
-      def[X] = get_volume_real_value(volume, 0, ind0, ind1, ind2, 0);
-      def[Y] = get_volume_real_value(volume, 1, ind0, ind1, ind2, 0);
-      def[Z] = get_volume_real_value(volume, 2, ind0, ind1, ind2, 0);
+    if (sizes[xyzv[VIO_X]] < 4 || sizes[xyzv[VIO_Y]] < 4) {
+      def[VIO_X] = get_volume_real_value(volume, 0, ind0, ind1, ind2, 0);
+      def[VIO_Y] = get_volume_real_value(volume, 1, ind0, ind1, ind2, 0);
+      def[VIO_Z] = get_volume_real_value(volume, 2, ind0, ind1, ind2, 0);
       return;
     }
 
     if (ind1==0) 
-      frac[Y] -= 1.0;
+      frac[VIO_Y] -= 1.0;
     else {
       ind1--;
-      while ( ind1+3 >= sizes[xyzv[Y]] ) {
-	ind1--;
-	frac[Y] += 1.0;
+      while ( ind1+3 >= sizes[xyzv[VIO_Y]] ) {
+        ind1--;
+        frac[VIO_Y] += 1.0;
       }
     }
     if (ind2==0) 
-      frac[X] -= 1.0;
+      frac[VIO_X] -= 1.0;
     else {
       ind2--;
-      while ( ind2+3 >= sizes[xyzv[X]] ) {
-	ind2--;
-	frac[X] += 1.0;
+      while ( ind2+3 >= sizes[xyzv[VIO_X]] ) {
+        ind2--;
+        frac[VIO_X] += 1.0;
       }
     }
-    for_less(i,0,3) {
+    for(i=0; i<3; i++) {
       GET_VOXEL_4D(v00, volume, i, ind0, ind1, ind2);
       GET_VOXEL_4D(v01, volume, i, ind0, ind1, ind2+1);
       GET_VOXEL_4D(v02, volume, i, ind0, ind1, ind2+2);
@@ -417,10 +417,10 @@ void interpolate_deformation_slice(Volume volume,
       GET_VOXEL_4D(v33, volume, i, ind0, ind1+3, ind2+3);
       
       CUBIC_BIVAR(v00,v01,v02,v03, \
-		  v10,v11,v12,v13, \
-		  v20,v21,v22,v23, \
-		  v30,v31,v32,v33, \
-		  frac[Y],frac[X], temp_result);
+                  v10,v11,v12,v13, \
+                  v20,v21,v22,v23, \
+                  v30,v31,v32,v33, \
+                  frac[VIO_Y],frac[VIO_X], temp_result);
       def[i] = CONVERT_VOXEL_TO_VALUE(volume,temp_result);
     }
     
@@ -457,14 +457,14 @@ void interpolate_deformation_slice(Volume volume,
 
 static  void   my_interpolate_volume(
     int      n_dims,
-    Real     parameters[],
+    VIO_Real     parameters[],
     int      n_values,
     int      degree,
-    Real     coefs[],
-    Real     values[])
+    VIO_Real     coefs[],
+    VIO_Real     values[])
 {
     int       v    ;
-    Real      *derivs;
+    VIO_Real      *derivs;
 
     /*--- evaluate the interpolating spline */
     
@@ -474,7 +474,7 @@ static  void   my_interpolate_volume(
     evaluate_interpolating_spline( n_dims, parameters, degree, n_values, coefs,
                                    1 , derivs );
 
-    for_less( v, 0, n_values )
+    for(v=0; v<n_values; v++)
             values[v] = derivs[v];
 
     FREE(derivs);
@@ -514,28 +514,28 @@ static  void   my_interpolate_volume(
 ---------------------------------------------------------------------------- */
 
  int   my_evaluate_volume(
-    Volume         volume,
-    Real           voxel[],
-    BOOLEAN        interpolating_dimensions[],
+    VIO_Volume         volume,
+    VIO_Real           voxel[],
+    VIO_BOOL        interpolating_dimensions[],
     int            degrees_continuity,
-    BOOLEAN        use_linear_at_edge,
-    Real           outside_value,
-    Real           values[],
+    VIO_BOOL        use_linear_at_edge,
+    VIO_Real           outside_value,
+    VIO_Real           values[],
     int            n_dims,
     int            sizes[] )
 {
-  int      inc0, inc1, inc2, inc3, inc4, inc[MAX_DIMENSIONS];
+  int      inc0, inc1, inc2, inc3, inc4, inc[VIO_MAX_DIMENSIONS];
   int      ind0, spline_degree;
   int      start0, start1, start2, start3, start4;
   int      end0, end1, end2, end3, end4;
   int      v0, v1, v2, v3, next_d;
   int      n, v, d, n_values;
-  int      start[MAX_DIMENSIONS], n_interp_dims;
-  int      end[MAX_DIMENSIONS];
-  int      interp_dims[MAX_DIMENSIONS];
+  int      start[VIO_MAX_DIMENSIONS], n_interp_dims;
+  int      end[VIO_MAX_DIMENSIONS];
+  int      interp_dims[VIO_MAX_DIMENSIONS];
   int      n_coefs;
-  Real     fraction[MAX_DIMENSIONS], bound, *coefs, pos;
-  BOOLEAN  fully_inside, fully_outside;
+  VIO_Real     fraction[VIO_MAX_DIMENSIONS], bound, *coefs, pos;
+  VIO_BOOL  fully_inside, fully_outside;
   
   /*--- check if the degrees continuity is between nearest neighbour
     and cubic */
@@ -543,27 +543,27 @@ static  void   my_interpolate_volume(
   if( degrees_continuity < -1 || degrees_continuity > 2 )
     {
       print_error( "Warning: evaluate_volume(), degrees invalid: %d\n",
-		  degrees_continuity );
+                  degrees_continuity );
       degrees_continuity = 0;
     }
     
-  bound = (Real) degrees_continuity / 2.0;
+  bound = (VIO_Real) degrees_continuity / 2.0;
   
   /*--- if we must use linear interpolation near the boundaries, then
         check if we are near the boundaries, and adjust the 
-	degrees_continuity accordingly */
+        degrees_continuity accordingly */
 
   if( use_linear_at_edge ) {
-    for_less( d, 0, n_dims )  {
+    for(d=0; d<n_dims; d++)  {
       if( interpolating_dimensions == NULL || interpolating_dimensions[d]) {
-	while( degrees_continuity >= 0 &&
-	      (voxel[d] < bound  ||
-	       voxel[d] > (Real) sizes[d] - 1.0 - bound) ) {
-	  --degrees_continuity;
-	  if( degrees_continuity == 1 )
-	    degrees_continuity = 0;
-	  bound = (Real) degrees_continuity / 2.0;
-	}
+        while( degrees_continuity >= 0 &&
+              (voxel[d] < bound  ||
+               voxel[d] > (VIO_Real) sizes[d] - 1.0 - bound) ) {
+          --degrees_continuity;
+          if( degrees_continuity == 1 )
+            degrees_continuity = 0;
+          bound = (VIO_Real) degrees_continuity / 2.0;
+        }
       }
     }
   }
@@ -580,16 +580,16 @@ static  void   my_interpolate_volume(
   fully_inside = TRUE;
   fully_outside = FALSE;
   
-  for_less( d, 0, n_dims ) {
+  for(d=0; d<n_dims; d++) {
     if( interpolating_dimensions == NULL || interpolating_dimensions[d]) {
       interp_dims[n_interp_dims] = d;
       pos = voxel[d] - bound;
       start[d] =       FLOOR( pos );
       fraction[n_interp_dims] = pos - start[d];
       
-      if( voxel[d] == (Real) sizes[d] - 1.0 - bound ) {
-	--start[d];
-	fraction[n_interp_dims] = 1.0;
+      if( voxel[d] == (VIO_Real) sizes[d] - 1.0 - bound ) {
+        --start[d];
+        fraction[n_interp_dims] = 1.0;
       }
 
       end[d] = start[d] + spline_degree;
@@ -597,13 +597,13 @@ static  void   my_interpolate_volume(
 
       if( start[d] < 0 || end[d] > sizes[d] ) {
 
-	fully_inside = FALSE;
-	
-	if( end[d] <= 0 || start[d] >= sizes[d] ) {
-	  
-	  fully_outside = TRUE;
-	  break;
-	}
+        fully_inside = FALSE;
+        
+        if( end[d] <= 0 || start[d] >= sizes[d] ) {
+          
+          fully_outside = TRUE;
+          break;
+        }
       }
 
       ++n_interp_dims;
@@ -618,8 +618,8 @@ static  void   my_interpolate_volume(
 
     if( values != NULL ) {
       
-      for_less( v, 0, n_values )
-	values[v] = outside_value;
+      for(v=0; v<n_values; v++)
+        values[v] = outside_value;
     }
 
     return( n_values );
@@ -629,7 +629,7 @@ static  void   my_interpolate_volume(
         order, after the interpolated dimensions */
 
   n = 0;
-  for_less( d, 0, n_dims ) {
+  for(d=0; d<n_dims; d++) {
     
     if( interpolating_dimensions != NULL && !interpolating_dimensions[d] ) {
       
@@ -649,7 +649,7 @@ static  void   my_interpolate_volume(
         array, coefs */
 
   inc[interp_dims[n_dims-1]] = 1;
-  for_down( d, n_dims-2, 0 ) {
+  for(d=n_dims-2; d>=0; d--) {
     next_d = interp_dims[d+1];
     inc[interp_dims[d]] = inc[next_d] * (end[next_d] - start[next_d]);
   }
@@ -662,24 +662,24 @@ static  void   my_interpolate_volume(
 
   if( !fully_inside ) {
 
-    for_less( d, 0, n_dims ) {
+    for(d=0; d<n_dims; d++) {
       
       if( start[d] < 0 ) {
-	ind0 += -start[d] * inc[d];
-	start[d] = 0;
+        ind0 += -start[d] * inc[d];
+        start[d] = 0;
       }
 
       if( end[d] > sizes[d] )
-	end[d] = sizes[d];
+        end[d] = sizes[d];
     }
 
-    for_less( v, 0, n_values * n_coefs )
+    for(v=0; v<n_values*n_coefs; v++)
       coefs[v] = outside_value;
 
     /*--- adjust the inc stride for stepping through coefs to account
           for the additions of the inner loops */
     
-    for_less( d, 0, n_dims-1 )
+    for(d=0; d<n_dims-1; d++)
       inc[d] -= inc[d+1] * (end[d+1] - start[d+1]);
   }
   else {
@@ -687,7 +687,7 @@ static  void   my_interpolate_volume(
         /*--- adjust the inc stride for stepping through coefs to account
               for the additions of the inner loops */
 
-    for_less( d, 0, n_dims-1 )
+    for(d=0; d<n_dims-1; d++)
       inc[d] -= inc[d+1] * spline_degree;
   }
 
@@ -714,15 +714,15 @@ static  void   my_interpolate_volume(
   /*--- get the coefs[] from the volume.  For speed, do each dimension
         separately */
 
-  for_less( v0, start0, end0 ) {
-    for_less( v1, start1, end1 ) {
-       for_less( v2, start2, end2 ) {
-	 for_less( v3, start3, end3 ) {
+  for(v0=start0; v0<end0; v0++) {
+    for(v1=start1; v1<end1; v1++) {
+       for(v2=start2; v2<end2; v2++) {
+         for(v3=start3; v3<end3; v3++) {
 
-	   GET_VALUE_4D( coefs[ind0], volume, v0, v1, v2, v3 );
-	   ind0 += inc3;
-	 }
-	 ind0 += inc2;
+           GET_VALUE_4D( coefs[ind0], volume, v0, v1, v2, v3 );
+           ind0 += inc3;
+         }
+         ind0 += inc2;
        }
        ind0 += inc1;
      }
@@ -734,7 +734,7 @@ static  void   my_interpolate_volume(
   switch( degrees_continuity ) {
 
   case -1:                        /*--- nearest neighbour interpolation */
-    for_less( v, 0, n_values )
+    for(v=0; v<n_values; v++)
       values[v] = coefs[v];
     break;
 
@@ -746,12 +746,12 @@ static  void   my_interpolate_volume(
   if (n_values != 3) 
       print ("n_values= %d\n",n_values);
     evaluate_interpolating_spline(n_interp_dims, fraction, spline_degree, 
-				  n_values, coefs,
-				  1 , values );
+                                  n_values, coefs,
+                                  1 , values );
 */
     my_interpolate_volume(n_interp_dims, fraction, n_values,
-			  spline_degree, coefs,
-			  values );
+                          spline_degree, coefs,
+                          values );
     
   break;
   }
@@ -762,20 +762,20 @@ static  void   my_interpolate_volume(
 }
 
  void   my_evaluate_volume_in_world(
-    Volume         volume,
-    Real           x,
-    Real           y,
-    Real           z,
+    VIO_Volume         volume,
+    VIO_Real           x,
+    VIO_Real           y,
+    VIO_Real           z,
     int            degrees_continuity,
-    BOOLEAN        use_linear_at_edge,
-    Real           outside_value,
-    Real           values[],
+    VIO_BOOL        use_linear_at_edge,
+    VIO_Real           outside_value,
+    VIO_Real           values[],
     int            n_dims,
     int            sizes[])
 {
-  Real      voxel[MAX_DIMENSIONS];
+  VIO_Real      voxel[VIO_MAX_DIMENSIONS];
   int       d, n_values;
-  BOOLEAN   interpolating_dimensions[MAX_DIMENSIONS];
+  VIO_BOOL   interpolating_dimensions[VIO_MAX_DIMENSIONS];
   
   /*--- convert the world space to a voxel coordinate */
   
@@ -783,20 +783,20 @@ static  void   my_interpolate_volume(
 
   /*--- initialize all dimensions to not being interpolated */
   
-  for_less( d, 0, n_dims )
+  for(d=0; d<n_dims; d++)
     interpolating_dimensions[d] = FALSE;
   
   /*--- set each spatial dimension to being interpolated */
   
-  for_less( d, 0, N_DIMENSIONS )
+  for(d=0; d<VIO_N_DIMENSIONS; d++)
     interpolating_dimensions[volume->spatial_axes[d]] = TRUE;
   
   /*--- evaluate the volume in voxel space */
   
   n_values = my_evaluate_volume( volume, voxel, interpolating_dimensions,
-				degrees_continuity, use_linear_at_edge, 
-				outside_value,
-				values, n_dims, sizes);
+                                degrees_continuity, use_linear_at_edge, 
+                                outside_value,
+                                values, n_dims, sizes);
   
 }
 

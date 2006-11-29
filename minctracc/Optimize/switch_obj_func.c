@@ -4,8 +4,8 @@
 @OUTPUT     : updated values for s1 and s3, updated pointed for *a1
 @DESCRIPTION: this is a case statement that is to be included within the 
               procedure go_get_samples_with_offset(), inside the loop over
-	      all nodes of the sublattice, just after interpolation of the 
-	      value for 'sample'
+              all nodes of the sublattice, just after interpolation of the 
+              value for 'sample'
 @COPYRIGHT  :
               Copyright 1995 Louis Collins, McConnell Brain Imaging Centre, 
               Montreal Neurological Institute, McGill University.
@@ -19,7 +19,10 @@
 
 @CREATED    : 
 @MODIFIED   : $Log: switch_obj_func.c,v $
-@MODIFIED   : Revision 96.5  2005-07-18 19:14:02  rotor
+@MODIFIED   : Revision 96.6  2006-11-29 09:09:34  rotor
+@MODIFIED   :  * first bunch of changes for minc 2.0 compliance
+@MODIFIED   :
+@MODIFIED   : Revision 96.5  2005/07/18 19:14:02  rotor
 @MODIFIED   :  * Optimisations to code resulting in 30% speed increase for nonlinear fitting
 @MODIFIED   :
 @MODIFIED   : Revision 96.4  2005/06/28 18:56:18  rotor
@@ -54,56 +57,56 @@
  *
 ---------------------------------------------------------------------------- */
 
-	switch (obj_func) {
+        switch (obj_func) {
    
-	case NONLIN_XCORR:
-	  s2 += (*a1) * (*a1);
-	  s1 += *a1 * sample; /* compute correlation */
-	  s3 += sample * sample;
-	  break;
+        case NONLIN_XCORR:
+          s2 += (*a1) * (*a1);
+          s1 += *a1 * sample; /* compute correlation */
+          s3 += sample * sample;
+          break;
      
-	case NONLIN_DIFF:
-	  tmp = *a1 - sample;
-	  if (tmp<0){
+        case NONLIN_DIFF:
+          tmp = *a1 - sample;
+          if (tmp<0){
         tmp *= -1.0;
      }
-	  s1 += tmp;            /* add the difference */
-	  number_of_nonzero_samples++;
-	  break;
+          s1 += tmp;            /* add the difference */
+          number_of_nonzero_samples++;
+          break;
      
-	case NONLIN_LABEL:
-	  tmp = *a1 - sample;
-	  if (tmp<0){
+        case NONLIN_LABEL:
+          tmp = *a1 - sample;
+          if (tmp<0){
         tmp *= -1.0;
      }
-	  if (tmp < 0.01){
-	    s1 += 1.0;          /* count up similar labels */
+          if (tmp < 0.01){
+            s1 += 1.0;          /* count up similar labels */
      }
-	  number_of_nonzero_samples++;
-	  break;
+          number_of_nonzero_samples++;
+          break;
      
-	case NONLIN_CHAMFER:
-	  if (*a1 > 0) {
+        case NONLIN_CHAMFER:
+          if (*a1 > 0) {
              s1 += sample;         /* add the distance */
              number_of_nonzero_samples++;
           }
-	  break;
+          break;
      
-	case NONLIN_CORRCOEFF:
-	    s1 += *a1;
-	    s2 += sample;
-	    s3 += (*a1) * (*a1);
-	    s4 += sample * sample;
-	    s5 += *a1 * sample;
-	    number_of_nonzero_samples++;
-	    break;
+        case NONLIN_CORRCOEFF:
+            s1 += *a1;
+            s2 += sample;
+            s3 += (*a1) * (*a1);
+            s4 += sample * sample;
+            s5 += *a1 * sample;
+            number_of_nonzero_samples++;
+            break;
        
-	case NONLIN_SQDIFF:
-	  tmp = *a1 - sample;
-	  s1 += tmp*tmp;
-	  number_of_nonzero_samples++;
-	  break;
+        case NONLIN_SQDIFF:
+          tmp = *a1 - sample;
+          s1 += tmp*tmp;
+          number_of_nonzero_samples++;
+          break;
      
-	default:
-	  print_error_and_line_num("Objective function %d not supported in go_get_samples_with_offset",__FILE__, __LINE__,obj_func);
-	}
+        default:
+          print_error_and_line_num("Objective function %d not supported in go_get_samples_with_offset",__FILE__, __LINE__,obj_func);
+        }

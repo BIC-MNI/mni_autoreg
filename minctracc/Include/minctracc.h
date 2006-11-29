@@ -17,7 +17,10 @@
 
 @CREATED    : Thu May 20 14:20:21 EST 1993 Louis Collins
 @MODIFIED   : $Log: minctracc.h,v $
-@MODIFIED   : Revision 96.10  2006-06-04 07:02:35  rotor
+@MODIFIED   : Revision 96.11  2006-11-29 09:09:32  rotor
+@MODIFIED   :  * first bunch of changes for minc 2.0 compliance
+@MODIFIED   :
+@MODIFIED   : Revision 96.10  2006/06/04 07:02:35  rotor
 @MODIFIED   :  * Fixed 64 bit function pointer and ParseArgv problem with an enum for
 @MODIFIED   :       objective function type and interpolation type (thanks jason)
 @MODIFIED   :
@@ -149,60 +152,60 @@ float check_function(float *x);      /* calculate the squared error between poin
 
 void invertmatrix(int n, float **mat, float **mat_invert);
 
-BOOLEAN init_params(Volume d1,
-			   Volume d2,
-			   Volume m1,
-			   Volume m2, 
-			   Arg_Data *globals);
+VIO_BOOL init_params(VIO_Volume d1,
+                           VIO_Volume d2,
+                           VIO_Volume m1,
+                           VIO_Volume m2, 
+                           Arg_Data *globals);
 
-BOOLEAN init_params_quater(Volume d1,
-				  Volume d2,
-				  Volume m1,
-				  Volume m2, 
-				  Arg_Data *globals);
+VIO_BOOL init_params_quater(VIO_Volume d1,
+                                  VIO_Volume d2,
+                                  VIO_Volume m1,
+                                  VIO_Volume m2, 
+                                  Arg_Data *globals);
 
 
-void init_lattice(Volume d1,
-			 Volume d2,
-			 Volume m1,
-			 Volume m2, 
-			 Arg_Data *globals);
+void init_lattice(VIO_Volume d1,
+                         VIO_Volume d2,
+                         VIO_Volume m1,
+                         VIO_Volume m2, 
+                         Arg_Data *globals);
 
-BOOLEAN optimize_linear_transformation(Volume d1,
-					      Volume d2,
-					      Volume m1,
-					      Volume m2, 
-					      Arg_Data *globals);
+VIO_BOOL optimize_linear_transformation(VIO_Volume d1,
+                                              VIO_Volume d2,
+                                              VIO_Volume m1,
+                                              VIO_Volume m2, 
+                                              Arg_Data *globals);
 
-BOOLEAN optimize_linear_transformation_quater(Volume d1,
-						     Volume d2,
-						     Volume m1,
-						     Volume m2, 
-						     Arg_Data *globals);
+VIO_BOOL optimize_linear_transformation_quater(VIO_Volume d1,
+                                                     VIO_Volume d2,
+                                                     VIO_Volume m1,
+                                                     VIO_Volume m2, 
+                                                     Arg_Data *globals);
 
-BOOLEAN optimize_non_linear_transformation(Arg_Data *globals);
+VIO_BOOL optimize_non_linear_transformation(Arg_Data *globals);
 
 #include "objectives.h"
 
-float measure_fit(Volume d1,
-			 Volume d2,
-			 Volume m1,
-			 Volume m2, 
-			 Arg_Data *globals);
+float measure_fit(VIO_Volume d1,
+                         VIO_Volume d2,
+                         VIO_Volume m1,
+                         VIO_Volume m2, 
+                         Arg_Data *globals);
 
-void make_matlab_data_file(Volume d1,
-				  Volume d2,
-				  Volume m1,
-				  Volume m2, 
-				  char *comments,
-				  Arg_Data *globals);
+void make_matlab_data_file(VIO_Volume d1,
+                                  VIO_Volume d2,
+                                  VIO_Volume m1,
+                                  VIO_Volume m2, 
+                                  char *comments,
+                                  Arg_Data *globals);
 
-Status read_all_data(Volume *dblur,
-		     Volume *dx,
-		     Volume *dy,
-		     Volume *dz,
-		     Volume *dxyz, 
-		     char *name);
+VIO_Status read_all_data(VIO_Volume *dblur,
+                     VIO_Volume *dx,
+                     VIO_Volume *dy,
+                     VIO_Volume *dz,
+                     VIO_Volume *dxyz, 
+                     char *name);
 
 void build_default_deformation_field(Arg_Data *globals);
 
@@ -210,18 +213,18 @@ void build_default_deformation_field(Arg_Data *globals);
 int allocate_a_new_feature(Feature_volumes *features);
 
 void add_a_feature_for_matching(Feature_volumes *features,
-				Volume data,
-				Volume model,
-				Volume data_mask,
-				Volume model_mask,
-				char *data_name,
-				char *model_name,
-				char *mask_data_name,
-				char *mask_model_name,
-				char obj_func,
-				Real weight,
-				Real thresh_data,
-				Real thresh_model);
+                                VIO_Volume data,
+                                VIO_Volume model,
+                                VIO_Volume data_mask,
+                                VIO_Volume model_mask,
+                                char *data_name,
+                                char *model_name,
+                                char *mask_data_name,
+                                char *mask_model_name,
+                                char obj_func,
+                                VIO_Real weight,
+                                VIO_Real thresh_data,
+                                VIO_Real thresh_model);
 
 
 /*---------------------- functions relatives to quaternions-------------------------------------------*/
@@ -236,54 +239,54 @@ void add_a_feature_for_matching(Feature_volumes *features,
 /*  ------------------------ Global data structure for program  ------------------------ */
 
 Arg_Data main_args = {
-  {"","","","","","",""},	/* filenames           */
-  {1,FALSE},			/* verbose, debug      */
-  {				/* transformation info */
-    FALSE,			/*   use identity tranformation to start */
-    TRUE,			/*   do default tranformation (PAT) to start */
-    TRUE,			/*   use_mag=TRUE; do not use projections by default */
+  {"","","","","","",""},        /* filenames           */
+  {1,FALSE},                        /* verbose, debug      */
+  {                                /* transformation info */
+    FALSE,                        /*   use identity tranformation to start */
+    TRUE,                        /*   do default tranformation (PAT) to start */
+    TRUE,                        /*   use_mag=TRUE; do not use projections by default */
     50.0,
-    TRUE,			/*   use_simplex=TRUE ie use 3d simplex by default */
-    2,				/*   use super sampling of deformation field  */
-    FALSE,			/* use local smoothing       */
-    TRUE,			/* use isotropic smoothing */
-    "",			        /*   filename */
-    NULL,			/*   file_contents */
+    TRUE,                        /*   use_simplex=TRUE ie use 3d simplex by default */
+    2,                                /*   use super sampling of deformation field  */
+    FALSE,                        /* use local smoothing       */
+    TRUE,                        /* use isotropic smoothing */
+    "",                                /*   filename */
+    NULL,                        /*   file_contents */
     0,                          /* buffer_length   */
-    (General_transform *)NULL,	/*   General transform */
-    (General_transform *)NULL,	/*   General transform copy of input */
-    TRANS_LSQ7,		        /*   default type      */
-    {-DBL_MAX, -DBL_MAX, -DBL_MAX},		/*   center            */
-    {1.0, 1.0, 1.0},		/*   scale             */
-    {0.0, 0.0, 0.0},		/*   shears            */
-    {0.0, 0.0, 0.0},		/*   translations      */
-    {0.0, 0.0, 0.0, 1.0},      	/*   quaternions       */
+    (VIO_General_transform *)NULL,        /*   General transform */
+    (VIO_General_transform *)NULL,        /*   General transform copy of input */
+    TRANS_LSQ7,                        /*   default type      */
+    {-DBL_MAX, -DBL_MAX, -DBL_MAX},                /*   center            */
+    {1.0, 1.0, 1.0},                /*   scale             */
+    {0.0, 0.0, 0.0},                /*   shears            */
+    {0.0, 0.0, 0.0},                /*   translations      */
+    {0.0, 0.0, 0.0, 1.0},              /*   quaternions       */
     {0.0, 0.0, 0.0},            /*   rotations         */
     {1.0, 1.0, 1.0,  3.1415927/180.0, 3.1415927/180.0, 3.1415927/180.0, 0.02, 0.02, 0.02,  0.02, 0.02, 0.02}, /* optimization weights*/
-    FALSE,			/*   invert_mapping_flag                  */
+    FALSE,                        /*   invert_mapping_flag                  */
     TRANS_ROT},                  /* default use normal rotation */
-  {0,NULL, NULL, NULL, NULL, NULL, NULL},	/* FEATURE VOL */
-  trilinear_interpolant,	/* use trilinear interpolation by default */
+  {0,NULL, NULL, NULL, NULL, NULL, NULL},        /* FEATURE VOL */
+  trilinear_interpolant,        /* use trilinear interpolation by default */
   TRILINEAR,                   /* use trilinear interpolation by default */
   xcorr_objective,              /* use cross-correlation by default       */
   XCORR,                        /* use cross-correlation by default       */
   OPT_SIMPLEX,                  /* use simplex optimization strategy      */
   0,                            /* do not force lattice on source or target */
-  {4.0,4.0,4.0},		/* default step sizes for lattice         */
-  {24.0,24.0,24.0},		/* default lattice diameter               */
-  {0.0,0.0,0.0},		/* default start for lattice, reset in init_lattice */
+  {4.0,4.0,4.0},                /* default step sizes for lattice         */
+  {24.0,24.0,24.0},                /* default lattice diameter               */
+  {0.0,0.0,0.0},                /* default start for lattice, reset in init_lattice */
   {0,0,0},                      /* default number of element in lattice, also reset */
 
-  {{{1.0,0.0,0.0}},		/* default sampling lattice axes directions */
+  {{{1.0,0.0,0.0}},                /* default sampling lattice axes directions */
    {{0.0,1.0,0.0}},
    {{0.0,0.0,1.0}}},
 
   1,                            /* use first volume as default smallest volume      */
-  {FALSE, FALSE, FALSE, FALSE},	/* Transform flags: est_cent, _scale, _rots, _trans */
-  {0.0,0.0},			/* lower limit of voxels considered                 */
-  5.0,				/* percent noise speckle                            */
-  256,				/* number of groups to use for ratio of variance    */
-  3				/* pdf blurring size for -mi                        */
+  {FALSE, FALSE, FALSE, FALSE},        /* VIO_Transform flags: est_cent, _scale, _rots, _trans */
+  {0.0,0.0},                        /* lower limit of voxels considered                 */
+  5.0,                                /* percent noise speckle                            */
+  256,                                /* number of groups to use for ratio of variance    */
+  3                                /* pdf blurring size for -mi                        */
 };
 
 

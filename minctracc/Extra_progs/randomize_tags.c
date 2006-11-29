@@ -10,7 +10,10 @@
 @CALLS      : 
 @CREATED    : Tue Aug 23 15:32:30 EST 1994 - Louis
 @MODIFIED   : $Log: randomize_tags.c,v $
-@MODIFIED   : Revision 1.3  2005-07-20 20:45:46  rotor
+@MODIFIED   : Revision 1.4  2006-11-29 09:09:31  rotor
+@MODIFIED   :  * first bunch of changes for minc 2.0 compliance
+@MODIFIED   :
+@MODIFIED   : Revision 1.3  2005/07/20 20:45:46  rotor
 @MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
 @MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
 @MODIFIED   :     * Removed old VOLUME_IO cruft #defines
@@ -45,7 +48,7 @@ time_t time(time_t *tloc);
 
 char *prog_name;
 
-Real gaussian_random_w_std(Real sigma);
+VIO_Real gaussian_random_w_std(VIO_Real sigma);
 
 /* Main program */
 
@@ -65,7 +68,7 @@ int main(int argc, char *argv[])
   int 
     i,j,n_vols, n_points,
     *struc_ids, *pat_ids;
-  Real
+  VIO_Real
     std,**tags1, **tags2, 
     *weights;
 
@@ -79,7 +82,7 @@ int main(int argc, char *argv[])
   
   if (argc!=4) {
     (void) fprintf(stderr, "Usage: randomize_tags in.tag out.tag std\n",
-		   argv[0]);
+                   argv[0]);
       exit(EXIT_FAILURE);
   }
 
@@ -89,19 +92,19 @@ int main(int argc, char *argv[])
   std       = atof( argv[3] );
 
   input_tag_file(in_tag, 
-		 &n_vols, &n_points, 
-		 &tags1, &tags2, 
-		 &weights, &struc_ids, &pat_ids, &labels);
+                 &n_vols, &n_points, 
+                 &tags1, &tags2, 
+                 &weights, &struc_ids, &pat_ids, &labels);
 
-  for_less(i,0,n_points)
-    for_less(j,0,3)
+  for(i=0; i<n_points; i++)
+    for(j=0; j<3; j++)
       tags1[i][j] += gaussian_random_w_std(std);
   
   output_tag_file(out_tag, "Target (1st vol) points have been randomized",
-		 n_vols, n_points, 
-		 tags1, tags2, 
-		 weights, struc_ids, pat_ids, labels);
-		 
+                 n_vols, n_points, 
+                 tags1, tags2, 
+                 weights, struc_ids, pat_ids, labels);
+                 
   FREE2D(tags1);
   FREE2D(tags2);
   FREE(weights);

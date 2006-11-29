@@ -10,10 +10,10 @@ int m1,m2,n1,n2;
 
    for (i=m1; i<=m2; ++i)
       for (j=n1; j<=n2; ++j) {
-	 if (i==j) 
-	    A[i][j] = 1.0;
-	 else
-	    A[i][j] = 0.0;
+         if (i==j) 
+            A[i][j] = 1.0;
+         else
+            A[i][j] = 0.0;
       }
    
 }
@@ -27,10 +27,10 @@ int m1,m2,n1,n2;
 
    for (i=m1; i<=m2; ++i)
       for (j=n1; j<=n2; ++j) {
-	 if (i==j) 
-	    A[i][j] = 1.0;
-	 else
-	    A[i][j] = 0.0;
+         if (i==j) 
+            A[i][j] = 1.0;
+         else
+            A[i][j] = 0.0;
       }
    
 }
@@ -44,7 +44,7 @@ int m1,m2,n1,n2;
 
    for (i=m1; i<=m2; ++i)
       for (j=n1; j<=n2; ++j)
-	 B[i][j] = A[i][j];
+         B[i][j] = A[i][j];
 }
 
 nr_copyf( A, m1,m2, n1,n2, B )
@@ -56,7 +56,7 @@ int m1,m2,n1,n2;
 
    for (i=m1; i<=m2; ++i)
       for (j=n1; j<=n2; ++j)
-	 B[i][j] = A[i][j];
+         B[i][j] = A[i][j];
 }
 
 
@@ -70,10 +70,10 @@ int m1,m2,n1,n2;
 
    for (i=m1; i<=m2; ++i)
       for (j=n1; j<=n2; ++j) {
-	 if (i==j) 
-	    A[i][j] = 1.0;
-	 else
-	    A[i][j] = 0.0;
+         if (i==j) 
+            A[i][j] = 1.0;
+         else
+            A[i][j] = 0.0;
       }
    
 }
@@ -87,10 +87,10 @@ int m1,m2,n1,n2;
 
    for (i=m1; i<=m2; ++i)
       for (j=n1; j<=n2; ++j) {
-	 if (i==j) 
-	    A[i][j] = 1.0;
-	 else
-	    A[i][j] = 0.0;
+         if (i==j) 
+            A[i][j] = 1.0;
+         else
+            A[i][j] = 0.0;
       }
    
 }
@@ -167,7 +167,7 @@ float
 /* --------------------------------------------------------
 rz = [cos(a)  sin(a) 0  0
       -sin(a) cos(a) 0  0
-	0     0      1  0
+        0     0      1  0
         0     0      0  1];
 */
 

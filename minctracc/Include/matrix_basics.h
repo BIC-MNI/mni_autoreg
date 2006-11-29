@@ -56,12 +56,12 @@ void nr_rotzd(double **M,double a);
 void nr_rotzf(float **M, float a);
 
 void nr_multd(double **A, int mA1, int mA2, int nA1, int nA2,
-		     double **B, int mB1, int mB2, int nB1, int nB2, 
-		     double **C);
+                     double **B, int mB1, int mB2, int nB1, int nB2, 
+                     double **C);
 
 void nr_multf(float **A, int mA1, int mA2, int nA1, int nA2,
-		     float **B, int mB1, int mB2, int nB1, int nB2, 
-		     float **C);
+                     float **B, int mB1, int mB2, int nB1, int nB2, 
+                     float **C);
 
 
 void transformations_to_homogeneous(int ndim, 

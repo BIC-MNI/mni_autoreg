@@ -15,7 +15,10 @@
 
 @CREATED    : February 23, 1996
 @MODIFIED   : $Log: stats.c,v $
-@MODIFIED   : Revision 1.6  2005-07-20 20:45:49  rotor
+@MODIFIED   : Revision 1.7  2006-11-29 09:09:33  rotor
+@MODIFIED   :  * first bunch of changes for minc 2.0 compliance
+@MODIFIED   :
+@MODIFIED   : Revision 1.6  2005/07/20 20:45:49  rotor
 @MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
 @MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
 @MODIFIED   :     * Removed old VOLUME_IO cruft #defines
@@ -41,7 +44,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/stats.c,v 1.6 2005-07-20 20:45:49 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/stats.c,v 1.7 2006-11-29 09:09:33 rotor Exp $";
 #endif
 
 #include <config.h>
@@ -50,19 +53,19 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #include <stats.h>
 
 void init_stats(stats_struct *stat,
-		  char         title[])
+                  char         title[])
 {
 
   /*  ALLOC ( stat->name, strlen( title )+1 ); */
 
   (void) strcpy( stat->name, title);
 
-  stat->mean	           = 0.0;
+  stat->mean                   = 0.0;
   stat->standard_deviation = 0.0;
-  stat->rms	           = 0.0;
+  stat->rms                   = 0.0;
   stat->sum                = 0.0;
-  stat->sum_squared	   = 0.0;
-  stat->count	           = 0;
+  stat->sum_squared           = 0.0;
+  stat->count                   = 0;
   stat->min_val            = DBL_MAX;
   stat->max_val            = -DBL_MAX;
 }
@@ -74,7 +77,7 @@ void deinit_stats( stats_struct *stat )
 
 
 void tally_stats(stats_struct *stat,
-		   Real         val)
+                   VIO_Real         val)
 {
   stat->count++;
   stat->sum         += val;
@@ -86,15 +89,15 @@ void tally_stats(stats_struct *stat,
 static void calc_stats(stats_struct *stat)
 {
   if (stat->count>0) {
-    stat->mean = stat->sum / (Real)stat->count;
-    stat->rms  = sqrt( stat->sum_squared / (Real)stat->count);
+    stat->mean = stat->sum / (VIO_Real)stat->count;
+    stat->rms  = sqrt( stat->sum_squared / (VIO_Real)stat->count);
     stat->variance  = (stat->sum_squared * stat->count - stat->sum*stat->sum) / 
-                 ((Real)stat->count * (Real)(stat->count-1.0));
+                 ((VIO_Real)stat->count * (VIO_Real)(stat->count-1.0));
     if (stat->variance >= 0.0)
       stat->standard_deviation = sqrt(stat->variance);
     else
       stat->standard_deviation = 0.0;
-	
+        
   }  
   else {
     print ("warning: calc_stats(%s) called with zero counter\n", stat->name);
@@ -107,13 +110,13 @@ void report_stats(stats_struct *stat)
     if (stat->count>0) {
       calc_stats(stat);
       print ("%14s %12f %12f %12f %12f %12f %12d\n", 
-	     stat->name, 
-	     stat->mean, 
-	     stat->standard_deviation, 
-	     stat->rms,
-	     stat->min_val,
-	     stat->max_val,
-	     stat->count);
+             stat->name, 
+             stat->mean, 
+             stat->standard_deviation, 
+             stat->rms,
+             stat->min_val,
+             stat->max_val,
+             stat->count);
     }
     else {
       print ("warning: report_stats(%s) called with zero counter\n", stat->name);
@@ -131,25 +134,25 @@ void stat_title(void)
 }
 
 
-Real stat_get_mean(stats_struct *stat)
+VIO_Real stat_get_mean(stats_struct *stat)
 {
   calc_stats(stat);
   return(stat->mean);
 }
 
-Real stat_get_rms(stats_struct *stat)
+VIO_Real stat_get_rms(stats_struct *stat)
 {
   calc_stats(stat);
   return(stat->rms);
 }
 
-Real stat_get_standard_deviation(stats_struct *stat)
+VIO_Real stat_get_standard_deviation(stats_struct *stat)
 {
   calc_stats(stat);
   return(stat->standard_deviation);
 }
 
-Real stat_get_variance(stats_struct *stat)
+VIO_Real stat_get_variance(stats_struct *stat)
 {
   calc_stats(stat);
   return(stat->variance);

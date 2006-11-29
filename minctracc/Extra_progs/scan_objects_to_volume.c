@@ -19,7 +19,7 @@ void parse_arguments(int argc, char* argv[]);
 
 /* global variables */
 
-Status     status  = OK;
+VIO_Status     status  = OK;
 int        verbose = FALSE;
 int        clobber = FALSE;
 int        debug   = 0;
@@ -49,11 +49,11 @@ int  main(
     int   argc,
     char  *argv[] )
 {
-   Volume               volume, label_volume;
+   VIO_Volume               volume, label_volume;
    File_formats         format;
    int                  object, obj, n_objects, scan_value;
    object_struct        **objects;
-   Real                 max_distance = 1.0;
+   VIO_Real                 max_distance = 1.0;
 
 
                                 /* parse the flags on the command line and
@@ -81,7 +81,7 @@ int  main(
    set_all_volume_label_data( label_volume, 0 );
 
    
-   for_less(object, 0, num_objects) {
+   for(object=0; object<num_objects; object++) {
       
       if( input_graphics_file(filenames[object],
                               &format, &n_objects, &objects ) != OK )
@@ -89,7 +89,7 @@ int  main(
       
       print( "Scanning\n" );
       
-      for_less( obj, 0, n_objects )  {
+      for(obj=0; obj<n_objects; obj++)  {
          scan_object_to_volume(objects[obj],
                                volume, label_volume, labels[object], max_distance );
       }
@@ -171,7 +171,7 @@ void parse_arguments(int argc, char* argv[])
 
   ALLOC( labels, num_objects );
 
-  for_less ( k, 0, num_objects) {
+  for(k=0; k<num_objects; k++) {
      
      if (!file_exists(argv[(k*m)+3])) {
         
@@ -190,7 +190,7 @@ void parse_arguments(int argc, char* argv[])
         fprintf( stdout, "labels[%d] = %d\n", k, labels[k]);
      }
      
-  } /* for_less ( k...) */
+for(=; <; ++)
   
 
 } /* parse_arguments() */

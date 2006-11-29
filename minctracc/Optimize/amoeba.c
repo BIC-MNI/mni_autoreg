@@ -17,7 +17,10 @@
 
 @CREATED    : 
 @MODIFIED   : $Log: amoeba.c,v $
-@MODIFIED   : Revision 96.8  2005-07-20 20:45:49  rotor
+@MODIFIED   : Revision 96.9  2006-11-29 09:09:33  rotor
+@MODIFIED   :  * first bunch of changes for minc 2.0 compliance
+@MODIFIED   :
+@MODIFIED   : Revision 96.8  2005/07/20 20:45:49  rotor
 @MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
 @MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
 @MODIFIED   :     * Removed old VOLUME_IO cruft #defines
@@ -109,22 +112,22 @@
                                                  the calling program
       int               n_parameters,            the number of free parameter
                                                  to be optimized 
-      Real              initial_parameters[],    the array containing the
+      VIO_Real              initial_parameters[],    the array containing the
                                                  starting guess
-      Real              parameter_delta,         the radius of the simplex
+      VIO_Real              parameter_delta,         the radius of the simplex
       amoeba_function   function,                the name of the objective
                                                  function
       void              *function_data,          pointer to any data you
                                                  want to pass to the objective
-						 function
-      Real              tolerance )              the stopping tolerance
+                                                 function
+      VIO_Real              tolerance )              the stopping tolerance
     
    2: perform_amoeba(amoeba) is then called to actually do the optimization.
       The function returns TRUE if the optimization is successful, otherwise
       it returns FALSE.
 
    3: get_amoeba_parameters(amoeba, parameters) must be called to extract
-      the optimized parameters.  'parameters' is a Real array, allocated by
+      the optimized parameters.  'parameters' is a VIO_Real array, allocated by
       the calling program.
 
    4: terminate_amoeba(amoeba) is called in the end to free up internal data
@@ -135,7 +138,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/amoeba.c,v 96.8 2005-07-20 20:45:49 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/amoeba.c,v 96.9 2006-11-29 09:09:33 rotor Exp $";
 #endif
 
 
@@ -164,10 +167,10 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 
 #if 0
 /** call to this function is commented out, so we don't need to compile it **/
-static  BOOLEAN  numerically_close(
-    Real  n1,
-    Real  n2,
-    Real  threshold_ratio )
+static  VIO_BOOL  numerically_close(
+    VIO_Real  n1,
+    VIO_Real  n2,
+    VIO_Real  threshold_ratio )
 {
 
     double  avg, diff;
@@ -207,7 +210,7 @@ static  BOOLEAN  numerically_close(
 @CREATED    :         1993    David MacDonald
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-static  Real  get_function_value(
+static  VIO_Real  get_function_value(
     amoeba_struct  *amoeba,
     float          parameters[] )
 {
@@ -234,11 +237,11 @@ static  Real  get_function_value(
  void  initialize_amoeba(
     amoeba_struct     *amoeba,
     int               n_parameters,
-    Real              initial_parameters[],
-    Real              parameter_delta,
+    VIO_Real              initial_parameters[],
+    VIO_Real              parameter_delta,
     amoeba_function   function,
     void              *function_data,
-    Real              tolerance )
+    VIO_Real              tolerance )
 {
     int    i, j;
 
@@ -252,12 +255,12 @@ static  Real  get_function_value(
 
     ALLOC( amoeba->sum, n_parameters );
 
-    for_less( j, 0, n_parameters )
+    for(j=0; j<n_parameters; j++)
         amoeba->sum[j] = 0.0;
     
-    for_less( i, 0, n_parameters+1 )
+    for(i=0; i<n_parameters+1; i++)
     {
-        for_less( j, 0, n_parameters )
+        for(j=0; j<n_parameters; j++)
         {
             amoeba->parameters[i][j] = (float) initial_parameters[j];
             if( i > 0 && j == i - 1 )
@@ -282,21 +285,21 @@ static  Real  get_function_value(
 @CREATED    :         1993    David MacDonald
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
- Real  get_amoeba_parameters(
+ VIO_Real  get_amoeba_parameters(
     amoeba_struct  *amoeba,
-    Real           parameters[] )
+    VIO_Real           parameters[] )
 {
     int   i, j, low;
 
     low = 0;
-    for_less( i, 1, amoeba->n_parameters+1 )
+    for(i=1; i<amoeba->n_parameters+1; i++)
     {
       
         if( amoeba->values[i] < amoeba->values[low] )
             low = i;
     }
-    for_less( j, 0, amoeba->n_parameters )
-        parameters[j] = (Real) amoeba->parameters[low][j];
+    for(j=0; j<amoeba->n_parameters; j++)
+        parameters[j] = (VIO_Real) amoeba->parameters[low][j];
 
     return( amoeba->values[low] );
 }
@@ -340,14 +343,14 @@ static  Real  get_function_value(
 @CREATED    :         1993    David MacDonald
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-static  Real  try_amoeba(
+static  VIO_Real  try_amoeba(
     amoeba_struct  *amoeba,
-    Real           sum[],
+    VIO_Real           sum[],
     int            high,
-    Real           fac )
+    VIO_Real           fac )
 {
     int    j;
-    Real   y_try, fac1, fac2;
+    VIO_Real   y_try, fac1, fac2;
     float  *parameters;
 
     ALLOC( parameters, amoeba->n_parameters );
@@ -355,7 +358,7 @@ static  Real  try_amoeba(
     fac1 = (1.0 - fac) / amoeba->n_parameters;
     fac2 = fac - fac1;
 
-    for_less( j, 0, amoeba->n_parameters )
+    for(j=0; j<amoeba->n_parameters; j++)
         parameters[j] = sum[j] * fac1 + amoeba->parameters[high][j] * fac2;
 
 
@@ -364,7 +367,7 @@ static  Real  try_amoeba(
     if( y_try < amoeba->values[high] )
     {
         amoeba->values[high] = y_try;
-        for_less( j, 0, amoeba->n_parameters )
+        for(j=0; j<amoeba->n_parameters; j++)
         {
             sum[j] += parameters[j] - amoeba->parameters[high][j];
             amoeba->parameters[high][j] = parameters[j];
@@ -394,13 +397,13 @@ static  Real  try_amoeba(
 @CREATED    :         1993    David MacDonald
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
- BOOLEAN  perform_amoeba(
+ VIO_BOOL  perform_amoeba(
     amoeba_struct  *amoeba, int *num_funks )
 {
     int     i, j, low, high, next_high;
-    Real    y_try, y_save;
-    BOOLEAN  improvement_found;
-    Real tol;
+    VIO_Real    y_try, y_save;
+    VIO_BOOL  improvement_found;
+    VIO_Real tol;
 
     improvement_found = TRUE;
 
@@ -417,7 +420,7 @@ static  Real  try_amoeba(
 
     low = next_high;
 
-    for_less( i, 2, amoeba->n_parameters+1 )
+    for(i=2; i<amoeba->n_parameters+1; i++)
     {
         if( amoeba->values[i] < amoeba->values[low] )
             low = i;
@@ -441,8 +444,8 @@ static  Real  try_amoeba(
    {
         ++amoeba->n_steps_no_improvement;
         if( ++amoeba->n_steps_no_improvement == N_STEPS_NO_IMPROVEMENT ) {
-	  return( FALSE );
-	}
+          return( FALSE );
+        }
     }
     else
         amoeba->n_steps_no_improvement = 0;
@@ -452,21 +455,21 @@ static  Real  try_amoeba(
 
     if( y_try <= amoeba->values[low] ) {
         y_try = try_amoeba( amoeba, amoeba->sum, high, STRETCH_RATIO );
-	(*num_funks)++;
+        (*num_funks)++;
       }
     else if( y_try >= amoeba->values[next_high] )
     {
         y_save = amoeba->values[high];
         y_try = try_amoeba( amoeba, amoeba->sum, high, CONTRACT_RATIO );
-	(*num_funks)++;
-	
+        (*num_funks)++;
+        
         if( y_try >= y_save )
         {
-            for_less( i, 0, amoeba->n_parameters+1 )
+            for(i=0; i<amoeba->n_parameters+1; i++)
             {
                 if( i != low )
                 {
-                    for_less( j, 0, amoeba->n_parameters )
+                    for(j=0; j<amoeba->n_parameters; j++)
                     {
                         amoeba->parameters[i][j] = (amoeba->parameters[i][j] +
                                             amoeba->parameters[low][j]) / 2.0;
@@ -474,14 +477,14 @@ static  Real  try_amoeba(
 
                     amoeba->values[i] = get_function_value( amoeba,
                                                   amoeba->parameters[i] );
-		    (*num_funks)++;
+                    (*num_funks)++;
                 }
             }
 
-            for_less( j, 0, amoeba->n_parameters )
+            for(j=0; j<amoeba->n_parameters; j++)
             {
                 amoeba->sum[j] = 0.0;
-                for_less( i, 0, amoeba->n_parameters+1 )
+                for(i=0; i<amoeba->n_parameters+1; i++)
                     amoeba->sum[j] += amoeba->parameters[i][j];
             }
         }

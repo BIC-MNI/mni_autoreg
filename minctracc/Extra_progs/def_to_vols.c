@@ -9,7 +9,10 @@
 @CALLS      : 
 @CREATED    : Mon May  8 11:29:40 MET DST 1995  LC
 @MODIFIED   : $Log: def_to_vols.c,v $
-@MODIFIED   : Revision 1.4  2005-07-20 20:45:46  rotor
+@MODIFIED   : Revision 1.5  2006-11-29 09:09:31  rotor
+@MODIFIED   :  * first bunch of changes for minc 2.0 compliance
+@MODIFIED   :
+@MODIFIED   : Revision 1.4  2005/07/20 20:45:46  rotor
 @MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
 @MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
 @MODIFIED   :     * Removed old VOLUME_IO cruft #defines
@@ -40,7 +43,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/def_to_vols.c,v 1.4 2005-07-20 20:45:46 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/def_to_vols.c,v 1.5 2006-11-29 09:09:31 rotor Exp $";
 #endif
 
 #include <stdlib.h>
@@ -56,7 +59,7 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 
 static char *my_ZYX_dim_names[] = { MIzspace, MIyspace, MIxspace };
 
-void get_volume_XYZV_indices(Volume data, int xyzv[])
+void get_volume_XYZV_indices(VIO_Volume data, int xyzv[])
 {
   
   int 
@@ -67,8 +70,8 @@ void get_volume_XYZV_indices(Volume data, int xyzv[])
   vol_dims       = get_volume_n_dimensions(data);
   data_dim_names = get_volume_dimension_names(data);
 
-  for_less(i,0,N_DIMENSIONS+1) xyzv[i] = -1;
-  for_less(i,0,vol_dims) {
+  for(i=0; i<N_DIMENSIONS+1; i++) xyzv[i] = -1;
+  for(i=0; i<vol_dims; i++) {
     if (convert_dim_name_to_spatial_axis(data_dim_names[i], &axis )) {
       xyzv[axis] = i; 
     } 
@@ -85,30 +88,30 @@ void get_volume_XYZV_indices(Volume data, int xyzv[])
 
 int main(int argc, char *argv[])
 {
-   Volume
+   VIO_Volume
      component_vol,
      current_vol;
    FILE 
      *fp;
-   Real
+   VIO_Real
      min_range, max_range,
      value,
-     voxel[MAX_DIMENSIONS],
-     steps[MAX_DIMENSIONS],
-     new_steps[MAX_DIMENSIONS],
-     start[MAX_DIMENSIONS],
-     new_start[MAX_DIMENSIONS];
+     voxel[VIO_MAX_DIMENSIONS],
+     steps[VIO_MAX_DIMENSIONS],
+     new_steps[VIO_MAX_DIMENSIONS],
+     start[VIO_MAX_DIMENSIONS],
+     new_start[VIO_MAX_DIMENSIONS];
    int
      i,
-     ind[MAX_DIMENSIONS],
-     count[MAX_DIMENSIONS],
-     new_count[MAX_DIMENSIONS],
-     new_xyzv[MAX_DIMENSIONS],
-     xyzv[MAX_DIMENSIONS];
+     ind[VIO_MAX_DIMENSIONS],
+     count[VIO_MAX_DIMENSIONS],
+     new_count[VIO_MAX_DIMENSIONS],
+     new_xyzv[VIO_MAX_DIMENSIONS],
+     xyzv[VIO_MAX_DIMENSIONS];
    
    char name[500];
 
-   Status status;
+   VIO_Status status;
 
    /* Check arguments */
    if (argc != 3 && argc != 5) {
@@ -118,9 +121,9 @@ int main(int argc, char *argv[])
    }
 
    if( input_volume( argv[1], 4, NULL, NC_UNSPECIFIED, FALSE,
-		    0.0, 0.0, TRUE, &current_vol, (minc_input_options *)NULL ) != OK ) {
+                    0.0, 0.0, TRUE, &current_vol, (minc_input_options *)NULL ) != OK ) {
      (void)fprintf(stderr, "Error opening input volume file %s.\n",
-		   argv[1]);
+                   argv[1]);
      exit(EXIT_FAILURE);
    }
 
@@ -139,19 +142,19 @@ int main(int argc, char *argv[])
    component_vol = create_volume(3, my_ZYX_dim_names, NC_SHORT, TRUE, 0.0, 0.0);
    get_volume_XYZV_indices(component_vol, new_xyzv);
 
-   for_less(i,0,3) {
+   for(i=0; i<3; i++) {
      new_count[ new_xyzv[i] ] = count[ xyzv[i] ];
      new_steps[ new_xyzv[i] ] = steps[ xyzv[i] ];
    }
-   for_less(i,0,MAX_DIMENSIONS) {
+   for(i=0; i<MAX_DIMENSIONS; i++) {
      start[i] = 0.0;
      voxel[i] = 0.0;
      new_start[i] = 0.0;
    }
 
    convert_voxel_to_world(current_vol,
-			  voxel,
-			  &start[0], &start[1], &start[2]);
+                          voxel,
+                          &start[0], &start[1], &start[2]);
    
    set_volume_sizes(component_vol, new_count);
    set_volume_separations(component_vol, new_steps);
@@ -160,19 +163,19 @@ int main(int argc, char *argv[])
    set_volume_real_range(component_vol, min_range, max_range);
 
    
-   for_less(ind[ xyzv[Z+1] ], 0, count[  xyzv[Z+1] ]) {
+   for(ind[xyzv[Z+1]]=0; ind[xyzv[Z+1]]<count[xyzv[Z+1]]; ind[xyzv[Z+1]]++) {
 
-     for_less(ind[ xyzv[X] ], 0, count[  xyzv[X] ]) 
-       for_less(ind[ xyzv[Y] ], 0, count[  xyzv[Y] ]) 
-	 for_less(ind[ xyzv[Z] ], 0, count[  xyzv[Z] ]) {
-	   
-	   value = get_volume_real_value(current_vol,
-					 ind[0],ind[1],ind[2],ind[3],ind[4]);
-	   set_volume_real_value(component_vol,
-			       ind[ xyzv[Z] ], ind[ xyzv[Y] ], ind[ xyzv[X] ], 0, 0,
-				 value);
-	   
-	 }
+     for(ind[xyzv[VIO_X]]=0; ind[xyzv[VIO_X]]<count[xyzv[VIO_X]]; ind[xyzv[VIO_X]]++) 
+       for(ind[xyzv[VIO_Y]]=0; ind[xyzv[VIO_Y]]<count[xyzv[VIO_Y]]; ind[xyzv[VIO_Y]]++) 
+         for(ind[xyzv[VIO_Z]]=0; ind[xyzv[VIO_Z]]<count[xyzv[VIO_Z]]; ind[xyzv[VIO_Z]]++) {
+           
+           value = get_volume_real_value(current_vol,
+                                         ind[0],ind[1],ind[2],ind[3],ind[4]);
+           set_volume_real_value(component_vol,
+                               ind[ xyzv[VIO_Z] ], ind[ xyzv[VIO_Y] ], ind[ xyzv[VIO_X] ], 0, 0,
+                                 value);
+           
+         }
      
      switch (ind[ xyzv[Z+1] ]) {
      case X: (void)sprintf(name,"%s_dx.mnc",argv[2]); break;
@@ -180,8 +183,8 @@ int main(int argc, char *argv[])
      case Z: (void)sprintf(name,"%s_dz.mnc",argv[2]); break;
      }
      if (output_volume(name, NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-		       component_vol,
-		       NULL, (minc_output_options *)NULL) != OK) {
+                       component_vol,
+                       NULL, (minc_output_options *)NULL) != OK) {
        
        (void) fprintf(stderr,"Cannot write %s\n",name);
        exit( EXIT_FAILURE );

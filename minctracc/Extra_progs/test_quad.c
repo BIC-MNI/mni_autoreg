@@ -9,7 +9,10 @@
 @CALLS      : 
 @CREATED    : Mon May  8 11:29:40 MET DST 1995  LC
 @MODIFIED   : $Log: test_quad.c,v $
-@MODIFIED   : Revision 1.4  2005-07-20 20:45:47  rotor
+@MODIFIED   : Revision 1.5  2006-11-29 09:09:31  rotor
+@MODIFIED   :  * first bunch of changes for minc 2.0 compliance
+@MODIFIED   :
+@MODIFIED   : Revision 1.4  2005/07/20 20:45:47  rotor
 @MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
 @MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
 @MODIFIED   :     * Removed old VOLUME_IO cruft #defines
@@ -40,7 +43,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/test_quad.c,v 1.4 2005-07-20 20:45:47 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/test_quad.c,v 1.5 2006-11-29 09:09:31 rotor Exp $";
 #endif
 
 #include <stdio.h>
@@ -52,17 +55,17 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #  define FALSE 0
 #endif
 
-BOOLEAN return_3D_disp_from_quad_fit(Real r[3][3][3], /* the values used in the quad fit */
-					    Real *dispu, /* the displacements returned */
-					    Real *dispv, 
-					    Real *dispw);	
+VIO_BOOL return_3D_disp_from_quad_fit(VIO_Real r[3][3][3], /* the values used in the quad fit */
+                                            VIO_Real *dispu, /* the displacements returned */
+                                            VIO_Real *dispv, 
+                                            VIO_Real *dispw);        
 
 
 int main(int argc, char *argv[])
 {
   float tmp[3][3][3];
-  Real local_corr[3][3][3];
-  Real dx,dy,dz;
+  VIO_Real local_corr[3][3][3];
+  VIO_Real dx,dy,dz;
   int i,j,k,flag;
   float test_val;
 
@@ -70,28 +73,28 @@ int main(int argc, char *argv[])
     print ("\ninput local corr data:\n");
 
     if (scanf ("%f %f %f   %f %f %f   %f %f %f",
-	   &(tmp[0][0][0]), &(tmp[1][0][0]), &(tmp[2][0][0]), 
-	   &(tmp[0][0][1]), &(tmp[1][0][1]), &(tmp[2][0][1]), 
-	   &(tmp[0][0][2]), &(tmp[1][0][2]), &(tmp[2][0][2])) != 9) {
+           &(tmp[0][0][0]), &(tmp[1][0][0]), &(tmp[2][0][0]), 
+           &(tmp[0][0][1]), &(tmp[1][0][1]), &(tmp[2][0][1]), 
+           &(tmp[0][0][2]), &(tmp[1][0][2]), &(tmp[2][0][2])) != 9) {
       print ("error reading first line"); exit;
     }
     if (scanf ("%f %f %f   %f %f %f   %f %f %f",
-	   &(tmp[0][1][0]), &(tmp[1][1][0]), &(tmp[2][1][0]), 
-	   &(tmp[0][1][1]), &(tmp[1][1][1]), &(tmp[2][1][1]), 
-	   &(tmp[0][1][2]), &(tmp[1][1][2]), &(tmp[2][1][2])) != 9) {
+           &(tmp[0][1][0]), &(tmp[1][1][0]), &(tmp[2][1][0]), 
+           &(tmp[0][1][1]), &(tmp[1][1][1]), &(tmp[2][1][1]), 
+           &(tmp[0][1][2]), &(tmp[1][1][2]), &(tmp[2][1][2])) != 9) {
       print ("error reading second line"); exit;
     }
     if (scanf ("%f %f %f   %f %f %f   %f %f %f",
-	   &(tmp[0][2][0]), &(tmp[1][2][0]), &(tmp[2][2][0]), 
-	   &(tmp[0][2][1]), &(tmp[1][2][1]), &(tmp[2][2][1]), 
-	   &(tmp[0][2][2]), &(tmp[1][2][2]), &(tmp[2][2][2])) != 9) {
+           &(tmp[0][2][0]), &(tmp[1][2][0]), &(tmp[2][2][0]), 
+           &(tmp[0][2][1]), &(tmp[1][2][1]), &(tmp[2][2][1]), 
+           &(tmp[0][2][2]), &(tmp[1][2][2]), &(tmp[2][2][2])) != 9) {
       print ("error reading third line"); exit;
     }
 
-    for_less(i,0,3)
-      for_less(j,0,3)
-	for_less(k,0,3)
-	  local_corr[i][j][k] = (Real)tmp[i][j][k];
+    for(i=0; i<3; i++)
+      for(j=0; j<3; j++)
+        for(k=0; k<3; k++)
+          local_corr[i][j][k] = (VIO_Real)tmp[i][j][k];
 
     flag = return_3D_disp_from_quad_fit(local_corr, &dx, &dy, &dz);
 

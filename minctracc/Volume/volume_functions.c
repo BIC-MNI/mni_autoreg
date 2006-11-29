@@ -14,7 +14,10 @@
 
 @CREATED    : Tue Jun 15 08:57:23 EST 1993 LC
 @MODIFIED   :  $Log: volume_functions.c,v $
-@MODIFIED   :  Revision 96.11  2005-07-20 20:45:52  rotor
+@MODIFIED   :  Revision 96.12  2006-11-29 09:09:34  rotor
+@MODIFIED   :   * first bunch of changes for minc 2.0 compliance
+@MODIFIED   :
+@MODIFIED   :  Revision 96.11  2005/07/20 20:45:52  rotor
 @MODIFIED   :      * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
 @MODIFIED   :      * Many changes to includes of files (float.h, limits.h, etc)
 @MODIFIED   :      * Removed old VOLUME_IO cruft #defines
@@ -90,7 +93,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/volume_functions.c,v 96.11 2005-07-20 20:45:52 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/volume_functions.c,v 96.12 2006-11-29 09:09:34 rotor Exp $";
 #endif
 
 #include <config.h>
@@ -99,50 +102,50 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #include "point_vector.h"
 #include "constants.h"
 #include <Proglib.h>
-#include <arg_data.h>		/* definition of the global data struct      */
+#include <arg_data.h>                /* definition of the global data struct      */
 #include "local_macros.h"
 
-int point_not_masked(Volume volume, 
-			    Real wx, Real wy, Real wz);
-Real get_value_of_point_in_volume(Real xw, Real yw, Real zw, 
-	  Volume data);
+int point_not_masked(VIO_Volume volume, 
+                            VIO_Real wx, VIO_Real wy, VIO_Real wz);
+VIO_Real get_value_of_point_in_volume(VIO_Real xw, VIO_Real yw, VIO_Real zw, 
+          VIO_Volume data);
 
 
-void  set_feature_value_threshold(Volume d1, 
-					 Volume d2,
-					 Real *global_thres1, 
-					 Real *global_thres2, 
-					 Real *threshold1, 
-					 Real *threshold2);
+void  set_feature_value_threshold(VIO_Volume d1, 
+                                         VIO_Volume d2,
+                                         VIO_Real *global_thres1, 
+                                         VIO_Real *global_thres2, 
+                                         VIO_Real *threshold1, 
+                                         VIO_Real *threshold2);
 
 
 #define MIN_ZRANGE -5.0
 #define MAX_ZRANGE  5.0
 
-void make_zscore_volume(Volume d1, Volume m1, 
-			       Real *threshold)
+void make_zscore_volume(VIO_Volume d1, VIO_Volume m1, 
+                               VIO_Real *threshold)
 {
   unsigned long
     count;
   int 
     stat_count,
-    sizes[MAX_DIMENSIONS],
+    sizes[VIO_MAX_DIMENSIONS],
     s,r,c;
-  Real
+  VIO_Real
     wx,wy,wz,
     valid_min_dvoxel, valid_max_dvoxel,
     min,max,
     sum, sum2, mean, var, std,
     data_vox,data_val,
-    thick[MAX_DIMENSIONS];
+    thick[VIO_MAX_DIMENSIONS];
 
   PointR 
     voxel;
 
-  Volume 
+  VIO_Volume 
     vol;
 
-  progress_struct
+  VIO_progress_struct
     progress;
 
   /* get default information from data and mask */
@@ -165,46 +168,46 @@ void make_zscore_volume(Volume d1, Volume m1,
   stat_count = 0;
 
   initialize_progress_report(&progress, FALSE, sizes[0]*sizes[1]*sizes[2] + 1,
-			     "Tally stats" );
+                             "Tally stats" );
 
-				/* do first pass, to get mean and std */
-  for_less( s, 0,  sizes[0]) {
-    for_less( r, 0, sizes[1]) {
-      for_less( c, 0, sizes[2]) {
+                                /* do first pass, to get mean and std */
+  for(s=0; s<sizes[0]; s++) {
+    for(r=0; r<sizes[1]; r++) {
+      for(c=0; c<sizes[2]; c++) {
 
-	stat_count++;
-	update_progress_report( &progress, stat_count);
-	convert_3D_voxel_to_world(d1, (Real)s, (Real)r, (Real)c, &wx, &wy, &wz);
+        stat_count++;
+        update_progress_report( &progress, stat_count);
+        convert_3D_voxel_to_world(d1, (VIO_Real)s, (VIO_Real)r, (VIO_Real)c, &wx, &wy, &wz);
 
-	if (m1 != NULL) {
-	  convert_3D_world_to_voxel(m1, wx, wy, wz, &Point_x(voxel), &Point_y(voxel), &Point_z(voxel));
-	}
-	else {
-	  wx = 0.0; wy = 0.0; wz = 0.0;
-	}
+        if (m1 != NULL) {
+          convert_3D_world_to_voxel(m1, wx, wy, wz, &Point_x(voxel), &Point_y(voxel), &Point_z(voxel));
+        }
+        else {
+          wx = 0.0; wy = 0.0; wz = 0.0;
+        }
 
-	if (point_not_masked(m1, wx,wy,wz)) {
-	  
-	  GET_VOXEL_3D( data_vox,  d1 , s, r, c );
+        if (point_not_masked(m1, wx,wy,wz)) {
+          
+          GET_VOXEL_3D( data_vox,  d1 , s, r, c );
 
-	  if (data_vox >= valid_min_dvoxel && data_vox <= valid_max_dvoxel) { 
+          if (data_vox >= valid_min_dvoxel && data_vox <= valid_max_dvoxel) { 
 
-	    data_val = CONVERT_VOXEL_TO_VALUE(d1, data_vox);
-	    
-	    if (data_val > *threshold) {
-	      sum  += data_val;
-	      sum2 += data_val*data_val;
-	      
-	      count++;
-	      
-	      if (data_val < min)
-		min = data_val;
-	      else
-		if (data_val > max)
-		  max = data_val;
-	    }
-	  }
-	}
+            data_val = CONVERT_VOXEL_TO_VALUE(d1, data_vox);
+            
+            if (data_val > *threshold) {
+              sum  += data_val;
+              sum2 += data_val*data_val;
+              
+              count++;
+              
+              if (data_val < min)
+                min = data_val;
+              else
+                if (data_val > max)
+                  max = data_val;
+            }
+          }
+        }
       }
     }
   }
@@ -212,9 +215,9 @@ void make_zscore_volume(Volume d1, Volume m1,
 
   stat_count = 0;
   initialize_progress_report(&progress, FALSE, sizes[0]*sizes[1]*sizes[2] + 1,
-			     "Zscore convert" );
+                             "Zscore convert" );
 
-				/* calc mean and std */
+                                /* calc mean and std */
   mean = sum / (float)count;
   var  = ((float)count*sum2 - sum*sum) / ((float)count*((float)count-1));
   std  = sqrt(var);
@@ -222,58 +225,58 @@ void make_zscore_volume(Volume d1, Volume m1,
   min = 1e38;
   max = -1e38;
 
-				/* replace the voxel values */
-  for_less( s, 0,  sizes[0]) {
-    for_less( r, 0, sizes[1]) {
-      for_less( c, 0, sizes[2]) {
-	
-	stat_count++;
-	update_progress_report( &progress, stat_count);
+                                /* replace the voxel values */
+  for(s=0; s<sizes[0]; s++) {
+    for(r=0; r<sizes[1]; r++) {
+      for(c=0; c<sizes[2]; c++) {
+        
+        stat_count++;
+        update_progress_report( &progress, stat_count);
 
-	GET_VOXEL_3D( data_vox,  d1, s, r, c );
-	
-	if (data_vox >= valid_min_dvoxel && data_vox <= valid_max_dvoxel) { 
-	  
-	  data_val = CONVERT_VOXEL_TO_VALUE(d1, data_vox);
-	  
-	  if (data_val > *threshold) {
+        GET_VOXEL_3D( data_vox,  d1, s, r, c );
+        
+        if (data_vox >= valid_min_dvoxel && data_vox <= valid_max_dvoxel) { 
+          
+          data_val = CONVERT_VOXEL_TO_VALUE(d1, data_vox);
+          
+          if (data_val > *threshold) {
 
-				/* instead of   
-				   data_val = CONVERT_VALUE_TO_VOXEL(d1, data_vox);
-				   i will use
-				   data_val = CONVERT_VALUE_TO_VOXEL(d1, vol);
+                                /* instead of   
+                                   data_val = CONVERT_VALUE_TO_VOXEL(d1, data_vox);
+                                   i will use
+                                   data_val = CONVERT_VALUE_TO_VOXEL(d1, vol);
 
-				   since the values in vol are changed with respect to the
-				   new z-score volume */
+                                   since the values in vol are changed with respect to the
+                                   new z-score volume */
 
-	    data_val = (data_val - mean) / std;
-	    if (data_val< MIN_ZRANGE) data_val = MIN_ZRANGE;
-	    if (data_val> MAX_ZRANGE) data_val = MAX_ZRANGE;
+            data_val = (data_val - mean) / std;
+            if (data_val< MIN_ZRANGE) data_val = MIN_ZRANGE;
+            if (data_val> MAX_ZRANGE) data_val = MAX_ZRANGE;
 
-	    data_vox = CONVERT_VALUE_TO_VOXEL( vol, data_val);
-	    
+            data_vox = CONVERT_VALUE_TO_VOXEL( vol, data_val);
+            
 
-	    if (data_val < min) {
-	      min = data_val;
-	    }
-	    else {
-	      if (data_val > max)
-		max = data_val;
-	    }
-	  }
-	  else
-	    data_vox = -DBL_MAX;   /* should be fill_value! */
-	  
-	  SET_VOXEL_3D( d1 , s, r, c, data_vox );
-	}
-	
+            if (data_val < min) {
+              min = data_val;
+            }
+            else {
+              if (data_val > max)
+                max = data_val;
+            }
+          }
+          else
+            data_vox = -DBL_MAX;   /* should be fill_value! */
+          
+          SET_VOXEL_3D( d1 , s, r, c, data_vox );
+        }
+        
       }
     }
   }
 
   terminate_progress_report( &progress );
 
-  set_volume_real_range(d1, MIN_ZRANGE, MAX_ZRANGE);	/* reset the data volume's range */
+  set_volume_real_range(d1, MIN_ZRANGE, MAX_ZRANGE);        /* reset the data volume's range */
 
   *threshold = (*threshold - mean) / std;
 
@@ -281,9 +284,9 @@ void make_zscore_volume(Volume d1, Volume m1,
   
 }
 
-void add_speckle_to_volume(Volume d1, 
-				  float speckle,
-				  double  *start, int *count, VectorR directions[])
+void add_speckle_to_volume(VIO_Volume d1, 
+                                  float speckle,
+                                  double  *start, int *count, VectorR directions[])
 {
   VectorR
     vector_step;
@@ -293,7 +296,7 @@ void add_speckle_to_volume(Volume d1,
     slice,
     row,
     col;
-  Real valid_min_voxel, valid_max_voxel;
+  VIO_Real valid_min_voxel, valid_max_voxel;
 
   double
     tx,ty,tz,
@@ -306,46 +309,46 @@ void add_speckle_to_volume(Volume d1,
   flip_flag = FALSE;
 
   get_volume_voxel_range(d1, &valid_min_voxel, &valid_max_voxel);
-  fill_Point( starting_position, start[0], start[1], start[2]);
+  VIO_fill_Point( starting_position, start[0], start[1], start[2]);
   
-  for_less(s,0,count[SLICE_IND]) {
+  for(s=0; s<count[SLICE_IND]; s++) {
 
     SCALE_VECTOR( vector_step, directions[SLICE_IND], s);
     ADD_POINT_VECTOR( slice, starting_position, vector_step );
 
-    for_less(r,0,count[ROW_IND]) {
+    for(r=0; r<count[ROW_IND]; r++) {
 
       SCALE_VECTOR( vector_step, directions[ROW_IND], r);
       ADD_POINT_VECTOR( row, slice, vector_step );
 
       SCALE_POINT( col, row, 1.0); /* init first col position */
-      for_less(c,0,count[COL_IND]) {
+      for(c=0; c<count[COL_IND]; c++) {
 
-	convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
+        convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
 
-	xi = ROUND( tx );
-	yi = ROUND( ty );
-	zi = ROUND( tz );
+        xi = ROUND( tx );
+        yi = ROUND( ty );
+        zi = ROUND( tz );
 
-	GET_VOXEL_3D( voxel_value, d1 , xi, yi, zi ); 
-
-
-	if (voxel_value >= valid_min_voxel && voxel_value <= valid_max_voxel) {
-	  if (flip_flag)
-	    voxel_value = voxel_value * (1 + 0.01*speckle);
-	  else
-	    voxel_value = voxel_value * (1 - 0.01*speckle);
-
-	  SET_VOXEL_3D( d1 , xi, yi, zi, voxel_value );
-	}
-
-	flip_flag = !flip_flag;
+        GET_VOXEL_3D( voxel_value, d1 , xi, yi, zi ); 
 
 
-	ADD_POINT_VECTOR( col, col, directions[COL_IND] );
+        if (voxel_value >= valid_min_voxel && voxel_value <= valid_max_voxel) {
+          if (flip_flag)
+            voxel_value = voxel_value * (1 + 0.01*speckle);
+          else
+            voxel_value = voxel_value * (1 - 0.01*speckle);
+
+          SET_VOXEL_3D( d1 , xi, yi, zi, voxel_value );
+        }
+
+        flip_flag = !flip_flag;
+
+
+        ADD_POINT_VECTOR( col, col, directions[COL_IND] );
 
       }
-	
+        
 
 
     }
@@ -355,12 +358,12 @@ void add_speckle_to_volume(Volume d1,
 }
 
 
-void save_volume(Volume d, char *filename)
+void save_volume(VIO_Volume d, char *filename)
 {
-  Status status;
+  VIO_Status status;
 
   status = output_volume(filename,NC_UNSPECIFIED, FALSE, 0.0, 0.0, d, (char *)NULL,
-			 (minc_output_options *)NULL);
+                         (minc_output_options *)NULL);
 
   if (status != OK)
     print_error_and_line_num("problems writing  volume `%s'.",__FILE__, __LINE__, filename);
@@ -368,7 +371,7 @@ void save_volume(Volume d, char *filename)
 }
 
 
-static int compare(Real  *a, Real *b)
+static int compare(VIO_Real  *a, VIO_Real *b)
 {
   if ( *a > *b)  return(1);
   else if ( *a < *b) return (-1);
@@ -386,17 +389,17 @@ void qs_list(float *item2, int left, int right)
     
     do
     {
-	while (item2[i]<x && i<right) i++;
-	while (x<item2[j] && j>left) j--;
-	
-	if (i<=j)
-	{
-	    y=item2[i];
-	    item2[i]=item2[j];
-	    item2[j]=y;
-	    i++;
-	    j--;
-	}
+        while (item2[i]<x && i<right) i++;
+        while (x<item2[j] && j>left) j--;
+        
+        if (i<=j)
+        {
+            y=item2[i];
+            item2[i]=item2[j];
+            item2[j]=y;
+            i++;
+            j--;
+        }
     } while (i<=j);
     
     if (left<j) qs_list(item2,left,j);
@@ -404,9 +407,9 @@ void qs_list(float *item2, int left, int right)
 }
 
 
-void normalize_data_to_match_target(Volume d1, Volume m1, Real thresh1,
-					   Volume d2, Volume m2, Real thresh2,
-					   Arg_Data *globals)
+void normalize_data_to_match_target(VIO_Volume d1, VIO_Volume m1, VIO_Real thresh1,
+                                           VIO_Volume d2, VIO_Volume m2, VIO_Real thresh2,
+                                           Arg_Data *globals)
 {
 
   VectorR
@@ -426,31 +429,31 @@ void normalize_data_to_match_target(Volume d1, Volume m1, Real thresh1,
     i,j,k,
     r,c,s;
 
-  Real
+  VIO_Real
     min_range, max_range,
     data_vox, data_val,
     value1, value2;
   
-  Real
-    t1,t2,			/* temporary threshold values     */
+  VIO_Real
+    t1,t2,                        /* temporary threshold values     */
     s1,s2,s3;                   /* to store the sums for f1,f2,f3 */
   float 
     *ratios,
-    result;				/* the result */
+    result;                                /* the result */
   int 
-    sizes[MAX_DIMENSIONS],ratios_size,count1,count2;
+    sizes[VIO_MAX_DIMENSIONS],ratios_size,count1,count2;
 
-  Volume 
+  VIO_Volume 
     vol;
 
-  progress_struct
+  VIO_progress_struct
     progress;
 
 
 
   set_feature_value_threshold(d1,d2, 
-			      &thresh1, &thresh2,
-			      &t1,      &t2);			      
+                              &thresh1, &thresh2,
+                              &t1,      &t2);                              
 
   if (globals->flags.debug) {
     print ("In normalize_data_to_match_target, thresh = %10.3f %10.3f\n",t1,t2) ;
@@ -460,63 +463,63 @@ void normalize_data_to_match_target(Volume d1, Volume m1, Real thresh1,
 
   ALLOC(ratios, ratios_size);  
 
-  fill_Point( starting_position, globals->start[X], globals->start[Y], globals->start[Z]);
+  VIO_fill_Point( starting_position, globals->start[VIO_X], globals->start[VIO_Y], globals->start[VIO_Z]);
 
   s1 = s2 = s3 = 0.0;
   count1 = count2 = 0;
 
-  for_inclusive(s,0,globals->count[SLICE_IND]) {
+  for(s=0; s<=globals->count[SLICE_IND]; s++) {
 
     SCALE_VECTOR( vector_step, globals->directions[SLICE_IND], s);
     ADD_POINT_VECTOR( slice, starting_position, vector_step );
 
-    for_inclusive(r,0,globals->count[ROW_IND]) {
+    for(r=0; r<=globals->count[ROW_IND]; r++) {
       
       SCALE_VECTOR( vector_step, globals->directions[ROW_IND], r);
       ADD_POINT_VECTOR( row, slice, vector_step );
       
       SCALE_POINT( col, row, 1.0); /* init first col position */
-      for_inclusive(c,0,globals->count[COL_IND]) {
-	
-	convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
-	
-	fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
-	
-	if (point_not_masked(m1, Point_x(col), Point_y(col), Point_z(col))) {
+      for(c=0; c<=globals->count[COL_IND]; c++) {
+        
+        convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
+        
+        VIO_fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
+        
+        if (point_not_masked(m1, Point_x(col), Point_y(col), Point_z(col))) {
 
-	  value1 = get_value_of_point_in_volume( Point_x(col), Point_y(col), Point_z(col), d1);
+          value1 = get_value_of_point_in_volume( Point_x(col), Point_y(col), Point_z(col), d1);
 
-	  if ( value1 > t1 ) {
+          if ( value1 > t1 ) {
 
-	    count1++;
+            count1++;
 
-	    DO_TRANSFORM(pos2, globals->trans_info.transformation, col);
-	    
-	    convert_3D_world_to_voxel(d2, Point_x(pos2), Point_y(pos2), Point_z(pos2), &tx, &ty, &tz);
-	    
-	    fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
-	
-	    if (point_not_masked(m2, Point_x(pos2), Point_y(pos2), Point_z(pos2))) {
+            DO_TRANSFORM(pos2, globals->trans_info.transformation, col);
+            
+            convert_3D_world_to_voxel(d2, Point_x(pos2), Point_y(pos2), Point_z(pos2), &tx, &ty, &tz);
+            
+            VIO_fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
+        
+            if (point_not_masked(m2, Point_x(pos2), Point_y(pos2), Point_z(pos2))) {
 
-	      value2 = get_value_of_point_in_volume( Point_x(pos2), Point_y(pos2), Point_z(pos2), d2);
+              value2 = get_value_of_point_in_volume( Point_x(pos2), Point_y(pos2), Point_z(pos2), d2);
 
-	      if ( (value2 > t2)  && 
-		   ((value2 < -1e-15) || (value2 > 1e-15)) ) {
-		  
-		ratios[count2++] = value1 / value2 ;
+              if ( (value2 > t2)  && 
+                   ((value2 < -1e-15) || (value2 > 1e-15)) ) {
+                  
+                ratios[count2++] = value1 / value2 ;
 
-		s1 += value1*value2;
-		s2 += value1*value1;
-		s3 += value2*value2;
-		  
-		
-	      } /* if voxel in d2 */
-	    } /* if point in mask volume two */
-	  } /* if voxel in d1 */
-	} /* if point in mask volume one */
-	
-	ADD_POINT_VECTOR( col, col, globals->directions[COL_IND] );
-	
+                s1 += value1*value2;
+                s2 += value1*value1;
+                s3 += value2*value2;
+                  
+                
+              } /* if voxel in d2 */
+            } /* if point in mask volume two */
+          } /* if voxel in d1 */
+        } /* if point in mask volume one */
+        
+        ADD_POINT_VECTOR( col, col, globals->directions[COL_IND] );
+        
       } /* for c */
     } /* for r */
   } /* for s */
@@ -531,7 +534,7 @@ void normalize_data_to_match_target(Volume d1, Volume m1, Real thresh1,
 
     if (globals->flags.debug) (void)print ("Done.\n");
 
-    result = ratios[ (int)(count2/2) ];	/* the median value */
+    result = ratios[ (int)(count2/2) ];        /* the median value */
 
     if (globals->flags.debug) (void)print ("Normalization: %7d %7d -> %10.8f\n",count1,count2,result);
 
@@ -549,30 +552,30 @@ void normalize_data_to_match_target(Volume d1, Volume m1, Real thresh1,
       get_volume_sizes(d1, sizes);
       
       initialize_progress_report(&progress, FALSE, sizes[0]*sizes[1]*sizes[2] + 1,
-				 "Normalizing source data" );
+                                 "Normalizing source data" );
       count1 = 0;
       
       /* reset values in the data volume */
       
-      for_less (i,0,sizes[0])
-	for_less (j,0,sizes[1]) {
-	  count1++;
-	  update_progress_report( &progress, count1);
-	  for_less (k,0,sizes[2]) {
-	    GET_VOXEL_3D( data_vox,  d1, i, j, k );
-	    data_val = CONVERT_VOXEL_TO_VALUE(d1, data_vox);
-	    data_val /= result;
-	    data_vox = CONVERT_VALUE_TO_VOXEL( vol, data_val);
-	    SET_VOXEL_3D( d1 , i, j, k, data_vox );
-	  }
-	}
+      for(i=0; i<sizes[0]; i++)
+        for(j=0; j<sizes[1]; j++) {
+          count1++;
+          update_progress_report( &progress, count1);
+          for(k=0; k<sizes[2]; k++) {
+            GET_VOXEL_3D( data_vox,  d1, i, j, k );
+            data_val = CONVERT_VOXEL_TO_VALUE(d1, data_vox);
+            data_val /= result;
+            data_vox = CONVERT_VALUE_TO_VOXEL( vol, data_val);
+            SET_VOXEL_3D( d1 , i, j, k, data_vox );
+          }
+        }
 
       terminate_progress_report( &progress );
       
       set_volume_real_range(d1, min_range, max_range);
 
       if (globals->flags.debug) (void)print ("After normalization min,max, thresh = %f %f %f\n",
-					     min_range, max_range, t1/result);
+                                             min_range, max_range, t1/result);
 
       delete_volume(vol);
     

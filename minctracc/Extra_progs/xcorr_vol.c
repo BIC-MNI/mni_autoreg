@@ -1,7 +1,7 @@
 
 #include <volume_io.h>
 
-static char *default_dim_names[N_DIMENSIONS] =
+static char *default_dim_names[VIO_N_DIMENSIONS] =
    { MIzspace, MIyspace, MIxspace };
 
 
@@ -13,12 +13,12 @@ int main(int argc, char *argv[])
   int 
     i,j,k, p,r,s, flag,
     sizes1[3],sizes2[3], sizes3[3];
-  Real
+  VIO_Real
     corr, v1, v2, v3, s1, s2, s12,
     u,v,w,  x,y,z;
-  Status status;
+  VIO_Status status;
 
-  Volume 
+  VIO_Volume 
     data1, data2, mask;
   char *f1, *f2, *mf;
 
@@ -34,14 +34,14 @@ int main(int argc, char *argv[])
     mf      = argv[3];
 
   status = input_volume(f1, 3, default_dim_names, NC_UNSPECIFIED, FALSE, 0.0,0.0,
-			TRUE, &data1, (minc_input_options *)NULL); 
+                        TRUE, &data1, (minc_input_options *)NULL); 
   if (status!=OK) {
     print ("Error reading %s.\n",f1);
     exit(EXIT_FAILURE);
   }
   
   status = input_volume(f2, 3, default_dim_names, NC_UNSPECIFIED, FALSE, 0.0,0.0,
-			TRUE, &data2, (minc_input_options *)NULL); 
+                        TRUE, &data2, (minc_input_options *)NULL); 
  
   if (status!=OK) {
     print ("Error reading %s.\n",f2);
@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
 
   if (argc==4) {
     status = input_volume(mf, 3, default_dim_names, NC_UNSPECIFIED, FALSE, 0.0,0.0,
-			  TRUE, &mask, (minc_input_options *)NULL); 
+                          TRUE, &mask, (minc_input_options *)NULL); 
     
     if (status!=OK) {
       print ("Error reading %s.\n",mf);
@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
     get_volume_sizes(mask,sizes3); 
   }
   else 
-    mask = (Volume)NULL;
+    mask = (VIO_Volume)NULL;
   
   get_volume_sizes(data1,sizes1);
   get_volume_sizes(data2,sizes2);
@@ -67,43 +67,43 @@ int main(int argc, char *argv[])
   if (sizes1[0] != sizes2[0] || sizes1[1] != sizes2[1] || sizes1[2] != sizes2[2]) {
     print ("Size mismatch between %s and %s.\n",f1,f2);
     print ("%d,%d,%d != %d,%d,%d\n", 
-	   sizes1[0],sizes1[1],sizes1[2],
-	   sizes2[0],sizes2[1],sizes2[2]);
+           sizes1[0],sizes1[1],sizes1[2],
+           sizes2[0],sizes2[1],sizes2[2]);
     exit(EXIT_FAILURE);
   }
   
   s1 = s2 = s12 = 0.0;
-  for_less(i,0,sizes1[0]) {
-    for_less(j,0,sizes1[1]) {
-      for_less(k,0,sizes1[2]) {
+  for(i=0; i<sizes1[0]; i++) {
+    for(j=0; j<sizes1[1]; j++) {
+      for(k=0; k<sizes1[2]; k++) {
 
-	GET_VALUE_3D( v1 ,  data1, i, j, k);
-	GET_VALUE_3D( v2 ,  data2, i, j, k);
+        GET_VALUE_3D( v1 ,  data1, i, j, k);
+        GET_VALUE_3D( v2 ,  data2, i, j, k);
 
-	flag = TRUE;
+        flag = TRUE;
 
-	if (mask != NULL) {
-	  convert_3D_voxel_to_world(data1, i,j,k, &x, &y, &z);
-	  convert_3D_world_to_voxel(mask,  x,y,z, &u, &v, &w);
-	  p = ROUND(u);
-	  r = ROUND(v);
-	  s = ROUND(w);
-	  if (p>=0 &&  p<sizes3[0] &&
-	      r>=0 &&  r<sizes3[1] &&
-	      s>=0 &&  s<sizes3[2]) {
-	    GET_VALUE_3D( v3 ,  mask, p, r, s);
-	    if (v3 < 0.5)
-	      flag = FALSE;
-	  }
-	  else 
-	    flag = FALSE;
-	}
+        if (mask != NULL) {
+          convert_3D_voxel_to_world(data1, i,j,k, &x, &y, &z);
+          convert_3D_world_to_voxel(mask,  x,y,z, &u, &v, &w);
+          p = ROUND(u);
+          r = ROUND(v);
+          s = ROUND(w);
+          if (p>=0 &&  p<sizes3[0] &&
+              r>=0 &&  r<sizes3[1] &&
+              s>=0 &&  s<sizes3[2]) {
+            GET_VALUE_3D( v3 ,  mask, p, r, s);
+            if (v3 < 0.5)
+              flag = FALSE;
+          }
+          else 
+            flag = FALSE;
+        }
 
-	if (flag) {
-	  s1  += v1*v1;
-	  s2  += v2*v2;
-	  s12 += v1*v2;
-	}
+        if (flag) {
+          s1  += v1*v1;
+          s2  += v2*v2;
+          s12 += v1*v2;
+        }
       }
     }
   }

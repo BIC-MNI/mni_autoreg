@@ -13,7 +13,10 @@
 
    @CREATED    : February 3, 1992 - louis collins
    @MODIFIED   : $Log: minctracc.c,v $
-   @MODIFIED   : Revision 96.15  2006-06-04 07:02:35  rotor
+   @MODIFIED   : Revision 96.16  2006-11-29 09:09:32  rotor
+   @MODIFIED   :  * first bunch of changes for minc 2.0 compliance
+   @MODIFIED   :
+   @MODIFIED   : Revision 96.15  2006/06/04 07:02:35  rotor
    @MODIFIED   :  * Fixed 64 bit function pointer and ParseArgv problem with an enum for
    @MODIFIED   :       objective function type and interpolation type (thanks jason)
    @MODIFIED   :
@@ -130,20 +133,20 @@ Thu May 20 11:21:22 EST 1993 lc
 Wed May 26 13:05:44 EST 1993 lc
 
         complete re-write of fit_vol to:
-	- use minc library (libminc.a) to read and write .mnc files
-	- use libmni.a
-	- use dave's volume structures.
-	- read and write .xfm files, for the transformations
-	- allow different interpolation schemes on voxel values
-	- allow different objective functions: xcorr, ssc, var ratio
-	- allow mask volumes on both source and model
-	- calculate the bounding box of both source and model,
-	  to map samples from smallest volume into larger one (for speed)
+        - use minc library (libminc.a) to read and write .mnc files
+        - use libmni.a
+        - use dave's volume structures.
+        - read and write .xfm files, for the transformations
+        - allow different interpolation schemes on voxel values
+        - allow different objective functions: xcorr, ssc, var ratio
+        - allow mask volumes on both source and model
+        - calculate the bounding box of both source and model,
+          to map samples from smallest volume into larger one (for speed)
 
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.15 2006-06-04 07:02:35 rotor Exp $";
+static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.16 2006-11-29 09:09:32 rotor Exp $";
 #endif
 
 #include <config.h>
@@ -159,14 +162,14 @@ static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autore
  */
 static int obj_func0 = -1;
 
-Real initial_corr, final_corr;
-static char *default_dim_names[N_DIMENSIONS] = 
+VIO_Real initial_corr, final_corr;
+static char *default_dim_names[VIO_N_DIMENSIONS] = 
     { MIzspace, MIyspace, MIxspace };
 
 /* Why are these declared here?  They aren't apparently used.
  * -smr
  *
- * static   const STRING      TRANSFORM_FILE_HEADER = "MNI Transform File";
+ * static   const STRING      TRANSFORM_FILE_HEADER = "MNI VIO_Transform File";
  * static   const STRING      LINEAR_TYPE = "Linear";
  * static   const STRING      TYPE_STRING = "Transform_Type";
  * static   const STRING      LINEAR_TRANSFORM_STRING = "Linear_Transform";
@@ -177,28 +180,28 @@ static char *default_dim_names[N_DIMENSIONS] =
 /*************************************************************************/
 int main ( int argc, char* argv[] )
 {
-  Status 
+  VIO_Status 
     status;
-  General_transform
+  VIO_General_transform
     tmp_invert;
-  Transform 
+  VIO_Transform 
     *lt, ident_trans;
   int
     parse_flag,
     measure_matlab_flag,
     
     sizes[3],i,num_features;
-  Real
+  VIO_Real
     min_value, max_value, step[3];
   char 
     *comments = history_string( argc, argv );
   FILE
     *ofd;
-  Real
+  VIO_Real
     obj_func_val;
   float quat4;
   
-  prog_name     = argv[0];	
+  prog_name     = argv[0];        
   
 
 
@@ -251,20 +254,20 @@ int main ( int argc, char* argv[] )
       (!measure_matlab_flag && argc!=4)) {
 
     print ("Parameters left:\n");
-    for_less(i,0,argc)
+    for(i=0; i<argc; i++)
       print ("%s ",argv[i]);
     print ("\n");
     
     (void)fprintf(stderr, 
-		  "\nUsage: %s [<options>] <sourcefile> <targetfile> <output transfile>\n", 
-		  prog_name);
+                  "\nUsage: %s [<options>] <sourcefile> <targetfile> <output transfile>\n", 
+                  prog_name);
     (void)fprintf(stderr,"       %s [-help]\n\n", prog_name);
 
 
-				/* helpful hints */
+                                /* helpful hints */
     if ((argc == 4) && 
-	((strlen(main_args.filenames.matlab_file)  != 0) ||
-	 (strlen(main_args.filenames.measure_file) != 0))) {
+        ((strlen(main_args.filenames.matlab_file)  != 0) ||
+         (strlen(main_args.filenames.measure_file) != 0))) {
       (void)fprintf(stderr, "\nNote: No output transform file needs to be specified for -matlab\n");
       (void)fprintf(stderr, "      or -measure options.\n");
     }
@@ -272,14 +275,14 @@ int main ( int argc, char* argv[] )
     exit(EXIT_FAILURE);
   }
 
-  main_args.filenames.data  = argv[1];	/* set up necessary file names */
+  main_args.filenames.data  = argv[1];        /* set up necessary file names */
   main_args.filenames.model = argv[2];
   if (strlen(main_args.filenames.measure_file)==0 &&
       strlen(main_args.filenames.matlab_file)==0) 
     main_args.filenames.output_trans = argv[3];
 
 
-				/* check to see if they can be overwritten */
+                                /* check to see if they can be overwritten */
   if (!clobber_flag && 
       (strlen(main_args.filenames.measure_file)!=0) && 
       file_exists(main_args.filenames.measure_file)) {
@@ -309,27 +312,27 @@ int main ( int argc, char* argv[] )
     (void)fprintf(stderr, "          the matlab option will be executed here.\n");
   }
 
-				/* set up linear transformation to identity, if
-				   not set up in the argument list */
+                                /* set up linear transformation to identity, if
+                                   not set up in the argument list */
 
-  if (main_args.trans_info.transformation == (General_transform *)NULL) { 
-				/* build identity General_transform */
+  if (main_args.trans_info.transformation == (VIO_General_transform *)NULL) { 
+                                /* build identity VIO_General_transform */
     make_identity_transform(&ident_trans);
-				/* attach it to global w-to-w transformation */
+                                /* attach it to global w-to-w transformation */
     ALLOC(main_args.trans_info.transformation,1);
     create_linear_transform(main_args.trans_info.transformation,&ident_trans);    
   } 
 
-				/* don't use default PAT if user req -identity */
+                                /* don't use default PAT if user req -identity */
   if (main_args.trans_info.use_identity)
     main_args.trans_info.use_default = FALSE;
 
 
-				/* make a copy of the original transformation */
+                                /* make a copy of the original transformation */
 
   ALLOC(main_args.trans_info.orig_transformation,1);
   copy_general_transform(main_args.trans_info.transformation,
-			 main_args.trans_info.orig_transformation);
+                         main_args.trans_info.orig_transformation);
 
 
 
@@ -352,102 +355,102 @@ int main ( int argc, char* argv[] )
     if (strlen(main_args.filenames.measure_file) != 0)
       print ( "Measure filename    = %s\n\n",main_args.filenames.measure_file );
     print ( "Step size           = %f %f %f\n",
-	          main_args.step[0],
-		  main_args.step[1],
-		  main_args.step[2]);
+                  main_args.step[0],
+                  main_args.step[1],
+                  main_args.step[2]);
     print ( "Sub-lattice dia     = %f %f %f\n",
-	          main_args.lattice_width[0],
-		  main_args.lattice_width[1],
-		  main_args.lattice_width[2]);
+                  main_args.lattice_width[0],
+                  main_args.lattice_width[1],
+                  main_args.lattice_width[2]);
     print  ( "Objective function  = ");
     if (main_args.obj_function == xcorr_objective) {
       print("cross correlation (threshold = %f %f)\n",
-		   main_args.threshold[0],main_args.threshold[1]);
+                   main_args.threshold[0],main_args.threshold[1]);
     }
     else
       if (main_args.obj_function == zscore_objective) {
-	print( "zscore (threshold = %f %f)\n", main_args.threshold[0],main_args.threshold[1] );
+        print( "zscore (threshold = %f %f)\n", main_args.threshold[0],main_args.threshold[1] );
       }
       else
-	if (main_args.obj_function == vr_objective) {
-	  print( "ratio of variance (threshold = %f %f, groups = %d)\n", 
-		       main_args.threshold[0],main_args.threshold[1], main_args.groups);
-	}
-	else
-	  if (main_args.obj_function == ssc_objective) {
-	    print( "stochastic sign change (threshold = %f %f, speckle %f %%)\n",
-			 main_args.threshold[0],main_args.threshold[1], main_args.speckle);
-	  }
-	  else
-	    if (main_args.obj_function == mutual_information_objective) {
-	      print( "mutual information (groups = %d) \n",
-			   main_args.groups);
-	    }
-	    else {
-	      print("unknown!\n");
-	      (void)fprintf(stderr,"Unknown objective function requested.\n");
-	      exit(EXIT_FAILURE);
-	    }
+        if (main_args.obj_function == vr_objective) {
+          print( "ratio of variance (threshold = %f %f, groups = %d)\n", 
+                       main_args.threshold[0],main_args.threshold[1], main_args.groups);
+        }
+        else
+          if (main_args.obj_function == ssc_objective) {
+            print( "stochastic sign change (threshold = %f %f, speckle %f %%)\n",
+                         main_args.threshold[0],main_args.threshold[1], main_args.speckle);
+          }
+          else
+            if (main_args.obj_function == mutual_information_objective) {
+              print( "mutual information (groups = %d) \n",
+                           main_args.groups);
+            }
+            else {
+              print("unknown!\n");
+              (void)fprintf(stderr,"Unknown objective function requested.\n");
+              exit(EXIT_FAILURE);
+            }
 
 
     print ( "Transform linear    = %s\n", 
-	   (get_transform_type(main_args.trans_info.transformation)==LINEAR ? 
-	    "TRUE" : "FALSE") );
+           (get_transform_type(main_args.trans_info.transformation)==LINEAR ? 
+            "TRUE" : "FALSE") );
     print ( "Transform inverted? = %s\n", (main_args.trans_info.invert_mapping_flag ? 
-					   "TRUE" : "FALSE") );
+                                           "TRUE" : "FALSE") );
     print ( "Transform type      = %d\n", main_args.trans_info.transform_type );
 
     if (get_transform_type(main_args.trans_info.transformation)==LINEAR) {
       lt = get_linear_transform_ptr(main_args.trans_info.transformation);
       print ( "Transform matrix    = ");
-      for_less(i,0,4) print ("%9.4f ",Transform_elem(*lt,0,i));
+      for(i=0; i<4; i++) print ("%9.4f ",Transform_elem(*lt,0,i));
       print ( "\n" );
       print ( "                      ");
-      for_less(i,0,4) print ("%9.4f ",Transform_elem(*lt,1,i));
+      for(i=0; i<4; i++) print ("%9.4f ",Transform_elem(*lt,1,i));
       print ( "\n" );
       print ( "                      ");
-      for_less(i,0,4) print ("%9.4f ",Transform_elem(*lt,2,i));
+      for(i=0; i<4; i++) print ("%9.4f ",Transform_elem(*lt,2,i));
       print ( "\n" );
     }
 
     if (main_args.trans_info.center[0]!=-DBL_MAX ||
-	main_args.trans_info.center[1]!=-DBL_MAX ||
-	main_args.trans_info.center[2]!=-DBL_MAX) {
+        main_args.trans_info.center[1]!=-DBL_MAX ||
+        main_args.trans_info.center[2]!=-DBL_MAX) {
       print ( "Transform center   = %8.3f %8.3f %8.3f\n", 
-	      main_args.trans_info.center[0],
-	      main_args.trans_info.center[1],
-	      main_args.trans_info.center[2] );
+              main_args.trans_info.center[0],
+              main_args.trans_info.center[1],
+              main_args.trans_info.center[2] );
     }
     else 
       {
-	print ( "Transform center   = %8.3f %8.3f %8.3f\n", 0.0,0.0,0.0);
+        print ( "Transform center   = %8.3f %8.3f %8.3f\n", 0.0,0.0,0.0);
       }
 
     /* rotation with quaternion or euler angle */
     if (main_args.trans_info.rotation_type == TRANS_QUAT)
       {
-	quat4=sqrt(1-SQR(main_args.trans_info.quaternions[0])-SQR(main_args.trans_info.quaternions[1])-SQR(main_args.trans_info.quaternions[2]));
-	print ( "Transform quaternion   = %8.3f %8.3f %8.3f %8.3f \n\n", 
-		main_args.trans_info.quaternions[0],
-		main_args.trans_info.quaternions[1],
-		main_args.trans_info.quaternions[2],
-		quat4 );
+        quat4=sqrt(1-SQR(main_args.trans_info.quaternions[0])-SQR(main_args.trans_info.quaternions[1])-SQR(main_args.trans_info.quaternions[2]));
+        print ( "Transform quaternion   = %8.3f %8.3f %8.3f %8.3f \n\n", 
+                main_args.trans_info.quaternions[0],
+                main_args.trans_info.quaternions[1],
+                main_args.trans_info.quaternions[2],
+                quat4 );
       }
     if (main_args.trans_info.rotation_type == TRANS_ROT)
       {
-	print ( "Transform rotation   = %8.3f %8.3f %8.3f \n\n", 
-		main_args.trans_info.rotations[0],
-		main_args.trans_info.rotations[1],
-		main_args.trans_info.rotations[2] );
+        print ( "Transform rotation   = %8.3f %8.3f %8.3f \n\n", 
+                main_args.trans_info.rotations[0],
+                main_args.trans_info.rotations[1],
+                main_args.trans_info.rotations[2] );
       }
     print ( "Transform trans    = %8.3f %8.3f %8.3f\n", 
-	    main_args.trans_info.translations[0],
-	    main_args.trans_info.translations[1],
-	    main_args.trans_info.translations[2] );
+            main_args.trans_info.translations[0],
+            main_args.trans_info.translations[1],
+            main_args.trans_info.translations[2] );
     print ( "Transform scale    = %8.3f %8.3f %8.3f\n\n", 
-	    main_args.trans_info.scales[0],
-	    main_args.trans_info.scales[1],
-	    main_args.trans_info.scales[2] );
+            main_args.trans_info.scales[0],
+            main_args.trans_info.scales[1],
+            main_args.trans_info.scales[2] );
     
 
   }
@@ -459,39 +462,39 @@ int main ( int argc, char* argv[] )
   if (main_args.trans_info.use_magnitude) 
     {
       /* non-linear optimization is based on the correlation of a local
-	 sub-lattice between source and target gradient magnitude volumes 
-	 for the first two volumes */
+         sub-lattice between source and target gradient magnitude volumes 
+         for the first two volumes */
 
       if (main_args.trans_info.transform_type == TRANS_NONLIN)
-	DEBUG_PRINT1( "This run will use sub-lattice correlation (type %d) between the two input vols.\n", obj_func0);
+        DEBUG_PRINT1( "This run will use sub-lattice correlation (type %d) between the two input vols.\n", obj_func0);
     }
   else 
     {
       /* non-linear optimization is based on the direct computation of a
-	 deformation vector, based on optical flow.  Both volume _MUST_
-	 be intensity normalized! */
+         deformation vector, based on optical flow.  Both volume _MUST_
+         be intensity normalized! */
 
       if (main_args.trans_info.transform_type == TRANS_NONLIN)
-	DEBUG_PRINT( "This run will use optical flow.\n");
+        DEBUG_PRINT( "This run will use optical flow.\n");
     }
 
   ALLOC(data,1);
 
   status = input_volume( main_args.filenames.data, 3, default_dim_names, 
-			 NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-			 TRUE, &data, (minc_input_options *)NULL );
+                         NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+                         TRUE, &data, (minc_input_options *)NULL );
 
   if (status != OK)
     print_error_and_line_num("Cannot input volume '%s'",
-			     __FILE__, __LINE__,main_args.filenames.data);
+                             __FILE__, __LINE__,main_args.filenames.data);
   data_dxyz = data;
  
   status = input_volume( main_args.filenames.model, 3, default_dim_names, 
-			 NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-			 TRUE, &model, (minc_input_options *)NULL );
+                         NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+                         TRUE, &model, (minc_input_options *)NULL );
   if (status != OK)
     print_error_and_line_num("Cannot input volume '%s'",
-			     __FILE__, __LINE__,main_args.filenames.model);
+                             __FILE__, __LINE__,main_args.filenames.model);
   model_dxyz = model;
  
 
@@ -499,9 +502,9 @@ int main ( int argc, char* argv[] )
   get_volume_sizes(data, sizes);
   get_volume_real_range(data, &min_value, &max_value);
   DEBUG_PRINT3 ( "Source volume size: %3d  by %3d  by %d \n",
-		sizes[X], sizes[Y], sizes[Z]);
+                sizes[VIO_X], sizes[VIO_Y], sizes[VIO_Z]);
   DEBUG_PRINT3 ( "Source voxel = %8.3f %8.3f %8.3f\n", 
-		step[X], step[Y], step[Z]);
+                step[VIO_X], step[VIO_Y], step[VIO_Z]);
   DEBUG_PRINT2 ( "min/max value= %8.3f %8.3f\n", min_value, max_value);
   get_volume_voxel_range(data, &min_value, &max_value);
   DEBUG_PRINT2 ( "min/max voxel= %8.3f %8.3f\n\n", min_value, max_value);
@@ -510,9 +513,9 @@ int main ( int argc, char* argv[] )
   get_volume_sizes(model, sizes);
   get_volume_real_range(model, &min_value, &max_value);
   DEBUG_PRINT3 ( "Target volume size: %3d  by %3d  by %d \n",
-		sizes[X], sizes[Y], sizes[Z]);
+                sizes[VIO_X], sizes[VIO_Y], sizes[VIO_Z]);
   DEBUG_PRINT3 ( "Target voxel = %8.3f %8.3f %8.3f\n", 
-		step[X], step[Y], step[Z]);
+                step[VIO_X], step[VIO_Y], step[VIO_Z]);
   DEBUG_PRINT2 ( "min/max value= %8.3f %8.3f\n", min_value, max_value);
   get_volume_voxel_range(model, &min_value, &max_value);
   DEBUG_PRINT2 ( "min/max voxel= %8.3f %8.3f\n\n\n", min_value, max_value);
@@ -520,23 +523,23 @@ int main ( int argc, char* argv[] )
   if (get_volume_n_dimensions(data)!=3) 
     {
       print_error_and_line_num ("Data file %s has %d dimensions.  Only 3 dims supported.", 
-				__FILE__, __LINE__, main_args.filenames.data, 
-				get_volume_n_dimensions(data));
+                                __FILE__, __LINE__, main_args.filenames.data, 
+                                get_volume_n_dimensions(data));
     }
   if (get_volume_n_dimensions(model)!=3) 
     {
       print_error_and_line_num ("Model file %s has %d dimensions.  Only 3 dims supported.", 
-				__FILE__, __LINE__, main_args.filenames.model, 
-				get_volume_n_dimensions(model));
+                                __FILE__, __LINE__, main_args.filenames.model, 
+                                get_volume_n_dimensions(model));
     }
 
 
-				/* shift features to be able to
-				   insert the main source/target
-				   volumes first. */
+                                /* shift features to be able to
+                                   insert the main source/target
+                                   volumes first. */
 
   num_features = allocate_a_new_feature(&(main_args.features));
-  for_down(i,num_features,1) {
+  for(i=num_features; i>=1; i--) {
     main_args.features.data[i]            = main_args.features.data[i-1];
     main_args.features.model[i]           = main_args.features.model[i-1];
     main_args.features.data_name[i]       = main_args.features.data_name[i-1];
@@ -574,7 +577,7 @@ int main ( int argc, char* argv[] )
 
     if (!init_params( data, model, mask_data, mask_model, &main_args )) {
       print_error_and_line_num("%s",__FILE__, __LINE__,
-			     "Could not initialize transformation parameters\n");
+                             "Could not initialize transformation parameters\n");
     }
 
 
@@ -600,62 +603,62 @@ int main ( int argc, char* argv[] )
     lt = get_linear_transform_ptr(main_args.trans_info.transformation);
     
     DEBUG_PRINT ( "Transform matrix    = ");
-    for_less(i,0,4) DEBUG_PRINT1 ("%9.4f ",Transform_elem(*lt,0,i));
+    for(i=0; i<4; i++) DEBUG_PRINT1 ("%9.4f ",Transform_elem(*lt,0,i));
     DEBUG_PRINT ( "\n" );
     DEBUG_PRINT ( "                      ");
-    for_less(i,0,4) DEBUG_PRINT1 ("%9.4f ",Transform_elem(*lt,1,i));
+    for(i=0; i<4; i++) DEBUG_PRINT1 ("%9.4f ",Transform_elem(*lt,1,i));
     DEBUG_PRINT ( "\n" );
     DEBUG_PRINT ( "                      ");
-    for_less(i,0,4) DEBUG_PRINT1 ("%9.4f ",Transform_elem(*lt,2,i));
+    for(i=0; i<4; i++) DEBUG_PRINT1 ("%9.4f ",Transform_elem(*lt,2,i));
     DEBUG_PRINT ( "\n" );
   }
   DEBUG_PRINT ( "\n" );
   
   DEBUG_PRINT3 ( "Transform center   = %8.3f %8.3f %8.3f\n", 
-		main_args.trans_info.center[0],
-		main_args.trans_info.center[1],
-		main_args.trans_info.center[2] );
+                main_args.trans_info.center[0],
+                main_args.trans_info.center[1],
+                main_args.trans_info.center[2] );
   if (main_args.trans_info.rotation_type == TRANS_ROT){
     DEBUG_PRINT3 ( "Transform rotations  = %8.3f %8.3f %8.3f\n", 
-		   main_args.trans_info.rotations[0],
-		   main_args.trans_info.rotations[1],
-		   main_args.trans_info.rotations[2] );
+                   main_args.trans_info.rotations[0],
+                   main_args.trans_info.rotations[1],
+                   main_args.trans_info.rotations[2] );
   }
   if (main_args.trans_info.rotation_type == TRANS_QUAT)
     {
       quat4=sqrt(1-SQR(main_args.trans_info.quaternions[0])-SQR(main_args.trans_info.quaternions[1])-SQR(main_args.trans_info.quaternions[2]));
       DEBUG_PRINT4 ( "Transform quaternions  = %8.3f %8.3f %8.3f %8.3f\n", 
-		     main_args.trans_info.quaternions[0],
-		     main_args.trans_info.quaternions[1],
-		     main_args.trans_info.quaternions[2],
-		     quat4 );
+                     main_args.trans_info.quaternions[0],
+                     main_args.trans_info.quaternions[1],
+                     main_args.trans_info.quaternions[2],
+                     quat4 );
     }
   
 
   DEBUG_PRINT3 ( "Transform trans    = %8.3f %8.3f %8.3f\n", 
-		main_args.trans_info.translations[0],
-		main_args.trans_info.translations[1],
-		main_args.trans_info.translations[2] );
+                main_args.trans_info.translations[0],
+                main_args.trans_info.translations[1],
+                main_args.trans_info.translations[2] );
   DEBUG_PRINT3 ( "Transform scale    = %8.3f %8.3f %8.3f\n", 
-		main_args.trans_info.scales[0],
-		main_args.trans_info.scales[1],
-		main_args.trans_info.scales[2] );
+                main_args.trans_info.scales[0],
+                main_args.trans_info.scales[1],
+                main_args.trans_info.scales[2] );
   DEBUG_PRINT3 ( "Transform shear    = %8.3f %8.3f %8.3f\n\n", 
-		main_args.trans_info.shears[0],
-		main_args.trans_info.shears[1],
-		main_args.trans_info.shears[2] );
+                main_args.trans_info.shears[0],
+                main_args.trans_info.shears[1],
+                main_args.trans_info.shears[2] );
   
 
 
-				/* do not do any optimization if the transformation
-				   requested is the Principal Axes Transformation 
-				   then:
-		                   =======   do linear fitting =============== */
+                                /* do not do any optimization if the transformation
+                                   requested is the Principal Axes Transformation 
+                                   then:
+                                   =======   do linear fitting =============== */
   
   if (main_args.trans_info.transform_type != TRANS_PAT) {
     
-				/* initialize the sampling lattice and figure out
-				   which of the two volumes is smaller.           */
+                                /* initialize the sampling lattice and figure out
+                                   which of the two volumes is smaller.           */
     
     init_lattice( data, model, mask_data, mask_model, &main_args );
 
@@ -666,14 +669,14 @@ int main ( int argc, char* argv[] )
       DEBUG_PRINT("Target volume is smallest\n");
     }
     DEBUG_PRINT3 ( "Lattice step size  = %8.3f %8.3f %8.3f\n",
-		  main_args.step[0],main_args.step[1],main_args.step[2]);
+                  main_args.step[0],main_args.step[1],main_args.step[2]);
     DEBUG_PRINT3 ( "Lattice start      = %8.3f %8.3f %8.3f\n",
-		  main_args.start[0],main_args.start[1],main_args.start[2]);
+                  main_args.start[0],main_args.start[1],main_args.start[2]);
     DEBUG_PRINT3 ( "Lattice count      = %8d %8d %8d\n\n",
-		  main_args.count[0],main_args.count[1],main_args.count[2]);
+                  main_args.count[0],main_args.count[1],main_args.count[2]);
 
 
-				/* calculate the actual transformation now. */
+                                /* calculate the actual transformation now. */
 
     if (main_args.trans_info.transform_type == TRANS_NONLIN) {
 
@@ -681,32 +684,32 @@ int main ( int argc, char* argv[] )
       
 
       if ( !optimize_non_linear_transformation( &main_args ) ) {
-	print_error_and_line_num("Error in optimization of non-linear transformation\n",
-				 __FILE__, __LINE__);
-	exit(EXIT_FAILURE);
+        print_error_and_line_num("Error in optimization of non-linear transformation\n",
+                                 __FILE__, __LINE__);
+        exit(EXIT_FAILURE);
       }
       
     }
     else {
       
       if (main_args.trans_info.rotation_type == TRANS_ROT )
-	{
-	  if (!optimize_linear_transformation( data, model, mask_data, mask_model, &main_args )) {
-	    print_error_and_line_num("Error in optimization of linear transformation\n",
-				 __FILE__, __LINE__);
-	exit(EXIT_FAILURE);
-	  }
-	}
+        {
+          if (!optimize_linear_transformation( data, model, mask_data, mask_model, &main_args )) {
+            print_error_and_line_num("Error in optimization of linear transformation\n",
+                                 __FILE__, __LINE__);
+        exit(EXIT_FAILURE);
+          }
+        }
       
       
       if (main_args.trans_info.rotation_type == TRANS_QUAT )
-	{
-	  if (!optimize_linear_transformation_quater( data, model, mask_data, mask_model, &main_args )) {
-	    print_error_and_line_num("Error in optimization of linear transformation\n",
-				 __FILE__, __LINE__);
-	exit(EXIT_FAILURE);
-	  }
-	}
+        {
+          if (!optimize_linear_transformation_quater( data, model, mask_data, mask_model, &main_args )) {
+            print_error_and_line_num("Error in optimization of linear transformation\n",
+                                 __FILE__, __LINE__);
+        exit(EXIT_FAILURE);
+          }
+        }
       
       
     }
@@ -719,14 +722,14 @@ int main ( int argc, char* argv[] )
   }
 
 
-			/* if I have internally inverted the transform,
-			   than flip it back forward before the save.   */
+                        /* if I have internally inverted the transform,
+                           than flip it back forward before the save.   */
 
   if (main_args.trans_info.invert_mapping_flag) {
 
     DEBUG_PRINT ("Re-inverting transformation\n");
     create_inverse_general_transform(main_args.trans_info.transformation,
-				     &tmp_invert);
+                                     &tmp_invert);
 
     copy_general_transform(&tmp_invert,main_args.trans_info.transformation);
 
@@ -739,12 +742,12 @@ int main ( int argc, char* argv[] )
 
 
   status = output_transform_file(main_args.filenames.output_trans,
-				 comments,
-				 main_args.trans_info.transformation);
+                                 comments,
+                                 main_args.trans_info.transformation);
      
   if (status!=OK) {
     print_error_and_line_num("Error saving transformation file.`\n",
-		__FILE__, __LINE__);
+                __FILE__, __LINE__);
     exit(EXIT_FAILURE);
   }
   
@@ -777,11 +780,11 @@ int main ( int argc, char* argv[] )
 int get_transformation(char *dst, char *key, char *nextArg)
 {     
    Program_Transformation *transform_info;
-   General_transform *transformation;
-   General_transform input_transformation;
+   VIO_General_transform *transformation;
+   VIO_General_transform input_transformation;
    FILE *fp;
    int ch, index;
-   Status status;
+   VIO_Status status;
 
    /* Check for following argument */
    if (nextArg == NULL) {
@@ -797,7 +800,7 @@ int get_transformation(char *dst, char *key, char *nextArg)
    /* Save file name */
    transform_info->file_name = nextArg;
 
-   if (transform_info->transformation == (General_transform *)NULL) 
+   if (transform_info->transformation == (VIO_General_transform *)NULL) 
      ALLOC(transform_info->transformation, 1);
 
    transformation =  transform_info->transformation;
@@ -816,8 +819,8 @@ int get_transformation(char *dst, char *key, char *nextArg)
    }
    else {
      status = open_file_with_default_suffix( nextArg,
-					    get_default_transform_file_suffix(),
-					    READ_FILE, ASCII_FORMAT, &fp );
+                                            get_default_transform_file_suffix(),
+                                            READ_FILE, ASCII_FORMAT, &fp );
 
       if (status != OK) {
          (void)fprintf(stderr, "Error opening transformation file %s.\n",
@@ -836,7 +839,7 @@ int get_transformation(char *dst, char *key, char *nextArg)
      if (index >= transform_info->buffer_length-1) {
        transform_info->buffer_length += TRANSFORM_BUFFER_INCREMENT;
        REALLOC(transform_info->file_contents, 
-	       transform_info->buffer_length);
+               transform_info->buffer_length);
      }
      transform_info->file_contents[index] = ch;
    }
@@ -881,21 +884,21 @@ int get_transformation(char *dst, char *key, char *nextArg)
 int get_mask_file(char *dst, char *key, char *nextArg)
 { 
 
-  Status status;
+  VIO_Status status;
 
   if (strncmp ( "-model_mask", key, 2) == 0) {
     /*    ALLOC( mask_model, 1 );*/
     status = input_volume( nextArg, 3, default_dim_names, 
-			  NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-			  TRUE, &mask_model, (minc_input_options *)NULL );
+                          NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+                          TRUE, &mask_model, (minc_input_options *)NULL );
     dst = nextArg;
     main_args.filenames.mask_model = nextArg;
   }
   else {
     /*    ALLOC( mask_data, 1);*/
     status = input_volume( nextArg, 3, default_dim_names, 
-			  NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-			  TRUE, &mask_data, (minc_input_options *)NULL );
+                          NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+                          TRUE, &mask_data, (minc_input_options *)NULL );
     dst = nextArg;
     main_args.filenames.mask_data = nextArg;
   }
@@ -937,11 +940,11 @@ int get_feature_volumes(char *dst, char *key, int argc, char **argv)
     obj_func_index;
   char 
     *end_ptr;
-  Real
+  VIO_Real
     tmp;
-  Status status;
+  VIO_Status status;
 
-  Volume 
+  VIO_Volume 
     data_vol,
     model_vol,
     data_mask,
@@ -952,7 +955,7 @@ int get_feature_volumes(char *dst, char *key, int argc, char **argv)
     *mask_data_name,
     *mask_model_name,
     obj_func;
-  Real 
+  VIO_Real 
     weight,
     thresh_data,
     thresh_model;
@@ -962,9 +965,9 @@ int get_feature_volumes(char *dst, char *key, int argc, char **argv)
 
     data_name = argv[0];
     status = input_volume(data_name, 3, default_dim_names, 
-			  NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-			  TRUE, &data_vol, 
-			  (minc_input_options *)NULL );
+                          NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+                          TRUE, &data_vol, 
+                          (minc_input_options *)NULL );
     if (status != OK) {
       (void)fprintf(stderr, "Cannot input feature %s.\n",data_name);
       return(-1);
@@ -972,9 +975,9 @@ int get_feature_volumes(char *dst, char *key, int argc, char **argv)
 
     model_name = argv[1];
     status = input_volume(model_name, 3, default_dim_names, 
-			  NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-			  TRUE, &model_vol, 
-			  (minc_input_options *)NULL );
+                          NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+                          TRUE, &model_vol, 
+                          (minc_input_options *)NULL );
     if (status != OK) {
       (void)fprintf(stderr, "Cannot input feature %s.\n",model_name);
       return(-1);
@@ -984,64 +987,64 @@ int get_feature_volumes(char *dst, char *key, int argc, char **argv)
     weight          = 1.0;
     thresh_data     = -DBL_MAX;
     thresh_model    = -DBL_MAX;
-    data_mask       = (Volume)NULL;
-    model_mask      = (Volume)NULL;
+    data_mask       = (VIO_Volume)NULL;
+    model_mask      = (VIO_Volume)NULL;
     mask_data_name  = (char *)NULL;
     mask_model_name = (char *)NULL;
-      		/* look for optional objective function 
-		   specification and optional weighting value */
+                      /* look for optional objective function 
+                   specification and optional weighting value */
     args_used   =2;
     if ( argc>2 ) {
-				/* objective functions */
+                                /* objective functions */
       obj_func_index = weight_index = 2;
       if ( strncmp(argv[obj_func_index], "xcorr", 2)==0 ) {
-	obj_func =  NONLIN_XCORR;
-	weight_index++; args_used++;
+        obj_func =  NONLIN_XCORR;
+        weight_index++; args_used++;
       }
       if ( strncmp(argv[obj_func_index], "diff", 2)==0 ) {
-	obj_func =  NONLIN_DIFF;
-	weight_index++; args_used++;
+        obj_func =  NONLIN_DIFF;
+        weight_index++; args_used++;
       }
       if ( strncmp(argv[obj_func_index], "label", 2)==0 ) {
-	obj_func =  NONLIN_LABEL;
-	weight_index++; args_used++;
+        obj_func =  NONLIN_LABEL;
+        weight_index++; args_used++;
       }
       if ( strncmp(argv[obj_func_index], "chamfer", 2)==0 ) {
-	obj_func =  NONLIN_CHAMFER;
-	weight_index++; args_used++;
+        obj_func =  NONLIN_CHAMFER;
+        weight_index++; args_used++;
       }
       if ( strncmp(argv[obj_func_index], "corrcoeff", 2)==0 ) {
-	obj_func = NONLIN_CORRCOEFF;
-	weight_index++; args_used++;
+        obj_func = NONLIN_CORRCOEFF;
+        weight_index++; args_used++;
       }
       if ( strncmp(argv[obj_func_index], "opticalflow", 2)==0 ) {
-	obj_func =  NONLIN_OPTICALFLOW;
-	weight_index++; args_used++;
+        obj_func =  NONLIN_OPTICALFLOW;
+        weight_index++; args_used++;
       }
 
-				/* weighting value */
+                                /* weighting value */
       tmp = strtod(argv[weight_index],&end_ptr) ;
       if (end_ptr != argv[weight_index]) {
-	weight = tmp;
-	args_used++;
+        weight = tmp;
+        args_used++;
       }
-	
+        
     }
 
     add_a_feature_for_matching(&(main_args.features),
-			       data_vol, model_vol, data_mask, model_mask,
-			       data_name, model_name, 
-			       mask_data_name, mask_model_name,
-			       obj_func, weight,
-			       thresh_data, thresh_model);
+                               data_vol, model_vol, data_mask, model_mask,
+                               data_name, model_name, 
+                               mask_data_name, mask_model_name,
+                               obj_func, weight,
+                               thresh_data, thresh_model);
 
 
     i = main_args.features.number_of_features-1;
     print ("Features %d: %s %s %d %f\n", i,
-	   main_args.features.data_name[i],
-	   main_args.features.model_name[i],
-	   (int)main_args.features.obj_func[i],
-	   main_args.features.weight[i]);
+           main_args.features.data_name[i],
+           main_args.features.model_name[i],
+           (int)main_args.features.obj_func[i],
+           main_args.features.weight[i]);
     
   }
   else {
@@ -1049,12 +1052,12 @@ int get_feature_volumes(char *dst, char *key, int argc, char **argv)
     return (-1);
   }
 
-  for_less(i,0,argc-args_used) {
+  for(i=0; i<argc-args_used; i++) {
     argv[i] = argv[i+args_used];
   }
   argc -= args_used;
 
-  return (argc);			/* OK */
+  return (argc);                        /* OK */
   
 }
 
@@ -1071,25 +1074,25 @@ int get_nonlinear_objective(char *dst, char *key, char* nextArg)
     main_args.trans_info.transform_type = TRANS_NONLIN;
 
     if (nextArg == NULL) {
-	obj_func0 = NONLIN_XCORR;
-	return 0;
+        obj_func0 = NONLIN_XCORR;
+        return 0;
     }
 
     if (strcmp( "xcorr", nextArg ) == 0 ) {
-	obj_func0 = NONLIN_XCORR;
+        obj_func0 = NONLIN_XCORR;
     } else if (strcmp( "diff", nextArg ) == 0 ) {
-	obj_func0 = NONLIN_DIFF;
+        obj_func0 = NONLIN_DIFF;
     } else if (strcmp( "label", nextArg ) == 0 ) {
-	obj_func0 = NONLIN_LABEL;
+        obj_func0 = NONLIN_LABEL;
     } else if (strcmp( "chamfer", nextArg ) == 0 ) {
-	obj_func0 = NONLIN_CHAMFER;
+        obj_func0 = NONLIN_CHAMFER;
     } else if (strcmp( "corrcoeff", nextArg ) == 0 ) {
-	obj_func0 = NONLIN_CORRCOEFF;
+        obj_func0 = NONLIN_CORRCOEFF;
     } else if (strcmp( "sqdiff", nextArg ) == 0 ) {
-	obj_func0 = NONLIN_SQDIFF;
+        obj_func0 = NONLIN_SQDIFF;
     } else {
-	obj_func0 = NONLIN_XCORR;
-	return 0;
+        obj_func0 = NONLIN_XCORR;
+        return 0;
     }
 
     return 1;
@@ -1100,11 +1103,11 @@ int free_features(Feature_volumes *features)
 {
 
 
-  if (*(features->data)       != (Volume)NULL) {delete_volume(*(features->data));      } FREE(features->data); 
-  if (*(features->model)      != (Volume)NULL) {delete_volume(*(features->model));     } FREE(features->model); 
+  if (*(features->data)       != (VIO_Volume)NULL) {delete_volume(*(features->data));      } FREE(features->data); 
+  if (*(features->model)      != (VIO_Volume)NULL) {delete_volume(*(features->model));     } FREE(features->model); 
 
-  if (*(features->data_mask)  != (Volume)NULL) {delete_volume(*(features->data_mask)); } FREE(features->data_mask); 
-  if (*(features->model_mask) != (Volume)NULL) {delete_volume(*(features->model_mask));} FREE(features->model_mask); 
+  if (*(features->data_mask)  != (VIO_Volume)NULL) {delete_volume(*(features->data_mask)); } FREE(features->data_mask); 
+  if (*(features->model_mask) != (VIO_Volume)NULL) {delete_volume(*(features->model_mask));} FREE(features->model_mask); 
 
   FREE(features->data_name);
   FREE(features->model_name);
@@ -1160,18 +1163,18 @@ int allocate_a_new_feature(Feature_volumes *features)
 
 
 void add_a_feature_for_matching(Feature_volumes *features,
-				Volume data_vol,
-				Volume model_vol,
-				Volume data_mask,
-				Volume model_mask,
-				char *data_name,
-				char *model_name,
-				char *mask_data_name,
-				char *mask_model_name,
-				char obj_func,
-				Real weight,
-				Real thresh_data,
-				Real thresh_model)
+                                VIO_Volume data_vol,
+                                VIO_Volume model_vol,
+                                VIO_Volume data_mask,
+                                VIO_Volume model_mask,
+                                char *data_name,
+                                char *model_name,
+                                char *mask_data_name,
+                                char *mask_model_name,
+                                char obj_func,
+                                VIO_Real weight,
+                                VIO_Real thresh_data,
+                                VIO_Real thresh_model)
 {
 
   int i;

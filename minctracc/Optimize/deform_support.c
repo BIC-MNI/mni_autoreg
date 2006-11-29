@@ -20,7 +20,10 @@
 
 @CREATED    : Tue Feb 22 08:37:49 EST 1994
 @MODIFIED   : $Log: deform_support.c,v $
-@MODIFIED   : Revision 96.11  2005-07-20 20:45:50  rotor
+@MODIFIED   : Revision 96.12  2006-11-29 09:09:34  rotor
+@MODIFIED   :  * first bunch of changes for minc 2.0 compliance
+@MODIFIED   :
+@MODIFIED   : Revision 96.11  2005/07/20 20:45:50  rotor
 @MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
 @MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
 @MODIFIED   :     * Removed old VOLUME_IO cruft #defines
@@ -210,7 +213,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 96.11 2005-07-20 20:45:50 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 96.12 2006-11-29 09:09:34 rotor Exp $";
 #endif
 
 #include <config.h>
@@ -233,41 +236,41 @@ extern Arg_Data main_args;
 extern double smoothing_weight;
 extern char *my_XYZ_dim_names;
 
-void get_volume_XYZV_indices(Volume data, int xyzv[]);
+void get_volume_XYZV_indices(VIO_Volume data, int xyzv[]);
 
-int trilinear_interpolant(Volume volume, 
+int trilinear_interpolant(VIO_Volume volume, 
                                  PointR *coord, double *result);
  
-int nearest_neighbour_interpolant(Volume volume, 
+int nearest_neighbour_interpolant(VIO_Volume volume, 
                                          PointR *coord, double *result);
 
-void init_the_volume_to_zero(Volume volume);
+void init_the_volume_to_zero(VIO_Volume volume);
 
-Real get_volume_maximum_real_value(Volume volume);
+VIO_Real get_volume_maximum_real_value(VIO_Volume volume);
 
-Real get_coeff_from_neighbours(General_transform *trans,
-				      int voxel[],
-				      int avg_type); 
+VIO_Real get_coeff_from_neighbours(VIO_General_transform *trans,
+                                      int voxel[],
+                                      int avg_type); 
 
-				/* define the limits for three nested
-				   for loops, so that we loop through
-				   each spatial dimension.
-				   'start' and 'end' are returned in
-				   XYZ order.  */
+                                /* define the limits for three nested
+                                   for loops, so that we loop through
+                                   each spatial dimension.
+                                   'start' and 'end' are returned in
+                                   XYZ order.  */
 
-void  get_voxel_spatial_loop_limits(Volume volume,
-					   int start[],	
-					   int end[])
+void  get_voxel_spatial_loop_limits(VIO_Volume volume,
+                                           int start[],        
+                                           int end[])
 {
   int 
     i,
-    sizes[MAX_DIMENSIONS],
-    xyzv[MAX_DIMENSIONS];
+    sizes[VIO_MAX_DIMENSIONS],
+    xyzv[VIO_MAX_DIMENSIONS];
 
   get_volume_sizes(volume, sizes);
   get_volume_XYZV_indices(volume, xyzv);
 
-  for_less(i,0,N_DIMENSIONS) {
+  for(i=0; i<VIO_N_DIMENSIONS; i++) {
     if (sizes[ xyzv[i] ]>3) {
       start[ i ] = 1;
       end[ i ] = sizes[ xyzv[i] ]-1;
@@ -279,35 +282,35 @@ void  get_voxel_spatial_loop_limits(Volume volume,
   }
 
   if (get_volume_n_dimensions(volume)>3) {
-    start[Z+1] = 0;
-    end[Z+1] = sizes[ xyzv[Z+1] ] ;
+    start[VIO_Z+1] = 0;
+    end[VIO_Z+1] = sizes[ xyzv[VIO_Z+1] ] ;
   }
   else {
-    start[Z+1] = 0;
-    end[Z+1] = 0;
+    start[VIO_Z+1] = 0;
+    end[VIO_Z+1] = 0;
   }
     
 }
 
-BOOLEAN get_average_warp_vector_from_neighbours(General_transform *trans,
-						       int voxel[],
-						       int avg_type,
-						       Real *mx, Real *my, Real *mz)
+VIO_BOOL get_average_warp_vector_from_neighbours(VIO_General_transform *trans,
+                                                       int voxel[],
+                                                       int avg_type,
+                                                       VIO_Real *mx, VIO_Real *my, VIO_Real *mz)
 {
   int
-    start[MAX_DIMENSIONS],
-    end[MAX_DIMENSIONS],
+    start[VIO_MAX_DIMENSIONS],
+    end[VIO_MAX_DIMENSIONS],
     count, i, 
-    voxel2[MAX_DIMENSIONS],
-    xyzv[MAX_DIMENSIONS],
-    sizes[MAX_DIMENSIONS];
-  Real 
-    def_vector[N_DIMENSIONS];
-  Volume volume;
+    voxel2[VIO_MAX_DIMENSIONS],
+    xyzv[VIO_MAX_DIMENSIONS],
+    sizes[VIO_MAX_DIMENSIONS];
+  VIO_Real 
+    def_vector[VIO_N_DIMENSIONS];
+  VIO_Volume volume;
   
   if (trans->type != GRID_TRANSFORM) {
     print_error_and_line_num("get_average_warp_vector_from_neighbours not called with GRID_TRANSFORM",
-			     __FILE__, __LINE__);
+                             __FILE__, __LINE__);
     return (FALSE);
   }
 
@@ -318,62 +321,62 @@ BOOLEAN get_average_warp_vector_from_neighbours(General_transform *trans,
   count = 0;
   *mx = 0.0; *my = 0.0; *mz = 0.0; /* assume no warp vector in volume */
 
-				/* make sure voxel is in volume */
-  for_less(i,0,3 ) {
+                                /* make sure voxel is in volume */
+  for(i=0; i<3; i++) {
     if (voxel[ xyzv[i]]<0 || voxel[ xyzv[i] ]>=sizes[ xyzv[i]] ) {
        return (FALSE);
     }
   }
   
-  for_less(i,0,MAX_DIMENSIONS ) { /* copy the voxel position */
+  for(i=0; i<VIO_MAX_DIMENSIONS; i++) { /* copy the voxel position */
     voxel2[i] = voxel[i];
   }
   
   switch (avg_type) {
-  case 1:  {			/* get the 6 neighbours, 2 along
-				   each of the spatial axes,
-				   if they exist 
-				   ie the 4-connected immediate neighbours only */
+  case 1:  {                        /* get the 6 neighbours, 2 along
+                                   each of the spatial axes,
+                                   if they exist 
+                                   ie the 4-connected immediate neighbours only */
 
-    for_less(i, 0 , N_DIMENSIONS) {
+    for(i=0; i<VIO_N_DIMENSIONS; i++) {
       
       if ((voxel[ xyzv[i] ]+1) < sizes[ xyzv[i] ]) {
-	
-	voxel2[ xyzv[i] ] = voxel[ xyzv[i] ] + 1;
-	
-	for_less(voxel2[ xyzv[Z+1] ], 0, sizes[ xyzv[Z+1] ]) {
-	  def_vector[voxel2[ xyzv[Z+1] ]] = 
-	    get_volume_real_value(volume,
-				  voxel2[0],voxel2[1],voxel2[2],voxel2[3],voxel2[4]);
-	}
-	
-	voxel2[ xyzv[i] ] = voxel[ xyzv[i] ];
-	
-	*mx += def_vector[X]; *my += def_vector[Y]; *mz += def_vector[Z];
-	++count;
+        
+        voxel2[ xyzv[i] ] = voxel[ xyzv[i] ] + 1;
+        
+        for(voxel2[xyzv[VIO_Z+1]]=0; voxel2[xyzv[VIO_Z+1]]<sizes[xyzv[VIO_Z+1]]; voxel2[xyzv[VIO_Z+1]]++) {
+          def_vector[voxel2[ xyzv[VIO_Z+1] ]] = 
+            get_volume_real_value(volume,
+                                  voxel2[0],voxel2[1],voxel2[2],voxel2[3],voxel2[4]);
+        }
+        
+        voxel2[ xyzv[i] ] = voxel[ xyzv[i] ];
+        
+        *mx += def_vector[VIO_X]; *my += def_vector[VIO_Y]; *mz += def_vector[VIO_Z];
+        ++count;
       }
       if ((voxel[ xyzv[i] ]-1) >= 0) {
-	voxel2[ xyzv[i] ] = voxel[ xyzv[i] ] - 1;
-	
-	for_less(voxel2[ xyzv[Z+1] ], 0, sizes[ xyzv[Z+1] ]) {
-	  def_vector[voxel2[ xyzv[Z+1] ]] = 
-	    get_volume_real_value(volume,
-				  voxel2[0],voxel2[1],voxel2[2],voxel2[3],voxel2[4]);
-	}
-	
-	voxel2[ xyzv[i] ] = voxel[ xyzv[i] ];
-	
-	*mx += def_vector[X]; *my += def_vector[Y]; *mz += def_vector[Z];
-	++count;
+        voxel2[ xyzv[i] ] = voxel[ xyzv[i] ] - 1;
+        
+        for(voxel2[xyzv[VIO_Z+1]]=0; voxel2[xyzv[VIO_Z+1]]<sizes[xyzv[VIO_Z+1]]; voxel2[xyzv[VIO_Z+1]]++) {
+          def_vector[voxel2[ xyzv[VIO_Z+1] ]] = 
+            get_volume_real_value(volume,
+                                  voxel2[0],voxel2[1],voxel2[2],voxel2[3],voxel2[4]);
+        }
+        
+        voxel2[ xyzv[i] ] = voxel[ xyzv[i] ];
+        
+        *mx += def_vector[VIO_X]; *my += def_vector[VIO_Y]; *mz += def_vector[VIO_Z];
+        ++count;
       }
       
     }
     break;
   }
-  case 2: {			/* 3x3x3 ie the 26 8-connected
-				   immediate neighbours only */
+  case 2: {                        /* 3x3x3 ie the 26 8-connected
+                                   immediate neighbours only */
     
-    for_less(i, 0 , N_DIMENSIONS) {
+    for(i=0; i<VIO_N_DIMENSIONS; i++) {
       start[i] = voxel[ xyzv[i] ] - 1;
       if (start[i]<0) start[i]=0;
       end[i] = voxel[ xyzv[i] ] + 1;
@@ -381,26 +384,26 @@ BOOLEAN get_average_warp_vector_from_neighbours(General_transform *trans,
     }
     
     
-    for_inclusive(voxel2[ xyzv[X] ],start[X], end[X])
-      for_inclusive(voxel2[ xyzv[Y] ],start[Y], end[Y])
-	for_inclusive(voxel2[ xyzv[Z] ],start[Z], end[Z]) {
+    for(voxel2[xyzv[VIO_X]]=start[VIO_X]; voxel2[xyzv[VIO_X]]<=end[VIO_X]; voxel2[xyzv[VIO_X]]++)
+      for(voxel2[xyzv[VIO_Y]]=start[VIO_Y]; voxel2[xyzv[VIO_Y]]<=end[VIO_Y]; voxel2[xyzv[VIO_Y]]++)
+        for(voxel2[xyzv[VIO_Z]]=start[VIO_Z]; voxel2[xyzv[VIO_Z]]<=end[VIO_Z]; voxel2[xyzv[VIO_Z]]++) {
 
-	  if ((voxel2[ xyzv[X]] != voxel[ xyzv[X] ]) ||
-	      (voxel2[ xyzv[Y]] != voxel[ xyzv[Y] ]) ||
-	      (voxel2[ xyzv[Z]] != voxel[ xyzv[Z] ])) {
-	    for_less(voxel2[ xyzv[Z+1] ], 0, sizes[ xyzv[Z+1] ]) {
-	      def_vector[voxel2[ xyzv[Z+1] ]] = 
-		get_volume_real_value(volume,
-				      voxel2[0],voxel2[1],voxel2[2],voxel2[3],voxel2[4]);
-	    }
-	    *mx += def_vector[X]; *my += def_vector[Y]; *mz += def_vector[Z];
-	    ++count;
-	  }
-	}
+          if ((voxel2[ xyzv[VIO_X]] != voxel[ xyzv[VIO_X] ]) ||
+              (voxel2[ xyzv[VIO_Y]] != voxel[ xyzv[VIO_Y] ]) ||
+              (voxel2[ xyzv[VIO_Z]] != voxel[ xyzv[VIO_Z] ])) {
+            for(voxel2[xyzv[VIO_Z+1]]=0; voxel2[xyzv[VIO_Z+1]]<sizes[xyzv[VIO_Z+1]]; voxel2[xyzv[VIO_Z+1]]++) {
+              def_vector[voxel2[ xyzv[VIO_Z+1] ]] = 
+                get_volume_real_value(volume,
+                                      voxel2[0],voxel2[1],voxel2[2],voxel2[3],voxel2[4]);
+            }
+            *mx += def_vector[VIO_X]; *my += def_vector[VIO_Y]; *mz += def_vector[VIO_Z];
+            ++count;
+          }
+        }
     break;
   }
-  case 3: {			/* 5x5x5 */
-    for_less(i, 0 , N_DIMENSIONS) {
+  case 3: {                        /* 5x5x5 */
+    for(i=0; i<VIO_N_DIMENSIONS; i++) {
       start[i] = voxel[ xyzv[i] ] - 2;
       if (start[i]<0) start[i]=0;
       end[i] = voxel[ xyzv[i] ] + 2;
@@ -408,30 +411,30 @@ BOOLEAN get_average_warp_vector_from_neighbours(General_transform *trans,
     }
     
     
-    for_inclusive(voxel2[ xyzv[X] ],start[X], end[X])
-      for_inclusive(voxel2[ xyzv[Y] ],start[Y], end[Y])
-	for_inclusive(voxel2[ xyzv[Z] ],start[Z], end[Z]) {
-	  
-	  if ((voxel2[ xyzv[X]] != voxel[ xyzv[X] ]) ||
-	      (voxel2[ xyzv[Y]] != voxel[ xyzv[Y] ]) ||
-	      (voxel2[ xyzv[Z]] != voxel[ xyzv[Z] ])) {
+    for(voxel2[xyzv[VIO_X]]=start[VIO_X]; voxel2[xyzv[VIO_X]]<=end[VIO_X]; voxel2[xyzv[VIO_X]]++)
+      for(voxel2[xyzv[VIO_Y]]=start[VIO_Y]; voxel2[xyzv[VIO_Y]]<=end[VIO_Y]; voxel2[xyzv[VIO_Y]]++)
+        for(voxel2[xyzv[VIO_Z]]=start[VIO_Z]; voxel2[xyzv[VIO_Z]]<=end[VIO_Z]; voxel2[xyzv[VIO_Z]]++) {
+          
+          if ((voxel2[ xyzv[VIO_X]] != voxel[ xyzv[VIO_X] ]) ||
+              (voxel2[ xyzv[VIO_Y]] != voxel[ xyzv[VIO_Y] ]) ||
+              (voxel2[ xyzv[VIO_Z]] != voxel[ xyzv[VIO_Z] ])) {
 
-	    for_less(voxel2[ xyzv[Z+1] ], 0, sizes[ xyzv[Z+1] ]) {
-	      def_vector[voxel2[ xyzv[Z+1] ]] = 
-		get_volume_real_value(volume,
-				      voxel2[0],voxel2[1],voxel2[2],voxel2[3],voxel2[4]);
-	    }
-	    *mx += def_vector[X]; *my += def_vector[Y]; *mz += def_vector[Z];
-	    ++count;
+            for(voxel2[xyzv[VIO_Z+1]]=0; voxel2[xyzv[VIO_Z+1]]<sizes[xyzv[VIO_Z+1]]; voxel2[xyzv[VIO_Z+1]]++) {
+              def_vector[voxel2[ xyzv[VIO_Z+1] ]] = 
+                get_volume_real_value(volume,
+                                      voxel2[0],voxel2[1],voxel2[2],voxel2[3],voxel2[4]);
+            }
+            *mx += def_vector[VIO_X]; *my += def_vector[VIO_Y]; *mz += def_vector[VIO_Z];
+            ++count;
 
-	  }
-	}
+          }
+        }
     break;
     
   }
   }    
 
-  if (count>0) {		/* average deformation vector */
+  if (count>0) {                /* average deformation vector */
     *mx /= count; 
     *my /= count; 
     *mz /= count; 
@@ -443,34 +446,34 @@ BOOLEAN get_average_warp_vector_from_neighbours(General_transform *trans,
 }
 
 
-BOOLEAN get_average_warp_of_neighbours(General_transform *trans,
-					      int voxel[],
-					      Real mean_pos[])
+VIO_BOOL get_average_warp_of_neighbours(VIO_General_transform *trans,
+                                              int voxel[],
+                                              VIO_Real mean_pos[])
 {
   int       i;
-  Real      voxel_real[MAX_DIMENSIONS],
+  VIO_Real      voxel_real[VIO_MAX_DIMENSIONS],
             dx, dy, dz;
-  Volume     volume;
+  VIO_Volume     volume;
   
   if (trans->type != GRID_TRANSFORM) {
     print_error_and_line_num("get_average_warp_of_neighbours not called with GRID_TRANSFORM",
-			     __FILE__, __LINE__);
+                             __FILE__, __LINE__);
     return (FALSE);
   }
 
   volume = trans->displacement_volume;
   
-  for_less(i,0,get_volume_n_dimensions(volume) ) {
-    voxel_real[i] = (Real)voxel[i];
+  for(i=0; i<get_volume_n_dimensions(volume); i++ ) {
+    voxel_real[i] = (VIO_Real)voxel[i];
   }
   convert_voxel_to_world(volume, voxel_real, 
-			 &(mean_pos[X]),&(mean_pos[Y]),&(mean_pos[Z]) );
+                         &(mean_pos[VIO_X]),&(mean_pos[VIO_Y]),&(mean_pos[VIO_Z]) );
 
   if ( ! get_average_warp_vector_from_neighbours(trans, voxel, 1, &dx, &dy, &dz)) {
     return(FALSE);
   }
   else {
-    mean_pos[X] += dx; mean_pos[Y] += dy; mean_pos[Z] += dz;
+    mean_pos[VIO_X] += dx; mean_pos[VIO_Y] += dy; mean_pos[VIO_Z] += dz;
     return(TRUE);
   }
 
@@ -485,73 +488,73 @@ BOOLEAN get_average_warp_of_neighbours(General_transform *trans,
    order and same length along each dimension.
 */
 
-void add_additional_warp_to_current(General_transform *additional,
-					   General_transform *current,
-					   Real weight)
+void add_additional_warp_to_current(VIO_General_transform *additional,
+                                           VIO_General_transform *current,
+                                           VIO_Real weight)
 {
   int
-    count[MAX_DIMENSIONS],
-    count_current[MAX_DIMENSIONS],
-    xyzv_additional[MAX_DIMENSIONS],
-    xyzv_current[MAX_DIMENSIONS],
-    index[MAX_DIMENSIONS],
+    count[VIO_MAX_DIMENSIONS],
+    count_current[VIO_MAX_DIMENSIONS],
+    xyzv_additional[VIO_MAX_DIMENSIONS],
+    xyzv_current[VIO_MAX_DIMENSIONS],
+    index[VIO_MAX_DIMENSIONS],
     i;
-  Real 
+  VIO_Real 
     additional_value, current_value;
 
 
   if (get_volume_n_dimensions(additional->displacement_volume) != 
       get_volume_n_dimensions(current->displacement_volume)) {
     print_error_and_line_num("add_additional_warp_to_current: warp dim error",
-			     __FILE__, __LINE__);
+                             __FILE__, __LINE__);
   }
 
   get_volume_sizes(additional->displacement_volume, count);
   get_volume_sizes(current->displacement_volume, count_current);
-  for_less(i,0,get_volume_n_dimensions(current->displacement_volume)) {
+  for(i=0; i<get_volume_n_dimensions(current->displacement_volume); i++) {
     if (count_current[i] != count[i]) {
       print_error_and_line_num("add_additional_warp_to_current: dim count error",
-			       __FILE__, __LINE__);
+                               __FILE__, __LINE__);
     }
   }
 
   get_volume_XYZV_indices(additional->displacement_volume, xyzv_additional);
   get_volume_XYZV_indices(current->displacement_volume, xyzv_current);
-  for_less(i,0,get_volume_n_dimensions(current->displacement_volume)) {
+  for(i=0; i<get_volume_n_dimensions(current->displacement_volume); i++) {
     if (xyzv_current[i] != xyzv_additional[i]) {
       print_error_and_line_num("add_additional_warp_to_current: dim match error",
-			       __FILE__, __LINE__);
+                               __FILE__, __LINE__);
     }
   }
 
-  for_less(i,0,MAX_DIMENSIONS) index[i]=0;
+  for(i=0; i<VIO_MAX_DIMENSIONS; i++) index[i]=0;
 
-  for_less(index[ xyzv_additional[X] ], 0, count[ xyzv_additional[X] ])
-    for_less(index[ xyzv_additional[Y] ], 0, count[ xyzv_additional[Y] ])
-      for_less(index[ xyzv_additional[Z] ], 0, count[ xyzv_additional[Z] ])
-	for_less(index[ xyzv_additional[Z+1] ], 0, count[ xyzv_additional[Z+1] ]) {
+  for(index[xyzv_additional[VIO_X]]=0; index[xyzv_additional[VIO_X]]<count[xyzv_additional[VIO_X]]; index[xyzv_additional[VIO_X]]++)
+    for(index[xyzv_additional[VIO_Y]]=0; index[xyzv_additional[VIO_Y]]<count[xyzv_additional[VIO_Y]]; index[xyzv_additional[VIO_Y]]++)
+      for(index[xyzv_additional[VIO_Z]]=0; index[xyzv_additional[VIO_Z]]<count[xyzv_additional[VIO_Z]]; index[xyzv_additional[VIO_Z]]++)
+        for(index[xyzv_additional[VIO_Z+1]]=0; index[xyzv_additional[VIO_Z+1]]<count[xyzv_additional[VIO_Z+1]]; index[xyzv_additional[VIO_Z+1]]++) {
 
-	  additional_value = get_volume_real_value(
-				 additional->displacement_volume,
-				 index[0],index[1],index[2],index[3],index[4]);
-	  current_value = get_volume_real_value(
+          additional_value = get_volume_real_value(
+                                 additional->displacement_volume,
+                                 index[0],index[1],index[2],index[3],index[4]);
+          current_value = get_volume_real_value(
                                  current->displacement_volume,
-				 index[0],index[1],index[2],index[3],index[4]);
+                                 index[0],index[1],index[2],index[3],index[4]);
 
-	  additional_value = current_value + additional_value*weight;
+          additional_value = current_value + additional_value*weight;
 
-	  if (additional_value >  40.0) additional_value =  40.0;
-	  if (additional_value < -40.0) additional_value = -40.0;
+          if (additional_value >  40.0) additional_value =  40.0;
+          if (additional_value < -40.0) additional_value = -40.0;
 
-	  set_volume_real_value(additional->displacement_volume,
-				index[0],index[1],index[2],index[3],index[4],
-				additional_value);
+          set_volume_real_value(additional->displacement_volume,
+                                index[0],index[1],index[2],index[3],index[4],
+                                additional_value);
 
-	  
-	}
+          
+        }
 
 }
-					    
+                                            
 
 
 /*******************************************************************
@@ -562,169 +565,170 @@ void add_additional_warp_to_current(General_transform *additional,
 
     meth: smoothing is accomplished by averaging the value of the 
           node's deformation vector with the mean deformation vector
-	  of it's neighbours.
+          of it's neighbours.
 
-	  def'  = sw*mean  + (1-sw)*def
+          def'  = sw*mean  + (1-sw)*def
 
-	  where: sw   = smoothing_weight
+          where: sw   = smoothing_weight
                  mean = neighbourhood mean deformation
-		 def  = estimate def for current node
+                 def  = estimate def for current node
 */
 
-void smooth_the_warp(General_transform *smoothed,
-			    General_transform *current,
-			    Volume warp_mag, Real thres) 
+void smooth_the_warp(VIO_General_transform *smoothed,
+                            VIO_General_transform *current,
+                            VIO_Volume warp_mag, VIO_Real thres) 
 {
   int
-    count_smoothed[MAX_DIMENSIONS],
-    count_current[MAX_DIMENSIONS],
-    count_mag[MAX_DIMENSIONS],
-    xyzv[MAX_DIMENSIONS],
-    xyzv_current[MAX_DIMENSIONS],
-    xyzv_mag[MAX_DIMENSIONS],
-    mag_index[MAX_DIMENSIONS],
-    index[MAX_DIMENSIONS],
-    start[MAX_DIMENSIONS], 
-    end[MAX_DIMENSIONS],
+    count_smoothed[VIO_MAX_DIMENSIONS],
+    count_current[VIO_MAX_DIMENSIONS],
+    count_mag[VIO_MAX_DIMENSIONS],
+    xyzv[VIO_MAX_DIMENSIONS],
+    xyzv_current[VIO_MAX_DIMENSIONS],
+    xyzv_mag[VIO_MAX_DIMENSIONS],
+    mag_index[VIO_MAX_DIMENSIONS],
+    index[VIO_MAX_DIMENSIONS],
+    start[VIO_MAX_DIMENSIONS], 
+    end[VIO_MAX_DIMENSIONS],
     i;
-  Real 
+  VIO_Real 
     value[3], 
     wx, wy, wz, 
     mx, my, mz,smoothing;
-  progress_struct
+  VIO_progress_struct
     progress;
   
   
   if (get_volume_n_dimensions(smoothed->displacement_volume) != 
       get_volume_n_dimensions(current->displacement_volume)) {
     print_error_and_line_num("smooth_the_warp: warp dim error",
-			     __FILE__, __LINE__);
+                             __FILE__, __LINE__);
   }
   
   get_volume_sizes(smoothed->displacement_volume, count_smoothed);
   get_volume_sizes(current->displacement_volume, count_current);
-  for_less(i,0,get_volume_n_dimensions(current->displacement_volume)) {
+  for(i=0; i<get_volume_n_dimensions(current->displacement_volume); i++) {
     if (count_current[i] != count_smoothed[i]) {
       print_error_and_line_num("smooth_the_warp: dim count error",
-			       __FILE__, __LINE__);
+                               __FILE__, __LINE__);
     }
   }
 
   get_volume_XYZV_indices(smoothed->displacement_volume, xyzv);
   get_volume_XYZV_indices(current->displacement_volume, xyzv_current);
-  for_less(i,0,get_volume_n_dimensions(current->displacement_volume)) {
+  for(i=0; i<get_volume_n_dimensions(current->displacement_volume); i++) {
     if (xyzv_current[i] != xyzv[i]) {
       print_error_and_line_num("smooth_the_warp: dim match error",
-			       __FILE__, __LINE__);
+                               __FILE__, __LINE__);
     }
   }
   
   get_volume_XYZV_indices(warp_mag, xyzv_mag);
   get_volume_sizes(warp_mag, count_mag);
 
-  for_less(i,0,get_volume_n_dimensions(warp_mag)) {
+  for(i=0; i<get_volume_n_dimensions(warp_mag); i++) {
     if (count_current[xyzv_current[i]] != count_mag[i]) {
       print_error_and_line_num("smooth_the_warp: dim count error w/mag (%d: %d != %d)\n",
-			       __FILE__, __LINE__, i, count_current[xyzv_current[i]], count_mag[i] );
+                               __FILE__, __LINE__, i, count_current[xyzv_current[i]], count_mag[i] );
     }
   }
   
-  for_less(i,0,MAX_DIMENSIONS) {
+  for(i=0; i<VIO_MAX_DIMENSIONS; i++) {
     index[i]=0;
     start[i] = 0;
     end[i] = 0;
   }
   
   get_voxel_spatial_loop_limits(smoothed->displacement_volume, start, end);
-  start[Z+1] = 0;
-  end[Z+1] = 3;
+  start[VIO_Z+1] = 0;
+  end[VIO_Z+1] = 3;
  
 
   initialize_progress_report( &progress, FALSE, 
-			     (end[X]-start[X])*
-			     (end[Y]-start[Y]) + 1,
-			     "Smoothing deformations" );
+                             (end[VIO_X]-start[VIO_X])*
+                             (end[VIO_Y]-start[VIO_Y]) + 1,
+                             "Smoothing deformations" );
 
 
-  for_less(index[ xyzv[X] ], start[ X ], end[ X ]) {
-    for_less(index[ xyzv[Y] ], start[ Y ], end[ Y ]) {
-      for_less(index[ xyzv[Z] ], start[ Z ], end[ Z ]) {
+  for(index[xyzv[VIO_X]]=start[VIO_X]; index[xyzv[VIO_X]]<end[VIO_X]; index[xyzv[VIO_X]]++) {
+    for(index[xyzv[VIO_Y]]=start[VIO_Y]; index[xyzv[VIO_Y]]<end[VIO_Y]; index[xyzv[VIO_Y]]++) {
+      for(index[xyzv[VIO_Z]]=start[VIO_Z]; index[xyzv[VIO_Z]]<end[VIO_Z]; index[xyzv[VIO_Z]]++) {
 
-	for_less(i,0,get_volume_n_dimensions(warp_mag))
-	  mag_index[ xyzv_mag[i] ] = index[ xyzv[i] ];
-	
-	if (  get_volume_real_value(warp_mag, 
-				    mag_index[ X ],
-				    mag_index[ Y ],
-				    mag_index[ Z ],
-				    0, 0) >= thres) {
+        for(i=0; i<get_volume_n_dimensions(warp_mag); i++){
+          mag_index[ xyzv_mag[i] ] = index[ xyzv[i] ];
+          }
+        
+        if (  get_volume_real_value(warp_mag, 
+                                    mag_index[ VIO_X ],
+                                    mag_index[ VIO_Y ],
+                                    mag_index[ VIO_Z ],
+                                    0, 0) >= thres) {
 
-				/* go get the current warp vector for
+                                /* go get the current warp vector for
                                    this node. */
-	  
-	  for_less(index[ xyzv[Z+1] ], start[ Z+1 ], end[ Z+1 ]) {
+          
+          for(index[xyzv[VIO_Z+1]]=start[VIO_Z+1]; index[xyzv[VIO_Z+1]]<end[VIO_Z+1]; index[xyzv[VIO_Z+1]]++) {
 
-	    value[index[ xyzv[Z+1] ]] = 
-	      get_volume_real_value(current->displacement_volume,
-				    index[0],index[1],index[2],
-				    index[3],index[4]);
+            value[index[ xyzv[VIO_Z+1] ]] = 
+              get_volume_real_value(current->displacement_volume,
+                                    index[0],index[1],index[2],
+                                    index[3],index[4]);
 
-	  }
-				/* store the current warp in wx, wy,
+          }
+                                /* store the current warp in wx, wy,
                                    wz */
 
-	  wx = value[X]; wy = value[Y]; wz = value[Z]; 
+          wx = value[VIO_X]; wy = value[VIO_Y]; wz = value[VIO_Z]; 
 
-	  index[ xyzv[Z+1]] = 0;
+          index[ xyzv[VIO_Z+1]] = 0;
 
-				/* if we can get a neighbourhood mean
-				   warp vector, then we average it
-				   with the current warp vector */
+                                /* if we can get a neighbourhood mean
+                                   warp vector, then we average it
+                                   with the current warp vector */
 
-	  if ( get_average_warp_vector_from_neighbours(current,
-						      index, 2 ,
-						      &mx, &my, &mz) ) {
-	    
-	    wx = (1.0 - smoothing_weight) * value[X] + smoothing_weight * mx;
-	    wy = (1.0 - smoothing_weight) * value[Y] + smoothing_weight * my;
-	    wz = (1.0 - smoothing_weight) * value[Z] + smoothing_weight * mz;
-	    value[X] = wx; 
-	    value[Y] = wy; 
-	    value[Z] = wz; 
+          if ( get_average_warp_vector_from_neighbours(current,
+                                                      index, 2 ,
+                                                      &mx, &my, &mz) ) {
+            
+            wx = (1.0 - smoothing_weight) * value[VIO_X] + smoothing_weight * mx;
+            wy = (1.0 - smoothing_weight) * value[VIO_Y] + smoothing_weight * my;
+            wz = (1.0 - smoothing_weight) * value[VIO_Z] + smoothing_weight * mz;
+            value[VIO_X] = wx; 
+            value[VIO_Y] = wy; 
+            value[VIO_Z] = wz; 
 
-	  } 
-	  
-				/* now put the averaged vector into
-				   the smoothed volume */
+          } 
+          
+                                /* now put the averaged vector into
+                                   the smoothed volume */
  
-	  for_less(index[ xyzv[Z+1] ], start[ Z+1 ], end[ Z+1 ])  
-	    set_volume_real_value(smoothed->displacement_volume,
-				  index[0],index[1],index[2],
-				  index[3],index[4],
-				  value[index[ xyzv[Z+1] ]] );  
-	}
-	else {
+          for(index[xyzv[VIO_Z+1]]=start[VIO_Z+1]; index[xyzv[VIO_Z+1]]<end[VIO_Z+1]; index[xyzv[VIO_Z+1]]++)  
+            set_volume_real_value(smoothed->displacement_volume,
+                                  index[0],index[1],index[2],
+                                  index[3],index[4],
+                                  value[index[ xyzv[VIO_Z+1] ]] );  
+        }
+        else {
 
-	  for_less(index[ xyzv[Z+1] ], start[ Z+1 ], end[ Z+1 ])  {
-	    
-	    value[index[ xyzv[Z+1] ]] = 
-	      get_volume_real_value(current->displacement_volume,
-				    index[0],index[1],index[2],
-				    index[3],index[4]);
+          for(index[xyzv[VIO_Z+1]]=start[VIO_Z+1]; index[xyzv[VIO_Z+1]]<end[VIO_Z+1]; index[xyzv[VIO_Z+1]]++)  {
+            
+            value[index[ xyzv[VIO_Z+1] ]] = 
+              get_volume_real_value(current->displacement_volume,
+                                    index[0],index[1],index[2],
+                                    index[3],index[4]);
 
-	    set_volume_real_value(smoothed->displacement_volume,
-				  index[0],index[1],index[2],
-				  index[3],index[4],
-				  value[index[ xyzv[Z+1] ]] );
-	  }
+            set_volume_real_value(smoothed->displacement_volume,
+                                  index[0],index[1],index[2],
+                                  index[3],index[4],
+                                  value[index[ xyzv[VIO_Z+1] ]] );
+          }
 
-	} /* mag > thresh */
-	  
+        } /* mag > thresh */
+          
       }
       update_progress_report( &progress,
-			     ((end[ Y ]-start[ Y ])*
-			      (index[ xyzv[X]  ]-start[ X ])) +
-			     (index[ xyzv[Y] ]-start[ X ])  +    1  );
+                             ((end[ VIO_Y ]-start[ VIO_Y ])*
+                              (index[ xyzv[VIO_X]  ]-start[ VIO_X ])) +
+                             (index[ xyzv[VIO_Y] ]-start[ VIO_X ])  +    1  );
     }
   }
 
@@ -758,13 +762,13 @@ void smooth_the_warp(General_transform *smoothed,
       additional = required_absolute_mean_vector - absolute_current_vector
 
 
-   note estimated_flag_vol is created to be accessed in [X][Y][Z] order.
+   note estimated_flag_vol is created to be accessed in [VIO_X][VIO_Y][VIO_Z] order.
 
       */
 
-void extrapolate_to_unestimated_nodes(General_transform *current,
-					     General_transform *additional,
-					     Volume estimated_flag_vol) 
+void extrapolate_to_unestimated_nodes(VIO_General_transform *current,
+                                             VIO_General_transform *additional,
+                                             VIO_Volume estimated_flag_vol) 
 {
 
   int 
@@ -772,25 +776,25 @@ void extrapolate_to_unestimated_nodes(General_transform *current,
     total,
     extrapolated,
     count,
-    count_additional[MAX_DIMENSIONS],
-    count_current[MAX_DIMENSIONS],
-    count_flag[MAX_DIMENSIONS],
-    xyzv[MAX_DIMENSIONS],
-    xyzv_current[MAX_DIMENSIONS],
-    xyzv_flag[MAX_DIMENSIONS],
-    flag_index[MAX_DIMENSIONS],
-    index[MAX_DIMENSIONS],
-    start[MAX_DIMENSIONS], 
-    end[MAX_DIMENSIONS],
-    start2[MAX_DIMENSIONS], 
-    end2[MAX_DIMENSIONS],
-    voxel2[MAX_DIMENSIONS],
+    count_additional[VIO_MAX_DIMENSIONS],
+    count_current[VIO_MAX_DIMENSIONS],
+    count_flag[VIO_MAX_DIMENSIONS],
+    xyzv[VIO_MAX_DIMENSIONS],
+    xyzv_current[VIO_MAX_DIMENSIONS],
+    xyzv_flag[VIO_MAX_DIMENSIONS],
+    flag_index[VIO_MAX_DIMENSIONS],
+    index[VIO_MAX_DIMENSIONS],
+    start[VIO_MAX_DIMENSIONS], 
+    end[VIO_MAX_DIMENSIONS],
+    start2[VIO_MAX_DIMENSIONS], 
+    end2[VIO_MAX_DIMENSIONS],
+    voxel2[VIO_MAX_DIMENSIONS],
     i;
-  Real 
-    current_deform[N_DIMENSIONS], 
-    additional_deform[N_DIMENSIONS], 
+  VIO_Real 
+    current_deform[VIO_N_DIMENSIONS], 
+    additional_deform[VIO_N_DIMENSIONS], 
     mx, my, mz;
-  progress_struct
+  VIO_progress_struct
     progress;
 
   extrapolated = many = total = 0;
@@ -803,34 +807,34 @@ void extrapolate_to_unestimated_nodes(General_transform *current,
   if (get_volume_n_dimensions(additional->displacement_volume) != 
       get_volume_n_dimensions(current->displacement_volume)) {
     print_error_and_line_num("extrapolate_the_warp: warp dim error",
-			     __FILE__, __LINE__);
+                             __FILE__, __LINE__);
   }
   
   get_volume_sizes(additional->displacement_volume, count_additional);
   get_volume_sizes(current->displacement_volume, count_current);
-  for_less(i,0,get_volume_n_dimensions(current->displacement_volume)) {
+  for(i=0; i<get_volume_n_dimensions(current->displacement_volume); i++) {
     if (count_current[i] != count_additional[i]) {
       print_error_and_line_num("extrapolate_the_warp: dim count error",
-			       __FILE__, __LINE__);
+                               __FILE__, __LINE__);
     }
   }
 
   get_volume_XYZV_indices(additional->displacement_volume, xyzv);
   get_volume_XYZV_indices(current->displacement_volume, xyzv_current);
-  for_less(i,0,get_volume_n_dimensions(current->displacement_volume)) {
+  for(i=0; i<get_volume_n_dimensions(current->displacement_volume); i++) {
     if (xyzv_current[i] != xyzv[i]) {
       print_error_and_line_num("extrapolate_the_warp: dim match error",
-			       __FILE__, __LINE__);
+                               __FILE__, __LINE__);
     }
   }
   
   get_volume_XYZV_indices(estimated_flag_vol, xyzv_flag);
   get_volume_sizes(estimated_flag_vol, count_flag);
 
-  for_less(i,0,get_volume_n_dimensions(estimated_flag_vol)) {
+  for(i=0; i<get_volume_n_dimensions(estimated_flag_vol); i++) {
     if (count_current[xyzv_current[i]] != count_flag[i]) {
       print_error_and_line_num("extrapolate_the_warp: dim count error w/flag (%d: %d != %d)\n",
-			       __FILE__, __LINE__, i, count_current[xyzv_current[i]], count_flag[i] );
+                               __FILE__, __LINE__, i, count_current[xyzv_current[i]], count_flag[i] );
     }
   }
 
@@ -838,142 +842,142 @@ void extrapolate_to_unestimated_nodes(General_transform *current,
                                    limits to go through the deformation
                                    volume and extrapolate the estimated
                                    vectors from the additional volume */
-  for_less(i,0,MAX_DIMENSIONS) {
+  for(i=0; i<VIO_MAX_DIMENSIONS; i++) {
     index[i] = 0;
     start[i] = 0;
     end[i]   = 0;
   }
   
   get_voxel_spatial_loop_limits(additional->displacement_volume, start, end);
-  start[Z+1] = 0;
-  end[Z+1]   = 3;
+  start[VIO_Z+1] = 0;
+  end[VIO_Z+1]   = 3;
  
   initialize_progress_report( &progress, FALSE, 
-			     (end[X]-start[X])*
-			     (end[Y]-start[Y]) + 1,
-			     "Extrapolating estimations" );
+                             (end[VIO_X]-start[VIO_X])*
+                             (end[VIO_Y]-start[VIO_Y]) + 1,
+                             "Extrapolating estimations" );
 
 
-  for_less(index[ xyzv[X] ], start[ X ], end[ X ]) {
-    for_less(index[ xyzv[Y] ], start[ Y ], end[ Y ]) {
-      for_less(index[ xyzv[Z] ], start[ Z ], end[ Z ]) {
+  for(index[xyzv[VIO_X]]=start[VIO_X]; index[xyzv[VIO_X]]<end[VIO_X]; index[xyzv[VIO_X]]++) {
+    for(index[xyzv[VIO_Y]]=start[VIO_Y]; index[xyzv[VIO_Y]]<end[VIO_Y]; index[xyzv[VIO_Y]]++) {
+      for(index[xyzv[VIO_Z]]=start[VIO_Z]; index[xyzv[VIO_Z]]<end[VIO_Z]; index[xyzv[VIO_Z]]++) {
 
-	for_less(i,0,get_volume_n_dimensions(estimated_flag_vol))
-	  flag_index[ xyzv_flag[i] ] = index[ xyzv[i] ];
-	
-	total++;
+        for(i=0; i<get_volume_n_dimensions(estimated_flag_vol); i++)
+          flag_index[ xyzv_flag[i] ] = index[ xyzv[i] ];
+        
+        total++;
 
 
-	if (  get_volume_real_value(estimated_flag_vol, 
-				    index[ xyzv[X] ],
-				    index[ xyzv[Y] ],
-				    index[ xyzv[Z] ],
-				    0, 0) < 1.0) {
+        if (  get_volume_real_value(estimated_flag_vol, 
+                                    index[ xyzv[VIO_X] ],
+                                    index[ xyzv[VIO_Y] ],
+                                    index[ xyzv[VIO_Z] ],
+                                    0, 0) < 1.0) {
 
-	  /* 
+          /* 
              then, this node has not been estimated at this iteration,
              so we have to interpolate a deformation value from
              neighbouring nodes, and then apply the proper local
-	     smoothing. 
+             smoothing. 
 
              local smoothing is defined to be the average deformation of
              the 26 8-connected neighbours and is computed in the loop
              below
           */
 
-	  many++;
-				/* go get the current warp vector for
+          many++;
+                                /* go get the current warp vector for
                                    this node. */
-	  
-	  for_less(index[ xyzv[Z+1] ], start[ Z+1 ], end[ Z+1 ]) {
+          
+          for(index[xyzv[VIO_Z+1]]=start[VIO_Z+1]; index[xyzv[VIO_Z+1]]<end[VIO_Z+1]; index[xyzv[VIO_Z+1]]++) {
 
-	    current_deform[index[ xyzv[Z+1] ]] = 
-	      get_volume_real_value(current->displacement_volume,
-				    index[0],index[1],index[2],
-				    index[3],index[4]);
+            current_deform[index[ xyzv[VIO_Z+1] ]] = 
+              get_volume_real_value(current->displacement_volume,
+                                    index[0],index[1],index[2],
+                                    index[3],index[4]);
 
-	  }
-				/* get an average of the current additional 
-				   deformation */
+          }
+                                /* get an average of the current additional 
+                                   deformation */
 
-	  for_less(i, 0 , N_DIMENSIONS) {
-	    start2[i] = index[ xyzv[i] ] - 1;
-	    if (start2[i]<0) start2[i]=0;
-	    end2[i] = index[ xyzv[i] ] + 1;
-	    if (end2[i]> count_flag[ xyzv_flag[i] ]-1) end2[i] =  count_flag[ xyzv_flag[i] ]-1;
-	  }
+          for(i=0; i<VIO_N_DIMENSIONS; i++) {
+            start2[i] = index[ xyzv[i] ] - 1;
+            if (start2[i]<0) start2[i]=0;
+            end2[i] = index[ xyzv[i] ] + 1;
+            if (end2[i]> count_flag[ xyzv_flag[i] ]-1) end2[i] =  count_flag[ xyzv_flag[i] ]-1;
+          }
     
-	  for_less(i,0,N_DIMENSIONS)   additional_deform[i]= 0.0;
-	  for_less(i,0,MAX_DIMENSIONS) voxel2[i]=0;
-	  count = 0;
+          for(i=0; i<VIO_N_DIMENSIONS; i++)   additional_deform[i]= 0.0;
+          for(i=0; i<VIO_MAX_DIMENSIONS; i++) voxel2[i]=0;
+          count = 0;
 
-	  for_inclusive(voxel2[ xyzv[X] ],start2[X], end2[X])
-	    for_inclusive(voxel2[ xyzv[Y] ],start2[Y], end2[Y])
-	      for_inclusive(voxel2[ xyzv[Z] ],start2[Z], end2[Z]) {
+          for(voxel2[xyzv[VIO_X]]=start2[VIO_X]; voxel2[xyzv[VIO_X]]<=end2[VIO_X]; voxel2[xyzv[VIO_X]]++)
+            for(voxel2[xyzv[VIO_Y]]=start2[VIO_Y]; voxel2[xyzv[VIO_Y]]<=end2[VIO_Y]; voxel2[xyzv[VIO_Y]]++)
+              for(voxel2[xyzv[VIO_Z]]=start2[VIO_Z]; voxel2[xyzv[VIO_Z]]<=end2[VIO_Z]; voxel2[xyzv[VIO_Z]]++) {
 
-		if (get_volume_real_value(estimated_flag_vol, 
-				    voxel2[ xyzv[X] ],
-				    voxel2[ xyzv[Y] ],
-				    voxel2[ xyzv[Z] ],
-				    0, 0) >= 0.5) {
+                if (get_volume_real_value(estimated_flag_vol, 
+                                    voxel2[ xyzv[VIO_X] ],
+                                    voxel2[ xyzv[VIO_Y] ],
+                                    voxel2[ xyzv[VIO_Z] ],
+                                    0, 0) >= 0.5) {
 
-		  if (!((voxel2[ xyzv[X]] == index[ xyzv[X] ]) &&
-			(voxel2[ xyzv[Y]] == index[ xyzv[Y] ]) &&
-			(voxel2[ xyzv[Z]] == index[ xyzv[Z] ]))   ) {
-		    
-		    for_less(voxel2[ xyzv[Z+1] ], 0, N_DIMENSIONS) {
-		      additional_deform[ voxel2[ xyzv[Z+1] ] ] += 
-			get_volume_real_value(additional->displacement_volume,
-					      voxel2[0],voxel2[1],voxel2[2],
-					      voxel2[3],voxel2[4]);
-		    }
-		    ++count;
-		  }
-		}
+                  if (!((voxel2[ xyzv[VIO_X]] == index[ xyzv[VIO_X] ]) &&
+                        (voxel2[ xyzv[VIO_Y]] == index[ xyzv[VIO_Y] ]) &&
+                        (voxel2[ xyzv[VIO_Z]] == index[ xyzv[VIO_Z] ]))   ) {
+                    
+                    for(voxel2[xyzv[VIO_Z+1]]=0; voxel2[xyzv[VIO_Z+1]]<VIO_N_DIMENSIONS; voxel2[xyzv[VIO_Z+1]]++) {
+                      additional_deform[ voxel2[ xyzv[VIO_Z+1] ] ] += 
+                        get_volume_real_value(additional->displacement_volume,
+                                              voxel2[0],voxel2[1],voxel2[2],
+                                              voxel2[3],voxel2[4]);
+                    }
+                    ++count;
+                  }
+                }
 
-		
-	      }
+                
+              }
 
-	  if (count>0) {
-	    extrapolated++;
-	    for_less(i,0,N_DIMENSIONS)
-	      additional_deform[i] /= 26.0;
-	  }
+          if (count>0) {
+            extrapolated++;
+            for(i=0; i<VIO_N_DIMENSIONS; i++)
+              additional_deform[i] /= 26.0;
+          }
 
-				/* if we can get a neighbourhood mean
-				   warp vector from the previous iterations, 
-				   then we average it with the previous warp 
-				   vector */
-	  index[ xyzv[Z+1]] = 0;
-	  if ( get_average_warp_vector_from_neighbours(current,
-						       index, 2 ,
-						       &mx, &my, &mz) ) {
+                                /* if we can get a neighbourhood mean
+                                   warp vector from the previous iterations, 
+                                   then we average it with the previous warp 
+                                   vector */
+          index[ xyzv[VIO_Z+1]] = 0;
+          if ( get_average_warp_vector_from_neighbours(current,
+                                                       index, 2 ,
+                                                       &mx, &my, &mz) ) {
 
-	    /* additional_deform += sw*mean + (1-sw)*current - current
+            /* additional_deform += sw*mean + (1-sw)*current - current
 
-	       with sw = 0.5 gives: */
-	    
-	    additional_deform[X] += (mx - current_deform[X])/2.0; 
-	    additional_deform[Y] += (my - current_deform[Y])/2.0; 
-	    additional_deform[Z] += (mz - current_deform[Z])/2.0; 
-	  } 
+               with sw = 0.5 gives: */
+            
+            additional_deform[VIO_X] += (mx - current_deform[VIO_X])/2.0; 
+            additional_deform[VIO_Y] += (my - current_deform[VIO_Y])/2.0; 
+            additional_deform[VIO_Z] += (mz - current_deform[VIO_Z])/2.0; 
+          } 
 
-	  
-				/* now put the averaged vector into
-				   the additional volume */
+          
+                                /* now put the averaged vector into
+                                   the additional volume */
 
-	  for_less(index[ xyzv[Z+1] ], start[ Z+1 ], end[ Z+1 ])  
-	    set_volume_real_value(additional->displacement_volume,
-				  index[0],index[1],index[2],
-				  index[3],index[4],
-				  additional_deform[index[ xyzv[Z+1] ]] );  
-	}
-	  
+          for(index[xyzv[VIO_Z+1]]=start[VIO_Z+1]; index[xyzv[VIO_Z+1]]<end[VIO_Z+1]; index[xyzv[VIO_Z+1]]++)  
+            set_volume_real_value(additional->displacement_volume,
+                                  index[0],index[1],index[2],
+                                  index[3],index[4],
+                                  additional_deform[index[ xyzv[VIO_Z+1] ]] );  
+        }
+          
       }
       update_progress_report( &progress,
-			     ((end[ Y ]-start[ Y ])*
-			      (index[ xyzv[X]  ]-start[ X ])) +
-			     (index[ xyzv[Y] ]-start[ X ])  +    1  );
+                             ((end[ VIO_Y ]-start[ VIO_Y ])*
+                              (index[ xyzv[VIO_X]  ]-start[ VIO_X ])) +
+                             (index[ xyzv[VIO_Y] ]-start[ VIO_X ])  +    1  );
     }
   }
 
@@ -984,12 +988,12 @@ void extrapolate_to_unestimated_nodes(General_transform *current,
 }
 
 
-Real get_value_of_point_in_volume(Real xw, Real yw, Real zw, 
-					  Volume data)
+VIO_Real get_value_of_point_in_volume(VIO_Real xw, VIO_Real yw, VIO_Real zw, 
+                                          VIO_Volume data)
      
 {
 
-  Real
+  VIO_Real
     mag,
     xvox, yvox, zvox;
   
@@ -997,8 +1001,8 @@ Real get_value_of_point_in_volume(Real xw, Real yw, Real zw,
     voxel;
 
   convert_3D_world_to_voxel(data, xw, yw, zw,
-			    &zvox, &yvox, &xvox);
-  fill_Point( voxel, zvox, yvox, xvox );
+                            &zvox, &yvox, &xvox);
+  VIO_fill_Point( voxel, zvox, yvox, xvox );
 
   if (!trilinear_interpolant(data, &voxel, &mag)) 
     return(-DBL_MAX); 
@@ -1009,7 +1013,7 @@ Real get_value_of_point_in_volume(Real xw, Real yw, Real zw,
 
 
 /*********************************************************************** 
-   split the General_transform stored in 'total' to extract two parts,
+   split the VIO_General_transform stored in 'total' to extract two parts,
       1 - the last warp (that will be optimized)
       2 - everything else,
    so that:
@@ -1017,30 +1021,30 @@ Real get_value_of_point_in_volume(Real xw, Real yw, Real zw,
    total = all_until_last + last_warp 
 */
 
-void split_up_the_transformation(General_transform *total,
-					General_transform **all_until_last,
-					General_transform **last_warp) 
+void split_up_the_transformation(VIO_General_transform *total,
+                                        VIO_General_transform **all_until_last,
+                                        VIO_General_transform **last_warp) 
 {
-  General_transform
+  VIO_General_transform
     *tmp_trans;
   int i;
 
   ALLOC(*all_until_last,1);
-				/* copy the first transform from the global data struct  */
+                                /* copy the first transform from the global data struct  */
   copy_general_transform(get_nth_general_transform(total, 0),
-			 *all_until_last);
+                         *all_until_last);
 
-				/* copy and concat the rest of tem, stopping before the end */
-  for_less(i,1,get_n_concated_transforms(total)-1){
+                                /* copy and concat the rest of tem, stopping before the end */
+  for(i=1; i<get_n_concated_transforms(total; i++)-1){
     ALLOC(tmp_trans,1);
     copy_general_transform(get_nth_general_transform(total, i), tmp_trans);
     concat_general_transforms(*all_until_last, tmp_trans, *all_until_last);
   }
 
-  *last_warp = (General_transform *)NULL;
-  for_less(i,0,get_n_concated_transforms(total)) {
+  *last_warp = (VIO_General_transform *)NULL;
+  for(i=0; i<get_n_concated_transforms(total; i++)) {
     if (get_transform_type( get_nth_general_transform(total,i) ) 
-	       == GRID_TRANSFORM)
+               == GRID_TRANSFORM)
       *last_warp = get_nth_general_transform(total,i);
   }
 
@@ -1050,10 +1054,10 @@ void split_up_the_transformation(General_transform *total,
 
 /*   return the maximum value stored in the data volume */
 
-static Real get_maximum_magnitude(Volume dxyz)
+static VIO_Real get_maximum_magnitude(VIO_Volume dxyz)
 {
 
-  Real max;
+  VIO_Real max;
 
   max = get_volume_maximum_real_value(dxyz);
 
@@ -1065,12 +1069,12 @@ static Real get_maximum_magnitude(Volume dxyz)
 /*    set the threshold to be 10% of the maximum gradient magnitude        */
 /*    for each source and target volumes                                   */
 
-void  set_feature_value_threshold(Volume d1, 
-					 Volume d2,
-					 Real *global_thres1, 
-					 Real *global_thres2, 
-					 Real *threshold1, 
-					 Real *threshold2) 
+void  set_feature_value_threshold(VIO_Volume d1, 
+                                         VIO_Volume d2,
+                                         VIO_Real *global_thres1, 
+                                         VIO_Real *global_thres2, 
+                                         VIO_Real *threshold1, 
+                                         VIO_Real *threshold2) 
 
 {
   if (*global_thres1==0.0)
@@ -1086,42 +1090,42 @@ void  set_feature_value_threshold(Volume d1,
 
 
 
-void build_two_perpendicular_vectors(Real orig[], 
-					     Real p1[], 
-					     Real p2[])
+void build_two_perpendicular_vectors(VIO_Real orig[], 
+                                             VIO_Real p1[], 
+                                             VIO_Real p2[])
 {
   Vector
     v,v1,v2;
-  Real
+  VIO_Real
     len;
-  fill_Vector(v, orig[X], orig[Y], orig[Z]);
+  fill_Vector(v, orig[VIO_X], orig[VIO_Y], orig[VIO_Z]);
   create_two_orthogonal_vectors( &v, &v1, &v2);
 
   len = MAGNITUDE( v1 );
   if (len>0) {
-    p1[X] = Vector_x(v1) / len;
-    p1[Y] = Vector_y(v1) / len;
-    p1[Z] = Vector_z(v1) / len;
+    p1[VIO_X] = Vector_x(v1) / len;
+    p1[VIO_Y] = Vector_y(v1) / len;
+    p1[VIO_Z] = Vector_z(v1) / len;
   }
   else
     print_error_and_line_num("Null length for vector normalization\n", 
-		__FILE__, __LINE__);
+                __FILE__, __LINE__);
 
   len = MAGNITUDE( v2 );
   if (len>0) {
-    p2[X] = Vector_x(v2) / len;
-    p2[Y] = Vector_y(v2) / len;
-    p2[Z] = Vector_z(v2) / len;
+    p2[VIO_X] = Vector_x(v2) / len;
+    p2[VIO_Y] = Vector_y(v2) / len;
+    p2[VIO_Z] = Vector_z(v2) / len;
   }
   else
     print_error_and_line_num("Null length for vector normalization\n", 
-		__FILE__, __LINE__);
+                __FILE__, __LINE__);
 }
 
-float xcorr_objective_with_def(Volume d1,
-                                      Volume d2,
-                                      Volume m1,
-                                      Volume m2, 
+float xcorr_objective_with_def(VIO_Volume d1,
+                                      VIO_Volume d2,
+                                      VIO_Volume m1,
+                                      VIO_Volume m2, 
                                       Arg_Data *globals)
 {
 
@@ -1144,14 +1148,14 @@ float xcorr_objective_with_def(Volume d1,
   int
     r,c,s;
 
-  Real
+  VIO_Real
     sign_x,sign_y,sign_z,
     value1, value2;
   
-  Real
+  VIO_Real
     s1,s2,s3;                   /* to store the sums for f1,f2,f3 */
   float 
-    result;				/* the result */
+    result;                                /* the result */
   int 
     count1,count2;
 
@@ -1159,76 +1163,76 @@ float xcorr_objective_with_def(Volume d1,
 
 
 
-  fill_Point( starting_position, globals->start[X], globals->start[Y], globals->start[Z]);
+  VIO_fill_Point( starting_position, globals->start[VIO_X], globals->start[VIO_Y], globals->start[VIO_Z]);
 
 
   s1 = s2 = s3 = 0.0;
   count1 = count2 = 0;
 
-  if (globals->step[X] > 0 ) sign_x = 1.0; else sign_x = -1.0;
-  if (globals->step[Y] > 0 ) sign_y = 1.0; else sign_y = -1.0;
-  if (globals->step[Z] > 0 ) sign_z = 1.0; else sign_z = -1.0;
+  if (globals->step[VIO_X] > 0 ) sign_x = 1.0; else sign_x = -1.0;
+  if (globals->step[VIO_Y] > 0 ) sign_y = 1.0; else sign_y = -1.0;
+  if (globals->step[VIO_Z] > 0 ) sign_z = 1.0; else sign_z = -1.0;
 
-  for_inclusive(s,0,globals->count[Z]) {
+  for(s=0; s<=globals->count[VIO_Z]; s++) {
 
-    SCALE_VECTOR( vector_step, globals->directions[Z], s*sign_z);
+    SCALE_VECTOR( vector_step, globals->directions[VIO_Z], s*sign_z);
     ADD_POINT_VECTOR( slice, starting_position, vector_step );
 
 
-    for_inclusive(r,0,globals->count[Y]) {
+    for(r=0; r<=globals->count[VIO_Y]; r++) {
       
-      SCALE_VECTOR( vector_step, globals->directions[Y], r*sign_y);
+      SCALE_VECTOR( vector_step, globals->directions[VIO_Y], r*sign_y);
       ADD_POINT_VECTOR( row, slice, vector_step );
       
       SCALE_POINT( col, row, 1.0); /* init first col position */
-      for_inclusive(c,0,globals->count[X]) {
-	
+      for(c=0; c<=globals->count[VIO_X]; c++) {
+        
 
-	convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
+        convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
 
   
-	
-	fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
-	
-	if (point_not_masked(m1, Point_x(col), Point_y(col), Point_z(col))) {
-	  
-	  if (INTERPOLATE_TRUE_VALUE( d1, &voxel, &value1 )) {
+        
+        VIO_fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
+        
+        if (point_not_masked(m1, Point_x(col), Point_y(col), Point_z(col))) {
+          
+          if (INTERPOLATE_TRUE_VALUE( d1, &voxel, &value1 )) {
 
-	    count1++;
+            count1++;
 
-	    DO_TRANSFORM(pos2, globals->trans_info.transformation, col);
-	    
-	    convert_3D_world_to_voxel(d2, Point_x(pos2), Point_y(pos2), Point_z(pos2), &tx, &ty, &tz);
-	    
-	    fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
-	
-	    if (point_not_masked(m2, Point_x(pos2), Point_y(pos2), Point_z(pos2))) {
-	      
-	      if (INTERPOLATE_TRUE_VALUE( d2, &voxel, &value2 )) {
+            DO_TRANSFORM(pos2, globals->trans_info.transformation, col);
+            
+            convert_3D_world_to_voxel(d2, Point_x(pos2), Point_y(pos2), Point_z(pos2), &tx, &ty, &tz);
+            
+            VIO_fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
+        
+            if (point_not_masked(m2, Point_x(pos2), Point_y(pos2), Point_z(pos2))) {
+              
+              if (INTERPOLATE_TRUE_VALUE( d2, &voxel, &value2 )) {
 
 
-		if (value1 > globals->threshold[0] && value2 > globals->threshold[1] ) {
-		  
-		  count2++;
+                if (value1 > globals->threshold[0] && value2 > globals->threshold[1] ) {
+                  
+                  count2++;
 
-		  s1 += value1*value2;
-		  s2 += value1*value1;
-		  s3 += value2*value2;
-		  
-		} 
-		
-	      } /* if voxel in d2 */
-	    } /* if point in mask volume two */
-	  } /* if voxel in d1 */
-	} /* if point in mask volume one */
-	
-	if (sign_x > 0) {
-	  ADD_POINT_VECTOR( col, col, globals->directions[X] );
-	}
-	else {
-	  SUB_POINT_VECTOR( col, col, globals->directions[X] );
-	}
-	
+                  s1 += value1*value2;
+                  s2 += value1*value1;
+                  s3 += value2*value2;
+                  
+                } 
+                
+              } /* if voxel in d2 */
+            } /* if point in mask volume two */
+          } /* if voxel in d1 */
+        } /* if point in mask volume one */
+        
+        if (sign_x > 0) {
+          ADD_POINT_VECTOR( col, col, globals->directions[VIO_X] );
+        }
+        else {
+          SUB_POINT_VECTOR( col, col, globals->directions[VIO_X] );
+        }
+        
       } /* for c */
     } /* for r */
   } /* for s */

@@ -1,7 +1,7 @@
 
 #include <volume_io.h>
 
-static char *default_dim_names[N_DIMENSIONS] =
+static char *default_dim_names[VIO_N_DIMENSIONS] =
    { MIzspace, MIyspace, MIxspace };
 
 
@@ -13,11 +13,11 @@ main(int argc, char *argv[])
   int 
     i,j,k,
     sizes[3];
-  Real
+  VIO_Real
     min,max, v1, v2;
-  Status status;
+  VIO_Status status;
 
-  Volume 
+  VIO_Volume 
     data1, data2;
   char *f1, *f2;
 
@@ -33,7 +33,7 @@ main(int argc, char *argv[])
   max = atof(argv[4]);
 
   status = input_volume(f1, 3, default_dim_names, NC_UNSPECIFIED, FALSE, 0.0,0.0,
-			TRUE, &data1, (minc_input_options *)NULL); 
+                        TRUE, &data1, (minc_input_options *)NULL); 
   if (status!=OK) {
     print ("Error reading %s.\n",f1);
     exit(EXIT_FAILURE);
@@ -47,21 +47,21 @@ main(int argc, char *argv[])
 
   get_volume_sizes(data1,sizes);
 
-  for_less(i,0,sizes[0]) {
-    for_less(j,0,sizes[1]) {
-      for_less(k,0,sizes[2]) {
+  for(i=0; i<sizes[0]; i++) {
+    for(j=0; j<sizes[1]; j++) {
+      for(k=0; k<sizes[2]; k++) {
 
-	GET_VALUE_3D( v1 ,  data1, i, j, k);
-	if (v1>max) v1 = max;
-	if (v1<min) v1 = min;
-	v2 = CONVERT_VALUE_TO_VOXEL(data2, v1);
-	SET_VOXEL_3D( data2, i, j, k, v2);
+        GET_VALUE_3D( v1 ,  data1, i, j, k);
+        if (v1>max) v1 = max;
+        if (v1<min) v1 = min;
+        v2 = CONVERT_VALUE_TO_VOXEL(data2, v1);
+        SET_VOXEL_3D( data2, i, j, k, v2);
 
       }
     }
   }
 
   status = output_modified_volume(f2, NC_UNSPECIFIED, FALSE,
-				  min,max, data2, f1, NULL, NULL);
+                                  min,max, data2, f1, NULL, NULL);
 
 }

@@ -17,7 +17,10 @@
 
 @CREATED    : Tue Nov 16 13:56:34 EST 1993 LC
 @MODIFIED   : $Log: read_data_files.c,v $
-@MODIFIED   : Revision 1.5  2005-07-20 20:45:48  rotor
+@MODIFIED   : Revision 1.6  2006-11-29 09:09:32  rotor
+@MODIFIED   :  * first bunch of changes for minc 2.0 compliance
+@MODIFIED   :
+@MODIFIED   : Revision 1.5  2005/07/20 20:45:48  rotor
 @MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
 @MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
 @MODIFIED   :     * Removed old VOLUME_IO cruft #defines
@@ -52,25 +55,26 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Files/read_data_files.c,v 1.5 2005-07-20 20:45:48 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Files/read_data_files.c,v 1.6 2006-11-29 09:09:32 rotor Exp $";
 #endif
 
+#include <config.h>
 #include <volume_io.h>
 #include <Proglib.h>
 
-static char *default_dim_names[N_DIMENSIONS] =
+static char *default_dim_names[VIO_N_DIMENSIONS] =
    { MIzspace, MIyspace, MIxspace };
 
 
 
-Status read_deform_data(Volume *dx,
-			Volume *dy,
-			Volume *dz,
-			char *name)
+VIO_Status read_deform_data(VIO_Volume *dx,
+                        VIO_Volume *dy,
+                        VIO_Volume *dz,
+                        char *name)
 {
   char fullname[500];
-  Status status;
-  Volume tx, ty, tz;
+  VIO_Status status;
+  VIO_Volume tx, ty, tz;
   
   status = OK;
   
@@ -82,8 +86,8 @@ Status read_deform_data(Volume *dx,
     print_error_and_line_num("Cannot find %s\n",__FILE__, __LINE__, fullname);
   
   status = input_volume( fullname, 3, default_dim_names, 
-			NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-			TRUE, &tx, (minc_input_options *)NULL );
+                        NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+                        TRUE, &tx, (minc_input_options *)NULL );
   if (status != OK)
     print_error_and_line_num("problems reading in dx volume, probably not enough memory!\n",__FILE__, __LINE__);
   
@@ -98,8 +102,8 @@ Status read_deform_data(Volume *dx,
     print_error_and_line_num("Cannot find %s\n",__FILE__, __LINE__, fullname);
   
   status = input_volume( fullname, 3, default_dim_names, 
-			NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-			TRUE, &ty, (minc_input_options *)NULL );
+                        NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+                        TRUE, &ty, (minc_input_options *)NULL );
   if (status != OK)
     print_error_and_line_num("problems reading in dy volume, probably not enough memory!\n",__FILE__, __LINE__);
   
@@ -114,8 +118,8 @@ Status read_deform_data(Volume *dx,
     print_error_and_line_num("Cannot find %s\n",__FILE__, __LINE__, fullname);
   
   status = input_volume( fullname, 3, default_dim_names, 
-			NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-			TRUE, &tz, (minc_input_options *)NULL );
+                        NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+                        TRUE, &tz, (minc_input_options *)NULL );
   if (status != OK)
     print_error_and_line_num("problems reading in dz volume, probably not enough memory!\n",__FILE__, __LINE__);
   
@@ -125,16 +129,16 @@ Status read_deform_data(Volume *dx,
 }
 
 
-Status read_all_data(Volume *dblur,
-			     Volume *dx,
-			     Volume *dy,
-			     Volume *dz,
-			     Volume *dxyz, 
-			     char *name)
+VIO_Status read_all_data(VIO_Volume *dblur,
+                             VIO_Volume *dx,
+                             VIO_Volume *dy,
+                             VIO_Volume *dz,
+                             VIO_Volume *dxyz, 
+                             char *name)
 {
   char fullname[500];
-  Status status;
-  Volume tx, ty, tz, txyz, tblur;
+  VIO_Status status;
+  VIO_Volume tx, ty, tz, txyz, tblur;
   
   status = OK;
   
@@ -154,8 +158,8 @@ Status read_all_data(Volume *dblur,
       print_error_and_line_num("Cannot find %s\n",__FILE__, __LINE__, fullname);
     
     status = input_volume( fullname, 3, default_dim_names, 
-			  NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-			  TRUE, &txyz, (minc_input_options *)NULL );
+                          NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+                          TRUE, &txyz, (minc_input_options *)NULL );
     if (status != OK)
       print_error_and_line_num("problems reading in dxyz volume, maybe not enough memory!\n",__FILE__, __LINE__);
     
@@ -169,8 +173,8 @@ Status read_all_data(Volume *dblur,
       print_error_and_line_num("Cannot find %s\n",__FILE__, __LINE__, fullname);
     
     status = input_volume( fullname, 3, default_dim_names, 
-			  NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-			  TRUE, &tblur, (minc_input_options *)NULL );
+                          NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+                          TRUE, &tblur, (minc_input_options *)NULL );
     if (status != OK)
       print_error_and_line_num("problems reading in dxyz volume, maybe not enough memory!\n",__FILE__, __LINE__);
     
@@ -182,14 +186,14 @@ Status read_all_data(Volume *dblur,
 }
 
 
-Status save_deform_data(Volume dx,
-			       Volume dy,
-			       Volume dz,
-			       char *name,
-			       char *history)
+VIO_Status save_deform_data(VIO_Volume dx,
+                               VIO_Volume dy,
+                               VIO_Volume dz,
+                               char *name,
+                               char *history)
 {
   char fullname[500];
-  Status status;
+  VIO_Status status;
   
   status = OK;
   
@@ -202,8 +206,8 @@ Status save_deform_data(Volume dx,
   */
 
   status = output_volume(fullname, 
-			 NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-			 dx, history, (minc_output_options *)NULL );
+                         NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+                         dx, history, (minc_output_options *)NULL );
   if (status != OK)
     print_error_and_line_num("problems saving in dx volume.\n",__FILE__, __LINE__);
     
@@ -216,8 +220,8 @@ Status save_deform_data(Volume dx,
   */
 
   status = output_volume( fullname, 
-			NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-			dy, history, (minc_output_options *)NULL );
+                        NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+                        dy, history, (minc_output_options *)NULL );
   if (status != OK)
     print_error_and_line_num("problems saving in dy volume.\n",__FILE__, __LINE__);
   
@@ -231,8 +235,8 @@ Status save_deform_data(Volume dx,
 */
   
   status = output_volume( fullname, 
-			NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-			dz, history, (minc_output_options *)NULL );
+                        NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+                        dz, history, (minc_output_options *)NULL );
   if (status != OK)
     print_error_and_line_num("problems saving in dz volume.\n",__FILE__, __LINE__);
   

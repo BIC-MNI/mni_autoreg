@@ -3,9 +3,12 @@
 @DESCRIPTION: routines to calculate the objective function used for local
               optimization              
 @CREATED    : Nov 4, 1997, Louis Collins
-@VERSION    : $Id: def_obj_functions.c,v 1.12 2005-07-20 20:45:50 rotor Exp $
+@VERSION    : $Id: def_obj_functions.c,v 1.13 2006-11-29 09:09:34 rotor Exp $
 @MODIFIED   : $Log: def_obj_functions.c,v $
-@MODIFIED   : Revision 1.12  2005-07-20 20:45:50  rotor
+@MODIFIED   : Revision 1.13  2006-11-29 09:09:34  rotor
+@MODIFIED   :  * first bunch of changes for minc 2.0 compliance
+@MODIFIED   :
+@MODIFIED   : Revision 1.12  2005/07/20 20:45:50  rotor
 @MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
 @MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
 @MODIFIED   :     * Removed old VOLUME_IO cruft #defines
@@ -46,8 +49,8 @@
  *
 -----------------------------------------------------------------------------*/
 
-#include <config.h>		
-#include <volume_io.h>	
+#include <config.h>                
+#include <volume_io.h>        
 #include "constants.h"
 #include <arg_data.h>           /* definition of the global data struct      */
 #include <Proglib.h>
@@ -63,43 +66,43 @@ extern float
   *Gsqrt_features,
   **Ga1_features,
   *TX, *TY, *TZ;                /* from do_nonlinear.c */
-extern BOOLEAN 
+extern VIO_BOOL 
   **masked_samples_in_source;  /* from do_nonlinear.c */
 extern int 
   Glen;                         /* from do_nonlinear.c */
-extern Real                     /* from do_nonlinear.c */
+extern VIO_Real                     /* from do_nonlinear.c */
   Gtarget_vox_x, Gtarget_vox_y, Gtarget_vox_z,
   Gproj_d1,  Gproj_d1x,  Gproj_d1y,  Gproj_d1z, 
   Gproj_d2,  Gproj_d2x,  Gproj_d2y,  Gproj_d2z;
 extern double
   similarity_cost_ratio;
-extern Real     
+extern VIO_Real     
   Gcost_radius;                 /* from do_nonlinear.c */
 int 
-  nearest_neighbour_interpolant(Volume volume, 
+  nearest_neighbour_interpolant(VIO_Volume volume, 
                                 PointR *coord, double *result);
 int target_sample_count=0;
 
 void from_param_to_grid_weights(
-   Real p[],
-   Real grid[]);
+   VIO_Real p[],
+   VIO_Real grid[]);
 
 
-float go_get_samples_with_offset(Volume data, Volume model_mask,
-					float *x, float *y, float *z,
-					Real  dx, Real  dy, Real dz,
-					int obj_func,
-					int len, int *sample_count,
-					float sqrt_s1, float *a1, BOOLEAN *m1,
-					BOOLEAN use_nearest_neighbour);
+float go_get_samples_with_offset(VIO_Volume data, VIO_Volume model_mask,
+                                        float *x, float *y, float *z,
+                                        VIO_Real  dx, VIO_Real  dy, VIO_Real dz,
+                                        int obj_func,
+                                        int len, int *sample_count,
+                                        float sqrt_s1, float *a1, VIO_BOOL *m1,
+                                        VIO_BOOL use_nearest_neighbour);
 
 
 /* This is the COST FUNCTION TO BE MINIMIZED.
    so that very large displacements are impossible */
 
-static Real cost_fn(float x, float y, float z, Real max_length)
+static VIO_Real cost_fn(float x, float y, float z, VIO_Real max_length)
 {
-  Real v2,v,d;
+  VIO_Real v2,v,d;
 
   v2 = x*x + y*y + z*z;
   v = sqrt(v2);
@@ -130,10 +133,10 @@ static Real cost_fn(float x, float y, float z, Real max_length)
          D[3] stores the zdisp
 */
 
-static Real similarity_fn(float *d)
+static VIO_Real similarity_fn(float *d)
 {
   int i;
-  Real
+  VIO_Real
     norm,
     s, func_sim;
    
@@ -147,30 +150,30 @@ static Real similarity_fn(float *d)
   
   s = norm = 0.0;
     
-  for_less(i,0,Gglobals->features.number_of_features)  {
+  for(i=0; i<Gglobals->features.number_of_features; i++)  {
 
-				/* ignore OPTICAL FLOW objective functions, since it is
-				   computed directly and _not_ optimized */
+                                /* ignore OPTICAL FLOW objective functions, since it is
+                                   computed directly and _not_ optimized */
 
     if (Gglobals->features.obj_func[i] != NONLIN_OPTICALFLOW) {
       func_sim = 
-	(Real)go_get_samples_with_offset(Gglobals->features.model[i],
+        (VIO_Real)go_get_samples_with_offset(Gglobals->features.model[i],
                 Gglobals->features.model_mask[i],
-					 TX,TY,TZ,
-					 d[3], d[2], d[1],
-					 Gglobals->features.obj_func[i],
-					 Glen, &target_sample_count,
-					 Gsqrt_features[i], Ga1_features[i],
+                                         TX,TY,TZ,
+                                         d[3], d[2], d[1],
+                                         Gglobals->features.obj_func[i],
+                                         Glen, &target_sample_count,
+                                         Gsqrt_features[i], Ga1_features[i],
                 masked_samples_in_source[i],
-					 Gglobals->interpolant==nearest_neighbour_interpolant);
+                                         Gglobals->interpolant==nearest_neighbour_interpolant);
       
 
       norm += ABS(Gglobals->features.weight[i]);
       s += Gglobals->features.weight[i] * func_sim;
       
       /*
-	if ((Gglobals->features.obj_func[i]==NONLIN_CHAMFER) && (func_sim > 1.5))
-	do nothing, do not add the chamfer distance info 
+        if ((Gglobals->features.obj_func[i]==NONLIN_CHAMFER) && (func_sim > 1.5))
+        do nothing, do not add the chamfer distance info 
       */
       
     }
@@ -181,7 +184,7 @@ static Real similarity_fn(float *d)
     s = s / norm;
   else
     print_error_and_line_num("The feature weights are null.", 
-			     __FILE__, __LINE__);
+                             __FILE__, __LINE__);
 
   return( s );
 }
@@ -190,16 +193,16 @@ static Real similarity_fn(float *d)
    this is the objective function that needs to be minimized 
    to give a local deformation
 */
-Real local_objective_function(float *d)
+VIO_Real local_objective_function(float *d)
      
 {
-  Real
+  VIO_Real
     similarity,
     cost, 
     r;
   
-  similarity = (Real)similarity_fn( d );
-  cost       = (Real)cost_fn( d[1], d[2], d[3], Gcost_radius );
+  similarity = (VIO_Real)similarity_fn( d );
+  cost       = (VIO_Real)cost_fn( d[1], d[2], d[3], Gcost_radius );
   
   r = 1.0 - 
       similarity * similarity_cost_ratio + 
@@ -212,23 +215,23 @@ Real local_objective_function(float *d)
 /*  
     amoeba_NL_obj_function() is minimized in the amoeba() optimization function
 */
-Real amoeba_NL_obj_function(void * dummy, float d[])
+VIO_Real amoeba_NL_obj_function(void * dummy, float d[])
 {
   int i;
   float p[4];
-  Real
-    real_d[N_DIMENSIONS],
-    grid_weights[N_DIMENSIONS],
+  VIO_Real
+    real_d[VIO_N_DIMENSIONS],
+    grid_weights[VIO_N_DIMENSIONS],
     obj_func_val;
   
-  for_less(i,0,number_dimensions)
+  for(i=0; i<number_dimensions; i++)
     real_d[i] = d[i];
 
 
   from_param_to_grid_weights( real_d, grid_weights);
 
 
-  for_less(i,0,N_DIMENSIONS)
+  for(i=0; i<VIO_N_DIMENSIONS; i++)
     p[i+1] = (float)grid_weights[i];
 
 

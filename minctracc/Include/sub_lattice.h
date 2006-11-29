@@ -3,33 +3,33 @@
 @DESCRIPTION: prototypes for Optimize/sub_lattice.c
 @CREATED    : Mon Nov  3, 1997 , Louis Collins
 @MODIFIED   : not yet!
-@VERSION    : $Id: sub_lattice.h,v 1.3 2005-06-28 18:56:11 rotor Exp $
+@VERSION    : $Id: sub_lattice.h,v 1.4 2006-11-29 09:09:32 rotor Exp $
 -----------------------------------------------------------------------------*/
 
 
 void    
-build_source_lattice(Real x, Real y, Real z,
+build_source_lattice(VIO_Real x, VIO_Real y, VIO_Real z,
                      float PX[], float PY[], float PZ[],
-                     Real width_x, Real width_y, Real width_z, 
+                     VIO_Real width_x, VIO_Real width_y, VIO_Real width_z, 
                      int nx, int ny, int nz,
                      int ndim, int *length);
 
 void 
-go_get_samples_in_source(Volume data,Volume mask,
+go_get_samples_in_source(VIO_Volume data, VIO_Volume mask,
                          float x[], float y[], float z[],
                          float samples[],
-			 BOOLEAN masked_samples_in_source[],
+                         VIO_BOOL masked_samples_in_source[],
                          int len,
                          int inter_type);
 
 float 
-go_get_samples_with_offset(Volume data,Volume mask,
+go_get_samples_with_offset(VIO_Volume data, VIO_Volume mask,
                            float *x, float *y, float *z,
-                           Real  dx, Real  dy, Real dz,
+                           VIO_Real  dx, VIO_Real  dy, VIO_Real dz,
                            int obj_func,
                            int len,  int *sample_target_count, 
-                           float sqrt_s1, float *a1, BOOLEAN *m1,
-                           BOOLEAN use_nearest_neighbour);
+                           float sqrt_s1, float *a1, VIO_BOOL *m1,
+                           VIO_BOOL use_nearest_neighbour);
 
 void    
 build_target_lattice(float px[], float py[], float pz[],

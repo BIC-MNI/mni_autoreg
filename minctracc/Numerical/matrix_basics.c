@@ -9,7 +9,7 @@
                  matrix_multiply
                  trace
                  matrix_scalar_multiply
-		 invertmatrix
+                 invertmatrix
 @CALLS      : 
 @COPYRIGHT  :
               Copyright 1993 Peter Neelin, McConnell Brain Imaging Centre, 
@@ -24,7 +24,10 @@
 
 @CREATED    : January 31, 1992 (Peter Neelin)
 @MODIFIED   :  $Log: matrix_basics.c,v $
-@MODIFIED   :  Revision 96.5  2005-07-20 20:45:49  rotor
+@MODIFIED   :  Revision 96.6  2006-11-29 09:09:33  rotor
+@MODIFIED   :   * first bunch of changes for minc 2.0 compliance
+@MODIFIED   :
+@MODIFIED   :  Revision 96.5  2005/07/20 20:45:49  rotor
 @MODIFIED   :      * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
 @MODIFIED   :      * Many changes to includes of files (float.h, limits.h, etc)
 @MODIFIED   :      * Removed old VOLUME_IO cruft #defines
@@ -91,7 +94,7 @@ Fri Jun  4 14:10:34 EST 1993 LC
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/matrix_basics.c,v 96.5 2005-07-20 20:45:49 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/matrix_basics.c,v 96.6 2006-11-29 09:09:33 rotor Exp $";
 #endif
 
 #include <volume_io.h>
@@ -141,11 +144,11 @@ void nr_rotzd(double **M,double a);
 void nr_rotzf(float **M, float a);
 
 void nr_multd(double **A, int mA1, int mA2, int nA1, int nA2,
-		     double **B, int mB1, int mB2, int nB1, int nB2, 
-		     double **C);
+                     double **B, int mB1, int mB2, int nB1, int nB2, 
+                     double **C);
 void nr_multf(float **A, int mA1, int mA2, int nA1, int nA2,
-		     float **B, int mB1, int mB2, int nB1, int nB2, 
-		     float **C);
+                     float **B, int mB1, int mB2, int nB1, int nB2, 
+                     float **C);
 
 
 void transformations_to_homogeneous(int ndim, 
@@ -293,10 +296,10 @@ void transpose(int rows, int cols, float **mat, float **mat_transpose)
 
    float **Ctemp;
 
-   if (mat==mat_transpose) {	      /* if input and output the same, then alloc
-				         temporary space, so as not to overwrite
-					 the input before the compete transpose is 
-					 done. */
+   if (mat==mat_transpose) {              /* if input and output the same, then alloc
+                                         temporary space, so as not to overwrite
+                                         the input before the compete transpose is 
+                                         done. */
      /* Allocate a temporary matrix */
      ALLOC2D(Ctemp,cols+1,rows+1);
      
@@ -344,20 +347,20 @@ void raw_invertmatrix(int n, float **mat, float **mat_invert)
 
   int 
     i,j;
-  Real 
+  VIO_Real 
     **Rmat, **Rinv;
 
   ALLOC2D( Rmat, n, n );
   ALLOC2D( Rinv, n, n );
 
-  for (i=1; i<=n; ++i)		/* copy the input matrix */
+  for (i=1; i<=n; ++i)                /* copy the input matrix */
     for (j=1; j<=n; ++j) {
       Rmat[i-1][j-1] = mat[i][j];
     }
 
   (void)invert_square_matrix(n, Rmat, Rinv);
 
-  for (i=1; i<=n; ++i)		/* copy the result */
+  for (i=1; i<=n; ++i)                /* copy the result */
     for (j=1; j<=n; ++j) {
       mat_invert[i][j] = Rinv[i-1][j-1];
     }
@@ -366,7 +369,7 @@ void raw_invertmatrix(int n, float **mat, float **mat_invert)
   FREE2D( Rinv );
 
 /*
-			       this is the old inversion code
+                               this is the old inversion code
   float 
     d, **u, *col;
   int 
@@ -377,7 +380,7 @@ void raw_invertmatrix(int n, float **mat, float **mat_invert)
   col=vec tor(1,n);
   indx=ivec tor(1,n);
 
-  for (i=1; i<=n; ++i)		/ * copy the input matrix * /
+  for (i=1; i<=n; ++i)                / * copy the input matrix * /
     for (j=1; j<=n; ++j)
       u[i][j] = mat[i][j];
 
@@ -402,9 +405,9 @@ void invertmatrix(int ndim, float **mat, float **mat_invert)
   float **Ctemp;
   int i,j;
 
-  if (mat==mat_invert) {	      /* if input and output the same, then alloc
-				         temporary space, so as not to overwrite
-					 the input as the inverse is being done. */
+  if (mat==mat_invert) {              /* if input and output the same, then alloc
+                                         temporary space, so as not to overwrite
+                                         the input as the inverse is being done. */
     /* Allocate a temporary matrix */
     ALLOC2D(Ctemp,ndim+1,ndim+1);
     
@@ -414,7 +417,7 @@ void invertmatrix(int ndim, float **mat, float **mat_invert)
     /* Copy the result */
     for (i=1; i <= ndim; ++i)
       for (j=1; j <= ndim; ++j)
-	mat_invert[i][j] = Ctemp[i][j];
+        mat_invert[i][j] = Ctemp[i][j];
     
     /* Free the matrix */
     FREE2D(Ctemp);
@@ -578,7 +581,7 @@ void matrix_scalar_multiply(int rows, int cols, float scalar,
 @NAME       : nr_identd, nr_identf - make identity matrix
 @INPUT      : A - pointer to matrix
               m1,m2 - row limits
-	      n1,n2 - col limits
+              n1,n2 - col limits
               (matrix in zero offset form, allocated by calling routine)
 @OUTPUT     : identiy matrix in A
 @RETURNS    : (nothing)
@@ -597,10 +600,10 @@ void nr_identd(double **A, int m1, int m2, int n1, int n2 )
 
    for (i=m1; i<=m2; ++i)
       for (j=n1; j<=n2; ++j) {
-	 if (i==j) 
-	    A[i][j] = 1.0;
-	 else
-	    A[i][j] = 0.0;
+         if (i==j) 
+            A[i][j] = 1.0;
+         else
+            A[i][j] = 0.0;
       }
    
 }
@@ -612,10 +615,10 @@ void nr_identf(float **A, int m1, int m2, int n1, int n2 )
 
    for (i=m1; i<=m2; ++i)
       for (j=n1; j<=n2; ++j) {
-	 if (i==j) 
-	    A[i][j] = 1.0;
-	 else
-	    A[i][j] = 0.0;
+         if (i==j) 
+            A[i][j] = 1.0;
+         else
+            A[i][j] = 0.0;
       }
    
 }
@@ -624,7 +627,7 @@ void nr_identf(float **A, int m1, int m2, int n1, int n2 )
 @NAME       : nr_copyd, nr_copyf - copy matrix
 @INPUT      : A - source matrix
               m1,m2 - row limits
-	      n1,n2 - col limits
+              n1,n2 - col limits
               (matrix in zero offset form, allocated by calling routine)
 @OUTPUT     : B - copy of A
 @RETURNS    : (nothing)
@@ -642,7 +645,7 @@ void nr_copyd(double **A, int m1, int m2, int n1, int n2, double **B )
 
    for (i=m1; i<=m2; ++i)
       for (j=n1; j<=n2; ++j)
-	 B[i][j] = A[i][j];
+         B[i][j] = A[i][j];
 }
 
 void nr_copyf(float  **A, int m1, int m2, int n1, int n2, float **B )
@@ -651,7 +654,7 @@ void nr_copyf(float  **A, int m1, int m2, int n1, int n2, float **B )
 
    for (i=m1; i<=m2; ++i)
       for (j=n1; j<=n2; ++j)
-	 B[i][j] = A[i][j];
+         B[i][j] = A[i][j];
 }
 
 
@@ -738,7 +741,7 @@ void nr_rotyf(float **M, float a)
 @METHOD     : 
 rz = [cos(a)  -sin(a) 0  0
       sin(a) cos(a) 0  0
-	0     0      1  0
+        0     0      1  0
         0     0      0  1];
 @GLOBALS    : (none)
 @CALLS      : (nothing special)
@@ -767,10 +770,10 @@ void nr_rotzf(float **M, float a)
 @NAME       : nr_multd, nr_multf - mult matrix
 @INPUT      : A - source matrix
               mA1,mA2 - row limits of A
-	      nA1,nA2 - col limits of A
-	      B - source matrix
+              nA1,nA2 - col limits of A
+              B - source matrix
               mB1,mB2 - row limits of B
-	      nB1,nB2 - col limits of B
+              nB1,nB2 - col limits of B
               (matrix in zero offset form, allocated by calling routine)
 @OUTPUT     : C = A * B
 @RETURNS    : (nothing)
@@ -786,8 +789,8 @@ void nr_rotzf(float **M, float a)
 ---------------------------------------------------------------------------- */
 
 void nr_multd(double **A, int mA1, int mA2, int nA1, int nA2, 
-	 double **B, int mB1, int mB2, int nB1, int nB2, 
-	 double **C )
+         double **B, int mB1, int mB2, int nB1, int nB2, 
+         double **C )
 {
    int i, j, k;
 
@@ -805,8 +808,8 @@ void nr_multd(double **A, int mA1, int mA2, int nA1, int nA2,
 
 
 void nr_multf(float **A, int mA1, int mA2, int nA1, int nA2, 
-	 float **B, int mB1, int mB2, int nB1, int nB2, 
-	 float **C)
+         float **B, int mB1, int mB2, int nB1, int nB2, 
+         float **C)
 {
    int i, j, k;
 
@@ -1047,7 +1050,7 @@ void rotation_to_homogeneous(int ndim, float **rotation,
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 void angles_to_homogeneous(int ndim, float *angles,
-				  float **transformation)
+                                  float **transformation)
 {
    int i,j;
    int size;
@@ -1065,18 +1068,18 @@ void angles_to_homogeneous(int ndim, float *angles,
        nr_rotzf(rot_matrix,*angles );
      else
        make_rots(rot_matrix, 
-		 (float)(angles[0]),
-		 (float)(angles[1]),
-		 (float)(angles[2]));
+                 (float)(angles[0]),
+                 (float)(angles[1]),
+                 (float)(angles[2]));
 
      /* Construct  matrix */
      for (i=1; i<=size; i++) {
        for (j=1; j<=size; j++) {
          if ((i==size) || (j==size)) {
-	   transformation[i][j] = 0.0;
+           transformation[i][j] = 0.0;
          }
          else {
-	   transformation[i][j] = rot_matrix[i][j];
+           transformation[i][j] = rot_matrix[i][j];
          }
        }
      }

@@ -16,7 +16,10 @@
 @CREATED    : Wed May 26 13:05:44 EST 1993 LC using routines from NEELIN's
               mincresample.
 @MODIFIED   :  $Log: interpolation.c,v $
-@MODIFIED   :  Revision 96.5  2005-07-20 20:45:52  rotor
+@MODIFIED   :  Revision 96.6  2006-11-29 09:09:34  rotor
+@MODIFIED   :   * first bunch of changes for minc 2.0 compliance
+@MODIFIED   :
+@MODIFIED   :  Revision 96.5  2005/07/20 20:45:52  rotor
 @MODIFIED   :      * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
 @MODIFIED   :      * Many changes to includes of files (float.h, limits.h, etc)
 @MODIFIED   :      * Removed old VOLUME_IO cruft #defines
@@ -64,7 +67,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/interpolation.c,v 96.5 2005-07-20 20:45:52 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/interpolation.c,v 96.6 2006-11-29 09:09:34 rotor Exp $";
 #endif
 
 #include <volume_io.h>
@@ -88,7 +91,7 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 @MODIFIED   : Fri May 28 09:06:12 EST 1993 Louis Collins
                mod to use david's volume_struct
 ---------------------------------------------------------------------------- */
-int nearest_neighbour_interpolant(Volume volume, 
+int nearest_neighbour_interpolant(VIO_Volume volume, 
                                          PointR *coord, double *result)
 {
    long 
@@ -141,7 +144,7 @@ int nearest_neighbour_interpolant(Volume volume,
 @MODIFIED   : Fri May 28 09:06:12 EST 1993 Louis Collins
                mod to use david's volume_struct
 ---------------------------------------------------------------------------- */
-int trilinear_interpolant(Volume volume, 
+int trilinear_interpolant(VIO_Volume volume, 
                                  PointR *coord, double *result)
 {
   long ind0, ind1, ind2, max[3];
@@ -201,14 +204,14 @@ int trilinear_interpolant(Volume volume,
   
   *result =
     r0 *  (r1r2 * v000 +
-	   r1f2 * v001 +
-	   f1r2 * v010 +
-	   f1f2 * v011);
+           r1f2 * v001 +
+           f1r2 * v010 +
+           f1f2 * v011);
   *result +=
     f0 *  (r1r2 * v100 +
-	   r1f2 * v101 +
-	   f1r2 * v110 +
-	   f1f2 * v111);
+           r1f2 * v101 +
+           f1r2 * v110 +
+           f1f2 * v111);
 
   
   return TRUE;
@@ -234,7 +237,7 @@ int trilinear_interpolant(Volume volume,
 @MODIFIED   : Fri May 28 09:06:12 EST 1993 Louis Collins
                mod to use david's volume_struct
 ---------------------------------------------------------------------------- */
-void do_Ncubic_interpolation(Volume volume, 
+void do_Ncubic_interpolation(VIO_Volume volume, 
                                     long index[], int cur_dim, 
                                     double frac[], double *result)
 {
@@ -312,7 +315,7 @@ void do_Ncubic_interpolation(Volume volume,
 @MODIFIED   : Fri May 28 09:06:12 EST 1993 Louis Collins
                mod to use david's volume_struct
 ---------------------------------------------------------------------------- */
-int tricubic_interpolant(Volume volume, 
+int tricubic_interpolant(VIO_Volume volume, 
                                 PointR *coord, double *result)
 {
    long ind0, ind1, ind2, max[3], index[VOL_NDIMS];
@@ -369,40 +372,40 @@ int tricubic_interpolant(Volume volume,
    If the mask volume is NULL, we consider all points.
    Otherwise, consider a point if the mask volume value is > 0.
 */
-int point_not_masked( Volume volume, 
-			     Real wx, Real wy, Real wz)
+int point_not_masked( VIO_Volume volume, 
+                             VIO_Real wx, VIO_Real wy, VIO_Real wz)
 {
     double result;
     PointR coord;
 
     if ( volume == NULL )
-	return TRUE;
+        return TRUE;
 
     convert_3D_world_to_voxel( volume, wx, wy, wz, 
-			       &Point_x(coord), &Point_y(coord), &Point_z(coord) );
+                               &Point_x(coord), &Point_y(coord), &Point_z(coord) );
     
     /* interpolation returns TRUE iff coordinate is inside volume */
     if ( nearest_neighbour_interpolant(volume,&coord,&result) ) {
-	return (result > 0.0);
+        return (result > 0.0);
     }
 
     return(FALSE) ;
 }
 
 
-int voxel_point_not_masked( Volume volume, 
-                                   Real vx, Real vy, Real vz)
+int voxel_point_not_masked( VIO_Volume volume, 
+                                   VIO_Real vx, VIO_Real vy, VIO_Real vz)
 {
     double result;
     PointR coord;
   
     if ( volume == NULL )
-	return TRUE;
+        return TRUE;
 
-    fill_Point(coord, vx, vy, vz);
+    VIO_fill_Point(coord, vx, vy, vz);
     
     if ( nearest_neighbour_interpolant(volume,&coord,&result) ) {
-	return (result > 0.0);
+        return (result > 0.0);
     }
 
     return(FALSE) ;

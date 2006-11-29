@@ -11,9 +11,9 @@
  */
 
 void 
-create_super_sampled_data_volumes(General_transform *orig_deformation,
-				  General_transform *super_sampled,
-				  int super_step);
+create_super_sampled_data_volumes(VIO_General_transform *orig_deformation,
+                                  VIO_General_transform *super_sampled,
+                                  int super_step);
 
 
 /*
@@ -28,8 +28,8 @@ create_super_sampled_data_volumes(General_transform *orig_deformation,
    see interpolate_super_sampled_data_by2() (below) for speedy code for the
    special case when the super sampling rate is euqal to 2.
 */
-void interpolate_super_sampled_data(General_transform *orig_deformation,
-					   General_transform *super_sampled);
+void interpolate_super_sampled_data(VIO_General_transform *orig_deformation,
+                                           VIO_General_transform *super_sampled);
 
 
 /* build the volume structure and allocate the data space to store
@@ -50,8 +50,8 @@ void interpolate_super_sampled_data(General_transform *orig_deformation,
    new_count = old_count*2 - 1;
 
  */
-void create_super_sampled_data_volumes_by2(General_transform *orig_deformation,
-						  General_transform *super_sampled);
+void create_super_sampled_data_volumes_by2(VIO_General_transform *orig_deformation,
+                                                  VIO_General_transform *super_sampled);
 
 
 
@@ -91,7 +91,7 @@ void create_super_sampled_data_volumes_by2(General_transform *orig_deformation,
    'f' voxels.
    
 */
-void interpolate_super_sampled_data_by2( General_transform *orig_deformation,
-						General_transform *super_sampled);
+void interpolate_super_sampled_data_by2( VIO_General_transform *orig_deformation,
+                                                VIO_General_transform *super_sampled);
 
 #endif

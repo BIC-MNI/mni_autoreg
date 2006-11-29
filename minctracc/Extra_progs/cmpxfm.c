@@ -32,7 +32,7 @@ static ArgvInfo argTable[] = {
 
 
 /* Given a file name, check that it is a linear transform,
-   return pointer to (linear) Transform structure, if so.
+   return pointer to (linear) VIO_Transform structure, if so.
 */
 Transform* input_linear_transform( char* filename )
 {
@@ -41,15 +41,15 @@ Transform* input_linear_transform( char* filename )
     ALLOC( gt, 1 );
 
     if ( input_transform_file( filename, gt ) != OK ) {
-	fprintf( stderr, "%s: cannot read file %s\n",
-		 ProgName, filename );
-	return NULL;
+        fprintf( stderr, "%s: cannot read file %s\n",
+                 ProgName, filename );
+        return NULL;
     }
 
     if ( get_transform_type(gt) != LINEAR ) {
-	fprintf( stderr, "%s: transform in %s is not LINEAR\n",
-		 ProgName, filename );
-	return NULL;
+        fprintf( stderr, "%s: transform in %s is not LINEAR\n",
+                 ProgName, filename );
+        return NULL;
     }
 
     return get_linear_transform_ptr(gt);
@@ -57,29 +57,29 @@ Transform* input_linear_transform( char* filename )
 
 
 int do_compare( Transform* xfm1, Transform* xfm2,
-		int i_min, int i_cnt, 
-		int j_min, int j_cnt,
-		double tolerance )
+                int i_min, int i_cnt, 
+                int j_min, int j_cnt,
+                double tolerance )
 {
     int i, j;
     int ret = 0;
 
     for( i = i_min; i < i_min+i_cnt; ++i ) {
-	for( j = j_min; j < j_min+j_cnt; ++j ) {
-	    double diff = fabs( Transform_elem( *xfm1, i, j ) 
-				- Transform_elem( *xfm2, i, j ) );
-	    if ( diff > tolerance ) {
-		ret = 1;
-		if ( show_all ) {
-		    fprintf( stderr, "%s: difference at (%d,%d) is %f.\n",
-			     ProgName, i, j, diff );
-		} else {
-		    fprintf( stderr, "%s: transforms differ at element (%d,%d)\n", 
-			     ProgName, i, j );
-		    return 1;
-		}
-	    }
-	}
+        for( j = j_min; j < j_min+j_cnt; ++j ) {
+            double diff = fabs( Transform_elem( *xfm1, i, j ) 
+                                - Transform_elem( *xfm2, i, j ) );
+            if ( diff > tolerance ) {
+                ret = 1;
+                if ( show_all ) {
+                    fprintf( stderr, "%s: difference at (%d,%d) is %f.\n",
+                             ProgName, i, j, diff );
+                } else {
+                    fprintf( stderr, "%s: transforms differ at element (%d,%d)\n", 
+                             ProgName, i, j );
+                    return 1;
+                }
+            }
+        }
     }
     return ret;
 }
@@ -101,18 +101,18 @@ int main( int ac, char* av[] ) {
     linear_tolerance = translation_tolerance = sqrt( FLT_EPSILON );
 
     if ( ParseArgv( &ac, av, argTable, 0 ) || (ac != 3 )) {
-	fprintf( stderr, "\nUsage: %s [options] xfm1 xfm2\n",
-		 ProgName );
-	fprintf( stderr, "       %s -help\n\n", ProgName );
-	return 1;
+        fprintf( stderr, "\nUsage: %s [options] xfm1 xfm2\n",
+                 ProgName );
+        fprintf( stderr, "       %s -help\n\n", ProgName );
+        return 1;
     }
 
     xfm1 = input_linear_transform(av[1]);
     xfm2 = input_linear_transform(av[2]);
 
     if ( xfm1 == NULL || xfm2 == NULL )
-	return 1;
+        return 1;
 
     return do_compare( xfm1, xfm2, 0, 3, 0, 3, linear_tolerance )
-	|| do_compare( xfm1, xfm2, 0, 3, 3, 1, translation_tolerance );
+        || do_compare( xfm1, xfm2, 0, 3, 3, 1, translation_tolerance );
 }

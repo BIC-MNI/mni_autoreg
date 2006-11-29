@@ -9,7 +9,10 @@
 @CALLS      : 
 @CREATED    : Mon Sep 30 11:35:52 EDT 1996    LC
 @MODIFIED   : $Log: def_to_mag.c,v $
-@MODIFIED   : Revision 1.4  2005-07-20 20:45:46  rotor
+@MODIFIED   : Revision 1.5  2006-11-29 09:09:30  rotor
+@MODIFIED   :  * first bunch of changes for minc 2.0 compliance
+@MODIFIED   :
+@MODIFIED   : Revision 1.4  2005/07/20 20:45:46  rotor
 @MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
 @MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
 @MODIFIED   :     * Removed old VOLUME_IO cruft #defines
@@ -40,7 +43,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/def_to_mag.c,v 1.4 2005-07-20 20:45:46 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/def_to_mag.c,v 1.5 2006-11-29 09:09:30 rotor Exp $";
 #endif
 
 #include <stdlib.h>
@@ -55,12 +58,12 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #  define FALSE 0
 #endif
 
-				/* type of job to compute */
+                                /* type of job to compute */
 #define JOB_UNDEF 0
 #define JOB_SCALE 1
 #define JOB_MAG   2
 
-				/* type of neighbourhood to use */
+                                /* type of neighbourhood to use */
 #define NEIGHBOUR_6     1
 #define NEIGHBOUR_333   2
 #define NEIGHBOUR_555   3
@@ -69,22 +72,22 @@ static char *my_ZYX_dim_names[] = { MIzspace, MIyspace, MIxspace };
 
 void print_usage_and_exit(char *pname);
 
-void get_volume_XYZV_indices(Volume data, int xyzv[]);
+void get_volume_XYZV_indices(VIO_Volume data, int xyzv[]);
 
-BOOLEAN get_average_scale_from_neighbours(General_transform *trans,
-						 int voxel[],
-						 int avg_type,
-						 Real *scale);
+VIO_BOOL get_average_scale_from_neighbours(VIO_General_transform *trans,
+                                                 int voxel[],
+                                                 int avg_type,
+                                                 VIO_Real *scale);
 
-BOOLEAN get_magnitude(General_transform *trans,
+VIO_BOOL get_magnitude(VIO_General_transform *trans,
                              int voxel[],
-                             Real *dist);
+                             VIO_Real *dist);
 
 
 /* Main program */
 char *prog_name;
 
-Real real_range[2];
+VIO_Real real_range[2];
 int
     neighbour_type,
     job_type,
@@ -122,38 +125,38 @@ static ArgvInfo argTable[] = {
 int main(int argc, char *argv[])
 {
 
-   Volume
+   VIO_Volume
        output_vol,
        def_volume;
-   General_transform 
+   VIO_General_transform 
        *grid_transform_ptr,def_field;
    
-   Real
+   VIO_Real
        value,
-       voxel[MAX_DIMENSIONS],
-       steps[MAX_DIMENSIONS],
-       new_steps[MAX_DIMENSIONS],
-       start[MAX_DIMENSIONS],
-       new_start[MAX_DIMENSIONS];
+       voxel[VIO_MAX_DIMENSIONS],
+       steps[VIO_MAX_DIMENSIONS],
+       new_steps[VIO_MAX_DIMENSIONS],
+       start[VIO_MAX_DIMENSIONS],
+       new_start[VIO_MAX_DIMENSIONS];
    
    int
        parse_flag,
        i, trans_count,
        counter,
-       ind[MAX_DIMENSIONS],
-       count[MAX_DIMENSIONS],
-       new_count[MAX_DIMENSIONS],
-       new_xyzv[MAX_DIMENSIONS],
-       xyzv[MAX_DIMENSIONS];
+       ind[VIO_MAX_DIMENSIONS],
+       count[VIO_MAX_DIMENSIONS],
+       new_count[VIO_MAX_DIMENSIONS],
+       new_xyzv[VIO_MAX_DIMENSIONS],
+       xyzv[VIO_MAX_DIMENSIONS];
    
    char *infile,*outfile;
    
-   Status status;
-   progress_struct
+   VIO_Status status;
+   VIO_progress_struct
        progress;
 
    
-   verbose       = TRUE;	/* init some variables */
+   verbose       = TRUE;        /* init some variables */
    clobber_flag  = FALSE;
    debug         = FALSE;
    job_type      = JOB_SCALE;
@@ -177,7 +180,7 @@ int main(int argc, char *argv[])
    if (file_exists(outfile) && !clobber_flag)
    {
        (void) fprintf(stderr, "Error: file <%s> already exists,\nuse -clobber to overwrite.\n",
-		      outfile);
+                      outfile);
        exit(EXIT_FAILURE);
        
    }
@@ -190,18 +193,18 @@ int main(int argc, char *argv[])
    }
 
 
-   for_less(trans_count,0, get_n_concated_transforms(&def_field) ) {
+   for(trans_count=0; trans_count<get_n_concated_transforms(&def_field; trans_count++) ) {
        
        grid_transform_ptr = get_nth_general_transform(&def_field, trans_count );
 
-       def_volume = (Volume)NULL;
+       def_volume = (VIO_Volume)NULL;
        
        if (grid_transform_ptr->type == GRID_TRANSFORM) {
-	   def_volume = grid_transform_ptr->displacement_volume;
+           def_volume = grid_transform_ptr->displacement_volume;
        }
    }
    
-   if (def_volume == (Volume)NULL) 
+   if (def_volume == (VIO_Volume)NULL) 
    {
        (void) fprintf(stderr, "Input tranformation <%s> does\n",  infile);
        (void) fprintf(stderr, "not have a GRID_TRANSFORM.\n");
@@ -216,19 +219,19 @@ int main(int argc, char *argv[])
    output_vol = create_volume(3, my_ZYX_dim_names, NC_SHORT, TRUE, 0.0, 0.0);
    get_volume_XYZV_indices(output_vol, new_xyzv);
 
-   for_less(i,0,3) {
+   for(i=0; i<3; i++) {
      new_count[ new_xyzv[i] ] = count[ xyzv[i] ];
      new_steps[ new_xyzv[i] ] = steps[ xyzv[i] ];
    }
-   for_less(i,0,MAX_DIMENSIONS) {
+   for(i=0; i<MAX_DIMENSIONS; i++) {
      start[i] = 0.0;
      voxel[i] = 0.0;
      new_start[i] = 0.0;
    }
 
    convert_voxel_to_world(def_volume,
-			  voxel,
-			  &start[0], &start[1], &start[2]);
+                          voxel,
+                          &start[0], &start[1], &start[2]);
    
    set_volume_sizes(output_vol, new_count);
    set_volume_separations(output_vol, new_steps);
@@ -236,10 +239,10 @@ int main(int argc, char *argv[])
    alloc_volume_data(output_vol);
    set_volume_real_range(output_vol, real_range[0], real_range[1]);
 
-   for_less(i, 0, MAX_DIMENSIONS)
+   for(i=0; i<VIO_MAX_DIMENSIONS; i++)
        ind[ xyzv[i] ] = 0;
 
-				/* init the volume to the default value */
+                                /* init the volume to the default value */
    switch (job_type) 
    {
    case JOB_SCALE:
@@ -255,45 +258,45 @@ int main(int argc, char *argv[])
    }
    
    
-   for_less(ind[ xyzv[X] ], 0, count[  xyzv[X] ]) 
-       for_less(ind[ xyzv[Y] ], 0, count[  xyzv[Y] ]) 
-	   for_less(ind[ xyzv[Z] ], 0, count[  xyzv[Z] ]) {
-	       
-	       set_volume_real_value(output_vol,
-				     ind[ xyzv[Z] ], ind[ xyzv[Y] ], ind[ xyzv[X] ], 0, 0,
-				     value);
-	       
-	   }
+   for(ind[xyzv[VIO_X]]=0; ind[xyzv[VIO_X]]<count[xyzv[VIO_X]]; ind[xyzv[VIO_X]]++) 
+       for(ind[xyzv[VIO_Y]]=0; ind[xyzv[VIO_Y]]<count[xyzv[VIO_Y]]; ind[xyzv[VIO_Y]]++) 
+           for(ind[xyzv[VIO_Z]]=0; ind[xyzv[VIO_Z]]<count[xyzv[VIO_Z]]; ind[xyzv[VIO_Z]]++) {
+               
+               set_volume_real_value(output_vol,
+                                     ind[ xyzv[VIO_Z] ], ind[ xyzv[VIO_Y] ], ind[ xyzv[VIO_X] ], 0, 0,
+                                     value);
+               
+           }
    
-				/* now compute the scale factor */
+                                /* now compute the scale factor */
    
    if (verbose) initialize_progress_report(&progress, FALSE, 
-                                           (count[xyzv[X]]-2)*(count[xyzv[Y]]-2)*(count[xyzv[Z]]-2) + 1,
+                                           (count[xyzv[VIO_X]]-2)*(count[xyzv[VIO_Y]]-2)*(count[xyzv[VIO_Z]]-2) + 1,
                                            "Computing");
 
    counter = 0;
    
-   for_less(ind[ xyzv[X] ], 1, count[  xyzv[X] ]-1) 
-      for_less(ind[ xyzv[Y] ], 1, count[  xyzv[Y] ]-1) 
-         for_less(ind[ xyzv[Z] ], 1, count[  xyzv[Z] ]-1) {
+   for(ind[xyzv[VIO_X]]=1; ind[xyzv[VIO_X]]<count[xyzv[VIO_X]]-1; ind[xyzv[VIO_X]]++) 
+      for(ind[xyzv[VIO_Y]]=1; ind[xyzv[VIO_Y]]<count[xyzv[VIO_Y]]-1; ind[xyzv[VIO_Y]]++) 
+         for(ind[xyzv[VIO_Z]]=1; ind[xyzv[VIO_Z]]<count[xyzv[VIO_Z]]-1; ind[xyzv[VIO_Z]]++) {
             
             
             switch (job_type) {
                case JOB_SCALE:
-	       if (get_average_scale_from_neighbours(grid_transform_ptr,
-						     ind, neighbour_type, 
+               if (get_average_scale_from_neighbours(grid_transform_ptr,
+                                                     ind, neighbour_type, 
                                                      &value)) {
                   set_volume_real_value(output_vol,
-                                        ind[ xyzv[Z] ], ind[ xyzv[Y] ], ind[ xyzv[X] ], 
+                                        ind[ xyzv[VIO_Z] ], ind[ xyzv[VIO_Y] ], ind[ xyzv[VIO_X] ], 
                                         0, 0,
                                         value);
                }
                break;
                case JOB_MAG:
-	       if (get_magnitude(grid_transform_ptr,
+               if (get_magnitude(grid_transform_ptr,
                                  ind, &value)) {
                   set_volume_real_value(output_vol,
-                                        ind[ xyzv[Z] ], ind[ xyzv[Y] ], ind[ xyzv[X] ], 
+                                        ind[ xyzv[VIO_Z] ], ind[ xyzv[VIO_Y] ], ind[ xyzv[VIO_X] ], 
                                         0, 0,
                                         value);
                }
@@ -305,7 +308,7 @@ int main(int argc, char *argv[])
             }
             counter++;
             
-            if (verbose) 	update_progress_report( &progress, counter );
+            if (verbose)         update_progress_report( &progress, counter );
             
          }
 
@@ -314,8 +317,8 @@ int main(int argc, char *argv[])
    
    
    if (output_volume(outfile, NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-		     output_vol,
-		     NULL, (minc_output_options *)NULL) != OK) {
+                     output_vol,
+                     NULL, (minc_output_options *)NULL) != OK) {
        
        (void) fprintf(stderr,"Cannot write %s\n",outfile);
        exit( EXIT_FAILURE );
@@ -332,12 +335,12 @@ void print_usage_and_exit(char *pname) {
   (void) fprintf(stderr, "This program is used to extract local geometric information\n");
   (void) fprintf(stderr, "the GRID_TRANSFORM representation of a deformation field.\n\n");
   (void) fprintf(stderr, "Usage: %s [options] <input.xfm> <result.mnc>\n",
-		 pname);
+                 pname);
   exit(EXIT_FAILURE);
 
 }
 
-void get_volume_XYZV_indices(Volume data, int xyzv[])
+void get_volume_XYZV_indices(VIO_Volume data, int xyzv[])
 {
   
   int 
@@ -348,8 +351,8 @@ void get_volume_XYZV_indices(Volume data, int xyzv[])
   vol_dims       = get_volume_n_dimensions(data);
   data_dim_names = get_volume_dimension_names(data);
 
-  for_less(i,0,N_DIMENSIONS+1) xyzv[i] = -1;
-  for_less(i,0,vol_dims) {
+  for(i=0; i<N_DIMENSIONS+1; i++) xyzv[i] = -1;
+  for(i=0; i<vol_dims; i++) {
     if (convert_dim_name_to_spatial_axis(data_dim_names[i], &axis )) {
       xyzv[axis] = i; 
     } 
@@ -362,20 +365,20 @@ void get_volume_XYZV_indices(Volume data, int xyzv[])
 }
 
 
-BOOLEAN get_average_scale_from_neighbours(General_transform *trans,
-						 int voxel[],
-						 int avg_type,
-						 Real *scale)
+VIO_BOOL get_average_scale_from_neighbours(VIO_General_transform *trans,
+                                                 int voxel[],
+                                                 int avg_type,
+                                                 VIO_Real *scale)
 {
   int
-    start[MAX_DIMENSIONS],
-    end[MAX_DIMENSIONS],
+    start[VIO_MAX_DIMENSIONS],
+    end[VIO_MAX_DIMENSIONS],
     count, i, 
-    voxel2[MAX_DIMENSIONS],
-    xyzv[MAX_DIMENSIONS],
-    sizes[MAX_DIMENSIONS];
-  Real 
-      R_voxel[MAX_DIMENSIONS],
+    voxel2[VIO_MAX_DIMENSIONS],
+    xyzv[VIO_MAX_DIMENSIONS],
+    sizes[VIO_MAX_DIMENSIONS];
+  VIO_Real 
+      R_voxel[VIO_MAX_DIMENSIONS],
       mx, my, mz,
       dx,dy,dz,
       cx,cy,cz,
@@ -384,13 +387,13 @@ BOOLEAN get_average_scale_from_neighbours(General_transform *trans,
       dist,
       norm_dist,
       sum_dist,
-      seps[MAX_DIMENSIONS],
-      def_vector[N_DIMENSIONS];
-  Volume volume;
+      seps[VIO_MAX_DIMENSIONS],
+      def_vector[VIO_N_DIMENSIONS];
+  VIO_Volume volume;
   
   if (trans->type != GRID_TRANSFORM) {
     print_error_and_line_num("get_average_scale_from_neighbours not called with GRID_TRANSFORM",
-			     __FILE__, __LINE__);
+                             __FILE__, __LINE__);
     return (FALSE);
   }
 
@@ -402,108 +405,108 @@ BOOLEAN get_average_scale_from_neighbours(General_transform *trans,
   count = 0;
   mx = 0.0; my = 0.0; mz = 0.0; /* assume no warp vector in volume */
 
-				/* make sure voxel is in volume */
-  for_less(i,0,3 ) {
+                                /* make sure voxel is in volume */
+  for(i=0; i<3; i++) {
     if (voxel[ xyzv[i]]<0 || voxel[ xyzv[i] ]>=sizes[ xyzv[i]] ) {
        return (FALSE);
     }
   }
   
-  for_less(i,0,MAX_DIMENSIONS ) { /* copy the voxel position */
+  for(i=0; i<MAX_DIMENSIONS; i++) { /* copy the voxel position */
     voxel2[i] = voxel[i];
   }
   
 
-  for_less(i,0, MAX_DIMENSIONS) R_voxel[i] = voxel[i];
+  for(i=0; i<VIO_MAX_DIMENSIONS; i++) R_voxel[i] = voxel[i];
   convert_voxel_to_world(volume, R_voxel, &cbx, &cby, &cbz);
 
-  for_less(voxel2[ xyzv[Z+1] ], 0, sizes[ xyzv[Z+1] ]) {
+  for(voxel2[xyzv[Z+1]]=0; voxel2[xyzv[Z+1]]<sizes[xyzv[Z+1]]; voxel2[xyzv[Z+1]]++) {
       def_vector[voxel2[ xyzv[Z+1] ]] = 
-	  get_volume_real_value(volume,
-				voxel2[0],voxel2[1],voxel2[2],voxel2[3],voxel2[4]);
+          get_volume_real_value(volume,
+                                voxel2[0],voxel2[1],voxel2[2],voxel2[3],voxel2[4]);
   }
-  cx = cbx + def_vector[X];	     
-  cy = cby + def_vector[Y];
-  cz = cbz + def_vector[Z];
+  cx = cbx + def_vector[VIO_X];             
+  cy = cby + def_vector[VIO_Y];
+  cz = cbz + def_vector[VIO_Z];
   
   switch (avg_type) {
-  case 1:  {			/* get the 6 neighbours, 2 along
-				   each of the spatial axes,  if they exist 
-				   ie the 4-connected immediate neighbours only */
+  case 1:  {                        /* get the 6 neighbours, 2 along
+                                   each of the spatial axes,  if they exist 
+                                   ie the 4-connected immediate neighbours only */
 
       sum_dist = 0.0;
       
-      for_less(i, 0 , N_DIMENSIONS) {
-	  
-	  if ((voxel[ xyzv[i] ]+1) < sizes[ xyzv[i] ]) {
-	      
-	      voxel2[ xyzv[i] ] = voxel[ xyzv[i] ] + 1;
-	      
-	      for_less(voxel2[ xyzv[Z+1] ], 0, sizes[ xyzv[Z+1] ]) {
-		  def_vector[voxel2[ xyzv[Z+1] ]] = 
-		      get_volume_real_value(volume,
-					    voxel2[0],voxel2[1],voxel2[2],voxel2[3],voxel2[4]);
-	      }
-	      
-	      for_less(i,0, MAX_DIMENSIONS) R_voxel[i] = voxel2[i];
-	      convert_voxel_to_world(volume, R_voxel, &px, &py, &pz);
+      for(i=0; i<VIO_N_DIMENSIONS; i++) {
+          
+          if ((voxel[ xyzv[i] ]+1) < sizes[ xyzv[i] ]) {
+              
+              voxel2[ xyzv[i] ] = voxel[ xyzv[i] ] + 1;
+              
+              for(voxel2[xyzv[Z+1]]=0; voxel2[xyzv[Z+1]]<sizes[xyzv[Z+1]]; voxel2[xyzv[Z+1]]++) {
+                  def_vector[voxel2[ xyzv[Z+1] ]] = 
+                      get_volume_real_value(volume,
+                                            voxel2[0],voxel2[1],voxel2[2],voxel2[3],voxel2[4]);
+              }
+              
+              for(i=0; i<VIO_MAX_DIMENSIONS; i++) R_voxel[i] = voxel2[i];
+              convert_voxel_to_world(volume, R_voxel, &px, &py, &pz);
 
-	      norm_dist = sqrt ( (cbx-px)*(cbx-px) + (cby-py)*(cby-py) + (cbz-pz)*(cbz-pz) );
+              norm_dist = sqrt ( (cbx-px)*(cbx-px) + (cby-py)*(cby-py) + (cbz-pz)*(cbz-pz) );
 
-	      px += def_vector[X];	     
-	      py += def_vector[Y];
-	      pz += def_vector[Z];
-	      	      
-	      dist = sqrt ( (cx-px)*(cx-px) + (cy-py)*(cy-py) + (cz-pz)*(cz-pz) ) / 
-		  norm_dist;
-	      
+              px += def_vector[VIO_X];             
+              py += def_vector[VIO_Y];
+              pz += def_vector[VIO_Z];
+                            
+              dist = sqrt ( (cx-px)*(cx-px) + (cy-py)*(cy-py) + (cz-pz)*(cz-pz) ) / 
+                  norm_dist;
+              
 
-	      voxel2[ xyzv[i] ] = voxel[ xyzv[i] ];
-		  
-	      mx += def_vector[X]; my += def_vector[Y]; mz += def_vector[Z];
-	      ++count;
+              voxel2[ xyzv[i] ] = voxel[ xyzv[i] ];
+                  
+              mx += def_vector[VIO_X]; my += def_vector[VIO_Y]; mz += def_vector[VIO_Z];
+              ++count;
 
-	      sum_dist += dist;
-	  }
+              sum_dist += dist;
+          }
 
-	  
-	  if ((voxel[ xyzv[i] ]-1) >= 0) {
-	      voxel2[ xyzv[i] ] = voxel[ xyzv[i] ] - 1;
-	      
-	      for_less(voxel2[ xyzv[Z+1] ], 0, sizes[ xyzv[Z+1] ]) {
-		  def_vector[voxel2[ xyzv[Z+1] ]] = 
-		      get_volume_real_value(volume,
-					    voxel2[0],voxel2[1],voxel2[2],voxel2[3],voxel2[4]);
-	      }
-	      
-	      for_less(i,0, MAX_DIMENSIONS) R_voxel[i] = voxel2[i];
-	      convert_voxel_to_world(volume, R_voxel, &px, &py, &pz);
+          
+          if ((voxel[ xyzv[i] ]-1) >= 0) {
+              voxel2[ xyzv[i] ] = voxel[ xyzv[i] ] - 1;
+              
+              for(voxel2[xyzv[Z+1]]=0; voxel2[xyzv[Z+1]]<sizes[xyzv[Z+1]]; voxel2[xyzv[Z+1]]++) {
+                  def_vector[voxel2[ xyzv[Z+1] ]] = 
+                      get_volume_real_value(volume,
+                                            voxel2[0],voxel2[1],voxel2[2],voxel2[3],voxel2[4]);
+              }
+              
+              for(i=0; i<VIO_MAX_DIMENSIONS; i++) R_voxel[i] = voxel2[i];
+              convert_voxel_to_world(volume, R_voxel, &px, &py, &pz);
 
-	      norm_dist = sqrt ( (cbx-px)*(cbx-px) + (cby-py)*(cby-py) + (cbz-pz)*(cbz-pz) );
+              norm_dist = sqrt ( (cbx-px)*(cbx-px) + (cby-py)*(cby-py) + (cbz-pz)*(cbz-pz) );
 
-	      px += def_vector[X];	     
-	      py += def_vector[Y];
-	      pz += def_vector[Z];
-	      	      
-	      dist = sqrt ( (cx-px)*(cx-px) + (cy-py)*(cy-py) + (cz-pz)*(cz-pz) ) / 
-		  norm_dist;
-	      
-	      
-	      voxel2[ xyzv[i] ] = voxel[ xyzv[i] ];
-	      
-	      mx += def_vector[X]; my += def_vector[Y]; mz += def_vector[Z];
-	      ++count;
-	      sum_dist += dist;
-	  }
+              px += def_vector[VIO_X];             
+              py += def_vector[VIO_Y];
+              pz += def_vector[VIO_Z];
+                            
+              dist = sqrt ( (cx-px)*(cx-px) + (cy-py)*(cy-py) + (cz-pz)*(cz-pz) ) / 
+                  norm_dist;
+              
+              
+              voxel2[ xyzv[i] ] = voxel[ xyzv[i] ];
+              
+              mx += def_vector[VIO_X]; my += def_vector[VIO_Y]; mz += def_vector[VIO_Z];
+              ++count;
+              sum_dist += dist;
+          }
 
-	  
+          
       }
       break;
   }
-  case 2: {			/* 3x3x3 ie the 26 8-connected
-				   immediate neighbours only */
+  case 2: {                        /* 3x3x3 ie the 26 8-connected
+                                   immediate neighbours only */
     
-    for_less(i, 0 , N_DIMENSIONS) {
+    for(i=0; i<VIO_N_DIMENSIONS; i++) {
       start[i] = voxel[ xyzv[i] ] - 1;
       if (start[i]<0) start[i]=0;
       end[i] = voxel[ xyzv[i] ] + 1;
@@ -511,40 +514,40 @@ BOOLEAN get_average_scale_from_neighbours(General_transform *trans,
     }
     
     sum_dist = 0.0;    
-    for_inclusive(voxel2[ xyzv[X] ],start[X], end[X])
-      for_inclusive(voxel2[ xyzv[Y] ],start[Y], end[Y])
-	for_inclusive(voxel2[ xyzv[Z] ],start[Z], end[Z]) {
+    for(voxel2[xyzv[VIO_X]]=start[VIO_X]; voxel2[xyzv[VIO_X]]<=end[VIO_X]; voxel2[xyzv[VIO_X]]++)
+      for(voxel2[xyzv[VIO_Y]]=start[VIO_Y]; voxel2[xyzv[VIO_Y]]<=end[VIO_Y]; voxel2[xyzv[VIO_Y]]++)
+        for(voxel2[xyzv[VIO_Z]]=start[VIO_Z]; voxel2[xyzv[VIO_Z]]<=end[VIO_Z]; voxel2[xyzv[VIO_Z]]++) {
 
-	  if ((voxel2[ xyzv[X]] != voxel[ xyzv[X] ]) ||
-	      (voxel2[ xyzv[Y]] != voxel[ xyzv[Y] ]) ||
-	      (voxel2[ xyzv[Z]] != voxel[ xyzv[Z] ])) {
-	    for_less(voxel2[ xyzv[Z+1] ], 0, sizes[ xyzv[Z+1] ]) {
-	      def_vector[voxel2[ xyzv[Z+1] ]] = 
-		get_volume_real_value(volume,
-				      voxel2[0],voxel2[1],voxel2[2],voxel2[3],voxel2[4]);
-	    }
+          if ((voxel2[ xyzv[VIO_X]] != voxel[ xyzv[VIO_X] ]) ||
+              (voxel2[ xyzv[VIO_Y]] != voxel[ xyzv[VIO_Y] ]) ||
+              (voxel2[ xyzv[VIO_Z]] != voxel[ xyzv[VIO_Z] ])) {
+            for(voxel2[xyzv[Z+1]]=0; voxel2[xyzv[Z+1]]<sizes[xyzv[Z+1]]; voxel2[xyzv[Z+1]]++) {
+              def_vector[voxel2[ xyzv[Z+1] ]] = 
+                get_volume_real_value(volume,
+                                      voxel2[0],voxel2[1],voxel2[2],voxel2[3],voxel2[4]);
+            }
 
-	    for_less(i,0, MAX_DIMENSIONS) R_voxel[i] = voxel2[i];
-	    convert_voxel_to_world(volume, R_voxel, &px, &py, &pz);
+            for(i=0; i<VIO_MAX_DIMENSIONS; i++) R_voxel[i] = voxel2[i];
+            convert_voxel_to_world(volume, R_voxel, &px, &py, &pz);
 
-	    norm_dist = sqrt ( (cbx-px)*(cbx-px) + (cby-py)*(cby-py) + (cbz-pz)*(cbz-pz) );
-	    
-	    px += def_vector[X];	     
-	    py += def_vector[Y];
-	    pz += def_vector[Z];
-	    
-	    dist = sqrt ( (cx-px)*(cx-px) + (cy-py)*(cy-py) + (cz-pz)*(cz-pz) ) / 
-		norm_dist;
-	    	    
-	    mx += def_vector[X]; my += def_vector[Y]; mz += def_vector[Z];
-	    ++count;
-	    sum_dist += dist;
-	  }
-	}
+            norm_dist = sqrt ( (cbx-px)*(cbx-px) + (cby-py)*(cby-py) + (cbz-pz)*(cbz-pz) );
+            
+            px += def_vector[VIO_X];             
+            py += def_vector[VIO_Y];
+            pz += def_vector[VIO_Z];
+            
+            dist = sqrt ( (cx-px)*(cx-px) + (cy-py)*(cy-py) + (cz-pz)*(cz-pz) ) / 
+                norm_dist;
+                        
+            mx += def_vector[VIO_X]; my += def_vector[VIO_Y]; mz += def_vector[VIO_Z];
+            ++count;
+            sum_dist += dist;
+          }
+        }
     break;
   }
-  case 3: {			/* 5x5x5 */
-    for_less(i, 0 , N_DIMENSIONS) {
+  case 3: {                        /* 5x5x5 */
+    for(i=0; i<VIO_N_DIMENSIONS; i++) {
       start[i] = voxel[ xyzv[i] ] - 2;
       if (start[i]<0) start[i]=0;
       end[i] = voxel[ xyzv[i] ] + 2;
@@ -552,45 +555,45 @@ BOOLEAN get_average_scale_from_neighbours(General_transform *trans,
     }
     
     sum_dist = 0.0;    
-    for_inclusive(voxel2[ xyzv[X] ],start[X], end[X])
-      for_inclusive(voxel2[ xyzv[Y] ],start[Y], end[Y])
-	for_inclusive(voxel2[ xyzv[Z] ],start[Z], end[Z]) {
-	  
-	  if ((voxel2[ xyzv[X]] != voxel[ xyzv[X] ]) ||
-	      (voxel2[ xyzv[Y]] != voxel[ xyzv[Y] ]) ||
-	      (voxel2[ xyzv[Z]] != voxel[ xyzv[Z] ])) {
+    for(voxel2[xyzv[VIO_X]]=start[VIO_X]; voxel2[xyzv[VIO_X]]<=end[VIO_X]; voxel2[xyzv[VIO_X]]++)
+      for(voxel2[xyzv[VIO_Y]]=start[VIO_Y]; voxel2[xyzv[VIO_Y]]<=end[VIO_Y]; voxel2[xyzv[VIO_Y]]++)
+        for(voxel2[xyzv[VIO_Z]]=start[VIO_Z]; voxel2[xyzv[VIO_Z]]<=end[VIO_Z]; voxel2[xyzv[VIO_Z]]++) {
+          
+          if ((voxel2[ xyzv[VIO_X]] != voxel[ xyzv[VIO_X] ]) ||
+              (voxel2[ xyzv[VIO_Y]] != voxel[ xyzv[VIO_Y] ]) ||
+              (voxel2[ xyzv[VIO_Z]] != voxel[ xyzv[VIO_Z] ])) {
 
-	    for_less(voxel2[ xyzv[Z+1] ], 0, sizes[ xyzv[Z+1] ]) {
-	      def_vector[voxel2[ xyzv[Z+1] ]] = 
-		get_volume_real_value(volume,
-				      voxel2[0],voxel2[1],voxel2[2],voxel2[3],voxel2[4]);
-	    }
+            for(voxel2[xyzv[Z+1]]=0; voxel2[xyzv[Z+1]]<sizes[xyzv[Z+1]]; voxel2[xyzv[Z+1]]++) {
+              def_vector[voxel2[ xyzv[Z+1] ]] = 
+                get_volume_real_value(volume,
+                                      voxel2[0],voxel2[1],voxel2[2],voxel2[3],voxel2[4]);
+            }
 
-	    for_less(i,0, MAX_DIMENSIONS) R_voxel[i] = voxel2[i];
-	    convert_voxel_to_world(volume, R_voxel, &px, &py, &pz);
+            for(i=0; i<VIO_MAX_DIMENSIONS; i++) R_voxel[i] = voxel2[i];
+            convert_voxel_to_world(volume, R_voxel, &px, &py, &pz);
 
-	    norm_dist = sqrt ( (cbx-px)*(cbx-px) + (cby-py)*(cby-py) + (cbz-pz)*(cbz-pz) );
-	    
-	    px += def_vector[X];	     
-	    py += def_vector[Y];
-	    pz += def_vector[Z];
+            norm_dist = sqrt ( (cbx-px)*(cbx-px) + (cby-py)*(cby-py) + (cbz-pz)*(cbz-pz) );
+            
+            px += def_vector[VIO_X];             
+            py += def_vector[VIO_Y];
+            pz += def_vector[VIO_Z];
 
-	    
-	    dist = sqrt ( (cx-px)*(cx-px) + (cy-py)*(cy-py) + (cz-pz)*(cz-pz) ) / 
-		norm_dist;
-	    
-	    mx += def_vector[X]; my += def_vector[Y]; mz += def_vector[Z];
-	    ++count;
-	    sum_dist += dist;
+            
+            dist = sqrt ( (cx-px)*(cx-px) + (cy-py)*(cy-py) + (cz-pz)*(cz-pz) ) / 
+                norm_dist;
+            
+            mx += def_vector[VIO_X]; my += def_vector[VIO_Y]; mz += def_vector[VIO_Z];
+            ++count;
+            sum_dist += dist;
 
-	  }
-	}
+          }
+        }
     break;
     
   }
   }    
 
-  if (count>0) {		/* average scale value */
+  if (count>0) {                /* average scale value */
     *scale = sum_dist / count; 
     return(TRUE);
   }
@@ -600,25 +603,25 @@ BOOLEAN get_average_scale_from_neighbours(General_transform *trans,
 }
 
 
-BOOLEAN get_magnitude(General_transform *trans,
+VIO_BOOL get_magnitude(VIO_General_transform *trans,
                              int voxel[],
-                             Real *dist)
+                             VIO_Real *dist)
 {
   int
-    start[MAX_DIMENSIONS],
-    end[MAX_DIMENSIONS],
+    start[VIO_MAX_DIMENSIONS],
+    end[VIO_MAX_DIMENSIONS],
     count, i, 
-    voxel2[MAX_DIMENSIONS],
-    xyzv[MAX_DIMENSIONS],
-    sizes[MAX_DIMENSIONS];
-  Real 
-      seps[MAX_DIMENSIONS],
-      def_vector[N_DIMENSIONS];
-  Volume volume;
+    voxel2[VIO_MAX_DIMENSIONS],
+    xyzv[VIO_MAX_DIMENSIONS],
+    sizes[VIO_MAX_DIMENSIONS];
+  VIO_Real 
+      seps[VIO_MAX_DIMENSIONS],
+      def_vector[VIO_N_DIMENSIONS];
+  VIO_Volume volume;
   
   if (trans->type != GRID_TRANSFORM) {
     print_error_and_line_num("get_magnitude not called with GRID_TRANSFORM",
-			     __FILE__, __LINE__);
+                             __FILE__, __LINE__);
     return (FALSE);
   }
 
@@ -629,22 +632,22 @@ BOOLEAN get_magnitude(General_transform *trans,
   get_volume_XYZV_indices(volume, xyzv);
   count = 0;
 
-				/* make sure voxel is in volume */
-  for_less(i,0,3 ) {
+                                /* make sure voxel is in volume */
+  for(i=0; i<3; i++) {
     if (voxel[ xyzv[i]]<0 || voxel[ xyzv[i] ]>=sizes[ xyzv[i]] ) {
        return (FALSE);
     }
   }
   
   
-  for_less(voxel[ xyzv[Z+1] ], 0, sizes[ xyzv[Z+1] ]) {
+  for(voxel[xyzv[Z+1]]=0; voxel[xyzv[Z+1]]<sizes[xyzv[Z+1]]; voxel[xyzv[Z+1]]++) {
      def_vector[voxel[ xyzv[Z+1] ]] = 
         get_volume_real_value(volume,
                               voxel[0],voxel[1],voxel[2],voxel[3],voxel[4]);
   }
-  *dist = sqrt ((def_vector[X]*def_vector[X]) + 
-                (def_vector[Y]*def_vector[Y]) + 
-                (def_vector[Z]*def_vector[Z]));
+  *dist = sqrt ((def_vector[VIO_X]*def_vector[VIO_X]) + 
+                (def_vector[VIO_Y]*def_vector[VIO_Y]) + 
+                (def_vector[VIO_Z]*def_vector[VIO_Z]));
   return(TRUE);
 
 }

@@ -3,7 +3,7 @@
 #include <Proglib.h>
 
 
-static char *default_dim_names[N_DIMENSIONS] =
+static char *default_dim_names[VIO_N_DIMENSIONS] =
    { MIzspace, MIyspace, MIxspace };
 
 #define LONGISH_CONST 8
@@ -12,7 +12,7 @@ static char *default_dim_names[N_DIMENSIONS] =
 #define UPPER_VOLUME_LIMIT 40000
 
 int    clobber,debug;
-Real   base_limit,
+VIO_Real   base_limit,
        length_limit, 
        vol_thres[2];
 
@@ -36,12 +36,12 @@ char   mask_name[1024];
   {NULL, ARGV_END, NULL, NULL, NULL}
   };
   
-void remove_voxels(Volume d1, int number)
+void remove_voxels(VIO_Volume d1, int number)
 {
     int 
-	v, sizes[3], i,j,k;
-    Real 
-	zero, voxel_value, obj_value;
+        v, sizes[3], i,j,k;
+    VIO_Real 
+        zero, voxel_value, obj_value;
 
     get_volume_sizes(d1, sizes);
 
@@ -50,22 +50,22 @@ void remove_voxels(Volume d1, int number)
     zero = CONVERT_VALUE_TO_VOXEL(d1, 0.0);
     zero = CONVERT_VOXEL_TO_VALUE(d1, zero);
     
-    for_less(i,0,sizes[0])
-	for_less(j,0,sizes[1])
-	    for_less(k,0,sizes[2]) 
-	    {
-		GET_VOXEL_3D(voxel_value, d1, i,j,k);
-		if (voxel_value == obj_value) 
-		    SET_VOXEL_3D(d1, i,j,k, zero);
-	    }
+    for(i=0; i<sizes[0]; i++)
+        for(j=0; j<sizes[1]; j++)
+            for(k=0; k<sizes[2]; k++) 
+            {
+                GET_VOXEL_3D(voxel_value, d1, i,j,k);
+                if (voxel_value == obj_value) 
+                    SET_VOXEL_3D(d1, i,j,k, zero);
+            }
     
     
 }
 
-BOOLEAN vol_to_cov(Volume d1, int number, float *vol, float *centroid, float **covar)
+VIO_BOOL vol_to_cov(VIO_Volume d1, int number, float *vol, float *centroid, float **covar)
 {
 
-  Real
+  VIO_Real
       obj_value,
     tx,ty,tz,
     voxel_value;
@@ -78,12 +78,12 @@ BOOLEAN vol_to_cov(Volume d1, int number, float *vol, float *centroid, float **c
     sxx,syy,szz,
     sxy,syz,sxz,
     sx,sy,sz,si; 
-  Real
+  VIO_Real
     thickness[3];
   int
     sizes[3];
 
-  Real
+  VIO_Real
       dx,dy,dz,
       zero,
       true_value,
@@ -101,28 +101,28 @@ BOOLEAN vol_to_cov(Volume d1, int number, float *vol, float *centroid, float **c
   get_volume_sizes(d1, sizes);
 
 
-				/* calculate centroids first */
+                                /* calculate centroids first */
   sx = 0.0;
   sy = 0.0;
   sz = 0.0;
   si = 0.0;
   
-  for_less(i,0,sizes[0])
-      for_less(j,0,sizes[1])
-	  for_less(k,0,sizes[2]) 
-	  {
-	      GET_VOXEL_3D(voxel_value, d1, i,j,k);
-	      if (voxel_value == obj_value) {
-		  
-		  convert_3D_voxel_to_world(d1, (Real)i, (Real)j, (Real)k, 
-					    &tx, &ty, &tz); 
-		  sx +=  tx;
-		  sy +=  ty;
-		  sz +=  tz;
-		  si += 1.0;
-		  
-	      }
-	  }
+  for(i=0; i<sizes[0]; i++)
+      for(j=0; j<sizes[1]; j++)
+          for(k=0; k<sizes[2]; k++) 
+          {
+              GET_VOXEL_3D(voxel_value, d1, i,j,k);
+              if (voxel_value == obj_value) {
+                  
+                  convert_3D_voxel_to_world(d1, (VIO_Real)i, (VIO_Real)j, (VIO_Real)k, 
+                                            &tx, &ty, &tz); 
+                  sx +=  tx;
+                  sy +=  ty;
+                  sz +=  tz;
+                  si += 1.0;
+                  
+              }
+          }
   
   *vol = si * thickness[0]*thickness[1]*thickness[2];
   
@@ -140,31 +140,31 @@ BOOLEAN vol_to_cov(Volume d1, int number, float *vol, float *centroid, float **c
       sxy = syz = sxz = 0.0;
       
       /* now calculate variances and co-variances */
-      for_less(i,0,sizes[0]) {	  
-	  for_less(j,0,sizes[1]) { 	      
-	      for_less(k,0,sizes[2])   {
-		  GET_VOXEL_3D(voxel_value, d1, i,j,k);
-		  if (voxel_value == obj_value) {
-		      
-		      convert_3D_voxel_to_world(d1, (Real)i, (Real)j, (Real)k, 
-						&tx, &ty, &tz); 
-		      
-		      dx = tx-sx;
-		      dy = ty-sy;
-		      dz = tz-sz;
+      for(i=0; i<sizes[0]; i++) {          
+          for(j=0; j<sizes[1]; j++) {               
+              for(k=0; k<sizes[2]; k++)   {
+                  GET_VOXEL_3D(voxel_value, d1, i,j,k);
+                  if (voxel_value == obj_value) {
+                      
+                      convert_3D_voxel_to_world(d1, (VIO_Real)i, (VIO_Real)j, (VIO_Real)k, 
+                                                &tx, &ty, &tz); 
+                      
+                      dx = tx-sx;
+                      dy = ty-sy;
+                      dz = tz-sz;
 
-		      
-		      sxx += dx * dx;
-		      syy += dy * dy;
-		      szz += dz * dz;
-		      sxy += dx * dy;
-		      syz += dy * dz;
-		      sxz += dx * dz;
-		  }
-		  
-		  
-	      }
-	  }
+                      
+                      sxx += dx * dx;
+                      syy += dy * dy;
+                      szz += dz * dz;
+                      sxy += dx * dy;
+                      syz += dy * dz;
+                      sxz += dx * dz;
+                  }
+                  
+                  
+              }
+          }
       }
       
       
@@ -186,44 +186,44 @@ BOOLEAN vol_to_cov(Volume d1, int number, float *vol, float *centroid, float **c
    decide whether the object may be a tube. Recall that the principal
    axis are stored in columns 1,2 and 3 of the praxes[4][4] matrix. */
 
-BOOLEAN this_is_a_tube( float vol, float *centroid, float **praxes) 
+VIO_BOOL this_is_a_tube( float vol, float *centroid, float **praxes) 
 {
-    Real 
-	max_len, min_len, lengths[3], tmp_len, base;
-    BOOLEAN
-	base_val,
-	longish,
-	right_vol;
+    VIO_Real 
+        max_len, min_len, lengths[3], tmp_len, base;
+    VIO_BOOL
+        base_val,
+        longish,
+        right_vol;
     int i, tmp_i;
     
 
-				/* check volume */
+                                /* check volume */
     right_vol =  (vol > vol_thres[0] && vol < vol_thres[1]);
 
 
-				/* check longishness  */
-    for_less(i,0,3) 
+                                /* check longishness  */
+    for(i=0; i<3; i++) 
     {
-	lengths[i] = sqrt(praxes[1][i+1]*praxes[1][i+1] +
-			  praxes[2][i+1]*praxes[2][i+1] +
-			  praxes[3][i+1]*praxes[3][i+1]);
-	
+        lengths[i] = sqrt(praxes[1][i+1]*praxes[1][i+1] +
+                          praxes[2][i+1]*praxes[2][i+1] +
+                          praxes[3][i+1]*praxes[3][i+1]);
+        
     }
 
     base =  lengths[1] * lengths[2] ;
     
     if (base > 0.0) 
     {
-	 if (debug) print ("vol = %f lengths = %f,%f,%f; base = %f, len ratio = %f \n", 
-			   vol, lengths[0] , lengths[1], lengths[2], 
-			   lengths[1]  / lengths[2], lengths[0]  / lengths[2]);
-	
-	longish =  (lengths[0]  / lengths[2] ) > length_limit;
-	base_val = (lengths[1]  / lengths[2] ) < base_limit;
+         if (debug) print ("vol = %f lengths = %f,%f,%f; base = %f, len ratio = %f \n", 
+                           vol, lengths[0] , lengths[1], lengths[2], 
+                           lengths[1]  / lengths[2], lengths[0]  / lengths[2]);
+        
+        longish =  (lengths[0]  / lengths[2] ) > length_limit;
+        base_val = (lengths[1]  / lengths[2] ) < base_limit;
     }
     else 
     {
-	return(FALSE);
+        return(FALSE);
     }
     
     return( base_val && longish && right_vol );    
@@ -237,10 +237,10 @@ float angle_from( float x, float y)
 
     if (y!=0.0) 
     {
-	angle = 180 * atan( x/ y) / M_PI;	
+        angle = 180 * atan( x/ y) / M_PI;        
     }
     else
-	angle = 0.0;
+        angle = 0.0;
     
 
     return(angle);    
@@ -248,52 +248,52 @@ float angle_from( float x, float y)
 
 void write_out_tube_options (float *centroid, float **praxes) 
 {
-    Real 
-	xrot, yrot, zrot, max_len, min_len, lengths[3];
-    BOOLEAN
-	longish,
-	right_vol;
+    VIO_Real 
+        xrot, yrot, zrot, max_len, min_len, lengths[3];
+    VIO_BOOL
+        longish,
+        right_vol;
     int j,i,max_ind;
     float  *ang;
     
 
     ALLOC  (ang,4);
     
-				/* get principal axis lengths */
-    for_less(i,0,3) 
+                                /* get principal axis lengths */
+    for(i=0; i<3; i++) 
     {
-	lengths[i] = sqrt(praxes[1][i+1]*praxes[1][i+1] +
-			  praxes[2][i+1]*praxes[2][i+1] +
-			  praxes[3][i+1]*praxes[3][i+1]);
+        lengths[i] = sqrt(praxes[1][i+1]*praxes[1][i+1] +
+                          praxes[2][i+1]*praxes[2][i+1] +
+                          praxes[3][i+1]*praxes[3][i+1]);
     }
 
-			/* find index of principal axis */
+                        /* find index of principal axis */
     if ( praxes[1][1] > praxes[2][1])
-	max_ind = 1; 
+        max_ind = 1; 
     else
-	max_ind = 2;
+        max_ind = 2;
     if (praxes[max_ind][1] < praxes[3][1])
-	max_ind = 3;
+        max_ind = 3;
     
     xrot = yrot = zrot = 0.0;
     
     switch (max_ind) 
     {
-    case 1:			/* x axis */
-	yrot = angle_from( -praxes[3][1], praxes[1][1]);
-	zrot = angle_from( praxes[2][1], praxes[1][1]);
-	print ("model= LR_tube.mnc ");
-	break;
-    case 2:			/* y axis */
-	xrot = angle_from( praxes[3][1], praxes[2][1]);
-	zrot = angle_from( -praxes[1][1], praxes[2][1]);
-	print ("model= AP_tube.mnc ");
-	break;
-    case 3:			/* z axis */
-	xrot = angle_from( -praxes[2][1], praxes[3][1]);
-	yrot = angle_from( praxes[1][1], praxes[3][1]);
-	print ("model= VERT_tube.mnc ");
-	break;
+    case 1:                        /* x axis */
+        yrot = angle_from( -praxes[3][1], praxes[1][1]);
+        zrot = angle_from( praxes[2][1], praxes[1][1]);
+        print ("model= LR_tube.mnc ");
+        break;
+    case 2:                        /* y axis */
+        xrot = angle_from( praxes[3][1], praxes[2][1]);
+        zrot = angle_from( -praxes[1][1], praxes[2][1]);
+        print ("model= AP_tube.mnc ");
+        break;
+    case 3:                        /* z axis */
+        xrot = angle_from( -praxes[2][1], praxes[3][1]);
+        yrot = angle_from( praxes[1][1], praxes[3][1]);
+        print ("model= VERT_tube.mnc ");
+        break;
     }
     
 
@@ -312,10 +312,10 @@ void write_out_tube_options (float *centroid, float **praxes)
 char *prog_name;
 main(int argc, char *argv[])
 {
-  Volume vol;
+  VIO_Volume vol;
   float **cov, **cov2, **praxes, *cog, volume_of_object;
   int i,j,obj_number;
-  Real number_of_objects;
+  VIO_Real number_of_objects;
   
   char 
       *history;
@@ -340,7 +340,7 @@ main(int argc, char *argv[])
 
   prog_name = argv[0];
   input_volume(argv[1],3,default_dim_names /*(char **)NULL*/, NC_BYTE, FALSE, 0.0,0.0,
-	       TRUE, &vol, (minc_input_options *)NULL);
+               TRUE, &vol, (minc_input_options *)NULL);
 
 
   ALLOC2D(cov,4,4);
@@ -350,70 +350,70 @@ main(int argc, char *argv[])
 
   number_of_objects = get_volume_real_max (vol);
   
-  for_less(obj_number, 1, (number_of_objects+0.1)) 
+  for(obj_number=1; obj_number<(number_of_objects+0.1; obj_number++)) 
   {
       
       if (vol_to_cov(vol, obj_number, &volume_of_object, cog, cov )) 
       {
-	  for_less(i,1,4)
-	      for_less(j,1,4)
-		  cov2[i][j] = cov[i][j];
-	  
-	  /* get the principal axis corresponding to the covariance
+          for(i=1; i<4; i++)
+              for(j=1; j<4; j++)
+                  cov2[i][j] = cov[i][j];
+          
+          /* get the principal axis corresponding to the covariance
              matrix, note that the principal axes are in columns! */
-	  cov_to_praxes(3, cov2, praxes);
+          cov_to_praxes(3, cov2, praxes);
 
-	  /* now test the principal axis to judge 'tube-ness' */
+          /* now test the principal axis to judge 'tube-ness' */
 
-	  if (debug) {
+          if (debug) {
 
-	      print ("\nStarting object %d\n", obj_number);
-	      
-	      if (this_is_a_tube(volume_of_object, cog, praxes )) 
-		  (void)print ("object %d is a tube\n",obj_number);
-	      else
-		  (void)print ("object %d is not considered a tube\n",obj_number);
+              print ("\nStarting object %d\n", obj_number);
+              
+              if (this_is_a_tube(volume_of_object, cog, praxes )) 
+                  (void)print ("object %d is a tube\n",obj_number);
+              else
+                  (void)print ("object %d is not considered a tube\n",obj_number);
 
-	      (void)print ("vol: %f \n",volume_of_object);
-	      (void)print ("cog: %f %f %f\n",cog[1],cog[2],cog[3]);
-	      
-	      print ("covar:\n");
-	      for_less(i,1,4) {
-		  for_less(j,1,4) 
-		      print ("%f ", cov[i][j] );
-		  print ("\n");	      
-	      }
-	      
-	      print ("praxes:\nc1: ");
-	      for_less(i,1,4) {
-		  for_less(j,1,4) 
-		      print ("%f ", praxes[j][i] );
-		  if (i<3) 
-		      print ("\nc%d: ",i+1);
-		  else
-		      print ("\n");	      
-	      }
-	  }
-	  
-	  if (this_is_a_tube(volume_of_object, cog, praxes )) 
-	  {	  
+              (void)print ("vol: %f \n",volume_of_object);
+              (void)print ("cog: %f %f %f\n",cog[1],cog[2],cog[3]);
+              
+              print ("covar:\n");
+              for(i=1; i<4; i++) {
+                  for(j=1; j<4; j++) 
+                      print ("%f ", cov[i][j] );
+                  print ("\n");              
+              }
+              
+              print ("praxes:\nc1: ");
+              for(i=1; i<4; i++) {
+                  for(j=1; j<4; j++) 
+                      print ("%f ", praxes[j][i] );
+                  if (i<3) 
+                      print ("\nc%d: ",i+1);
+                  else
+                      print ("\n");              
+              }
+          }
+          
+          if (this_is_a_tube(volume_of_object, cog, praxes )) 
+          {          
 
-	      print ("Object %d: ",obj_number);	     
+              print ("Object %d: ",obj_number);             
 
-	      write_out_tube_options( cog, praxes );
-	      
-	  }
-	  else 
-	  {
-	      remove_voxels(vol, obj_number);
-	  }
-	  
-	  
+              write_out_tube_options( cog, praxes );
+              
+          }
+          else 
+          {
+              remove_voxels(vol, obj_number);
+          }
+          
+          
       }
       else 
       {
-	  (void)print ("Error in vol_to_cov for object %d\n", obj_number);
-	  remove_voxels(vol, obj_number);
+          (void)print ("Error in vol_to_cov for object %d\n", obj_number);
+          remove_voxels(vol, obj_number);
 
       }
   }
@@ -422,16 +422,16 @@ main(int argc, char *argv[])
   {
       if (file_exists(mask_name) && !clobber) 
       {
-	  
-	  (void)fprintf (stderr,"File %s exists, use -clobber to overwrite.\n");
-	  exit( 1 );
+          
+          (void)fprintf (stderr,"File %s exists, use -clobber to overwrite.\n");
+          exit( 1 );
       }
       
       if (output_modified_volume(mask_name, NC_UNSPECIFIED, FALSE, 
-				 0.0, 0.0, vol, argv[1], history, 
-				 (minc_output_options *)NULL) != OK) 
+                                 0.0, 0.0, vol, argv[1], history, 
+                                 (minc_output_options *)NULL) != OK) 
       {
-	  print_error_and_line_num("problems writing output mask...",__FILE__, __LINE__);
+          print_error_and_line_num("problems writing output mask...",__FILE__, __LINE__);
       }
   }
 

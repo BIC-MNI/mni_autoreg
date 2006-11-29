@@ -3,7 +3,7 @@
 
 #include "segment_table.h"
 
-BOOLEAN build_segment_table(Segment_Table **s_table, Volume d1, int groups)
+VIO_BOOL build_segment_table(Segment_Table **s_table, VIO_Volume d1, int groups)
 {
 
   float
@@ -32,7 +32,7 @@ BOOLEAN build_segment_table(Segment_Table **s_table, Volume d1, int groups)
     break;
   default:
     print_error_and_line_num("Currently an unsupported data type (%d).", __FILE__, __LINE__, 
-		data_type);
+                data_type);
     return(FALSE);
   }
 
@@ -51,7 +51,7 @@ BOOLEAN build_segment_table(Segment_Table **s_table, Volume d1, int groups)
 
     (*s_table)->table = it;
     
-    for_inclusive(i, min, max) {	        /* build the look up table */
+    for(i=min; i<=max; i++) {                /* build the look up table */
       frac = 0.5 + ((float)(groups)-0.00001 )* (float)(i-min)/(float)(max-min);
       (*s_table)->table[i] = ROUND( frac );
     }
@@ -63,7 +63,7 @@ BOOLEAN build_segment_table(Segment_Table **s_table, Volume d1, int groups)
 }
 
 
-BOOLEAN free_segment_table(Segment_Table *s_table)
+VIO_BOOL free_segment_table(Segment_Table *s_table)
 {
 
   int *p;

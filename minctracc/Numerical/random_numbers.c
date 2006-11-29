@@ -21,7 +21,10 @@
 
 @CREATED    : Jan 8, 1996 LC
 @MODIFIED   : $Log: random_numbers.c,v $
-@MODIFIED   : Revision 1.3  2005-07-20 20:45:49  rotor
+@MODIFIED   : Revision 1.4  2006-11-29 09:09:33  rotor
+@MODIFIED   :  * first bunch of changes for minc 2.0 compliance
+@MODIFIED   :
+@MODIFIED   : Revision 1.3  2005/07/20 20:45:49  rotor
 @MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
 @MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
 @MODIFIED   :     * Removed old VOLUME_IO cruft #defines
@@ -38,7 +41,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/random_numbers.c,v 1.3 2005-07-20 20:45:49 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/random_numbers.c,v 1.4 2006-11-29 09:09:33 rotor Exp $";
 #endif
 
 
@@ -52,11 +55,11 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
    standard deviation.
 */
 
-Real gaussian_random_w_std(Real sigma)
+VIO_Real gaussian_random_w_std(VIO_Real sigma)
 {
   static int iset=0;
-  static Real gset;
-  Real fac,r,v1,v2;
+  static VIO_Real gset;
+  VIO_Real fac,r,v1,v2;
   
   if  (iset == 0) {
     do {
@@ -78,9 +81,9 @@ Real gaussian_random_w_std(Real sigma)
 /*
    return a random number, uniformly distributed in the range [0, 1[
 */
-Real uniform_random_0_1()
+VIO_Real uniform_random_0_1()
 {
-  Real t;
+  VIO_Real t;
   t = drand48();
   return(t);
 }
@@ -89,9 +92,9 @@ Real uniform_random_0_1()
 /*
    return a random number, uniformly distributed in the range [min, max[
 */
-Real uniform_random_in_range(Real min, Real max)
+VIO_Real uniform_random_in_range(VIO_Real min, VIO_Real max)
 {
-  Real t,r;
+  VIO_Real t,r;
 
   r = uniform_random_0_1();
 
@@ -115,7 +118,7 @@ void init_random()
    
   time_t t;
   char tmp;
-				/* initialize drand function */
+                                /* initialize drand function */
   t = 2*time(NULL);
   seedval.l = t; 
   

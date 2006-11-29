@@ -23,9 +23,9 @@ static float getang(float x,float y)
         ang = PI/2 + fatan(-x/y);
       else {
         if y<0.0
-	  ang = -PI + fatan(-y/(-x));
+          ang = -PI + fatan(-y/(-x));
         else
-	  ang = PI;
+          ang = PI;
       }
     }
   }
@@ -42,7 +42,7 @@ static float getang(float x,float y)
  I assume that r is a 4x4 homogeneous matrix, with
  the principal axis stored in the upper left 3x3 matrix.
  first col in the 4x4 matrix the the local x to be mapped to the world
- 	X axis.
+         X axis.
 
  the resulting rx,ry and rx are the rotations that need to be 
  be applied to the local coord system in the world coordinate system 
@@ -78,10 +78,10 @@ static float getang(float x,float y)
               align the local y in the YZ plane.
 */
 
-static BOOLEAN align_z(float **S, float **R)
+static VIO_BOOL align_z(float **S, float **R)
 {
   
-  BOOLEAN result;
+  VIO_BOOL result;
   int
     c;
   float 
@@ -104,19 +104,19 @@ static BOOLEAN align_z(float **S, float **R)
   result = TRUE;
   nr_identf(R    ,1,4,1,4);
 
-				/* step one,  find the RX rotation reqd to bring 
-				   the local z into the world XZ plane */
-  for_inclusive(c,1,3) t[c] = S[c][3];
+                                /* step one,  find the RX rotation reqd to bring 
+                                   the local z into the world XZ plane */
+  for(c=1; c<=3; c++) t[c] = S[c][3];
   
   i = t[1];  j = t[2]; k = t[3];
   
   rx = getang(k,j);
 
-  nr_rotxf(Rx, rx);		/* apply rx, to get z in XZ plane */
+  nr_rotxf(Rx, rx);                /* apply rx, to get z in XZ plane */
   raw_matrix_multiply(4,4,1, Rx, t, v);
 
-				/* step two,  find the RY rotation reqd to align
-				   the local x on the world X axis */
+                                /* step two,  find the RY rotation reqd to align
+                                   the local x on the world X axis */
     
   i = t[1];  j = t[2]; k = t[3];
 
@@ -127,12 +127,12 @@ static BOOLEAN align_z(float **S, float **R)
   ry = -getang(k,i);
 
 
-				/* step three, rotate the local y around RX then 
-				   RY to get y' . find RZ to rotate this into YZ 
-				   plane. */
+                                /* step three, rotate the local y around RX then 
+                                   RY to get y' . find RZ to rotate this into YZ 
+                                   plane. */
 
   if (result) {
-    for_inclusive(c,1,3) t[c] = S[c][2];
+    for(c=1; c<=3; c++) t[c] = S[c][2];
     nr_rotyf(Ry, ry);
 
     raw_matrix_multiply(4,4,1, Rx, t, v); /*  t = roty(ry) * (rotx(rx) * r(:,2)); */

@@ -8,7 +8,10 @@
 
 @CREATED    : Jan 20, 97
 @MODIFIED   : $Log: inbetween_tps.c,v $
-@MODIFIED   : Revision 1.3  2005-07-20 20:45:46  rotor
+@MODIFIED   : Revision 1.4  2006-11-29 09:09:31  rotor
+@MODIFIED   :  * first bunch of changes for minc 2.0 compliance
+@MODIFIED   :
+@MODIFIED   : Revision 1.3  2005/07/20 20:45:46  rotor
 @MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
 @MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
 @MODIFIED   :     * Removed old VOLUME_IO cruft #defines
@@ -52,12 +55,12 @@ char *prog_name;
 
 int main(int argc, char *argv[])
 {
-   General_transform 
+   VIO_General_transform 
      *grid_transform_ptr,
      transform;
-   Volume 
+   VIO_Volume 
      volume;
-   Real
+   VIO_Real
      fraction,
      upper_limit, lower_limit;
    int trans_count;
@@ -101,7 +104,7 @@ int main(int argc, char *argv[])
      grid_transform_ptr = get_nth_general_transform(&transform, trans_count );
      trans_count++;
    } while ((grid_transform_ptr->type != GRID_TRANSFORM) &&
-	    (trans_count < get_n_concated_transforms(&transform)));
+            (trans_count < get_n_concated_transforms(&transform)));
    
    if (grid_transform_ptr->type != GRID_TRANSFORM) {
       (void) fprintf(stderr, "Error: no deformation field to use.\n");

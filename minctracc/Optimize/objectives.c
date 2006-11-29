@@ -16,7 +16,10 @@
 
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   :  $Log: objectives.c,v $
-@MODIFIED   :  Revision 96.9  2005-07-20 20:45:50  rotor
+@MODIFIED   :  Revision 96.10  2006-11-29 09:09:34  rotor
+@MODIFIED   :   * first bunch of changes for minc 2.0 compliance
+@MODIFIED   :
+@MODIFIED   :  Revision 96.9  2005/07/20 20:45:50  rotor
 @MODIFIED   :      * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
 @MODIFIED   :      * Many changes to includes of files (float.h, limits.h, etc)
 @MODIFIED   :      * Removed old VOLUME_IO cruft #defines
@@ -100,7 +103,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/objectives.c,v 96.9 2005-07-20 20:45:50 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/objectives.c,v 96.10 2006-11-29 09:09:34 rotor Exp $";
 #endif
 
 #include <volume_io.h>
@@ -117,11 +120,11 @@ extern Arg_Data main_args;
 
 extern Segment_Table *segment_table;
 
-int point_not_masked(Volume volume, 
-			    Real wx, Real wy, Real wz);
+int point_not_masked(VIO_Volume volume, 
+                            VIO_Real wx, VIO_Real wy, VIO_Real wz);
 
-int voxel_point_not_masked(Volume volume, 
-                                  Real vx, Real vy, Real vz);
+int voxel_point_not_masked(VIO_Volume volume, 
+                                  VIO_Real vx, VIO_Real vy, VIO_Real vz);
 
 
 
@@ -129,11 +132,11 @@ int voxel_point_not_masked(Volume volume,
 @NAME       : xcorr_objective
 @INPUT      : volumetric data, for use in correlation.  
 
-	      Correlation is accomplished under the currently defined
-	      affine transformation in `globals->trans_info.transformation.trans_data'
+              Correlation is accomplished under the currently defined
+              affine transformation in `globals->trans_info.transformation.trans_data'
 
-	      The cross correlation is calculated using sub-sampling
-	      in each of the volumes.
+              The cross correlation is calculated using sub-sampling
+              in each of the volumes.
 
 @OUTPUT     : none
 
@@ -142,22 +145,22 @@ int voxel_point_not_masked(Volume volume,
 
 @DESCRIPTION: this routine does volumetric subsampling in world space.
               These world coordinates are mapped back into each 
-	      data volume to get the actual value at the given location.
-	      The globals lattice info is used to calculate
+              data volume to get the actual value at the given location.
+              The globals lattice info is used to calculate
               positions of the sub-samples in each vol.
 
-	      The correlation is equal to:
+              The correlation is equal to:
 
-	      r =    f1 / ( sqrt(f2) * sqrt(f3) )
+              r =    f1 / ( sqrt(f2) * sqrt(f3) )
               
-	      where:          
-	             f1 = sum( d1 .* d2)    (point to point multiply)
-		     f2 = sum( d1 .^ 2 )    (sum of all points squared)
-		     f3 = sum( d2 .^ 2 )    (sum of all points squared)
+              where:          
+                     f1 = sum( d1 .* d2)    (point to point multiply)
+                     f2 = sum( d1 .^ 2 )    (sum of all points squared)
+                     f3 = sum( d2 .^ 2 )    (sum of all points squared)
 
-		    note: -point refers to the value at a sub-sample
-		          -the xmat is applied to d2, before calculating r
-		              
+                    note: -point refers to the value at a sub-sample
+                          -the xmat is applied to d2, before calculating r
+                              
 @GLOBALS    : 
 @CALLS      : 
 @CREATED    : Feb 4, 1992 lc original in fit_vol
@@ -187,11 +190,11 @@ int voxel_point_not_masked(Volume volume,
                  this is an overall speed up of 73/38 = 92%
                  the new version takes only     38/73 = 52%  of the time of the previous!
 ---------------------------------------------------------------------------- */
-float xcorr_objective(Volume d1,
-			     Volume d2,
-			     Volume m1,
-			     Volume m2, 
-			     Arg_Data *globals)
+float xcorr_objective(VIO_Volume d1,
+                             VIO_Volume d2,
+                             VIO_Volume m1,
+                             VIO_Volume m2, 
+                             Arg_Data *globals)
 {
 
   VectorR
@@ -208,19 +211,19 @@ float xcorr_objective(Volume d1,
   int
     r,c,s;
 
-  Real
+  VIO_Real
     value1, value2;
   
-  Real
+  VIO_Real
     s1,s2,s3;                   /* to store the sums for f1,f2,f3 */
   float 
-    result;				/* the result */
+    result;                                /* the result */
   int 
     count1,count2;
 
 
   Voxel_space_struct *vox_space;
-  Transform          *trans;
+  VIO_Transform          *trans;
 
 
                                 /* prepare counters for this objective
@@ -241,16 +244,16 @@ float xcorr_objective(Volume d1,
 
                                 /* loop through all nodes of the lattice */
                                                                                                                               
-  fill_Point( starting_position, vox_space->start[X], vox_space->start[Y], vox_space->start[Z]);
+  VIO_fill_Point( starting_position, vox_space->start[VIO_X], vox_space->start[VIO_Y], vox_space->start[VIO_Z]);
 
   /* ---------- step through all slices of lattice ------------- */
-  for_less(s,0,globals->count[SLICE_IND]) { 
+  for(s=0; s<globals->count[SLICE_IND]; s++) { 
 
     SCALE_VECTOR( vector_step, vox_space->directions[SLICE_IND], s);
     ADD_POINT_VECTOR( slice, starting_position, vector_step );
 
     /* ---------- step through all rows of lattice ------------- */
-    for_less(r,0,globals->count[ROW_IND]) {
+    for(r=0; r<globals->count[ROW_IND]; r++) {
       
       SCALE_VECTOR( vector_step, vox_space->directions[ROW_IND], r);
       ADD_POINT_VECTOR( row, slice, vector_step );
@@ -258,49 +261,49 @@ float xcorr_objective(Volume d1,
       SCALE_POINT( col, row, 1.0); /* init first col position */
 
       /* ---------- step through all cols of lattice ------------- */
-      for_less(c,0,globals->count[COL_IND]) {
-		
+      for(c=0; c<globals->count[COL_IND]; c++) {
+                
                                 /* use the voxel center closest to this lattice
                                    node. 
                                 */
-	fill_Point( voxel, ROUND(Point_x(col)), ROUND(Point_y(col)), ROUND(Point_z(col)) ); 
+        VIO_fill_Point( voxel, ROUND(Point_x(col)), ROUND(Point_y(col)), ROUND(Point_z(col)) ); 
 
 
-	if (voxel_point_not_masked(m1, Point_x(voxel), Point_y(voxel), Point_z(voxel))) {
-	  
-	  if (nearest_neighbour_interpolant( d1, &voxel, &value1 )) {
+        if (voxel_point_not_masked(m1, Point_x(voxel), Point_y(voxel), Point_z(voxel))) {
+          
+          if (nearest_neighbour_interpolant( d1, &voxel, &value1 )) {
 
-	    count1++;
+            count1++;
 
             my_homogenous_transform_point(trans,
                                           Point_x(voxel), Point_y(voxel), Point_z(voxel), 1.0,
                                           &Point_x(pos2), &Point_y(pos2), &Point_z(pos2));
 
-	 
-	    fill_Point( voxel, Point_x(pos2), Point_y(pos2), Point_z(pos2) ); /* build the voxel POINT */
-	
-	    if (voxel_point_not_masked(m2, Point_x(pos2), Point_y(pos2), Point_z(pos2))) {
-	      
-	      if (INTERPOLATE_TRUE_VALUE( d2, &voxel, &value2 )) {
+         
+            VIO_fill_Point( voxel, Point_x(pos2), Point_y(pos2), Point_z(pos2) ); /* build the voxel POINT */
+        
+            if (voxel_point_not_masked(m2, Point_x(pos2), Point_y(pos2), Point_z(pos2))) {
+              
+              if (INTERPOLATE_TRUE_VALUE( d2, &voxel, &value2 )) {
 
 
-		if (value1 > globals->threshold[0] && value2 > globals->threshold[1] ) {
-		  
-		  count2++;
+                if (value1 > globals->threshold[0] && value2 > globals->threshold[1] ) {
+                  
+                  count2++;
 
-		  s1 += value1*value2;
-		  s2 += value1*value1;
-		  s3 += value2*value2;
-		  
-		} 
-		
-	      } /* if voxel in d2 */
-	    } /* if point in mask volume two */
-	  } /* if voxel in d1 */
-	} /* if point in mask volume one */
-	
-	ADD_POINT_VECTOR( col, col, vox_space->directions[COL_IND] );
-	
+                  s1 += value1*value2;
+                  s2 += value1*value1;
+                  s3 += value2*value2;
+                  
+                } 
+                
+              } /* if voxel in d2 */
+            } /* if point in mask volume two */
+          } /* if voxel in d1 */
+        } /* if point in mask volume one */
+        
+        ADD_POINT_VECTOR( col, col, vox_space->directions[COL_IND] );
+        
       } /* for c */
     } /* for r */
   } /* for s */
@@ -316,11 +319,11 @@ float xcorr_objective(Volume d1,
 }
 
 
-float ssc_objective(Volume d1,
-			   Volume d2,
-			   Volume m1,
-			   Volume m2, 
-			   Arg_Data *globals)
+float ssc_objective(VIO_Volume d1,
+                           VIO_Volume d2,
+                           VIO_Volume m1,
+                           VIO_Volume m2, 
+                           Arg_Data *globals)
 {
   VectorR
     vector_step;
@@ -336,18 +339,18 @@ float ssc_objective(Volume d1,
   int
     r,c,s;
 
-  Real
+  VIO_Real
     value1, value2;
   
   float 
-    result;				/* the result */
+    result;                                /* the result */
   int 
     count1, count2,
     greater;
   unsigned  long
     zero_crossings;
   Voxel_space_struct *vox_space;
-  Transform          *trans;
+  VIO_Transform          *trans;
 
                                 /* prepare counters for this objective
                                    function */
@@ -363,115 +366,115 @@ float ssc_objective(Volume d1,
   get_into_voxel_space(globals, vox_space, d1, d2);
   trans = get_linear_transform_ptr(vox_space->voxel_to_voxel_space);
 
-  fill_Point( starting_position, vox_space->start[X], vox_space->start[Y], vox_space->start[Z]);
+  VIO_fill_Point( starting_position, vox_space->start[VIO_X], vox_space->start[VIO_Y], vox_space->start[VIO_Z]);
 
   /* ------------------------  count along rows (fastest=col) first ------------------- */
 
 
-  for_less(s,0,globals->count[SLICE_IND]) {
+  for(s=0; s<globals->count[SLICE_IND]; s++) {
 
     SCALE_VECTOR( vector_step, vox_space->directions[SLICE_IND], s);
     ADD_POINT_VECTOR( slice, starting_position, vector_step );
 
-    for_less(r,0,globals->count[ROW_IND]) {
+    for(r=0; r<globals->count[ROW_IND]; r++) {
       
       SCALE_VECTOR( vector_step, vox_space->directions[ROW_IND], r);
       ADD_POINT_VECTOR( row, slice, vector_step );
       
       SCALE_POINT( col, row, 1.0); /* init first col position */
-      for_less(c,0,globals->count[COL_IND]) {
-	
+      for(c=0; c<globals->count[COL_IND]; c++) {
+        
                                 /* use the voxel center closest to this lattice
                                    node. 
                                 */
-	fill_Point( voxel, ROUND(Point_x(col)), ROUND(Point_y(col)), ROUND(Point_z(col)) ); 
-	
-	if (voxel_point_not_masked(m1, Point_x(voxel), Point_y(voxel), Point_z(voxel))) {
-	  
-	  if (INTERPOLATE_TRUE_VALUE( d1, &voxel, &value1 )) {
+        VIO_fill_Point( voxel, ROUND(Point_x(col)), ROUND(Point_y(col)), ROUND(Point_z(col)) ); 
+        
+        if (voxel_point_not_masked(m1, Point_x(voxel), Point_y(voxel), Point_z(voxel))) {
+          
+          if (INTERPOLATE_TRUE_VALUE( d1, &voxel, &value1 )) {
 
-	    count1++;
+            count1++;
 
             my_homogenous_transform_point(trans,
                                           Point_x(col), Point_y(col), Point_z(col), 1.0,
                                           &Point_x(pos2), &Point_y(pos2), &Point_z(pos2));
 
-	    
-            fill_Point( voxel, Point_x(pos2), Point_y(pos2), Point_z(pos2) ); /* build the voxel POINT */
-	
-	    if (voxel_point_not_masked(m2, Point_x(pos2), Point_y(pos2), Point_z(pos2))) {
-	      
-	      if (INTERPOLATE_TRUE_VALUE( d2, &voxel, &value2 )) {
+            
+            VIO_fill_Point( voxel, Point_x(pos2), Point_y(pos2), Point_z(pos2) ); /* build the voxel POINT */
+        
+            if (voxel_point_not_masked(m2, Point_x(pos2), Point_y(pos2), Point_z(pos2))) {
+              
+              if (INTERPOLATE_TRUE_VALUE( d2, &voxel, &value2 )) {
 
-		count2++;
+                count2++;
 
-		if (!((greater && value1>value2) || (!greater && value1<value2))) {
-		  greater = !greater;
-		  zero_crossings++;
-		} 
-		
-	      } /* if voxel in d2 */
-	    } /* if point in mask volume two */
-	  } /* if voxel in d1 */
-	} /* if point in mask volume one */
-	
-	ADD_POINT_VECTOR( col, col, vox_space->directions[COL_IND] );
-	
+                if (!((greater && value1>value2) || (!greater && value1<value2))) {
+                  greater = !greater;
+                  zero_crossings++;
+                } 
+                
+              } /* if voxel in d2 */
+            } /* if point in mask volume two */
+          } /* if voxel in d1 */
+        } /* if point in mask volume one */
+        
+        ADD_POINT_VECTOR( col, col, vox_space->directions[COL_IND] );
+        
       } /* for c */
     } /* for r */
   } /* for s */
 
   /* ------------------------  count along cols second  --(fastest=row)--------------- */
 
-  for_less(s,0,globals->count[SLICE_IND]) {
+  for(s=0; s<globals->count[SLICE_IND]; s++) {
 
     SCALE_VECTOR( vector_step, vox_space->directions[SLICE_IND], s);
     ADD_POINT_VECTOR( slice, starting_position, vector_step );
 
-    for_less(c,0,globals->count[COL_IND]) {
+    for(c=0; c<globals->count[COL_IND]; c++) {
       
       SCALE_VECTOR( vector_step, vox_space->directions[COL_IND], c);
       ADD_POINT_VECTOR( col, slice, vector_step );
       
       SCALE_POINT( row, col, 1.0); /* init first row position */
 
-      for_less(r,0,globals->count[ROW_IND]) {
+      for(r=0; r<globals->count[ROW_IND]; r++) {
 
                                 /* use the voxel center closest to this lattice
                                    node. 
                                 */
-	fill_Point( voxel, ROUND(Point_x(col)), ROUND(Point_y(col)), ROUND(Point_z(col)) ); 
-	
-	if (voxel_point_not_masked(m1, Point_x(voxel), Point_y(voxel), Point_z(voxel))) {
-	  
-	  if (INTERPOLATE_TRUE_VALUE( d1, &voxel, &value1 )) {
+        VIO_fill_Point( voxel, ROUND(Point_x(col)), ROUND(Point_y(col)), ROUND(Point_z(col)) ); 
+        
+        if (voxel_point_not_masked(m1, Point_x(voxel), Point_y(voxel), Point_z(voxel))) {
+          
+          if (INTERPOLATE_TRUE_VALUE( d1, &voxel, &value1 )) {
 
-	    count1++;
+            count1++;
 
             my_homogenous_transform_point(trans,
                                           Point_x(col), Point_y(col), Point_z(col), 1.0,
                                           &Point_x(pos2), &Point_y(pos2), &Point_z(pos2));
-	    
-            fill_Point( voxel, Point_x(pos2), Point_y(pos2), Point_z(pos2) ); /* build the voxel POINT */
-	
-	    if (voxel_point_not_masked(m2,Point_x(pos2), Point_y(pos2), Point_z(pos2))) {
-	      
-	      if (INTERPOLATE_TRUE_VALUE( d2, &voxel, &value2 )) {
+            
+            VIO_fill_Point( voxel, Point_x(pos2), Point_y(pos2), Point_z(pos2) ); /* build the voxel POINT */
+        
+            if (voxel_point_not_masked(m2,Point_x(pos2), Point_y(pos2), Point_z(pos2))) {
+              
+              if (INTERPOLATE_TRUE_VALUE( d2, &voxel, &value2 )) {
 
-		count2++;
+                count2++;
 
-		if (!((greater && value1>value2) || (!greater && value1<value2))) {
-		  greater = !greater;
-		  zero_crossings++;
-		} 
-		
-	      } /* if voxel in d2 */
-	    } /* if point in mask volume two */
-	  } /* if voxel in d1 */
-	} /* if point in mask volume one */
-	
-	ADD_POINT_VECTOR( row, row, vox_space->directions[ROW_IND] );
-	
+                if (!((greater && value1>value2) || (!greater && value1<value2))) {
+                  greater = !greater;
+                  zero_crossings++;
+                } 
+                
+              } /* if voxel in d2 */
+            } /* if point in mask volume two */
+          } /* if voxel in d1 */
+        } /* if point in mask volume one */
+        
+        ADD_POINT_VECTOR( row, row, vox_space->directions[ROW_IND] );
+        
       } /* for c */
     } /* for r */
   } /* for s */
@@ -482,55 +485,55 @@ float ssc_objective(Volume d1,
   /* ------------------------  count along slices last ------------------------ */
 
 
-  for_less(c,0,globals->count[COL_IND]) {
+  for(c=0; c<globals->count[COL_IND]; c++) {
     
     SCALE_VECTOR( vector_step, vox_space->directions[COL_IND], c);
     ADD_POINT_VECTOR( col, starting_position, vector_step );
 
-    for_less(r,0,globals->count[ROW_IND]) {
+    for(r=0; r<globals->count[ROW_IND]; r++) {
       
       SCALE_VECTOR( vector_step, vox_space->directions[ROW_IND], r);
       ADD_POINT_VECTOR( row, col, vector_step );
       
       SCALE_POINT( slice, row, 1.0); /* init first col position */
 
-      for_less(s,0,globals->count[SLICE_IND]) {
-	
+      for(s=0; s<globals->count[SLICE_IND]; s++) {
+        
                                 /* use the voxel center closest to this lattice
                                    node. 
                                 */
-	fill_Point( voxel, ROUND(Point_x(col)), ROUND(Point_y(col)), ROUND(Point_z(col)) ); 
-	
-	if (voxel_point_not_masked(m1, Point_x(voxel), Point_y(voxel), Point_z(voxel))) {
-	  
-	  if (INTERPOLATE_TRUE_VALUE( d1, &voxel, &value1 )) {
+        VIO_fill_Point( voxel, ROUND(Point_x(col)), ROUND(Point_y(col)), ROUND(Point_z(col)) ); 
+        
+        if (voxel_point_not_masked(m1, Point_x(voxel), Point_y(voxel), Point_z(voxel))) {
+          
+          if (INTERPOLATE_TRUE_VALUE( d1, &voxel, &value1 )) {
 
-	    count1++;
+            count1++;
 
             my_homogenous_transform_point(trans,
                                           Point_x(col), Point_y(col), Point_z(col), 1.0,
                                           &Point_x(pos2), &Point_y(pos2), &Point_z(pos2));
-	    
-            fill_Point( voxel, Point_x(pos2), Point_y(pos2), Point_z(pos2) ); /* build the voxel POINT */
+            
+            VIO_fill_Point( voxel, Point_x(pos2), Point_y(pos2), Point_z(pos2) ); /* build the voxel POINT */
 
-	    if (voxel_point_not_masked(m2, Point_x(pos2), Point_y(pos2), Point_z(pos2))) {
-	      
-	      if (INTERPOLATE_TRUE_VALUE( d2, &voxel, &value2 )) {
+            if (voxel_point_not_masked(m2, Point_x(pos2), Point_y(pos2), Point_z(pos2))) {
+              
+              if (INTERPOLATE_TRUE_VALUE( d2, &voxel, &value2 )) {
 
-		count2++;
+                count2++;
 
-		if (!((greater && value1>value2) || (!greater && value1<value2))) {
-		  greater = !greater;
-		  zero_crossings++;
-		} 
-		
-	      } /* if voxel in d2 */
-	    } /* if point in mask volume two */
-	  } /* if voxel in d1 */
-	} /* if point in mask volume one */
-	
-	ADD_POINT_VECTOR( slice, slice, vox_space->directions[SLICE_IND] );
-	
+                if (!((greater && value1>value2) || (!greater && value1<value2))) {
+                  greater = !greater;
+                  zero_crossings++;
+                } 
+                
+              } /* if voxel in d2 */
+            } /* if point in mask volume two */
+          } /* if voxel in d1 */
+        } /* if point in mask volume one */
+        
+        ADD_POINT_VECTOR( slice, slice, vox_space->directions[SLICE_IND] );
+        
       } /* for c */
     } /* for r */
   } /* for s */
@@ -544,11 +547,11 @@ float ssc_objective(Volume d1,
   
 }
 
-float zscore_objective(Volume d1,
-			   Volume d2,
-			   Volume m1,
-			   Volume m2, 
-			   Arg_Data *globals)
+float zscore_objective(VIO_Volume d1,
+                           VIO_Volume d2,
+                           VIO_Volume m1,
+                           VIO_Volume m2, 
+                           Arg_Data *globals)
 {
   VectorR
     vector_step;
@@ -564,17 +567,17 @@ float zscore_objective(Volume d1,
   int
     r,c,s;
 
-  Real
+  VIO_Real
     value1, value2;
   
-  Real
+  VIO_Real
     z2_sum;
   float 
-    result;				/* the result */
+    result;                                /* the result */
   int 
     count1,count2,count3;
   Voxel_space_struct *vox_space;
-  Transform          *trans;
+  VIO_Transform          *trans;
 
 
                                 /* prepare data for the voxel-to-voxel
@@ -587,60 +590,60 @@ float zscore_objective(Volume d1,
   trans = get_linear_transform_ptr(vox_space->voxel_to_voxel_space);
 
 
-  fill_Point( starting_position, vox_space->start[X], vox_space->start[Y], vox_space->start[Z]);
+  VIO_fill_Point( starting_position, vox_space->start[VIO_X], vox_space->start[VIO_Y], vox_space->start[VIO_Z]);
 
   z2_sum = 0.0;
   count1 = count2 = count3 = 0;
 
-  for_less(s,0,globals->count[SLICE_IND]) {
+  for(s=0; s<globals->count[SLICE_IND]; s++) {
 
     SCALE_VECTOR( vector_step, vox_space->directions[SLICE_IND], s);
     ADD_POINT_VECTOR( slice, starting_position, vector_step );
 
-    for_less(r,0,globals->count[ROW_IND]) {
+    for(r=0; r<globals->count[ROW_IND]; r++) {
       
       SCALE_VECTOR( vector_step, vox_space->directions[ROW_IND], r);
       ADD_POINT_VECTOR( row, slice, vector_step );
       
       SCALE_POINT( col, row, 1.0); /* init first col position */
-      for_less(c,0,globals->count[COL_IND]) {
-	
+      for(c=0; c<globals->count[COL_IND]; c++) {
+        
                                 /* use the voxel center closest to this lattice
                                    node. 
                                 */
-	fill_Point( voxel, ROUND(Point_x(col)), ROUND(Point_y(col)), ROUND(Point_z(col)) ); 
-	
-	if (voxel_point_not_masked(m1, Point_x(voxel), Point_y(voxel), Point_z(voxel))) {
-	  
-	  if (INTERPOLATE_TRUE_VALUE( d1, &voxel, &value1 )) {
+        VIO_fill_Point( voxel, ROUND(Point_x(col)), ROUND(Point_y(col)), ROUND(Point_z(col)) ); 
+        
+        if (voxel_point_not_masked(m1, Point_x(voxel), Point_y(voxel), Point_z(voxel))) {
+          
+          if (INTERPOLATE_TRUE_VALUE( d1, &voxel, &value1 )) {
 
-	    count1++;
+            count1++;
 
             my_homogenous_transform_point(trans,
                                           Point_x(col), Point_y(col), Point_z(col), 1.0,
                                           &Point_x(pos2), &Point_y(pos2), &Point_z(pos2));
-	    
-            fill_Point( voxel, Point_x(pos2), Point_y(pos2), Point_z(pos2) ); /* build the voxel POINT */
-	
-	    if (voxel_point_not_masked(m2, Point_x(pos2), Point_y(pos2), Point_z(pos2))) {
-	      
-	      if (INTERPOLATE_TRUE_VALUE( d2, &voxel, &value2 )) {
+            
+            VIO_fill_Point( voxel, Point_x(pos2), Point_y(pos2), Point_z(pos2) ); /* build the voxel POINT */
+        
+            if (voxel_point_not_masked(m2, Point_x(pos2), Point_y(pos2), Point_z(pos2))) {
+              
+              if (INTERPOLATE_TRUE_VALUE( d2, &voxel, &value2 )) {
 
-		count2++;
+                count2++;
 
-		if (ABS(value1) > globals->threshold[0] && ABS(value2) > globals->threshold[1] ) {
-		  count3++;
-		  z2_sum +=  (value1-value2)*(value1-value2);
-		} 
-	
-		
-	      } /* if voxel in d2 */
-	    } /* if point in mask volume two */
-	  } /* if voxel in d1 */
-	} /* if point in mask volume one */
-	
-	ADD_POINT_VECTOR( col, col, vox_space->directions[COL_IND] );
-	
+                if (ABS(value1) > globals->threshold[0] && ABS(value2) > globals->threshold[1] ) {
+                  count3++;
+                  z2_sum +=  (value1-value2)*(value1-value2);
+                } 
+        
+                
+              } /* if voxel in d2 */
+            } /* if point in mask volume two */
+          } /* if voxel in d1 */
+        } /* if point in mask volume one */
+        
+        ADD_POINT_VECTOR( col, col, vox_space->directions[COL_IND] );
+        
       } /* for c */
     } /* for r */
   } /* for s */
@@ -658,11 +661,11 @@ float zscore_objective(Volume d1,
 
 
 
-float vr_objective(Volume d1,
-			  Volume d2,
-			  Volume m1,
-			  Volume m2, 
-			  Arg_Data *globals)
+float vr_objective(VIO_Volume d1,
+                          VIO_Volume d2,
+                          VIO_Volume m1,
+                          VIO_Volume m2, 
+                          Arg_Data *globals)
 {
   VectorR
     vector_step;
@@ -678,7 +681,7 @@ float vr_objective(Volume d1,
   int
     r,c,s;
 
-  Real
+  VIO_Real
     value1, value2,
     voxel_value1;
   
@@ -694,15 +697,15 @@ float vr_objective(Volume d1,
     *count3;
 
   float 
-    result;				/* the result */
+    result;                                /* the result */
   int 
     index,i,count1,count2;
   Voxel_space_struct *vox_space;
-  Transform          *trans;
+  VIO_Transform          *trans;
 
 
 
-				/* build segmentation info!  */
+                                /* build segmentation info!  */
 
   ALLOC(rat_sum  ,1+segment_table->groups);
   ALLOC(rat2_sum ,1+segment_table->groups);
@@ -722,10 +725,10 @@ float vr_objective(Volume d1,
 
 
 
-  fill_Point( starting_position, vox_space->start[X], vox_space->start[Y], vox_space->start[Z]);
+  VIO_fill_Point( starting_position, vox_space->start[VIO_X], vox_space->start[VIO_Y], vox_space->start[VIO_Z]);
 
-				/* init running sums and counters. */
-  for_inclusive( i, 1, segment_table->groups) {
+                                /* init running sums and counters. */
+  for(i=1; i<=segment_table->groups; i++) {
     rat_sum[i] = 0.0;
     rat2_sum[i] = 0.0;
     count3[i]   = 0;
@@ -733,73 +736,73 @@ float vr_objective(Volume d1,
   }
   count1 = count2 = 0;
 
-				/* loop through each node of lattice */
-  for_less(s,0,globals->count[SLICE_IND]) {
+                                /* loop through each node of lattice */
+  for(s=0; s<globals->count[SLICE_IND]; s++) {
 
     SCALE_VECTOR( vector_step, vox_space->directions[SLICE_IND], s);
     ADD_POINT_VECTOR( slice, starting_position, vector_step );
 
-    for_less(r,0,globals->count[ROW_IND]) {
+    for(r=0; r<globals->count[ROW_IND]; r++) {
       
       SCALE_VECTOR( vector_step, vox_space->directions[ROW_IND], r);
       ADD_POINT_VECTOR( row, slice, vector_step );
       
       SCALE_POINT( col, row, 1.0); /* init first col position */
-      for_less(c,0,globals->count[COL_IND]) {
-	
+      for(c=0; c<globals->count[COL_IND]; c++) {
+        
                                 /* use the voxel center closest to this lattice
                                    node. 
                                 */
-	fill_Point( voxel, ROUND(Point_x(col)), ROUND(Point_y(col)), ROUND(Point_z(col)) ); 
-	
-	if (voxel_point_not_masked(m1, Point_x(voxel), Point_y(voxel), Point_z(voxel))) {
-	  
-	  if (INTERPOLATE_TRUE_VALUE( d1, &voxel, &value1 )) {
+        VIO_fill_Point( voxel, ROUND(Point_x(col)), ROUND(Point_y(col)), ROUND(Point_z(col)) ); 
+        
+        if (voxel_point_not_masked(m1, Point_x(voxel), Point_y(voxel), Point_z(voxel))) {
+          
+          if (INTERPOLATE_TRUE_VALUE( d1, &voxel, &value1 )) {
 
-	    count1++;
-	    voxel_value1 = CONVERT_VALUE_TO_VOXEL(d1,value1 );
+            count1++;
+            voxel_value1 = CONVERT_VALUE_TO_VOXEL(d1,value1 );
 
 
             my_homogenous_transform_point(trans,
                                           Point_x(col), Point_y(col), Point_z(col), 1.0,
                                           &Point_x(pos2), &Point_y(pos2), &Point_z(pos2));
-	    
-            fill_Point( voxel, Point_x(pos2), Point_y(pos2), Point_z(pos2) ); /* build the voxel POINT */
-	
-	    if (voxel_point_not_masked(m2,Point_x(pos2), Point_y(pos2), Point_z(pos2) )) {
-	      
-	      if (INTERPOLATE_TRUE_VALUE( d2, &voxel, &value2 )) {
+            
+            VIO_fill_Point( voxel, Point_x(pos2), Point_y(pos2), Point_z(pos2) ); /* build the voxel POINT */
+        
+            if (voxel_point_not_masked(m2,Point_x(pos2), Point_y(pos2), Point_z(pos2) )) {
+              
+              if (INTERPOLATE_TRUE_VALUE( d2, &voxel, &value2 )) {
 
-		count2++;
-		/* voxel_value2 = CONVERT_VALUE_TO_VOXEL(d1,value2 ); */
+                count2++;
+                /* voxel_value2 = CONVERT_VALUE_TO_VOXEL(d1,value2 ); */
 
-	        if (value1 > globals->threshold[0] && value2 > globals->threshold[1]
-		    && value2 != 0.0)  {
+                if (value1 > globals->threshold[0] && value2 > globals->threshold[1]
+                    && value2 != 0.0)  {
 
-		  index = (*segment_table->segment)( voxel_value1, segment_table);
+                  index = (*segment_table->segment)( voxel_value1, segment_table);
 
-		  if (index>0) {
-		    count3[index]++;
-		    rat = value1 / value2;
-		    rat_sum[index] += rat;
-		    rat2_sum[index] +=  rat*rat;
-		  }
-		  else {
-		    print_error_and_line_num("Cannot segment voxel value %d into one of %d groups.", 
-				__FILE__, __LINE__, voxel_value1,segment_table->groups );
-		    exit(EXIT_FAILURE);
+                  if (index>0) {
+                    count3[index]++;
+                    rat = value1 / value2;
+                    rat_sum[index] += rat;
+                    rat2_sum[index] +=  rat*rat;
+                  }
+                  else {
+                    print_error_and_line_num("Cannot segment voxel value %d into one of %d groups.", 
+                                __FILE__, __LINE__, voxel_value1,segment_table->groups );
+                    exit(EXIT_FAILURE);
 
-		  }
-		} 
-		
-		
-	      } /* if voxel in d2 */
-	    } /* if point in mask volume two */
-	  } /* if voxel in d1 */
-	} /* if point in mask volume one */
-	
-	ADD_POINT_VECTOR( col, col, vox_space->directions[COL_IND] );
-	
+                  }
+                } 
+                
+                
+              } /* if voxel in d2 */
+            } /* if point in mask volume two */
+          } /* if voxel in d1 */
+        } /* if point in mask volume one */
+        
+        ADD_POINT_VECTOR( col, col, vox_space->directions[COL_IND] );
+        
       } /* for c */
     } /* for r */
   } /* for s */
@@ -808,21 +811,21 @@ float vr_objective(Volume d1,
   total_variance = 0.0;
   total_count = 0;
 
-  for_inclusive( index, 1, segment_table->groups) {
+  for(index=1; index<=segment_table->groups; index++) {
     if (count3[index] > 1) 
       total_count += count3[index];
   }
 
   if (total_count > 1) {
-    for_inclusive( index, 1, segment_table->groups) {
+    for(index=1; index<=segment_table->groups; index++) {
       if (count3[index] > 1) {
-	var[index]  = ((double)count3[index]*rat2_sum[index] - rat_sum[index]*rat_sum[index]) / 
-	  ((double)count3[index]*((double)count3[index]-1.0));
-	
-	total_variance += ((double)count3[index]/(double)total_count) * var[index];
+        var[index]  = ((double)count3[index]*rat2_sum[index] - rat_sum[index]*rat_sum[index]) / 
+          ((double)count3[index]*((double)count3[index]-1.0));
+        
+        total_variance += ((double)count3[index]/(double)total_count) * var[index];
       }
       else
-	var[index] = 0.0;
+        var[index] = 0.0;
     }
   }
   else
@@ -844,15 +847,15 @@ float vr_objective(Volume d1,
   
 }
 
-float stub_objective(Volume d1,
-			    Volume d2,
-			    Volume m1,
-			    Volume m2, 
-			    Arg_Data *globals)
+float stub_objective(VIO_Volume d1,
+                            VIO_Volume d2,
+                            VIO_Volume m1,
+                            VIO_Volume m2, 
+                            Arg_Data *globals)
 {
 
-  VectorR			/* these variables are used to step through */
-    vector_step;		/* the 3D lattice                           */
+  VectorR                        /* these variables are used to step through */
+    vector_step;                /* the 3D lattice                           */
   PointR
     starting_position,
     slice,
@@ -862,20 +865,20 @@ float stub_objective(Volume d1,
     voxel;
   int
     r,c,s;
-  Real
+  VIO_Real
     value1, value2,
     voxel_value1;
   float 
-    result;				/* the result */
+    result;                                /* the result */
   int 
-    count1,count2;		/* number of nodes in first vol, second vol */
+    count1,count2;                /* number of nodes in first vol, second vol */
   Voxel_space_struct *vox_space;
-  Transform          *trans;
+  VIO_Transform          *trans;
 
 
 
-				/* init any objective function specific
-				   stuff here                           */
+                                /* init any objective function specific
+                                   stuff here                           */
   count1 = count2 = 0;
   result = 0.0;
 
@@ -888,81 +891,81 @@ float stub_objective(Volume d1,
   get_into_voxel_space(globals, vox_space, d1, d2);
   trans = get_linear_transform_ptr(vox_space->voxel_to_voxel_space);
 
-			/* build world lattice info */
+                        /* build world lattice info */
 
-  fill_Point( starting_position, vox_space->start[X], vox_space->start[Y], vox_space->start[Z]);
+  VIO_fill_Point( starting_position, vox_space->start[VIO_X], vox_space->start[VIO_Y], vox_space->start[VIO_Z]);
 
-				/* loop through each node of lattice */
-  for_less(s,0,globals->count[SLICE_IND]) {
+                                /* loop through each node of lattice */
+  for(s=0; s<globals->count[SLICE_IND]; s++) {
 
     SCALE_VECTOR( vector_step, vox_space->directions[SLICE_IND], s);
     ADD_POINT_VECTOR( slice, starting_position, vector_step );
 
-    for_less(r,0,globals->count[ROW_IND]) {
+    for(r=0; r<globals->count[ROW_IND]; r++) {
       
       SCALE_VECTOR( vector_step, vox_space->directions[ROW_IND], r);
       ADD_POINT_VECTOR( row, slice, vector_step );
       
       SCALE_POINT( col, row, 1.0); /* init first col position */
-      for_less(c,0,globals->count[COL_IND]) {
-	
+      for(c=0; c<globals->count[COL_IND]; c++) {
+        
                                 /* use the voxel center closest to this lattice
                                    node. 
                                 */
-	fill_Point( voxel, ROUND(Point_x(col)), ROUND(Point_y(col)), ROUND(Point_z(col)) ); 
-	
-				/* get the node value in volume 1,
-				   if it falls within the volume    */
+        VIO_fill_Point( voxel, ROUND(Point_x(col)), ROUND(Point_y(col)), ROUND(Point_z(col)) ); 
+        
+                                /* get the node value in volume 1,
+                                   if it falls within the volume    */
 
-	if (voxel_point_not_masked(m1, Point_x(voxel), Point_y(voxel), Point_z(voxel))) {
-	  
-	  if (INTERPOLATE_TRUE_VALUE( d1, &voxel, &value1 )) {
+        if (voxel_point_not_masked(m1, Point_x(voxel), Point_y(voxel), Point_z(voxel))) {
+          
+          if (INTERPOLATE_TRUE_VALUE( d1, &voxel, &value1 )) {
 
-	    count1++;
-	    voxel_value1 = CONVERT_VALUE_TO_VOXEL(d1,value1 );
+            count1++;
+            voxel_value1 = CONVERT_VALUE_TO_VOXEL(d1,value1 );
 
-				/* transform the node coordinate into
-				   volume 2                             */
+                                /* transform the node coordinate into
+                                   volume 2                             */
 
             my_homogenous_transform_point(trans,
                                           Point_x(col), Point_y(col), Point_z(col), 1.0,
                                           &Point_x(pos2), &Point_y(pos2), &Point_z(pos2));
-	    
-            fill_Point( voxel, Point_x(pos2), Point_y(pos2), Point_z(pos2) ); /* build the voxel POINT */
-	
-				/* get the node value in volume 2,
-				   if it falls within the volume    */
+            
+            VIO_fill_Point( voxel, Point_x(pos2), Point_y(pos2), Point_z(pos2) ); /* build the voxel POINT */
+        
+                                /* get the node value in volume 2,
+                                   if it falls within the volume    */
 
-	    if (voxel_point_not_masked(m2,Point_x(pos2), Point_y(pos2), Point_z(pos2) )) {
-	      
-	      if (INTERPOLATE_TRUE_VALUE( d2, &voxel, &value2 )) {
+            if (voxel_point_not_masked(m2,Point_x(pos2), Point_y(pos2), Point_z(pos2) )) {
+              
+              if (INTERPOLATE_TRUE_VALUE( d2, &voxel, &value2 )) {
 
-		count2++;
-		/* voxel_value2 = CONVERT_VALUE_TO_VOXEL(d1,value2 ); */
-
-
-				/* if both values are within the threshold
-				   limits, then do what is necessary to
-				   calculate the objective function         */
-
-	        if (ABS(value1) > globals->threshold[0] && 
-		    ABS(value2) > globals->threshold[1] ) {
-
-				/*EMPTY*/
-				/* EMPTY is for lint  */
-				/* calculate objective function data here */
+                count2++;
+                /* voxel_value2 = CONVERT_VALUE_TO_VOXEL(d1,value2 ); */
 
 
-		} /* if value1 & value2 > threshold */
-		
-		
-	      } /* if voxel in d2 */
-	    } /* if point in mask volume two */
-	  } /* if voxel in d1 */
-	} /* if point in mask volume one */
-	
-	ADD_POINT_VECTOR( col, col, vox_space->directions[COL_IND] );
-	
+                                /* if both values are within the threshold
+                                   limits, then do what is necessary to
+                                   calculate the objective function         */
+
+                if (ABS(value1) > globals->threshold[0] && 
+                    ABS(value2) > globals->threshold[1] ) {
+
+                                /*EMPTY*/
+                                /* EMPTY is for lint  */
+                                /* calculate objective function data here */
+
+
+                } /* if value1 & value2 > threshold */
+                
+                
+              } /* if voxel in d2 */
+            } /* if point in mask volume two */
+          } /* if voxel in d1 */
+        } /* if point in mask volume one */
+        
+        ADD_POINT_VECTOR( col, col, vox_space->directions[COL_IND] );
+        
       } /* for c */
     } /* for r */
   } /* for s */

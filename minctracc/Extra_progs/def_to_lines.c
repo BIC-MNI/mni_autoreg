@@ -2,18 +2,18 @@
 #include <bicpl.h>
 
 
-int point_not_masked(Volume volume, 
-			    Real wx, Real wy, Real wz);
+int point_not_masked(VIO_Volume volume, 
+                            VIO_Real wx, VIO_Real wy, VIO_Real wz);
 
-void get_volume_XYZV_indices(Volume data, int xyzv[]);
+void get_volume_XYZV_indices(VIO_Volume data, int xyzv[]);
 
 
 int main(int argc, char *argv[])
 {
-  General_transform 
+  VIO_General_transform 
     *non_lin_def,
     def;
-  Volume 
+  VIO_Volume 
     mask,
     vol;
 
@@ -25,22 +25,22 @@ int main(int argc, char *argv[])
     p;
   FILE 
     *fp;
-  Status 
+  VIO_Status 
     stat;
-  progress_struct
+  VIO_progress_struct
     progress;
 
-  Real
+  VIO_Real
      mult,
-    voxel[MAX_DIMENSIONS],
+    voxel[VIO_MAX_DIMENSIONS],
     vx,vy,vz,
     wx,wy,wz,
     dx,dy,dz;
   int 
     i, count,
-    index[MAX_DIMENSIONS],
-    xyzv[MAX_DIMENSIONS],
-    sizes[MAX_DIMENSIONS];
+    index[VIO_MAX_DIMENSIONS],
+    xyzv[VIO_MAX_DIMENSIONS],
+    sizes[VIO_MAX_DIMENSIONS];
 
 
   if (argc<3 || argc>5) {
@@ -61,11 +61,11 @@ int main(int argc, char *argv[])
     exit(EXIT_FAILURE);
   }
   
-  mask = (Volume)NULL;
+  mask = (VIO_Volume)NULL;
   if (argc>=4) {
     stat = input_volume(argv[3], 3, NULL, 
-			NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-			TRUE, &mask, (minc_input_options *)NULL );
+                        NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+                        TRUE, &mask, (minc_input_options *)NULL );
     if (stat != OK) {
       print("error: cannot read mask %s.\n", argv[3]);
       exit(EXIT_FAILURE);
@@ -77,14 +77,14 @@ int main(int argc, char *argv[])
     mult = atof(argv[4]);    
   }
 
-  non_lin_def = (General_transform *)NULL;
-  for_less(i,0,get_n_concated_transforms(&def)) {
+  non_lin_def = (VIO_General_transform *)NULL;
+  for(i=0; i<get_n_concated_transforms(&def; i++)) {
     if (get_transform_type( get_nth_general_transform(&def,i) ) 
-	== GRID_TRANSFORM)
+        == GRID_TRANSFORM)
       non_lin_def = get_nth_general_transform(&def,i);
   }
   
-  if (non_lin_def == (General_transform *)NULL) {
+  if (non_lin_def == (VIO_General_transform *)NULL) {
     print("error: cannot find deformation field in %s.\n", argv[1]);
     exit(EXIT_FAILURE);
   }
@@ -100,42 +100,42 @@ int main(int argc, char *argv[])
 
 
   initialize_progress_report(&progress, FALSE, sizes[0]*sizes[1]*sizes[2]+1,
-			     "Building vectors");
+                             "Building vectors");
   count = 0;
   
-  for_less(i,0,MAX_DIMENSIONS) index[i] = 0;
+  for(i=0; i<MAX_DIMENSIONS; i++) index[i] = 0;
   
-  for_less(index[xyzv[X]],0,sizes[xyzv[X]])
-    for_less(index[xyzv[Y]],0,sizes[xyzv[Y]])
-      for_less(index[xyzv[Z]],0,sizes[xyzv[Z]]) {
-	
+  for(index[xyzv[VIO_X]]=0; index[xyzv[VIO_X]]<sizes[xyzv[VIO_X]]; index[xyzv[VIO_X]]++)
+    for(index[xyzv[VIO_Y]]=0; index[xyzv[VIO_Y]]<sizes[xyzv[VIO_Y]]; index[xyzv[VIO_Y]]++)
+      for(index[xyzv[VIO_Z]]=0; index[xyzv[VIO_Z]]<sizes[xyzv[VIO_Z]]; index[xyzv[VIO_Z]]++) {
+        
 
-	for_less(i,0,MAX_DIMENSIONS) voxel[i]=index[i];
-	convert_voxel_to_world(vol, voxel, &wx, &wy, &wz);
+        for(i=0; i<MAX_DIMENSIONS; i++) voxel[i]=index[i];
+        convert_voxel_to_world(vol, voxel, &wx, &wy, &wz);
 
-	if (point_not_masked(mask, wx, wy,wz)) {
-	  index[ xyzv[Z+1] ] = X;
-	  dx = get_volume_real_value(vol,
-		       index[0],index[1],index[2],index[3],index[4]);
-	  index[ xyzv[Z+1] ] = Y;
-	  dy = get_volume_real_value(vol,
-		       index[0],index[1],index[2],index[3],index[4]);
-	  index[ xyzv[Z+1] ] = Z;
-	  dz = get_volume_real_value(vol,
-		       index[0],index[1],index[2],index[3],index[4]);
+        if (point_not_masked(mask, wx, wy,wz)) {
+          index[ xyzv[Z+1] ] = X;
+          dx = get_volume_real_value(vol,
+                       index[0],index[1],index[2],index[3],index[4]);
+          index[ xyzv[Z+1] ] = Y;
+          dy = get_volume_real_value(vol,
+                       index[0],index[1],index[2],index[3],index[4]);
+          index[ xyzv[Z+1] ] = Z;
+          dz = get_volume_real_value(vol,
+                       index[0],index[1],index[2],index[3],index[4]);
 
-	  if ( (ABS(dx) + ABS(dy) + ABS(dz) ) > 0.01 ) {
-	    start_new_line(lines);
-	    fill_Point(p, wx, wy, wz);
-	    add_point_to_line(lines, &p);
-	    fill_Point(p, wx+dx*mult, wy+dy*mult, wz+dz*mult);
-	    add_point_to_line(lines, &p);
-	  }
-	}
-	    
-	count ++;
-	update_progress_report( &progress, count );
-	
+          if ( (ABS(dx) + ABS(dy) + ABS(dz) ) > 0.01 ) {
+            start_new_line(lines);
+            VIO_fill_Point(p, wx, wy, wz);
+            add_point_to_line(lines, &p);
+            VIO_fill_Point(p, wx+dx*mult, wy+dy*mult, wz+dz*mult);
+            add_point_to_line(lines, &p);
+          }
+        }
+            
+        count ++;
+        update_progress_report( &progress, count );
+        
       }
   
   terminate_progress_report(&progress);
@@ -152,41 +152,41 @@ int main(int argc, char *argv[])
   exit(EXIT_SUCCESS);
 }
 
-int point_not_masked(Volume volume, 
-			    Real wx, Real wy, Real wz)
+int point_not_masked(VIO_Volume volume, 
+                            VIO_Real wx, VIO_Real wy, VIO_Real wz)
 {
 
   int
     i,
     inside,
-    index[MAX_DIMENSIONS],
-    sizes[MAX_DIMENSIONS];
-  Real
-    world[MAX_DIMENSIONS],
-    voxel[MAX_DIMENSIONS],
+    index[VIO_MAX_DIMENSIONS],
+    sizes[VIO_MAX_DIMENSIONS];
+  VIO_Real
+    world[VIO_MAX_DIMENSIONS],
+    voxel[VIO_MAX_DIMENSIONS],
     result;
 
   
-  if (volume!=(Volume)NULL) {
+  if (volume!=(VIO_Volume)NULL) {
     get_volume_sizes(volume,sizes);
     convert_world_to_voxel(volume, wx, wy, wz, voxel);
     
     inside = TRUE;
-    for_less(i,0,get_volume_n_dimensions(volume))
+    for(i=0; i<get_volume_n_dimensions(volume; i++))
       inside = ( inside && (voxel[i] > -0.5) && (voxel[i] < sizes[i]-0.5));
 
     if ( inside ) {
       
-      for_less(i,0,get_volume_n_dimensions(volume)) {
-	index[i] = ROUND( voxel[i] );
+      for(i=0; i<get_volume_n_dimensions(volume; i++)) {
+        index[i] = ROUND( voxel[i] );
       }
       result =  get_volume_real_value(volume,
-		       index[0],index[1],index[2],index[3],index[4]);
+                       index[0],index[1],index[2],index[3],index[4]);
 
       if (result>0.0)
-	return(TRUE);
+        return(TRUE);
       else
-	return(FALSE);
+        return(FALSE);
     }
     else
       return(FALSE) ;
@@ -196,7 +196,7 @@ int point_not_masked(Volume volume,
 }
 
 
-void get_volume_XYZV_indices(Volume data, int xyzv[])
+void get_volume_XYZV_indices(VIO_Volume data, int xyzv[])
 {
   
   int 
@@ -207,8 +207,8 @@ void get_volume_XYZV_indices(Volume data, int xyzv[])
   vol_dims       = get_volume_n_dimensions(data);
   data_dim_names = get_volume_dimension_names(data);
   
-  for_less(i,0,N_DIMENSIONS+1) xyzv[i] = -1;
-  for_less(i,0,vol_dims) {
+  for(i=0; i<N_DIMENSIONS+1; i++) xyzv[i] = -1;
+  for(i=0; i<vol_dims; i++) {
     if (convert_dim_name_to_spatial_axis(data_dim_names[i], &axis )) {
       xyzv[axis] = i; 
     } 

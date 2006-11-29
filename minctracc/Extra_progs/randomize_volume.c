@@ -7,7 +7,10 @@
               that have a gaussian distribution.
 @CREATED    : Dec 5 1995 Collins
 @MODIFIED   : $Log: randomize_volume.c,v $
-@MODIFIED   : Revision 1.3  2005-07-20 20:45:46  rotor
+@MODIFIED   : Revision 1.4  2006-11-29 09:09:31  rotor
+@MODIFIED   :  * first bunch of changes for minc 2.0 compliance
+@MODIFIED   :
+@MODIFIED   : Revision 1.3  2005/07/20 20:45:46  rotor
 @MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
 @MODIFIED   :     * Many changes to includes of files (float.h, limits.h, etc)
 @MODIFIED   :     * Removed old VOLUME_IO cruft #defines
@@ -55,11 +58,11 @@ char *prog_name;
 #include <math.h>
 
 
-Real gaussian_random_0_1()
+VIO_Real gaussian_random_0_1()
 {
   static int iset=0;
-  static Real gset;
-  Real fac,r,v1,v2;
+  static VIO_Real gset;
+  VIO_Real fac,r,v1,v2;
   
   if  (iset == 0) {
     do {
@@ -81,18 +84,18 @@ Real gaussian_random_0_1()
 
 int main(int argc, char *argv[])
 {
-   Volume 
+   VIO_Volume 
      volume;
-   Real
+   VIO_Real
      variability,
      rand_val,
-     voxel[MAX_DIMENSIONS];
+     voxel[VIO_MAX_DIMENSIONS];
    int 
      progress_count,
-     sizes[MAX_DIMENSIONS],
-     index[MAX_DIMENSIONS],
+     sizes[VIO_MAX_DIMENSIONS],
+     index[VIO_MAX_DIMENSIONS],
      i,j,k;
-   progress_struct
+   VIO_progress_struct
      progress;
 
    union
@@ -116,15 +119,15 @@ int main(int argc, char *argv[])
 
 
    if( input_volume( argv[1], 3, NULL, NC_UNSPECIFIED, FALSE,
-		    0.0, 0.0, TRUE, &volume, (minc_input_options *)NULL ) != OK ) {
+                    0.0, 0.0, TRUE, &volume, (minc_input_options *)NULL ) != OK ) {
      (void)fprintf(stderr, "Error opening input volume file %s.\n",
-		   argv[1]);
+                   argv[1]);
      exit(EXIT_FAILURE);
    }
 
    variability = atof( argv[3] );
 
-				/* initialize drand function */
+                                /* initialize drand function */
    t = 2*time(NULL);
    seedval.l = t; 
    tmp = seedval.c[0]; seedval.c[0] = seedval.c[3]; seedval.c[3] = tmp; 
@@ -137,31 +140,31 @@ int main(int argc, char *argv[])
 
    get_volume_sizes(volume,sizes);
    initialize_progress_report(&progress, FALSE, 
-			      sizes[X]*sizes[Y]*sizes[Z]+1,
-			      "Randomizing volume");
+                              sizes[VIO_X]*sizes[VIO_Y]*sizes[VIO_Z]+1,
+                              "Randomizing volume");
    progress_count = 0;
 
 
-   for_less(i,0,MAX_DIMENSIONS) index[i] = 0;
+   for(i=0; i<MAX_DIMENSIONS; i++) index[i] = 0;
 
    /* loop over all voxels */
-   for_less( index[ X ], 0, sizes[ X ])
-     for_less( index[ Y ], 0, sizes[ Y ])
-       for_less( index[ Z ], 0, sizes[ Z ]) {
-	     
-	 /* get a random value from a gaussian distribution  */
+   for(index[X]=0; index[X]<sizes[X]; index[X]++)
+     for(index[Y]=0; index[Y]<sizes[Y]; index[Y]++)
+       for(index[Z]=0; index[Z]<sizes[Z]; index[Z]++) {
+             
+         /* get a random value from a gaussian distribution  */
 
-	 rand_val = variability * gaussian_random_0_1();
+         rand_val = variability * gaussian_random_0_1();
 
-	 if (rand_val >  5.0*variability) rand_val =  5.0*variability;
-	 if (rand_val < -5.0*variability) rand_val = -5.0*variability;
-	 
-	 set_volume_real_value(volume,
-			       index[0],index[1],index[2],index[3],index[4],
-			       rand_val);
-	 
-	 progress_count++;
-	 update_progress_report(&progress, progress_count);
+         if (rand_val >  5.0*variability) rand_val =  5.0*variability;
+         if (rand_val < -5.0*variability) rand_val = -5.0*variability;
+         
+         set_volume_real_value(volume,
+                               index[0],index[1],index[2],index[3],index[4],
+                               rand_val);
+         
+         progress_count++;
+         update_progress_report(&progress, progress_count);
        }
    
    terminate_progress_report(&progress);
@@ -170,7 +173,7 @@ int main(int argc, char *argv[])
 
    /* Write out the random volume */
    if (output_volume(argv[2], NC_UNSPECIFIED, FALSE, 0.0, 0.0, volume, 
-		     (char *)NULL, (minc_output_options *)NULL) != OK) {
+                     (char *)NULL, (minc_output_options *)NULL) != OK) {
      (void) fprintf(stderr, "%s: Error writing volume file %s\n",
                      argv[0], argv[2]);
       exit(EXIT_FAILURE);
