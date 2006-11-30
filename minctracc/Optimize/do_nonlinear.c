@@ -16,7 +16,10 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 96.27  2006-11-30 09:17:49  rotor
+@MODIFIED   : Revision 96.28  2006-11-30 17:23:43  rotor
+@MODIFIED   :  * fixed a small bug in init_volume_to_zero
+@MODIFIED   :
+@MODIFIED   : Revision 96.27  2006/11/30 09:17:49  rotor
 @MODIFIED   :  * even more changes for a clean minc 2.0 build
 @MODIFIED   :
 @MODIFIED   : Revision 96.26  2006/11/30 09:07:32  rotor
@@ -342,7 +345,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.27 2006-11-30 09:17:49 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.28 2006-11-30 17:23:43 rotor Exp $";
 #endif
 
 #include <config.h>                /* MAXtype and MIN defs                      */
@@ -1140,20 +1143,19 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
            
            interpolate_super_sampled_data_by2(current_warp,
                                           Gsuper_sampled_warp);
-           if (globals->flags.debug)
+           if (globals->flags.debug){
              report_time(temp_start_time, "TIME:Interpolating super-sampled data");
+             }
 
          }  
 
-      printf("foo2\n");
-
+       print("Initializing deformation grid to 0...\n");
        init_the_volume_to_zero(estimated_flag_vol);
-      printf("foo2\n");
 
        print("Iteration %2d of %2d\n",iters+1, iteration_limit);
 
 
-                                /* for various stats on this iteration*/
+       /* for various stats on this iteration*/
        stat_quad_total = 0;
        stat_quad_zero  = 0;
        stat_quad_two   = 0;

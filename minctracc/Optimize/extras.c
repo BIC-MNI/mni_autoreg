@@ -5,7 +5,7 @@
                procedures.               
 @CREATED    : Mon Nov  3, 1997 , Louis Collins
 @MODIFIED   : not yet!
-@VERSION    : $Id: extras.c,v 1.9 2006-11-30 09:07:32 rotor Exp $
+@VERSION    : $Id: extras.c,v 1.10 2006-11-30 17:23:43 rotor Exp $
 #-----------------------------------------------------------------------------
 */
 
@@ -49,17 +49,32 @@ void init_the_volume_to_zero(VIO_Volume volume)
     int             v0, v1, v2, v3, v4;
     VIO_Real            zero;
     int    sizes[VIO_MAX_DIMENSIONS];
+    int ndims;
 
+    ndims = get_volume_n_dimensions(volume);
     get_volume_sizes(volume, sizes);
 
     /* figure out what 0 is */
     zero = CONVERT_VALUE_TO_VOXEL(volume,0.0);
     
-    for(v0=sizes[0]; v0--; ){
-       for(v1=sizes[1]; v1--; ){
-          for(v2=sizes[2]; v2--; ){
-             for(v3=sizes[3]; v3--; ){
-                set_volume_voxel_value( volume, v0, v1, v2, v3, 0, zero );
+    /* a tad of loop unrolling */
+    if(ndims == 3){
+       for(v0=sizes[0]; v0--; ){
+          for(v1=sizes[1]; v1--; ){
+             for(v2=sizes[2]; v2--; ){
+                set_volume_voxel_value( volume, v0, v1, v2, 0, 0, zero );
+                }
+             }
+          }
+       }
+    
+    else{
+       for(v0=sizes[0]; v0--; ){
+          for(v1=sizes[1]; v1--; ){
+             for(v2=sizes[2]; v2--; ){
+                for(v3=sizes[3]; v3--; ){
+                   set_volume_voxel_value( volume, v0, v1, v2, v3, 0, zero );
+                   }
                 }
              }
           }

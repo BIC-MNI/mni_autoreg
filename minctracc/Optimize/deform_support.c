@@ -20,7 +20,10 @@
 
 @CREATED    : Tue Feb 22 08:37:49 EST 1994
 @MODIFIED   : $Log: deform_support.c,v $
-@MODIFIED   : Revision 96.13  2006-11-30 09:07:32  rotor
+@MODIFIED   : Revision 96.14  2006-11-30 17:23:43  rotor
+@MODIFIED   :  * fixed a small bug in init_volume_to_zero
+@MODIFIED   :
+@MODIFIED   : Revision 96.13  2006/11/30 09:07:32  rotor
 @MODIFIED   :  * many more changes for clean minc 2.0 build
 @MODIFIED   :
 @MODIFIED   : Revision 96.12  2006/11/29 09:09:34  rotor
@@ -216,7 +219,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 96.13 2006-11-30 09:07:32 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 96.14 2006-11-30 17:23:43 rotor Exp $";
 #endif
 
 #include <config.h>
@@ -246,8 +249,6 @@ int trilinear_interpolant(VIO_Volume volume,
  
 int nearest_neighbour_interpolant(VIO_Volume volume, 
                                          PointR *coord, double *result);
-
-void init_the_volume_to_zero(VIO_Volume volume);
 
 VIO_Real get_volume_maximum_real_value(VIO_Volume volume);
 

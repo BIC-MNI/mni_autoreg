@@ -11,6 +11,8 @@
 #include <ParseArgv.h>
 #include <volume_io.h>
 
+#include "local_macros.h"
+
 static char* ProgName;
 static double linear_tolerance;        /* ... for linear matrix */
 static double translation_tolerance;   /* ... for translation vector */
@@ -34,9 +36,9 @@ static ArgvInfo argTable[] = {
 /* Given a file name, check that it is a linear transform,
    return pointer to (linear) VIO_Transform structure, if so.
 */
-Transform* input_linear_transform( char* filename )
+VIO_Transform* input_linear_transform( char* filename )
 {
-    General_transform* gt;
+    VIO_General_transform* gt;
 
     ALLOC( gt, 1 );
 
@@ -56,7 +58,7 @@ Transform* input_linear_transform( char* filename )
 }
 
 
-int do_compare( Transform* xfm1, Transform* xfm2,
+int do_compare( VIO_Transform* xfm1, VIO_Transform* xfm2,
                 int i_min, int i_cnt, 
                 int j_min, int j_cnt,
                 double tolerance )
@@ -86,8 +88,8 @@ int do_compare( Transform* xfm1, Transform* xfm2,
 
 
 int main( int ac, char* av[] ) {
-    Transform* xfm1;
-    Transform* xfm2;
+    VIO_Transform* xfm1;
+    VIO_Transform* xfm2;
 
     /* Set defaults before parsing arguments */
     ProgName = av[0];
