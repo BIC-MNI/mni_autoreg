@@ -28,8 +28,8 @@
 
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   :  $Log: init_lattice.c,v $
-@MODIFIED   :  Revision 96.10  2006-11-29 09:09:34  rotor
-@MODIFIED   :   * first bunch of changes for minc 2.0 compliance
+@MODIFIED   :  Revision 96.11  2006-11-30 09:07:33  rotor
+@MODIFIED   :   * many more changes for clean minc 2.0 build
 @MODIFIED   :
 @MODIFIED   :  Revision 96.9  2005/07/20 20:45:51  rotor
 @MODIFIED   :      * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
@@ -108,7 +108,7 @@ made change to init lattice to not change start when there is only 1 slice.
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/init_lattice.c,v 96.10 2006-11-29 09:09:34 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/init_lattice.c,v 96.11 2006-11-30 09:07:33 rotor Exp $";
 #endif
 
 #include <config.h>
@@ -144,13 +144,13 @@ void get_volume_XYZV_indices(VIO_Volume data, int xyzv[])
   vol_dims       = get_volume_n_dimensions(data);
   data_dim_names = get_volume_dimension_names(data);
 
-  for(i=0; i<N_DIMENSIONS+1; i++) xyzv[i] = -1;
+  for(i=0; i<VIO_N_DIMENSIONS+1; i++) xyzv[i] = -1;
   for(i=0; i<vol_dims; i++) {
     if (convert_dim_name_to_spatial_axis(data_dim_names[i], &axis )) {
       xyzv[axis] = i; 
     } 
     else {     /* not a spatial axis */
-      xyzv[Z+1] = i;
+      xyzv[VIO_Z+1] = i;
     }
   }
 
@@ -211,7 +211,7 @@ void set_up_lattice(VIO_Volume data,       /* in: volume  */
   debug  = main_args.flags.debug;
   verbose= main_args.flags.verbose;
   
-  for(i=0; i<MAX_DIMENSIONS; i++)
+  for(i=0; i<VIO_MAX_DIMENSIONS; i++)
     {
       sizes[i]=0;
       separations[i]=0.0;
@@ -225,7 +225,7 @@ void set_up_lattice(VIO_Volume data,       /* in: volume  */
   get_volume_XYZV_indices(data, xyzv);
   if (debug) {
     print ("In set_up_lattice, xyzv[axes] = %d, %d, %d, %d\n",
-           xyzv[VIO_X],xyzv[VIO_Y],xyzv[VIO_Z],xyzv[Z+1]);
+           xyzv[VIO_X],xyzv[VIO_Y],xyzv[VIO_Z],xyzv[VIO_Z+1]);
   }
     
   for(i=0; i<3; i++)                /* copy the requested step values for X, Y, Z */
@@ -242,7 +242,7 @@ void set_up_lattice(VIO_Volume data,       /* in: volume  */
            xyzv[VIO_X]>-1 ? separations[xyzv[VIO_X]] : 0.0,
            xyzv[VIO_Y]>-1 ? separations[xyzv[VIO_Y]] : 0.0,
            xyzv[VIO_Z]>-1 ? separations[xyzv[VIO_Z]] : 0.0);
-    for(i=0; i<MAX_DIMENSIONS; i++) start_voxel[i] = 0.0;
+    for(i=0; i<VIO_MAX_DIMENSIONS; i++) start_voxel[i] = 0.0;
     convert_voxel_to_world(data, start_voxel,
                            &starts[VIO_X], &starts[VIO_Y], &starts[VIO_Z]);
     print ("start (v->w), 0,0,0 ->(x,y,z)    : %7.2f %7.2f %7.2f\n",starts[VIO_X],starts[VIO_Y],starts[VIO_Z]);
@@ -273,12 +273,12 @@ void set_up_lattice(VIO_Volume data,       /* in: volume  */
     if (xyzv[i] >= 0 && sizes[ xyzv[i] ] > 1) {
                                 /* force step to have the same SIGN as the 
                                    volume voxel spacing. */
-      step[i] = ABS( step[i] );
+      step[i] = fabs( step[i] );
       if (separations[xyzv[i]] < 0.0)  step[i] *= (-1.0);
       
       num_steps = separations[xyzv[i]] * sizes[xyzv[i]] / step[i];
-      num_steps = ABS(num_steps);
-      count[i] = ROUND(num_steps);
+      num_steps = fabs(num_steps);
+      count[i] = (int)floor(num_steps + 0.5);
       if (count[i] == 0) count[i] = 1;
     
                                 /* this is the offset for the start of the
@@ -293,7 +293,7 @@ void set_up_lattice(VIO_Volume data,       /* in: volume  */
                                 /* get the voxel position of the lattice start,
                                    in voxel coordinates of the data volume  */
     
-  for(i=0; i<MAX_DIMENSIONS; i++) {
+  for(i=0; i<VIO_MAX_DIMENSIONS; i++) {
     start_voxel[i] = 0.0;
     start[i] = 0.0;
     starts[i]=0.0;
@@ -304,7 +304,7 @@ void set_up_lattice(VIO_Volume data,       /* in: volume  */
   
   get_volume_starts(data, starts); /* get the volume-world start position (in dir_cos coords */
 
-  for(i=0; i<N_DIMENSIONS; i++) {
+  for(i=0; i<VIO_N_DIMENSIONS; i++) {
     
     if (separations[xyzv[i]] > 0)
       sign = 1.0;
@@ -334,11 +334,11 @@ void set_up_lattice(VIO_Volume data,       /* in: volume  */
   /* get the absolute world starting coordinates of the origin of the lattice */
   convert_voxel_to_world(data, start_voxel, &wstart[VIO_X], &wstart[VIO_Y], &wstart[VIO_Z]);
 
-  for(i=0; i<N_DIMENSIONS; i++)
+  for(i=0; i<VIO_N_DIMENSIONS; i++)
     start[xyzv[i]] = start_world[xyzv[i]];
   
                                 /* get direction vectors*/
-  for(i=0; i<N_DIMENSIONS; i++) {
+  for(i=0; i<VIO_N_DIMENSIONS; i++) {
 
     get_volume_direction_cosine(data, xyzv[i], direction);
     
@@ -470,7 +470,7 @@ void init_lattice(VIO_Volume d1,
   }
 
 
-  VIO_fill_Point( starting_position1, wstart1[0], wstart1[1], wstart1[2]);
+  fill_Point( starting_position1, wstart1[0], wstart1[1], wstart1[2]);
   
                                 /* init min1 max1 values */
   min1_col = count1[VIO_X]; max1_col = 0;
@@ -493,7 +493,7 @@ void init_lattice(VIO_Volume d1,
 
         convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
         
-        VIO_fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
+        fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
         
         if (point_not_masked(m1, Point_x(col), Point_y(col), Point_z(col))) {        
 
@@ -579,7 +579,7 @@ void init_lattice(VIO_Volume d1,
   }
 
 
-  VIO_fill_Point( starting_position2, wstart2[0], wstart2[1], wstart2[2]);
+  fill_Point( starting_position2, wstart2[0], wstart2[1], wstart2[2]);
   
                                 /* init min2 max2 values */
   min2_col = count2[VIO_X]; max2_row = 0;
@@ -603,7 +603,7 @@ void init_lattice(VIO_Volume d1,
 
         convert_3D_world_to_voxel(d2, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
         
-        VIO_fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
+        fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
         
         if (point_not_masked(m2, Point_x(col), Point_y(col), Point_z(col))) {                        /* should be fill_value  */
           
@@ -664,7 +664,7 @@ void init_lattice(VIO_Volume d1,
     globals->count[VIO_Y] = max1_row - min1_row + 1;
     globals->count[VIO_Z] = max1_slice - min1_slice + 1;
 
-    VIO_fill_Point( starting_position1, wstart1[0], wstart1[1], wstart1[2]);
+    fill_Point( starting_position1, wstart1[0], wstart1[1], wstart1[2]);
     SCALE_VECTOR( vector_step, scaled_directions1[VIO_Z], min1_slice);
     ADD_POINT_VECTOR( slice, starting_position1, vector_step );
     SCALE_VECTOR( vector_step, scaled_directions1[VIO_Y], min1_row);
@@ -682,7 +682,7 @@ void init_lattice(VIO_Volume d1,
 
       globals->step[i] = step1[i]; /* ensure that global step has same sign as data voxel */
 
-      abs_step = ABS(globals->step[i]);
+      abs_step = fabs(globals->step[i]);
 
       Point_x(globals->directions[i]) = Point_x(directions1[i]) * abs_step;
       Point_y(globals->directions[i]) = Point_y(directions1[i]) * abs_step;
@@ -698,7 +698,7 @@ void init_lattice(VIO_Volume d1,
     globals->count[VIO_Y] = max2_row - min2_row + 1;
     globals->count[VIO_Z] = max2_slice - min2_slice + 1;
 
-    VIO_fill_Point( starting_position2, wstart2[0], wstart2[1], wstart2[2]);
+    fill_Point( starting_position2, wstart2[0], wstart2[1], wstart2[2]);
     SCALE_VECTOR( vector_step, scaled_directions2[VIO_Z], min2_slice);
     ADD_POINT_VECTOR( slice, starting_position2, vector_step );
     SCALE_VECTOR( vector_step, scaled_directions2[VIO_Y], min2_row);
@@ -714,7 +714,7 @@ void init_lattice(VIO_Volume d1,
 
       globals->step[i] = step2[i]; /* ensure that global step has same sign as data voxel */
 
-      abs_step = ABS(globals->step[i]);
+      abs_step = fabs(globals->step[i]);
       
       Point_x(globals->directions[i]) = Point_x(directions2[i]) * abs_step;
       Point_y(globals->directions[i]) = Point_y(directions2[i]) * abs_step;

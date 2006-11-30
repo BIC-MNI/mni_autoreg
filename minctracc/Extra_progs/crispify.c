@@ -224,7 +224,7 @@ void parse_arguments(int argc, char* argv[])
       fprintf( stdout, "fuzzy_label[%d] = %s\n", k, fuzzy_label[k]);
     }
     
-for(=; <; ++)
+  }
 
   /* determine the maximum label value input by user */
   for(k=0; k<num_volumes; k++) {

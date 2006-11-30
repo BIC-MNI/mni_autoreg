@@ -112,7 +112,7 @@ main(int argc, char *argv[])
         if (flag) {
           s1  += v1;
           s2  += v1*v1;
-          smag += ABS(v1);
+          smag += fabs(v1);
           count++;
         }
       }
@@ -180,7 +180,7 @@ main(int argc, char *argv[])
             if (flag) {
               s1  += v1;
               s2  += v1*v1;
-              smag += ABS(v1);
+              smag += fabs(v1);
               count++;
               
               if (hist_flag) {

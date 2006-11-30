@@ -13,8 +13,8 @@
 
    @CREATED    : February 3, 1992 - louis collins
    @MODIFIED   : $Log: minctracc.c,v $
-   @MODIFIED   : Revision 96.16  2006-11-29 09:09:32  rotor
-   @MODIFIED   :  * first bunch of changes for minc 2.0 compliance
+   @MODIFIED   : Revision 96.17  2006-11-30 09:07:31  rotor
+   @MODIFIED   :  * many more changes for clean minc 2.0 build
    @MODIFIED   :
    @MODIFIED   : Revision 96.15  2006/06/04 07:02:35  rotor
    @MODIFIED   :  * Fixed 64 bit function pointer and ParseArgv problem with an enum for
@@ -146,7 +146,7 @@ Wed May 26 13:05:44 EST 1993 lc
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.16 2006-11-29 09:09:32 rotor Exp $";
+static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.17 2006-11-30 09:07:31 rotor Exp $";
 #endif
 
 #include <config.h>
@@ -155,7 +155,7 @@ static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autore
 #include <volume_io.h>
 #include <minctracc.h>
 #include <globals.h>
-
+#include "local_macros.h"
 
 /* objective function for nonlinear optimization.
  * Set in get_nonlinear_objective().
@@ -169,12 +169,12 @@ static char *default_dim_names[VIO_N_DIMENSIONS] =
 /* Why are these declared here?  They aren't apparently used.
  * -smr
  *
- * static   const STRING      TRANSFORM_FILE_HEADER = "MNI VIO_Transform File";
- * static   const STRING      LINEAR_TYPE = "Linear";
- * static   const STRING      TYPE_STRING = "Transform_Type";
- * static   const STRING      LINEAR_TRANSFORM_STRING = "Linear_Transform";
- * static   const STRING      GRID_TRANSFORM_STRING = "Grid_Transform";
- * static   const STRING      DISPLACEMENT_VOLUME = "Displacement_Volume";
+ * static   const VIO_STR      TRANSFORM_FILE_HEADER = "MNI VIO_Transform File";
+ * static   const VIO_STR      LINEAR_TYPE = "Linear";
+ * static   const VIO_STR      TYPE_STRING = "Transform_Type";
+ * static   const VIO_STR      LINEAR_TRANSFORM_STRING = "Linear_Transform";
+ * static   const VIO_STR      GRID_TRANSFORM_STRING = "Grid_Transform";
+ * static   const VIO_STR      DISPLACEMENT_VOLUME = "Displacement_Volume";
  */
 
 /*************************************************************************/

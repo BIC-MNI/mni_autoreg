@@ -17,7 +17,10 @@
 
 @CREATED    : 
 @MODIFIED   : $Log: amoeba.c,v $
-@MODIFIED   : Revision 96.9  2006-11-29 09:09:33  rotor
+@MODIFIED   : Revision 96.10  2006-11-30 09:07:32  rotor
+@MODIFIED   :  * many more changes for clean minc 2.0 build
+@MODIFIED   :
+@MODIFIED   : Revision 96.9  2006/11/29 09:09:33  rotor
 @MODIFIED   :  * first bunch of changes for minc 2.0 compliance
 @MODIFIED   :
 @MODIFIED   : Revision 96.8  2005/07/20 20:45:49  rotor
@@ -138,7 +141,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/amoeba.c,v 96.9 2006-11-29 09:09:33 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/amoeba.c,v 96.10 2006-11-30 09:07:32 rotor Exp $";
 #endif
 
 
@@ -437,8 +440,8 @@ static  VIO_Real  try_amoeba(
                            amoeba->tolerance ) )
  */
 
-    tol = 2.0 * ABS(amoeba->values[high]-amoeba->values[low]) /
-      (ABS(amoeba->values[high]) + ABS(amoeba->values[low]));
+    tol = 2.0 * fabs(amoeba->values[high]-amoeba->values[low]) /
+      (fabs(amoeba->values[high]) + fabs(amoeba->values[low]));
 
     if (tol < amoeba->tolerance)
    {

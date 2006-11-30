@@ -20,7 +20,10 @@
 
 @CREATED    : Tue Feb 22 08:37:49 EST 1994
 @MODIFIED   : $Log: deform_support.c,v $
-@MODIFIED   : Revision 96.12  2006-11-29 09:09:34  rotor
+@MODIFIED   : Revision 96.13  2006-11-30 09:07:32  rotor
+@MODIFIED   :  * many more changes for clean minc 2.0 build
+@MODIFIED   :
+@MODIFIED   : Revision 96.12  2006/11/29 09:09:34  rotor
 @MODIFIED   :  * first bunch of changes for minc 2.0 compliance
 @MODIFIED   :
 @MODIFIED   : Revision 96.11  2005/07/20 20:45:50  rotor
@@ -213,7 +216,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 96.12 2006-11-29 09:09:34 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 96.13 2006-11-30 09:07:32 rotor Exp $";
 #endif
 
 #include <config.h>
@@ -1002,7 +1005,7 @@ VIO_Real get_value_of_point_in_volume(VIO_Real xw, VIO_Real yw, VIO_Real zw,
 
   convert_3D_world_to_voxel(data, xw, yw, zw,
                             &zvox, &yvox, &xvox);
-  VIO_fill_Point( voxel, zvox, yvox, xvox );
+  fill_Point( voxel, zvox, yvox, xvox );
 
   if (!trilinear_interpolant(data, &voxel, &mag)) 
     return(-DBL_MAX); 
@@ -1035,14 +1038,14 @@ void split_up_the_transformation(VIO_General_transform *total,
                          *all_until_last);
 
                                 /* copy and concat the rest of tem, stopping before the end */
-  for(i=1; i<get_n_concated_transforms(total; i++)-1){
+  for(i=1; i<get_n_concated_transforms(total)-1; i++){
     ALLOC(tmp_trans,1);
     copy_general_transform(get_nth_general_transform(total, i), tmp_trans);
     concat_general_transforms(*all_until_last, tmp_trans, *all_until_last);
   }
 
   *last_warp = (VIO_General_transform *)NULL;
-  for(i=0; i<get_n_concated_transforms(total; i++)) {
+  for(i=0; i<get_n_concated_transforms(total); i++) {
     if (get_transform_type( get_nth_general_transform(total,i) ) 
                == GRID_TRANSFORM)
       *last_warp = get_nth_general_transform(total,i);
@@ -1094,7 +1097,7 @@ void build_two_perpendicular_vectors(VIO_Real orig[],
                                              VIO_Real p1[], 
                                              VIO_Real p2[])
 {
-  Vector
+  VIO_Vector
     v,v1,v2;
   VIO_Real
     len;
@@ -1163,7 +1166,7 @@ float xcorr_objective_with_def(VIO_Volume d1,
 
 
 
-  VIO_fill_Point( starting_position, globals->start[VIO_X], globals->start[VIO_Y], globals->start[VIO_Z]);
+  fill_Point( starting_position, globals->start[VIO_X], globals->start[VIO_Y], globals->start[VIO_Z]);
 
 
   s1 = s2 = s3 = 0.0;
@@ -1192,7 +1195,7 @@ float xcorr_objective_with_def(VIO_Volume d1,
 
   
         
-        VIO_fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
+        fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
         
         if (point_not_masked(m1, Point_x(col), Point_y(col), Point_z(col))) {
           
@@ -1204,7 +1207,7 @@ float xcorr_objective_with_def(VIO_Volume d1,
             
             convert_3D_world_to_voxel(d2, Point_x(pos2), Point_y(pos2), Point_z(pos2), &tx, &ty, &tz);
             
-            VIO_fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
+            fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
         
             if (point_not_masked(m2, Point_x(pos2), Point_y(pos2), Point_z(pos2))) {
               

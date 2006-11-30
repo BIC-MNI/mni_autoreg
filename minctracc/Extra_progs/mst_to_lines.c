@@ -85,11 +85,11 @@ int main(int argc, char *argv[])
   start_new_line(lines);
   
   count = mst[i].index;
-  VIO_fill_Point(p, mst[count].xyz[0],mst[count].xyz[1],mst[count].xyz[2]);
+  fill_Point(p, mst[count].xyz[0],mst[count].xyz[1],mst[count].xyz[2]);
   add_point_to_line(lines, &p);
 
   count = mst[i].parent_index;
-  VIO_fill_Point(p, mst[count].xyz[0],mst[count].xyz[1],mst[count].xyz[2]);
+  fill_Point(p, mst[count].xyz[0],mst[count].xyz[1],mst[count].xyz[2]);
   add_point_to_line(lines, &p);
   
   update_progress_report( &progress, i );

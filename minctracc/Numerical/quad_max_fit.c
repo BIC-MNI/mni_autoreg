@@ -15,7 +15,10 @@
 
 @CREATED    : Mon May 22 14:14:50 MET DST 1995
 @MODIFIED   : $Log: quad_max_fit.c,v $
-@MODIFIED   : Revision 96.6  2006-11-29 09:09:33  rotor
+@MODIFIED   : Revision 96.7  2006-11-30 09:07:32  rotor
+@MODIFIED   :  * many more changes for clean minc 2.0 build
+@MODIFIED   :
+@MODIFIED   : Revision 96.6  2006/11/29 09:09:33  rotor
 @MODIFIED   :  * first bunch of changes for minc 2.0 compliance
 @MODIFIED   :
 @MODIFIED   : Revision 96.5  2005/07/20 20:45:49  rotor
@@ -140,7 +143,7 @@ VIO_BOOL return_3D_disp_from_quad_fit(VIO_Real r[3][3][3],
            d.uv * (d.uv*d.ww - d.vw*d.uw) +                
            d.uw * (d.uv*d.vw - d.vv*d.uw) ;               
                                                        
-    if ( ABS( detA ) <= MINIMUM_DET_ALLOWED ) {
+    if ( fabs( detA ) <= MINIMUM_DET_ALLOWED ) {
       try_2d_def = TRUE; res = '0';
     }
     else {
@@ -163,7 +166,7 @@ VIO_BOOL return_3D_disp_from_quad_fit(VIO_Real r[3][3][3],
       *dispv = -a[1][0]*d.u - a[1][1]*d.v - a[1][2]*d.w;
       *dispw = -a[2][0]*d.u - a[2][1]*d.v - a[2][2]*d.w;
 
-      if ( ABS( *dispu ) < 2.0 && ABS( *dispv ) < 2.0 && ABS( *dispw ) < 2.0 ) {        
+      if ( fabs( *dispu ) < 2.0 && fabs( *dispv ) < 2.0 && fabs( *dispw ) < 2.0 ) {        
         print ("!"); return (TRUE);
       }
       else {
@@ -318,7 +321,7 @@ VIO_BOOL return_3D_disp_from_min_quad_fit(VIO_Real r[3][3][3],
            d.uv * (d.uv*d.ww - d.vw*d.uw) +                
            d.uw * (d.uv*d.vw - d.vv*d.uw) ;               
                                                        
-    if ( ABS( detA ) <= MINIMUM_DET_ALLOWED ) {
+    if ( fabs( detA ) <= MINIMUM_DET_ALLOWED ) {
       hack_to_min_val = TRUE; stat_quad_zero++;
     }
     else {
@@ -341,7 +344,7 @@ VIO_BOOL return_3D_disp_from_min_quad_fit(VIO_Real r[3][3][3],
       *dispv = -a[1][0]*d.u - a[1][1]*d.v - a[1][2]*d.w;
       *dispw = -a[2][0]*d.u - a[2][1]*d.v - a[2][2]*d.w;
 
-      if ( ABS( *dispu ) < 2.0 && ABS( *dispv ) < 2.0 && ABS( *dispw ) < 2.0 ) {        
+      if ( fabs( *dispu ) < 2.0 && fabs( *dispv ) < 2.0 && fabs( *dispw ) < 2.0 ) {        
         stat_quad_plus++; return (TRUE);
       }
       else {
@@ -415,7 +418,7 @@ VIO_BOOL return_2D_disp_from_quad_fit(VIO_Real r[3][3], /* the values used in th
 
     detA = d.uu * d.vv - d.uv*d.uv;
                                                        
-    if (ABS( detA) < MINIMUM_DET_ALLOWED) {
+    if (fabs( detA) < MINIMUM_DET_ALLOWED) {
 
 /*      print (" (det=%f)\n\n", detA); */
       return(FALSE);
@@ -436,7 +439,7 @@ VIO_BOOL return_2D_disp_from_quad_fit(VIO_Real r[3][3], /* the values used in th
       *dispu = -a[0][0]*d.u - a[0][1]*d.v;
       *dispv = -a[1][0]*d.u - a[1][1]*d.v;
 
-      if ( ABS( *dispu ) > 1.5 || ABS( *dispv ) > 1.5 ) {
+      if ( fabs( *dispu ) > 1.5 || fabs( *dispv ) > 1.5 ) {
         *dispu = *dispv = 0.0;
         return(FALSE);
       }
@@ -874,7 +877,7 @@ VIO_BOOL return_principal_directions(VIO_Real r[3][3][3],
     r_norm[VIO_Z] = z ;
   }
   
-  if ( ABS(sq_mag_grad)<eps ) 
+  if ( fabs(sq_mag_grad)<eps ) 
     return(FALSE);
     
                                 /* Gaussian curvature: */
@@ -896,11 +899,11 @@ VIO_BOOL return_principal_directions(VIO_Real r[3][3][3],
 
   det = S*S - K; 
 
-  if ( ABS(det) < SMALL_EPS ) det = 0.0;
+  if ( fabs(det) < SMALL_EPS ) det = 0.0;
 
   if (det<0.0) {
     print ("det (S*S - K) is negative, and this shouldn't be...\n");
-    det = ABS(det);
+    det = fabs(det);
   }
 
   sq_det = sqrt(det);
@@ -975,7 +978,7 @@ VIO_BOOL return_principal_directions(VIO_Real r[3][3][3],
   }
 
 
-  if (ABS(k1)<ABS(k2)) {        /* ensure k1>k2  */
+  if (fabs(k1)<fabs(k2)) {        /* ensure k1>k2  */
     
     /* swap curvatures */
     tmp= k1;    k1 = k2;    k2 = tmp;
@@ -1002,7 +1005,7 @@ VIO_BOOL return_principal_directions(VIO_Real r[3][3][3],
 
     tmp = dir_1[VIO_X]*dir_2[VIO_X] + dir_1[VIO_Y]*dir_2[VIO_Y] + dir_1[VIO_Z]*dir_2[VIO_Z];
     
-    if ( ABS(tmp)>eps  && len1>3.0e-9 && len2>3.0e-9) {
+    if ( fabs(tmp)>eps  && len1>3.0e-9 && len2>3.0e-9) {
       return(FALSE);
     }
   }
@@ -1053,7 +1056,7 @@ VIO_BOOL return_2D_principal_directions(VIO_Real r[3][3],
 
   sq_mag_grad = x*x + y*y; mag_grad = sqrt(sq_mag_grad);
 
-  if ( ABS(sq_mag_grad)<eps )  {
+  if ( fabs(sq_mag_grad)<eps )  {
     return(FALSE);
   }
   else {
@@ -1098,7 +1101,7 @@ VIO_Real return_Lvv(VIO_Real r[3][3][3],
   Lvv = 0.0;
   sq_mag_grad = x*x + y*y + z*z;
 
-  if ( ABS(sq_mag_grad) > eps )  {
+  if ( fabs(sq_mag_grad) > eps )  {
                                 /* Mean curvature */
     S = (
          x*x*(yy + zz) - 2*y*z*yz +
@@ -1177,7 +1180,7 @@ VIO_BOOL return_local_eigen(VIO_Real r[3][3][3],
       for(i=0; i<27; i++)                
         covar[m][n] += weighted_data[i][m] * data[i][n];
 
-      if (ABS(covar[m][n]) < SMALL_EPS) covar[m][n] = 0.0;
+      if (fabs(covar[m][n]) < SMALL_EPS) covar[m][n] = 0.0;
     }
   }
   
@@ -1270,12 +1273,12 @@ VIO_BOOL return_local_eigen_from_hessian(VIO_Real r[3][3][3],
 
                                 /* adjust Hessian matrix, if necessary */
 
-  if ( ABS(d.uu) < SMALL_EPS ) d.uu = 0.0;
-  if ( ABS(d.vv) < SMALL_EPS ) d.vv = 0.0;
-  if ( ABS(d.ww) < SMALL_EPS ) d.ww = 0.0;
-  if ( ABS(d.uv) < SMALL_EPS ) d.uv = 0.0;
-  if ( ABS(d.uw) < SMALL_EPS ) d.uw = 0.0;
-  if ( ABS(d.vw) < SMALL_EPS ) d.vw = 0.0;
+  if ( fabs(d.uu) < SMALL_EPS ) d.uu = 0.0;
+  if ( fabs(d.vv) < SMALL_EPS ) d.vv = 0.0;
+  if ( fabs(d.ww) < SMALL_EPS ) d.ww = 0.0;
+  if ( fabs(d.uv) < SMALL_EPS ) d.uv = 0.0;
+  if ( fabs(d.uw) < SMALL_EPS ) d.uw = 0.0;
+  if ( fabs(d.vw) < SMALL_EPS ) d.vw = 0.0;
 
 
   covar[0][0] = d.uu;

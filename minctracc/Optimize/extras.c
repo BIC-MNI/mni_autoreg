@@ -5,7 +5,7 @@
                procedures.               
 @CREATED    : Mon Nov  3, 1997 , Louis Collins
 @MODIFIED   : not yet!
-@VERSION    : $Id: extras.c,v 1.8 2006-11-29 09:09:34 rotor Exp $
+@VERSION    : $Id: extras.c,v 1.9 2006-11-30 09:07:32 rotor Exp $
 #-----------------------------------------------------------------------------
 */
 
@@ -14,6 +14,8 @@
 #include <float.h>
 #include <volume_io.h>        
 #include <time.h>
+
+#include "local_macros.h"
 
 void report_time(long start_time, VIO_STR text) 
 {

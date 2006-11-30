@@ -15,7 +15,10 @@
 
 @CREATED    : February 23, 1996
 @MODIFIED   : $Log: stats.c,v $
-@MODIFIED   : Revision 1.7  2006-11-29 09:09:33  rotor
+@MODIFIED   : Revision 1.8  2006-11-30 09:07:32  rotor
+@MODIFIED   :  * many more changes for clean minc 2.0 build
+@MODIFIED   :
+@MODIFIED   : Revision 1.7  2006/11/29 09:09:33  rotor
 @MODIFIED   :  * first bunch of changes for minc 2.0 compliance
 @MODIFIED   :
 @MODIFIED   : Revision 1.6  2005/07/20 20:45:49  rotor
@@ -44,13 +47,15 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/stats.c,v 1.7 2006-11-29 09:09:33 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/stats.c,v 1.8 2006-11-30 09:07:32 rotor Exp $";
 #endif
 
 #include <config.h>
 #include <float.h>
 #include <volume_io.h>
 #include <stats.h>
+
+#include "local_macros.h"
 
 void init_stats(stats_struct *stat,
                   char         title[])

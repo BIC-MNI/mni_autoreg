@@ -16,7 +16,10 @@
 
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   :  $Log: objectives.c,v $
-@MODIFIED   :  Revision 96.10  2006-11-29 09:09:34  rotor
+@MODIFIED   :  Revision 96.11  2006-11-30 09:07:32  rotor
+@MODIFIED   :   * many more changes for clean minc 2.0 build
+@MODIFIED   :
+@MODIFIED   :  Revision 96.10  2006/11/29 09:09:34  rotor
 @MODIFIED   :   * first bunch of changes for minc 2.0 compliance
 @MODIFIED   :
 @MODIFIED   :  Revision 96.9  2005/07/20 20:45:50  rotor
@@ -103,7 +106,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/objectives.c,v 96.10 2006-11-29 09:09:34 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/objectives.c,v 96.11 2006-11-30 09:07:32 rotor Exp $";
 #endif
 
 #include <volume_io.h>
@@ -244,7 +247,7 @@ float xcorr_objective(VIO_Volume d1,
 
                                 /* loop through all nodes of the lattice */
                                                                                                                               
-  VIO_fill_Point( starting_position, vox_space->start[VIO_X], vox_space->start[VIO_Y], vox_space->start[VIO_Z]);
+  fill_Point( starting_position, vox_space->start[VIO_X], vox_space->start[VIO_Y], vox_space->start[VIO_Z]);
 
   /* ---------- step through all slices of lattice ------------- */
   for(s=0; s<globals->count[SLICE_IND]; s++) { 
@@ -266,7 +269,7 @@ float xcorr_objective(VIO_Volume d1,
                                 /* use the voxel center closest to this lattice
                                    node. 
                                 */
-        VIO_fill_Point( voxel, ROUND(Point_x(col)), ROUND(Point_y(col)), ROUND(Point_z(col)) ); 
+        fill_Point( voxel, ROUND(Point_x(col)), ROUND(Point_y(col)), ROUND(Point_z(col)) ); 
 
 
         if (voxel_point_not_masked(m1, Point_x(voxel), Point_y(voxel), Point_z(voxel))) {
@@ -280,7 +283,7 @@ float xcorr_objective(VIO_Volume d1,
                                           &Point_x(pos2), &Point_y(pos2), &Point_z(pos2));
 
          
-            VIO_fill_Point( voxel, Point_x(pos2), Point_y(pos2), Point_z(pos2) ); /* build the voxel POINT */
+            fill_Point( voxel, Point_x(pos2), Point_y(pos2), Point_z(pos2) ); /* build the voxel POINT */
         
             if (voxel_point_not_masked(m2, Point_x(pos2), Point_y(pos2), Point_z(pos2))) {
               
@@ -366,7 +369,7 @@ float ssc_objective(VIO_Volume d1,
   get_into_voxel_space(globals, vox_space, d1, d2);
   trans = get_linear_transform_ptr(vox_space->voxel_to_voxel_space);
 
-  VIO_fill_Point( starting_position, vox_space->start[VIO_X], vox_space->start[VIO_Y], vox_space->start[VIO_Z]);
+  fill_Point( starting_position, vox_space->start[VIO_X], vox_space->start[VIO_Y], vox_space->start[VIO_Z]);
 
   /* ------------------------  count along rows (fastest=col) first ------------------- */
 
@@ -387,7 +390,7 @@ float ssc_objective(VIO_Volume d1,
                                 /* use the voxel center closest to this lattice
                                    node. 
                                 */
-        VIO_fill_Point( voxel, ROUND(Point_x(col)), ROUND(Point_y(col)), ROUND(Point_z(col)) ); 
+        fill_Point( voxel, ROUND(Point_x(col)), ROUND(Point_y(col)), ROUND(Point_z(col)) ); 
         
         if (voxel_point_not_masked(m1, Point_x(voxel), Point_y(voxel), Point_z(voxel))) {
           
@@ -400,7 +403,7 @@ float ssc_objective(VIO_Volume d1,
                                           &Point_x(pos2), &Point_y(pos2), &Point_z(pos2));
 
             
-            VIO_fill_Point( voxel, Point_x(pos2), Point_y(pos2), Point_z(pos2) ); /* build the voxel POINT */
+            fill_Point( voxel, Point_x(pos2), Point_y(pos2), Point_z(pos2) ); /* build the voxel POINT */
         
             if (voxel_point_not_masked(m2, Point_x(pos2), Point_y(pos2), Point_z(pos2))) {
               
@@ -443,7 +446,7 @@ float ssc_objective(VIO_Volume d1,
                                 /* use the voxel center closest to this lattice
                                    node. 
                                 */
-        VIO_fill_Point( voxel, ROUND(Point_x(col)), ROUND(Point_y(col)), ROUND(Point_z(col)) ); 
+        fill_Point( voxel, ROUND(Point_x(col)), ROUND(Point_y(col)), ROUND(Point_z(col)) ); 
         
         if (voxel_point_not_masked(m1, Point_x(voxel), Point_y(voxel), Point_z(voxel))) {
           
@@ -455,7 +458,7 @@ float ssc_objective(VIO_Volume d1,
                                           Point_x(col), Point_y(col), Point_z(col), 1.0,
                                           &Point_x(pos2), &Point_y(pos2), &Point_z(pos2));
             
-            VIO_fill_Point( voxel, Point_x(pos2), Point_y(pos2), Point_z(pos2) ); /* build the voxel POINT */
+            fill_Point( voxel, Point_x(pos2), Point_y(pos2), Point_z(pos2) ); /* build the voxel POINT */
         
             if (voxel_point_not_masked(m2,Point_x(pos2), Point_y(pos2), Point_z(pos2))) {
               
@@ -502,7 +505,7 @@ float ssc_objective(VIO_Volume d1,
                                 /* use the voxel center closest to this lattice
                                    node. 
                                 */
-        VIO_fill_Point( voxel, ROUND(Point_x(col)), ROUND(Point_y(col)), ROUND(Point_z(col)) ); 
+        fill_Point( voxel, ROUND(Point_x(col)), ROUND(Point_y(col)), ROUND(Point_z(col)) ); 
         
         if (voxel_point_not_masked(m1, Point_x(voxel), Point_y(voxel), Point_z(voxel))) {
           
@@ -514,7 +517,7 @@ float ssc_objective(VIO_Volume d1,
                                           Point_x(col), Point_y(col), Point_z(col), 1.0,
                                           &Point_x(pos2), &Point_y(pos2), &Point_z(pos2));
             
-            VIO_fill_Point( voxel, Point_x(pos2), Point_y(pos2), Point_z(pos2) ); /* build the voxel POINT */
+            fill_Point( voxel, Point_x(pos2), Point_y(pos2), Point_z(pos2) ); /* build the voxel POINT */
 
             if (voxel_point_not_masked(m2, Point_x(pos2), Point_y(pos2), Point_z(pos2))) {
               
@@ -590,7 +593,7 @@ float zscore_objective(VIO_Volume d1,
   trans = get_linear_transform_ptr(vox_space->voxel_to_voxel_space);
 
 
-  VIO_fill_Point( starting_position, vox_space->start[VIO_X], vox_space->start[VIO_Y], vox_space->start[VIO_Z]);
+  fill_Point( starting_position, vox_space->start[VIO_X], vox_space->start[VIO_Y], vox_space->start[VIO_Z]);
 
   z2_sum = 0.0;
   count1 = count2 = count3 = 0;
@@ -611,7 +614,7 @@ float zscore_objective(VIO_Volume d1,
                                 /* use the voxel center closest to this lattice
                                    node. 
                                 */
-        VIO_fill_Point( voxel, ROUND(Point_x(col)), ROUND(Point_y(col)), ROUND(Point_z(col)) ); 
+        fill_Point( voxel, ROUND(Point_x(col)), ROUND(Point_y(col)), ROUND(Point_z(col)) ); 
         
         if (voxel_point_not_masked(m1, Point_x(voxel), Point_y(voxel), Point_z(voxel))) {
           
@@ -623,7 +626,7 @@ float zscore_objective(VIO_Volume d1,
                                           Point_x(col), Point_y(col), Point_z(col), 1.0,
                                           &Point_x(pos2), &Point_y(pos2), &Point_z(pos2));
             
-            VIO_fill_Point( voxel, Point_x(pos2), Point_y(pos2), Point_z(pos2) ); /* build the voxel POINT */
+            fill_Point( voxel, Point_x(pos2), Point_y(pos2), Point_z(pos2) ); /* build the voxel POINT */
         
             if (voxel_point_not_masked(m2, Point_x(pos2), Point_y(pos2), Point_z(pos2))) {
               
@@ -631,7 +634,7 @@ float zscore_objective(VIO_Volume d1,
 
                 count2++;
 
-                if (ABS(value1) > globals->threshold[0] && ABS(value2) > globals->threshold[1] ) {
+                if (fabs(value1) > globals->threshold[0] && fabs(value2) > globals->threshold[1] ) {
                   count3++;
                   z2_sum +=  (value1-value2)*(value1-value2);
                 } 
@@ -725,7 +728,7 @@ float vr_objective(VIO_Volume d1,
 
 
 
-  VIO_fill_Point( starting_position, vox_space->start[VIO_X], vox_space->start[VIO_Y], vox_space->start[VIO_Z]);
+  fill_Point( starting_position, vox_space->start[VIO_X], vox_space->start[VIO_Y], vox_space->start[VIO_Z]);
 
                                 /* init running sums and counters. */
   for(i=1; i<=segment_table->groups; i++) {
@@ -753,7 +756,7 @@ float vr_objective(VIO_Volume d1,
                                 /* use the voxel center closest to this lattice
                                    node. 
                                 */
-        VIO_fill_Point( voxel, ROUND(Point_x(col)), ROUND(Point_y(col)), ROUND(Point_z(col)) ); 
+        fill_Point( voxel, ROUND(Point_x(col)), ROUND(Point_y(col)), ROUND(Point_z(col)) ); 
         
         if (voxel_point_not_masked(m1, Point_x(voxel), Point_y(voxel), Point_z(voxel))) {
           
@@ -767,7 +770,7 @@ float vr_objective(VIO_Volume d1,
                                           Point_x(col), Point_y(col), Point_z(col), 1.0,
                                           &Point_x(pos2), &Point_y(pos2), &Point_z(pos2));
             
-            VIO_fill_Point( voxel, Point_x(pos2), Point_y(pos2), Point_z(pos2) ); /* build the voxel POINT */
+            fill_Point( voxel, Point_x(pos2), Point_y(pos2), Point_z(pos2) ); /* build the voxel POINT */
         
             if (voxel_point_not_masked(m2,Point_x(pos2), Point_y(pos2), Point_z(pos2) )) {
               
@@ -893,7 +896,7 @@ float stub_objective(VIO_Volume d1,
 
                         /* build world lattice info */
 
-  VIO_fill_Point( starting_position, vox_space->start[VIO_X], vox_space->start[VIO_Y], vox_space->start[VIO_Z]);
+  fill_Point( starting_position, vox_space->start[VIO_X], vox_space->start[VIO_Y], vox_space->start[VIO_Z]);
 
                                 /* loop through each node of lattice */
   for(s=0; s<globals->count[SLICE_IND]; s++) {
@@ -912,7 +915,7 @@ float stub_objective(VIO_Volume d1,
                                 /* use the voxel center closest to this lattice
                                    node. 
                                 */
-        VIO_fill_Point( voxel, ROUND(Point_x(col)), ROUND(Point_y(col)), ROUND(Point_z(col)) ); 
+        fill_Point( voxel, ROUND(Point_x(col)), ROUND(Point_y(col)), ROUND(Point_z(col)) ); 
         
                                 /* get the node value in volume 1,
                                    if it falls within the volume    */
@@ -931,7 +934,7 @@ float stub_objective(VIO_Volume d1,
                                           Point_x(col), Point_y(col), Point_z(col), 1.0,
                                           &Point_x(pos2), &Point_y(pos2), &Point_z(pos2));
             
-            VIO_fill_Point( voxel, Point_x(pos2), Point_y(pos2), Point_z(pos2) ); /* build the voxel POINT */
+            fill_Point( voxel, Point_x(pos2), Point_y(pos2), Point_z(pos2) ); /* build the voxel POINT */
         
                                 /* get the node value in volume 2,
                                    if it falls within the volume    */
@@ -948,8 +951,8 @@ float stub_objective(VIO_Volume d1,
                                    limits, then do what is necessary to
                                    calculate the objective function         */
 
-                if (ABS(value1) > globals->threshold[0] && 
-                    ABS(value2) > globals->threshold[1] ) {
+                if (fabs(value1) > globals->threshold[0] && 
+                    fabs(value2) > globals->threshold[1] ) {
 
                                 /*EMPTY*/
                                 /* EMPTY is for lint  */

@@ -21,7 +21,10 @@
 
 @CREATED    : Tue Mar 12 09:37:44 MET 1996
 @MODIFIED   : $Log: obj_fn_mutual_info.c,v $
-@MODIFIED   : Revision 96.8  2006-11-29 09:09:34  rotor
+@MODIFIED   : Revision 96.9  2006-11-30 09:07:32  rotor
+@MODIFIED   :  * many more changes for clean minc 2.0 build
+@MODIFIED   :
+@MODIFIED   : Revision 96.8  2006/11/29 09:09:34  rotor
 @MODIFIED   :  * first bunch of changes for minc 2.0 compliance
 @MODIFIED   :
 @MODIFIED   : Revision 96.7  2005/07/20 20:45:50  rotor
@@ -73,7 +76,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/obj_fn_mutual_info.c,v 96.8 2006-11-29 09:09:34 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/obj_fn_mutual_info.c,v 96.9 2006-11-30 09:07:32 rotor Exp $";
 #endif
 
 #include <volume_io.h>
@@ -394,7 +397,7 @@ float mutual_information_objective(VIO_Volume d1,
                                 /* get ready to step though the 3D lattice
                                    */
 
-  VIO_fill_Point( starting_position, vox_space->start[VIO_X], vox_space->start[VIO_Y], vox_space->start[VIO_Z]);
+  fill_Point( starting_position, vox_space->start[VIO_X], vox_space->start[VIO_Y], vox_space->start[VIO_Z]);
 
   /* ---------- step through all slices of lattice ------------- */
   for(s=0; s<globals->count[SLICE_IND]; s++) {

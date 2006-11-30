@@ -29,7 +29,10 @@
                       using numerical recipes routines jacobi() and eigsrt().  
                       See Hotelling VIO_Transform
 @MODIFIED   : $Log: cov_to_praxes.c,v $
-@MODIFIED   : Revision 96.6  2006-11-29 09:09:33  rotor
+@MODIFIED   : Revision 96.7  2006-11-30 09:07:32  rotor
+@MODIFIED   :  * many more changes for clean minc 2.0 build
+@MODIFIED   :
+@MODIFIED   : Revision 96.6  2006/11/29 09:09:33  rotor
 @MODIFIED   :  * first bunch of changes for minc 2.0 compliance
 @MODIFIED   :
 @MODIFIED   : Revision 96.5  2005/07/20 20:45:48  rotor
@@ -79,7 +82,7 @@
 
 ---------------------------------------------------------------------------- */
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/cov_to_praxes.c,v 96.6 2006-11-29 09:09:33 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/cov_to_praxes.c,v 96.7 2006-11-30 09:07:32 rotor Exp $";
 #endif
 
 #include <volume_io.h>
@@ -352,7 +355,7 @@ VIO_BOOL eigen(double **inputMat,
    cov_to_praxes.
 
 @GLOBALS    : none
-@CALLS      : macro ABS
+@CALLS      : none
 @CREATED    : sept 95 Louis Collins
 @MODIFIED   :
 ---------------------------------------------------------------------------- */
@@ -421,7 +424,7 @@ VIO_BOOL eigen2(double **inputMat,
 
         vec_sum += test_vec[i];
 
-        x = ABS(test_vec[i]);        /* find max element in test_vec */
+        x = fabs(test_vec[i]);        /* find max element in test_vec */
         if(x>max_val) max_val=x;
 
       }

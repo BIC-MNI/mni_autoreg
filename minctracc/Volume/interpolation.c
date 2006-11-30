@@ -16,8 +16,8 @@
 @CREATED    : Wed May 26 13:05:44 EST 1993 LC using routines from NEELIN's
               mincresample.
 @MODIFIED   :  $Log: interpolation.c,v $
-@MODIFIED   :  Revision 96.6  2006-11-29 09:09:34  rotor
-@MODIFIED   :   * first bunch of changes for minc 2.0 compliance
+@MODIFIED   :  Revision 96.7  2006-11-30 09:07:33  rotor
+@MODIFIED   :   * many more changes for clean minc 2.0 build
 @MODIFIED   :
 @MODIFIED   :  Revision 96.5  2005/07/20 20:45:52  rotor
 @MODIFIED   :      * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
@@ -67,7 +67,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/interpolation.c,v 96.6 2006-11-29 09:09:34 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/interpolation.c,v 96.7 2006-11-30 09:07:33 rotor Exp $";
 #endif
 
 #include <volume_io.h>
@@ -402,7 +402,7 @@ int voxel_point_not_masked( VIO_Volume volume,
     if ( volume == NULL )
         return TRUE;
 
-    VIO_fill_Point(coord, vx, vy, vz);
+    fill_Point(coord, vx, vy, vz);
     
     if ( nearest_neighbour_interpolant(volume,&coord,&result) ) {
         return (result > 0.0);

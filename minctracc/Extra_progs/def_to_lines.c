@@ -124,11 +124,11 @@ int main(int argc, char *argv[])
           dz = get_volume_real_value(vol,
                        index[0],index[1],index[2],index[3],index[4]);
 
-          if ( (ABS(dx) + ABS(dy) + ABS(dz) ) > 0.01 ) {
+          if ( (fabs(dx) + fabs(dy) + fabs(dz) ) > 0.01 ) {
             start_new_line(lines);
-            VIO_fill_Point(p, wx, wy, wz);
+            fill_Point(p, wx, wy, wz);
             add_point_to_line(lines, &p);
-            VIO_fill_Point(p, wx+dx*mult, wy+dy*mult, wz+dz*mult);
+            fill_Point(p, wx+dx*mult, wy+dy*mult, wz+dz*mult);
             add_point_to_line(lines, &p);
           }
         }

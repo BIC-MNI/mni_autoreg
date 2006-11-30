@@ -35,7 +35,10 @@
       created by removing build_default_deformation_field from 
       transformations.c
 @MODIFIED   : $Log: default_def.c,v $
-@MODIFIED   : Revision 96.10  2006-11-29 09:09:33  rotor
+@MODIFIED   : Revision 96.11  2006-11-30 09:07:32  rotor
+@MODIFIED   :  * many more changes for clean minc 2.0 build
+@MODIFIED   :
+@MODIFIED   : Revision 96.10  2006/11/29 09:09:33  rotor
 @MODIFIED   :  * first bunch of changes for minc 2.0 compliance
 @MODIFIED   :
 @MODIFIED   : Revision 96.9  2005/07/20 20:45:49  rotor
@@ -243,9 +246,9 @@ static void resample_the_deformation_field(Arg_Data *globals)
          /* use the sign of the step returned to set the true step size */
   for(i=0; i<VIO_N_DIMENSIONS; i++) {
     if (step[xyzv[i]]<0) 
-      step[xyzv[i]] = -1.0 * ABS(globals->step[i]); 
+      step[xyzv[i]] = -1.0 * fabs(globals->step[i]); 
     else 
-      step[xyzv[i]] = ABS(globals->step[i]);
+      step[xyzv[i]] = fabs(globals->step[i]);
   }
 
   for(i=0; i<VIO_MAX_DIMENSIONS; i++)  /* set the voxel origin, used in the vol def */

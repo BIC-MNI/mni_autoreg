@@ -20,7 +20,10 @@
 
 @CREATED    : 
 @MODIFIED   : $Log: super_sample_def.c,v $
-@MODIFIED   : Revision 96.12  2006-11-29 09:09:34  rotor
+@MODIFIED   : Revision 96.13  2006-11-30 09:07:33  rotor
+@MODIFIED   :  * many more changes for clean minc 2.0 build
+@MODIFIED   :
+@MODIFIED   : Revision 96.12  2006/11/29 09:09:34  rotor
 @MODIFIED   :  * first bunch of changes for minc 2.0 compliance
 @MODIFIED   :
 @MODIFIED   : Revision 96.11  2005/07/20 20:45:51  rotor
@@ -98,7 +101,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/super_sample_def.c,v 96.12 2006-11-29 09:09:34 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/super_sample_def.c,v 96.13 2006-11-30 09:07:33 rotor Exp $";
 #endif
 
 #include <config.h>
@@ -112,7 +115,7 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 void get_volume_XYZV_indices(VIO_Volume data, int xyzv[]);
 void init_the_volume_to_zero(VIO_Volume volume);
 void interpolate_deformation_slice(VIO_Volume volume, 
-                                          VIO_Real wx,Real wy,Real wz,
+                                          VIO_Real wx, VIO_Real wy, VIO_Real wz,
                                           VIO_Real def[]);
 void set_up_lattice(VIO_Volume data, 
                            double *user_step, 
@@ -192,11 +195,11 @@ void create_super_sampled_data_volumes(VIO_General_transform *orig_deformation,
       /* use the sign of the step returned to set the true step size */
   for(i=0; i<3; i++)        
     if (xyz_steps[i]<0) 
-      xyz_steps[i] = -1.0 * ABS(new_steps [i]); 
+      xyz_steps[i] = -1.0 * fabs(new_steps [i]); 
     else 
-      xyz_steps[i] = ABS(new_steps[i]);
+      xyz_steps[i] = fabs(new_steps[i]);
   
-  for(i=0; i<MAX_DIMENSIONS; i++) {
+  for(i=0; i<VIO_MAX_DIMENSIONS; i++) {
     voxel[i] = 0.0;
     new_count[i] = orig_count[i];
     new_steps[i] = orig_steps[i];
@@ -272,7 +275,7 @@ void interpolate_super_sampled_data(VIO_General_transform *orig_deformation,
   initialize_progress_report( &progress, FALSE, count[ xyzv[VIO_X] ],
                              "Super-sampling defs:" );
   
-  for(i=0; i<MAX_DIMENSIONS; i++) index[i]=0;
+  for(i=0; i<VIO_MAX_DIMENSIONS; i++) index[i]=0;
   
 
   /* check here to see if special case of super sampling by 2, and if so, call the correct routine dec 02 */
@@ -281,7 +284,7 @@ void interpolate_super_sampled_data(VIO_General_transform *orig_deformation,
     for(index[xyzv[VIO_Y]]=0; index[xyzv[VIO_Y]]<count[xyzv[VIO_Y]]; index[xyzv[VIO_Y]]++) {
       for(index[xyzv[VIO_Z]]=0; index[xyzv[VIO_Z]]<count[xyzv[VIO_Z]]; index[xyzv[VIO_Z]]++) {
         
-        for(i=0; i<MAX_DIMENSIONS; i++) 
+        for(i=0; i<VIO_MAX_DIMENSIONS; i++) 
           voxel[i]=(VIO_Real)index[i];
         convert_voxel_to_world(super_vol, 
                                voxel,
@@ -292,10 +295,10 @@ void interpolate_super_sampled_data(VIO_General_transform *orig_deformation,
                                  NULL, NULL, NULL,
                                  NULL, NULL, NULL, NULL, NULL, NULL);
 
-        for(index[xyzv[Z+1]]=0; index[xyzv[Z+1]]<count[xyzv[Z+1]]; index[xyzv[Z+1]]++) 
+        for(index[xyzv[VIO_Z+1]]=0; index[xyzv[VIO_Z+1]]<count[xyzv[VIO_Z+1]]; index[xyzv[VIO_Z+1]]++) 
           set_volume_real_value(super_vol,
                                 index[0],index[1],index[2],index[3],index[4],
-                                def_vector[ index[ xyzv[Z+1] ] ]);
+                                def_vector[ index[ xyzv[VIO_Z+1] ] ]);
         
       }
     }
@@ -366,7 +369,7 @@ void create_super_sampled_data_volumes_by2(VIO_General_transform *orig_deformati
   get_volume_sizes(       orig_deformation->displacement_volume, orig_count);
   get_volume_separations( orig_deformation->displacement_volume, orig_steps);
 
-  for(i=0; i<get_volume_n_dimensions(orig_deformation->displacement_volume; i++)) {                
+  for(i=0; i<get_volume_n_dimensions(orig_deformation->displacement_volume); i++) {                
     new_steps[new_xyzv[i]] = orig_steps[xyzv[i]];
     new_count[new_xyzv[i]] = orig_count[xyzv[i]];
   }
@@ -385,7 +388,7 @@ void create_super_sampled_data_volumes_by2(VIO_General_transform *orig_deformati
     }
   }
 
-  for(i=0; i<MAX_DIMENSIONS; i++) 
+  for(i=0; i<VIO_MAX_DIMENSIONS; i++) 
     voxel[i] = 0.0;
   convert_voxel_to_world(orig_deformation->displacement_volume,
                          voxel,
@@ -479,7 +482,7 @@ static void interpolate_super_sampled_data_by2_dim3(
 
     initialize_progress_report(&progress, FALSE, 
                                super_count[ xyzv[VIO_X] ]*super_count[ xyzv[VIO_Y] ]*
-                               super_count[ xyzv[VIO_Z] ]*super_count[ xyzv[Z+1] ]+1,
+                               super_count[ xyzv[VIO_Z] ]*super_count[ xyzv[VIO_Z+1] ]+1,
                                "Super-sampling defs:" );
     count = 0;
 
@@ -487,17 +490,17 @@ static void interpolate_super_sampled_data_by2_dim3(
 
     /* LEVEL 0: copy original 'corner' nodes, identified as 'X' in desc above */
 
-    for(i=0; i<MAX_DIMENSIONS; i++) sindex[i]=index[i]=0;
+    for(i=0; i<VIO_MAX_DIMENSIONS; i++) sindex[i]=index[i]=0;
     
     for(index[orig_xyzv[VIO_X]]=0; index[orig_xyzv[VIO_X]]<orig_count[orig_xyzv[VIO_X]]; index[orig_xyzv[VIO_X]]++) {
       for(index[orig_xyzv[VIO_Y]]=0; index[orig_xyzv[VIO_Y]]<orig_count[orig_xyzv[VIO_Y]]; index[orig_xyzv[VIO_Y]]++) {
         for(index[orig_xyzv[VIO_Z]]=0; index[orig_xyzv[VIO_Z]]<orig_count[orig_xyzv[VIO_Z]]; index[orig_xyzv[VIO_Z]]++) {
 
-          for(i=0; i<N_DIMENSIONS; i++)
+          for(i=0; i<VIO_N_DIMENSIONS; i++)
             sindex[ xyzv[i] ] = 2*index[ orig_xyzv[i] ];
 
-          for(index[orig_xyzv[Z+1]]=0; index[orig_xyzv[Z+1]]<orig_count[xyzv[Z+1]]; index[orig_xyzv[Z+1]]++) {
-            sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+          for(index[orig_xyzv[VIO_Z+1]]=0; index[orig_xyzv[VIO_Z+1]]<orig_count[xyzv[VIO_Z+1]]; index[orig_xyzv[VIO_Z+1]]++) {
+            sindex[ xyzv[VIO_Z+1] ] = index[ orig_xyzv[VIO_Z+1] ];
             GET_VOXEL_4D(value1, orig_vol, index[0],index[1],index[2],index[3]);
             SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
           }          
@@ -513,7 +516,7 @@ static void interpolate_super_sampled_data_by2_dim3(
 
                /* do edges along the index[ orig_xyzv[VIO_X] ] dir */
 
-    for(i=0; i<MAX_DIMENSIONS; i++) sindex[i]=index[i]=0;
+    for(i=0; i<VIO_MAX_DIMENSIONS; i++) sindex[i]=index[i]=0;
     
                                 /* loop over all x-dirs  */
 
@@ -525,7 +528,7 @@ static void interpolate_super_sampled_data_by2_dim3(
         sindex[ xyzv[VIO_Y] ] = 2*index[ orig_xyzv[VIO_Y] ];
         sindex[ xyzv[VIO_Z] ] = 2*index[ orig_xyzv[VIO_Z] ];
 
-        for(index[orig_xyzv[Z+1]]=0; index[orig_xyzv[Z+1]]<orig_count[xyzv[Z+1]]; index[orig_xyzv[Z+1]]++) {
+        for(index[orig_xyzv[VIO_Z+1]]=0; index[orig_xyzv[VIO_Z+1]]<orig_count[xyzv[VIO_Z+1]]; index[orig_xyzv[VIO_Z+1]]++) {
 
                                 /* do linear interp at ends */
 
@@ -536,7 +539,7 @@ static void interpolate_super_sampled_data_by2_dim3(
           GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
           value1 = (v1+v2)/2;
 
-          sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+          sindex[ xyzv[VIO_Z+1] ] = index[ orig_xyzv[VIO_Z+1] ];
 
           SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
           count++;
@@ -548,7 +551,7 @@ static void interpolate_super_sampled_data_by2_dim3(
           GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
           value1 = (v1+v2)/2;
 
-          sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+          sindex[ xyzv[VIO_Z+1] ] = index[ orig_xyzv[VIO_Z+1] ];
 
           SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
           count++;
@@ -584,7 +587,7 @@ static void interpolate_super_sampled_data_by2_dim3(
     }
                /* do edges along the index[ orig_xyzv[VIO_Y] ] dir */
 
-    for(i=0; i<MAX_DIMENSIONS; i++) sindex[i]=index[i]=0;
+    for(i=0; i<VIO_MAX_DIMENSIONS; i++) sindex[i]=index[i]=0;
     
                                 /* loop over all x-dirs  */
 
@@ -597,7 +600,7 @@ static void interpolate_super_sampled_data_by2_dim3(
         sindex[ xyzv[VIO_Z] ] = 2*index[ orig_xyzv[VIO_Z] ];
         sindex[ xyzv[VIO_X] ] = 2*index[ orig_xyzv[VIO_X] ];
 
-        for(index[orig_xyzv[Z+1]]=0; index[orig_xyzv[Z+1]]<orig_count[xyzv[Z+1]]; index[orig_xyzv[Z+1]]++) {
+        for(index[orig_xyzv[VIO_Z+1]]=0; index[orig_xyzv[VIO_Z+1]]<orig_count[xyzv[VIO_Z+1]]; index[orig_xyzv[VIO_Z+1]]++) {
 
                                 /* do linear interp at ends */
 
@@ -608,7 +611,7 @@ static void interpolate_super_sampled_data_by2_dim3(
           GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
           value1 = (v1+v2)/2;
 
-          sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+          sindex[ xyzv[VIO_Z+1] ] = index[ orig_xyzv[VIO_Z+1] ];
 
           SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
           count++;
@@ -620,7 +623,7 @@ static void interpolate_super_sampled_data_by2_dim3(
           GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
           value1 = (v1+v2)/2;
 
-          sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+          sindex[ xyzv[VIO_Z+1] ] = index[ orig_xyzv[VIO_Z+1] ];
 
           SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
           count++;
@@ -658,7 +661,7 @@ static void interpolate_super_sampled_data_by2_dim3(
 
                /* do edges along the index[ orig_xyzv[VIO_Z] ] dir */
 
-    for(i=0; i<MAX_DIMENSIONS; i++) sindex[i]=index[i]=0;
+    for(i=0; i<VIO_MAX_DIMENSIONS; i++) sindex[i]=index[i]=0;
     
                                 /* loop over all Z-dirs  */
 
@@ -670,7 +673,7 @@ static void interpolate_super_sampled_data_by2_dim3(
         sindex[ xyzv[VIO_X] ] = 2*index[ orig_xyzv[VIO_X] ];
         sindex[ xyzv[VIO_Y] ] = 2*index[ orig_xyzv[VIO_Y] ];
 
-        for(index[orig_xyzv[Z+1]]=0; index[orig_xyzv[Z+1]]<orig_count[xyzv[Z+1]]; index[orig_xyzv[Z+1]]++) {
+        for(index[orig_xyzv[VIO_Z+1]]=0; index[orig_xyzv[VIO_Z+1]]<orig_count[xyzv[VIO_Z+1]]; index[orig_xyzv[VIO_Z+1]]++) {
 
                                 /* do linear interp at ends */
 
@@ -681,7 +684,7 @@ static void interpolate_super_sampled_data_by2_dim3(
           GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
           value1 = (v1+v2)/2;
 
-          sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+          sindex[ xyzv[VIO_Z+1] ] = index[ orig_xyzv[VIO_Z+1] ];
 
           SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
           count++;
@@ -693,7 +696,7 @@ static void interpolate_super_sampled_data_by2_dim3(
           GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
           value1 = (v1+v2)/2;
 
-          sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+          sindex[ xyzv[VIO_Z+1] ] = index[ orig_xyzv[VIO_Z+1] ];
 
           SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
           count++;
@@ -734,7 +737,7 @@ static void interpolate_super_sampled_data_by2_dim3(
 
                /* do faces in the plane with index[ orig_xyzv[VIO_X] ]=CONST */
 
-    for(i=0; i<MAX_DIMENSIONS; i++)  sindex[i]=index[i]=0;
+    for(i=0; i<VIO_MAX_DIMENSIONS; i++)  sindex[i]=index[i]=0;
     
                                 /* loop over all X planes  */
 
@@ -742,9 +745,9 @@ static void interpolate_super_sampled_data_by2_dim3(
 
       sindex[ xyzv[VIO_X] ] = 2*index[ orig_xyzv[VIO_X] ];
 
-      for(index[orig_xyzv[Z+1]]=0; index[orig_xyzv[Z+1]]<orig_count[xyzv[Z+1]]; index[orig_xyzv[Z+1]]++) {
+      for(index[orig_xyzv[VIO_Z+1]]=0; index[orig_xyzv[VIO_Z+1]]<orig_count[xyzv[VIO_Z+1]]; index[orig_xyzv[VIO_Z+1]]++) {
 
-        sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+        sindex[ xyzv[VIO_Z+1] ] = index[ orig_xyzv[VIO_Z+1] ];
 
 
                                 /* do faces near the edge first */
@@ -854,7 +857,7 @@ static void interpolate_super_sampled_data_by2_dim3(
           update_progress_report( &progress, count+1 );
         }
 
-      } /* index[ orig_xyzv[Z+1] ] */
+      } /* index[ orig_xyzv[VIO_Z+1] ] */
       
     }
                                 /* loop over all Y planes  */
@@ -863,9 +866,9 @@ static void interpolate_super_sampled_data_by2_dim3(
 
       sindex[ xyzv[VIO_Y] ] = 2*index[ orig_xyzv[VIO_Y] ];
 
-      for(index[orig_xyzv[Z+1]]=0; index[orig_xyzv[Z+1]]<orig_count[xyzv[Z+1]]; index[orig_xyzv[Z+1]]++) {
+      for(index[orig_xyzv[VIO_Z+1]]=0; index[orig_xyzv[VIO_Z+1]]<orig_count[xyzv[VIO_Z+1]]; index[orig_xyzv[VIO_Z+1]]++) {
 
-        sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+        sindex[ xyzv[VIO_Z+1] ] = index[ orig_xyzv[VIO_Z+1] ];
 
 
                                 /* do faces near the edge first */
@@ -975,7 +978,7 @@ static void interpolate_super_sampled_data_by2_dim3(
           update_progress_report( &progress, count+1 );
         }
 
-      } /* index[ orig_xyzv[Z+1] ] */
+      } /* index[ orig_xyzv[VIO_Z+1] ] */
       
     }
 
@@ -985,9 +988,9 @@ static void interpolate_super_sampled_data_by2_dim3(
 
       sindex[ xyzv[VIO_Z] ] = 2*index[ orig_xyzv[VIO_Z] ];
 
-      for(index[orig_xyzv[Z+1]]=0; index[orig_xyzv[Z+1]]<orig_count[xyzv[Z+1]]; index[orig_xyzv[Z+1]]++) {
+      for(index[orig_xyzv[VIO_Z+1]]=0; index[orig_xyzv[VIO_Z+1]]<orig_count[xyzv[VIO_Z+1]]; index[orig_xyzv[VIO_Z+1]]++) {
 
-        sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+        sindex[ xyzv[VIO_Z+1] ] = index[ orig_xyzv[VIO_Z+1] ];
 
 
                                 /* do faces near the edge first */
@@ -1097,14 +1100,14 @@ static void interpolate_super_sampled_data_by2_dim3(
           update_progress_report( &progress, count+1 );
         }
 
-      } /* index[ orig_xyzv[Z+1] ] */
+      } /* index[ orig_xyzv[VIO_Z+1] ] */
       
     }
     /* LEVEL 3: center interpolation, identified as 'c' in desc above */
 
-    for(index[orig_xyzv[Z+1]]=0; index[orig_xyzv[Z+1]]<orig_count[xyzv[Z+1]]; index[orig_xyzv[Z+1]]++) {
+    for(index[orig_xyzv[VIO_Z+1]]=0; index[orig_xyzv[VIO_Z+1]]<orig_count[xyzv[VIO_Z+1]]; index[orig_xyzv[VIO_Z+1]]++) {
 
-      sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+      sindex[ xyzv[VIO_Z+1] ] = index[ orig_xyzv[VIO_Z+1] ];
 
                          /* do all centers that are 1 sample from
                             the edge of the super-sampled volume */
@@ -1337,7 +1340,7 @@ static void interpolate_super_sampled_data_by2_dim3(
           }
         }
       }
-    }  /* index[ orig_xyzv[Z+1] ] */
+    }  /* index[ orig_xyzv[VIO_Z+1] ] */
 
     terminate_progress_report( &progress );
 
@@ -1370,7 +1373,7 @@ void interpolate_super_sampled_data_by2(
 
   num_dim = 0;
 
-  for(i=0; i<N_DIMENSIONS; i++) {
+  for(i=0; i<VIO_N_DIMENSIONS; i++) {
     if ( count[xyzv[i]] > 1 ) 
       num_dim++;
   }
@@ -1380,7 +1383,7 @@ void interpolate_super_sampled_data_by2(
 
     if (num_dim == 2){                /* then one dim == 1 */
       
-      for(i=0; i<N_DIMENSIONS; i++) {
+      for(i=0; i<VIO_N_DIMENSIONS; i++) {
 
         if ( count[xyzv[i]] == 1 ) {
           interpolate_super_sampled_data_by2_dim2( orig_deformation, super_sampled,i );
@@ -1444,7 +1447,7 @@ static void interpolate_super_sampled_data_by2_dim2_X(
 
     initialize_progress_report(&progress, FALSE, 
                                       super_count[ xyzv[VIO_Y] ]*
-                                super_count[ xyzv[VIO_Z] ]*super_count[ xyzv[Z+1] ]+1,
+                                super_count[ xyzv[VIO_Z] ]*super_count[ xyzv[VIO_Z+1] ]+1,
                                "Super-sampling defs:" );
     count = 0;
 
@@ -1454,16 +1457,16 @@ static void interpolate_super_sampled_data_by2_dim2_X(
     /* LEVEL 0: copy original 'corner' nodes, identified as 'X' in desc above */
 
    
-    for(i=0; i<MAX_DIMENSIONS; i++) sindex[i]=index[i]=0;
+    for(i=0; i<VIO_MAX_DIMENSIONS; i++) sindex[i]=index[i]=0;
     
       for(index[orig_xyzv[VIO_Y]]=0; index[orig_xyzv[VIO_Y]]<orig_count[orig_xyzv[VIO_Y]]; index[orig_xyzv[VIO_Y]]++) {
         for(index[orig_xyzv[VIO_Z]]=0; index[orig_xyzv[VIO_Z]]<orig_count[orig_xyzv[VIO_Z]]; index[orig_xyzv[VIO_Z]]++) {
 
-          for(i=1; i<N_DIMENSIONS; i++)
+          for(i=1; i<VIO_N_DIMENSIONS; i++)
             sindex[ xyzv[i] ] = 2*index[ orig_xyzv[i] ];
 
-          for(index[orig_xyzv[Z+1]]=0; index[orig_xyzv[Z+1]]<orig_count[xyzv[Z+1]]; index[orig_xyzv[Z+1]]++) {
-            sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+          for(index[orig_xyzv[VIO_Z+1]]=0; index[orig_xyzv[VIO_Z+1]]<orig_count[xyzv[VIO_Z+1]]; index[orig_xyzv[VIO_Z+1]]++) {
+            sindex[ xyzv[VIO_Z+1] ] = index[ orig_xyzv[VIO_Z+1] ];
             GET_VOXEL_4D(value1, orig_vol, index[0],index[1],index[2],index[3]);
             SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
           }          
@@ -1480,7 +1483,7 @@ static void interpolate_super_sampled_data_by2_dim2_X(
  
                /* do edges along the index[ orig_xyzv[VIO_Y] ] dir */
 
-    for(i=0; i<MAX_DIMENSIONS; i++) sindex[i]=index[i]=0;
+    for(i=0; i<VIO_MAX_DIMENSIONS; i++) sindex[i]=index[i]=0;
     
                                 /* loop over all x-dirs  */
     
@@ -1490,7 +1493,7 @@ static void interpolate_super_sampled_data_by2_dim2_X(
         sindex[ xyzv[VIO_Z] ] = 2*index[ orig_xyzv[VIO_Z] ];
 
 
-        for(index[orig_xyzv[Z+1]]=0; index[orig_xyzv[Z+1]]<orig_count[xyzv[Z+1]]; index[orig_xyzv[Z+1]]++) {
+        for(index[orig_xyzv[VIO_Z+1]]=0; index[orig_xyzv[VIO_Z+1]]<orig_count[xyzv[VIO_Z+1]]; index[orig_xyzv[VIO_Z+1]]++) {
 
                                 /* do linear interp at ends */
 
@@ -1501,7 +1504,7 @@ static void interpolate_super_sampled_data_by2_dim2_X(
           GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
           value1 = (v1+v2)/2;
 
-          sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+          sindex[ xyzv[VIO_Z+1] ] = index[ orig_xyzv[VIO_Z+1] ];
 
           SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
           count++;
@@ -1513,7 +1516,7 @@ static void interpolate_super_sampled_data_by2_dim2_X(
           GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
           value1 = (v1+v2)/2;
 
-          sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+          sindex[ xyzv[VIO_Z+1] ] = index[ orig_xyzv[VIO_Z+1] ];
 
           SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
           count++;
@@ -1546,7 +1549,7 @@ static void interpolate_super_sampled_data_by2_dim2_X(
     }
                /* do edges along the index[ orig_xyzv[VIO_Z] ] dir */
 
-    for(i=0; i<MAX_DIMENSIONS; i++) sindex[i]=index[i]=0;
+    for(i=0; i<VIO_MAX_DIMENSIONS; i++) sindex[i]=index[i]=0;
     
                                 /* loop over all Z-dirs  */
 
@@ -1555,7 +1558,7 @@ static void interpolate_super_sampled_data_by2_dim2_X(
 
         sindex[ xyzv[VIO_Y] ] = 2*index[ orig_xyzv[VIO_Y] ];
 
-        for(index[orig_xyzv[Z+1]]=0; index[orig_xyzv[Z+1]]<orig_count[xyzv[Z+1]]; index[orig_xyzv[Z+1]]++) {
+        for(index[orig_xyzv[VIO_Z+1]]=0; index[orig_xyzv[VIO_Z+1]]<orig_count[xyzv[VIO_Z+1]]; index[orig_xyzv[VIO_Z+1]]++) {
 
                                 /* do linear interp at ends */
 
@@ -1566,7 +1569,7 @@ static void interpolate_super_sampled_data_by2_dim2_X(
           GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
           value1 = (v1+v2)/2;
 
-          sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+          sindex[ xyzv[VIO_Z+1] ] = index[ orig_xyzv[VIO_Z+1] ];
 
           SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
           count++;
@@ -1578,7 +1581,7 @@ static void interpolate_super_sampled_data_by2_dim2_X(
           GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
           value1 = (v1+v2)/2;
 
-          sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+          sindex[ xyzv[VIO_Z+1] ] = index[ orig_xyzv[VIO_Z+1] ];
 
           SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
           count++;
@@ -1616,14 +1619,14 @@ static void interpolate_super_sampled_data_by2_dim2_X(
 
                /* do faces in the plane with index[ orig_xyzv[VIO_X] ]=CONST */
 
-    for(i=0; i<MAX_DIMENSIONS; i++)  sindex[i]=index[i]=0;
+    for(i=0; i<VIO_MAX_DIMENSIONS; i++)  sindex[i]=index[i]=0;
     
                                 /* loop over the X plane  */
 
  
-      for(index[orig_xyzv[Z+1]]=0; index[orig_xyzv[Z+1]]<orig_count[xyzv[Z+1]]; index[orig_xyzv[Z+1]]++) {
+      for(index[orig_xyzv[VIO_Z+1]]=0; index[orig_xyzv[VIO_Z+1]]<orig_count[xyzv[VIO_Z+1]]; index[orig_xyzv[VIO_Z+1]]++) {
 
-        sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+        sindex[ xyzv[VIO_Z+1] ] = index[ orig_xyzv[VIO_Z+1] ];
 
 
                                 /* do faces near the edge first */
@@ -1732,7 +1735,7 @@ static void interpolate_super_sampled_data_by2_dim2_X(
           update_progress_report( &progress, count+1 );
         }
 
-      } /* index[ orig_xyzv[Z+1] ] */
+      } /* index[ orig_xyzv[VIO_Z+1] ] */
       
 
     terminate_progress_report( &progress );
@@ -1774,7 +1777,7 @@ static void interpolate_super_sampled_data_by2_dim2_Y(
 
     initialize_progress_report(&progress, FALSE, 
                                super_count[ xyzv[VIO_X] ]*super_count[ xyzv[VIO_Y] ]*
-                               super_count[ xyzv[VIO_Z] ]*super_count[ xyzv[Z+1] ]+1,
+                               super_count[ xyzv[VIO_Z] ]*super_count[ xyzv[VIO_Z+1] ]+1,
                                "Super-sampling defs:" );
     count = 0;
 
@@ -1782,17 +1785,17 @@ static void interpolate_super_sampled_data_by2_dim2_Y(
 
     /* LEVEL 0: copy original 'corner' nodes, identified as 'X' in desc above */
 
-    for(i=0; i<MAX_DIMENSIONS; i++) sindex[i]=index[i]=0;
+    for(i=0; i<VIO_MAX_DIMENSIONS; i++) sindex[i]=index[i]=0;
     
     for(index[orig_xyzv[VIO_X]]=0; index[orig_xyzv[VIO_X]]<orig_count[orig_xyzv[VIO_X]]; index[orig_xyzv[VIO_X]]++) {
         for(index[orig_xyzv[VIO_Z]]=0; index[orig_xyzv[VIO_Z]]<orig_count[orig_xyzv[VIO_Z]]; index[orig_xyzv[VIO_Z]]++) {
 
-          for(i=0; i<N_DIMENSIONS; i++)
+          for(i=0; i<VIO_N_DIMENSIONS; i++)
             sindex[ xyzv[i] ] = 2*index[ orig_xyzv[i] ];
           sindex[ xyzv[VIO_Y] ] = 0;
 
-          for(index[orig_xyzv[Z+1]]=0; index[orig_xyzv[Z+1]]<orig_count[xyzv[Z+1]]; index[orig_xyzv[Z+1]]++) {
-            sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+          for(index[orig_xyzv[VIO_Z+1]]=0; index[orig_xyzv[VIO_Z+1]]<orig_count[xyzv[VIO_Z+1]]; index[orig_xyzv[VIO_Z+1]]++) {
+            sindex[ xyzv[VIO_Z+1] ] = index[ orig_xyzv[VIO_Z+1] ];
             GET_VOXEL_4D(value1, orig_vol, index[0],index[1],index[2],index[3]);
             SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
           }          
@@ -1808,7 +1811,7 @@ static void interpolate_super_sampled_data_by2_dim2_Y(
 
                /* do edges along the index[ orig_xyzv[VIO_X] ] dir */
 
-    for(i=0; i<MAX_DIMENSIONS; i++) sindex[i]=index[i]=0;
+    for(i=0; i<VIO_MAX_DIMENSIONS; i++) sindex[i]=index[i]=0;
     
                                 /* loop over all x-dirs  */
     
@@ -1818,7 +1821,7 @@ static void interpolate_super_sampled_data_by2_dim2_Y(
 
         sindex[ xyzv[VIO_Z] ] = 2*index[ orig_xyzv[VIO_Z] ];
 
-        for(index[orig_xyzv[Z+1]]=0; index[orig_xyzv[Z+1]]<orig_count[xyzv[Z+1]]; index[orig_xyzv[Z+1]]++) {
+        for(index[orig_xyzv[VIO_Z+1]]=0; index[orig_xyzv[VIO_Z+1]]<orig_count[xyzv[VIO_Z+1]]; index[orig_xyzv[VIO_Z+1]]++) {
 
                                 /* do linear interp at ends */
 
@@ -1829,7 +1832,7 @@ static void interpolate_super_sampled_data_by2_dim2_Y(
           GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
           value1 = (v1+v2)/2;
 
-          sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+          sindex[ xyzv[VIO_Z+1] ] = index[ orig_xyzv[VIO_Z+1] ];
 
           SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
           count++;
@@ -1841,7 +1844,7 @@ static void interpolate_super_sampled_data_by2_dim2_Y(
           GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
           value1 = (v1+v2)/2;
 
-          sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+          sindex[ xyzv[VIO_Z+1] ] = index[ orig_xyzv[VIO_Z+1] ];
 
           SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
           count++;
@@ -1879,7 +1882,7 @@ static void interpolate_super_sampled_data_by2_dim2_Y(
 
                /* do edges along the index[ orig_xyzv[VIO_Z] ] dir */
 
-    for(i=0; i<MAX_DIMENSIONS; i++) sindex[i]=index[i]=0;
+    for(i=0; i<VIO_MAX_DIMENSIONS; i++) sindex[i]=index[i]=0;
     
                                 /* loop over all Z-dirs  */
 
@@ -1891,7 +1894,7 @@ static void interpolate_super_sampled_data_by2_dim2_Y(
         sindex[ xyzv[VIO_X] ] = 2*index[ orig_xyzv[VIO_X] ];
 
 
-        for(index[orig_xyzv[Z+1]]=0; index[orig_xyzv[Z+1]]<orig_count[xyzv[Z+1]]; index[orig_xyzv[Z+1]]++) {
+        for(index[orig_xyzv[VIO_Z+1]]=0; index[orig_xyzv[VIO_Z+1]]<orig_count[xyzv[VIO_Z+1]]; index[orig_xyzv[VIO_Z+1]]++) {
 
                                 /* do linear interp at ends */
 
@@ -1902,7 +1905,7 @@ static void interpolate_super_sampled_data_by2_dim2_Y(
           GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
           value1 = (v1+v2)/2;
 
-          sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+          sindex[ xyzv[VIO_Z+1] ] = index[ orig_xyzv[VIO_Z+1] ];
 
           SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
           count++;
@@ -1914,7 +1917,7 @@ static void interpolate_super_sampled_data_by2_dim2_Y(
           GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
           value1 = (v1+v2)/2;
 
-          sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+          sindex[ xyzv[VIO_Z+1] ] = index[ orig_xyzv[VIO_Z+1] ];
 
           SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
           count++;
@@ -1954,7 +1957,7 @@ static void interpolate_super_sampled_data_by2_dim2_Y(
 
                /* do faces in the plane with index[ orig_xyzv[VIO_X] ]=CONST */
 
-    for(i=0; i<MAX_DIMENSIONS; i++)  sindex[i]=index[i]=0;
+    for(i=0; i<VIO_MAX_DIMENSIONS; i++)  sindex[i]=index[i]=0;
     
 
                         /* loop over the Y plane  */
@@ -1962,9 +1965,9 @@ static void interpolate_super_sampled_data_by2_dim2_Y(
 
       sindex[ xyzv[VIO_Y] ] = 0;
 
-      for(index[orig_xyzv[Z+1]]=0; index[orig_xyzv[Z+1]]<orig_count[xyzv[Z+1]]; index[orig_xyzv[Z+1]]++) {
+      for(index[orig_xyzv[VIO_Z+1]]=0; index[orig_xyzv[VIO_Z+1]]<orig_count[xyzv[VIO_Z+1]]; index[orig_xyzv[VIO_Z+1]]++) {
 
-        sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+        sindex[ xyzv[VIO_Z+1] ] = index[ orig_xyzv[VIO_Z+1] ];
 
 
                                 /* do faces near the edge first */
@@ -2074,7 +2077,7 @@ static void interpolate_super_sampled_data_by2_dim2_Y(
           update_progress_report( &progress, count+1 );
         }
 
-      } /* index[ orig_xyzv[Z+1] ] */
+      } /* index[ orig_xyzv[VIO_Z+1] ] */
       
 
     terminate_progress_report( &progress );
@@ -2115,23 +2118,23 @@ static void interpolate_super_sampled_data_by2_dim2_Z(
 
     initialize_progress_report(&progress, FALSE, 
                                super_count[ xyzv[VIO_X] ]*super_count[ xyzv[VIO_Y] ]*
-                               super_count[ xyzv[VIO_Z] ]*super_count[ xyzv[Z+1] ]+1,
+                               super_count[ xyzv[VIO_Z] ]*super_count[ xyzv[VIO_Z+1] ]+1,
                                "Super-sampling defs:" );
     count = 0;
 
  
     /* LEVEL 0: copy original 'corner' nodes, identified as 'X' in desc above */
 
-    for(i=0; i<MAX_DIMENSIONS; i++) sindex[i]=index[i]=0;
+    for(i=0; i<VIO_MAX_DIMENSIONS; i++) sindex[i]=index[i]=0;
     
     for(index[orig_xyzv[VIO_X]]=0; index[orig_xyzv[VIO_X]]<orig_count[orig_xyzv[VIO_X]]; index[orig_xyzv[VIO_X]]++) {
       for(index[orig_xyzv[VIO_Y]]=0; index[orig_xyzv[VIO_Y]]<orig_count[orig_xyzv[VIO_Y]]; index[orig_xyzv[VIO_Y]]++) {
 
-          for(i=0; i<N_DIMENSIONS; i++)
+          for(i=0; i<VIO_N_DIMENSIONS; i++)
             sindex[ xyzv[i] ] = 2*index[ orig_xyzv[i] ];
  
-          for(index[orig_xyzv[Z+1]]=0; index[orig_xyzv[Z+1]]<orig_count[xyzv[Z+1]]; index[orig_xyzv[Z+1]]++) {
-            sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+          for(index[orig_xyzv[VIO_Z+1]]=0; index[orig_xyzv[VIO_Z+1]]<orig_count[xyzv[VIO_Z+1]]; index[orig_xyzv[VIO_Z+1]]++) {
+            sindex[ xyzv[VIO_Z+1] ] = index[ orig_xyzv[VIO_Z+1] ];
             GET_VOXEL_4D(value1, orig_vol, index[0],index[1],index[2],index[3]);
             SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
           }          
@@ -2146,7 +2149,7 @@ static void interpolate_super_sampled_data_by2_dim2_Z(
 
                /* do edges along the index[ orig_xyzv[VIO_X] ] dir */
 
-    for(i=0; i<MAX_DIMENSIONS; i++) sindex[i]=index[i]=0;
+    for(i=0; i<VIO_MAX_DIMENSIONS; i++) sindex[i]=index[i]=0;
     
                                 /* loop over all x-dirs  */
 
@@ -2156,7 +2159,7 @@ static void interpolate_super_sampled_data_by2_dim2_Z(
         sindex[ xyzv[VIO_Y] ] = 2*index[ orig_xyzv[VIO_Y] ];
         
 
-        for(index[orig_xyzv[Z+1]]=0; index[orig_xyzv[Z+1]]<orig_count[xyzv[Z+1]]; index[orig_xyzv[Z+1]]++) {
+        for(index[orig_xyzv[VIO_Z+1]]=0; index[orig_xyzv[VIO_Z+1]]<orig_count[xyzv[VIO_Z+1]]; index[orig_xyzv[VIO_Z+1]]++) {
 
                                 /* do linear interp at ends */
 
@@ -2167,7 +2170,7 @@ static void interpolate_super_sampled_data_by2_dim2_Z(
           GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
           value1 = (v1+v2)/2;
 
-          sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+          sindex[ xyzv[VIO_Z+1] ] = index[ orig_xyzv[VIO_Z+1] ];
 
           SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
           count++;
@@ -2179,7 +2182,7 @@ static void interpolate_super_sampled_data_by2_dim2_Z(
           GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
           value1 = (v1+v2)/2;
 
-          sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+          sindex[ xyzv[VIO_Z+1] ] = index[ orig_xyzv[VIO_Z+1] ];
 
           SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
           count++;
@@ -2215,7 +2218,7 @@ static void interpolate_super_sampled_data_by2_dim2_Z(
     }
                /* do edges along the index[ orig_xyzv[VIO_Y] ] dir */
 
-    for(i=0; i<MAX_DIMENSIONS; i++) sindex[i]=index[i]=0;
+    for(i=0; i<VIO_MAX_DIMENSIONS; i++) sindex[i]=index[i]=0;
     
                                 /* loop over all x-dirs  */
 
@@ -2226,7 +2229,7 @@ static void interpolate_super_sampled_data_by2_dim2_Z(
 
         sindex[ xyzv[VIO_X] ] = 2*index[ orig_xyzv[VIO_X] ];
 
-        for(index[orig_xyzv[Z+1]]=0; index[orig_xyzv[Z+1]]<orig_count[xyzv[Z+1]]; index[orig_xyzv[Z+1]]++) {
+        for(index[orig_xyzv[VIO_Z+1]]=0; index[orig_xyzv[VIO_Z+1]]<orig_count[xyzv[VIO_Z+1]]; index[orig_xyzv[VIO_Z+1]]++) {
 
                                 /* do linear interp at ends */
 
@@ -2237,7 +2240,7 @@ static void interpolate_super_sampled_data_by2_dim2_Z(
           GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
           value1 = (v1+v2)/2;
 
-          sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+          sindex[ xyzv[VIO_Z+1] ] = index[ orig_xyzv[VIO_Z+1] ];
 
           SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
           count++;
@@ -2249,7 +2252,7 @@ static void interpolate_super_sampled_data_by2_dim2_Z(
           GET_VOXEL_4D(v2, orig_vol, index[0],index[1],index[2],index[3]);
           value1 = (v1+v2)/2;
 
-          sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+          sindex[ xyzv[VIO_Z+1] ] = index[ orig_xyzv[VIO_Z+1] ];
 
           SET_VOXEL_4D(super_vol, sindex[0],sindex[1],sindex[2],sindex[3], value1);
           count++;
@@ -2288,7 +2291,7 @@ static void interpolate_super_sampled_data_by2_dim2_Z(
 
                /* do faces in the plane with index[ orig_xyzv[VIO_X] ]=CONST */
 
-    for(i=0; i<MAX_DIMENSIONS; i++)  sindex[i]=index[i]=0;
+    for(i=0; i<VIO_MAX_DIMENSIONS; i++)  sindex[i]=index[i]=0;
     
 
 
@@ -2296,9 +2299,9 @@ static void interpolate_super_sampled_data_by2_dim2_Z(
     
     sindex[ xyzv[VIO_Z] ] = 0;
 
-    for(index[orig_xyzv[Z+1]]=0; index[orig_xyzv[Z+1]]<orig_count[xyzv[Z+1]]; index[orig_xyzv[Z+1]]++) {
+    for(index[orig_xyzv[VIO_Z+1]]=0; index[orig_xyzv[VIO_Z+1]]<orig_count[xyzv[VIO_Z+1]]; index[orig_xyzv[VIO_Z+1]]++) {
       
-      sindex[ xyzv[Z+1] ] = index[ orig_xyzv[Z+1] ];
+      sindex[ xyzv[VIO_Z+1] ] = index[ orig_xyzv[VIO_Z+1] ];
       
       
                                 /* do faces near the edge first */
@@ -2408,7 +2411,7 @@ static void interpolate_super_sampled_data_by2_dim2_Z(
         update_progress_report( &progress, count+1 );
       }
 
-    } /* index[ orig_xyzv[Z+1] ] */
+    } /* index[ orig_xyzv[VIO_Z+1] ] */
  
     terminate_progress_report( &progress );
 

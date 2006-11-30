@@ -10,7 +10,10 @@
 @CALLS      : 
 @CREATED    : Thur Oct 5 08:45:43 MET 1995
 @MODIFIED   : $Log: make_lvv_vol.c,v $
-@MODIFIED   : Revision 1.6  2006-11-29 09:09:31  rotor
+@MODIFIED   : Revision 1.7  2006-11-30 09:07:31  rotor
+@MODIFIED   :  * many more changes for clean minc 2.0 build
+@MODIFIED   :
+@MODIFIED   : Revision 1.6  2006/11/29 09:09:31  rotor
 @MODIFIED   :  * first bunch of changes for minc 2.0 compliance
 @MODIFIED   :
 @MODIFIED   : Revision 1.5  2005/07/20 20:45:46  rotor
@@ -47,7 +50,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/make_lvv_vol.c,v 1.6 2006-11-29 09:09:31 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Extra_progs/make_lvv_vol.c,v 1.7 2006-11-30 09:07:31 rotor Exp $";
 #endif
 
 #include <stdio.h>
@@ -404,7 +407,7 @@ VIO_Real return_Lvv(VIO_Real r[3][3][3],
   Lvv = 0.0;
   sq_mag_grad = x*x + y*y + z*z;
 
-  if ( ABS(sq_mag_grad) > eps )  {
+  if ( fabs(sq_mag_grad) > eps )  {
                                 /* Mean curvature */
     S = (
          x*x*(yy + zz) - 2*y*z*yz +

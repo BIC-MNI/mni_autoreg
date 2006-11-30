@@ -126,7 +126,7 @@ int main(int argc, char *argv[])
           v2 = (v2 - mean2) / std2;
           
           v1 = v1 - v2;
-          s12 += ABS(v1);
+          s12 += fabs(v1);
           
           count++;
 

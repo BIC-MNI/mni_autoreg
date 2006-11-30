@@ -14,9 +14,12 @@
                                     to create a sublattice defined on the target.
      
 @CREATED    : Mon Nov  3, 1997 , Louis Collins
-@VERSION    : $Id: sub_lattice.c,v 1.14 2006-11-29 09:09:34 rotor Exp $
+@VERSION    : $Id: sub_lattice.c,v 1.15 2006-11-30 09:07:32 rotor Exp $
 @MODIFIED   : $Log: sub_lattice.c,v $
-@MODIFIED   : Revision 1.14  2006-11-29 09:09:34  rotor
+@MODIFIED   : Revision 1.15  2006-11-30 09:07:32  rotor
+@MODIFIED   :  * many more changes for clean minc 2.0 build
+@MODIFIED   :
+@MODIFIED   : Revision 1.14  2006/11/29 09:09:34  rotor
 @MODIFIED   :  * first bunch of changes for minc 2.0 compliance
 @MODIFIED   :
 @MODIFIED   : Revision 1.13  2005/07/20 20:45:51  rotor
@@ -148,7 +151,7 @@ void    build_source_lattice(VIO_Real x, VIO_Real y, VIO_Real z,
 
   for(i=0; i<3; i++) {
     
-    abs_step = ABS(Gglobals->step[i]);
+    abs_step = fabs(Gglobals->step[i]);
 
     dir[i][0] = Point_x(Gglobals->directions[i]) / abs_step;
     dir[i][1] = Point_y(Gglobals->directions[i]) / abs_step;

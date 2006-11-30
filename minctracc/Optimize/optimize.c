@@ -14,7 +14,10 @@
               express or implied warranty.
 
 @MODIFIED   : $Log: optimize.c,v $
-@MODIFIED   : Revision 96.14  2006-11-29 09:09:34  rotor
+@MODIFIED   : Revision 96.15  2006-11-30 09:07:32  rotor
+@MODIFIED   :  * many more changes for clean minc 2.0 build
+@MODIFIED   :
+@MODIFIED   : Revision 96.14  2006/11/29 09:09:34  rotor
 @MODIFIED   :  * first bunch of changes for minc 2.0 compliance
 @MODIFIED   :
 @MODIFIED   : Revision 96.13  2005/07/20 20:45:51  rotor
@@ -154,7 +157,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 96.14 2006-11-29 09:09:34 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 96.15 2006-11-30 09:07:32 rotor Exp $";
 #endif
 
 #include <config.h>
@@ -168,6 +171,8 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #include "make_rots.h"
 #include "segment_table.h"
 #include "quaternion.h"
+
+#include "local_macros.h"
 
 extern Arg_Data main_args;
 

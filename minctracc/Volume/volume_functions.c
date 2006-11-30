@@ -14,8 +14,8 @@
 
 @CREATED    : Tue Jun 15 08:57:23 EST 1993 LC
 @MODIFIED   :  $Log: volume_functions.c,v $
-@MODIFIED   :  Revision 96.12  2006-11-29 09:09:34  rotor
-@MODIFIED   :   * first bunch of changes for minc 2.0 compliance
+@MODIFIED   :  Revision 96.13  2006-11-30 09:07:33  rotor
+@MODIFIED   :   * many more changes for clean minc 2.0 build
 @MODIFIED   :
 @MODIFIED   :  Revision 96.11  2005/07/20 20:45:52  rotor
 @MODIFIED   :      * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
@@ -93,7 +93,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/volume_functions.c,v 96.12 2006-11-29 09:09:34 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/volume_functions.c,v 96.13 2006-11-30 09:07:33 rotor Exp $";
 #endif
 
 #include <config.h>
@@ -309,7 +309,7 @@ void add_speckle_to_volume(VIO_Volume d1,
   flip_flag = FALSE;
 
   get_volume_voxel_range(d1, &valid_min_voxel, &valid_max_voxel);
-  VIO_fill_Point( starting_position, start[0], start[1], start[2]);
+  fill_Point( starting_position, start[0], start[1], start[2]);
   
   for(s=0; s<count[SLICE_IND]; s++) {
 
@@ -326,9 +326,9 @@ void add_speckle_to_volume(VIO_Volume d1,
 
         convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
 
-        xi = ROUND( tx );
-        yi = ROUND( ty );
-        zi = ROUND( tz );
+        xi = (int)floor(tx + 0.5);
+        yi = (int)floor( ty + 0.5);
+        zi = (int)floor( tz + 0.5 );
 
         GET_VOXEL_3D( voxel_value, d1 , xi, yi, zi ); 
 
@@ -463,7 +463,7 @@ void normalize_data_to_match_target(VIO_Volume d1, VIO_Volume m1, VIO_Real thres
 
   ALLOC(ratios, ratios_size);  
 
-  VIO_fill_Point( starting_position, globals->start[VIO_X], globals->start[VIO_Y], globals->start[VIO_Z]);
+  fill_Point( starting_position, globals->start[VIO_X], globals->start[VIO_Y], globals->start[VIO_Z]);
 
   s1 = s2 = s3 = 0.0;
   count1 = count2 = 0;
@@ -483,7 +483,7 @@ void normalize_data_to_match_target(VIO_Volume d1, VIO_Volume m1, VIO_Real thres
         
         convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
         
-        VIO_fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
+        fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
         
         if (point_not_masked(m1, Point_x(col), Point_y(col), Point_z(col))) {
 
@@ -497,7 +497,7 @@ void normalize_data_to_match_target(VIO_Volume d1, VIO_Volume m1, VIO_Real thres
             
             convert_3D_world_to_voxel(d2, Point_x(pos2), Point_y(pos2), Point_z(pos2), &tx, &ty, &tz);
             
-            VIO_fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
+            fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
         
             if (point_not_masked(m2, Point_x(pos2), Point_y(pos2), Point_z(pos2))) {
 
@@ -538,7 +538,7 @@ void normalize_data_to_match_target(VIO_Volume d1, VIO_Volume m1, VIO_Real thres
 
     if (globals->flags.debug) (void)print ("Normalization: %7d %7d -> %10.8f\n",count1,count2,result);
 
-    if ( ABS(result) < 1e-15) {
+    if ( fabs(result) < 1e-15) {
       print_error_and_line_num("Error computing normalization ratio `%f'.",__FILE__, __LINE__, result);
     }
     else {

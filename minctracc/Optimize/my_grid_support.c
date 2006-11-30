@@ -290,7 +290,7 @@ static void transform_or_inverse_point_in_trans_plane(VIO_General_transform *tra
 
     tries = 0;
 
-    error = smallest_e = ABS(error_x) + ABS(error_y) + ABS(error_z);
+    error = smallest_e = fabs(error_x) + fabs(error_y) + fabs(error_z);
 
     best_x = tx;
     best_y = ty;
@@ -308,7 +308,7 @@ static void transform_or_inverse_point_in_trans_plane(VIO_General_transform *tra
         error_y = y - gy;
         error_z = z - gz;
     
-        error = ABS(error_x) + ABS(error_y) + ABS(error_z);
+        error = fabs(error_x) + fabs(error_y) + fabs(error_z);
 
         if( error < smallest_e )
         {

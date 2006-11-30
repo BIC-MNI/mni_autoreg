@@ -3,9 +3,12 @@
 @DESCRIPTION: routines to calculate the objective function used for local
               optimization              
 @CREATED    : Nov 4, 1997, Louis Collins
-@VERSION    : $Id: def_obj_functions.c,v 1.13 2006-11-29 09:09:34 rotor Exp $
+@VERSION    : $Id: def_obj_functions.c,v 1.14 2006-11-30 09:07:32 rotor Exp $
 @MODIFIED   : $Log: def_obj_functions.c,v $
-@MODIFIED   : Revision 1.13  2006-11-29 09:09:34  rotor
+@MODIFIED   : Revision 1.14  2006-11-30 09:07:32  rotor
+@MODIFIED   :  * many more changes for clean minc 2.0 build
+@MODIFIED   :
+@MODIFIED   : Revision 1.13  2006/11/29 09:09:34  rotor
 @MODIFIED   :  * first bunch of changes for minc 2.0 compliance
 @MODIFIED   :
 @MODIFIED   : Revision 1.12  2005/07/20 20:45:50  rotor
@@ -168,7 +171,7 @@ static VIO_Real similarity_fn(float *d)
                                          Gglobals->interpolant==nearest_neighbour_interpolant);
       
 
-      norm += ABS(Gglobals->features.weight[i]);
+      norm += fabs(Gglobals->features.weight[i]);
       s += Gglobals->features.weight[i] * func_sim;
       
       /*

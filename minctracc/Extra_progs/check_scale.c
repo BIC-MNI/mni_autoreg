@@ -9,7 +9,10 @@
 @CALLS      : 
 @CREATED    : Mon Nov 29 11:01:47 EST 1993 Louis
 @MODIFIED   : $Log: check_scale.c,v $
-@MODIFIED   : Revision 96.5  2006-11-29 09:09:30  rotor
+@MODIFIED   : Revision 96.6  2006-11-30 09:07:31  rotor
+@MODIFIED   :  * many more changes for clean minc 2.0 build
+@MODIFIED   :
+@MODIFIED   : Revision 96.5  2006/11/29 09:09:30  rotor
 @MODIFIED   :  * first bunch of changes for minc 2.0 compliance
 @MODIFIED   :
 @MODIFIED   : Revision 96.4  2005/07/20 20:45:45  rotor
@@ -137,7 +140,7 @@ VIO_BOOL vol_to_cov(VIO_Volume d1, VIO_Volume m1, float *centroid, float **covar
   
                                 /* build sampling lattice info */
   for(i=0; i<3; i++) {        
-    step[i] *= thickness[i] / ABS( thickness[i]);
+    step[i] *= thickness[i] / fabs( thickness[i]);
   }
 
   fill_Vector( col_step,   step[COL_IND], 0.0,     0.0 );
@@ -146,12 +149,12 @@ VIO_BOOL vol_to_cov(VIO_Volume d1, VIO_Volume m1, float *centroid, float **covar
 
   convert_3D_voxel_to_world(d1, 0.0, 0.0, 0.0, &tx, &ty, &tz); 
 
-  VIO_fill_Point( starting_origin, tx, ty, tz);
+  fill_Point( starting_origin, tx, ty, tz);
 
   for(i=0; i<3; i++) {                /* for each dim, get # of steps in that direction,
                                    and set starting offset */
     t = sizes[i] * thickness[i] / step[i];
-    limits[i] = (int)( ABS( t ) );
+    limits[i] = abs( t );
     
     Point_coord( starting_offset, (i) ) = 
       ( (sizes[i]-1)*thickness[i] - (limits[i] * step[i] ) ) / 2.0;
@@ -181,7 +184,7 @@ VIO_BOOL vol_to_cov(VIO_Volume d1, VIO_Volume m1, float *centroid, float **covar
 
         convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
 
-        VIO_fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
+        fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
         
         if (point_not_masked(m1, Point_x(col), Point_y(col), Point_z(col))) {
           
@@ -228,7 +231,7 @@ VIO_BOOL vol_to_cov(VIO_Volume d1, VIO_Volume m1, float *centroid, float **covar
           
           convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
 
-          VIO_fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
+          fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
         
           if (point_not_masked(m1, Point_x(col), Point_y(col), Point_z(col))) {
             

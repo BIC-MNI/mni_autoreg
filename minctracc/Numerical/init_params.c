@@ -17,7 +17,10 @@
 @CREATED    : Thu May 27 16:50:50 EST 1993
                   
 @MODIFIED   :  $Log: init_params.c,v $
-@MODIFIED   :  Revision 96.11  2006-11-29 09:09:33  rotor
+@MODIFIED   :  Revision 96.12  2006-11-30 09:07:32  rotor
+@MODIFIED   :   * many more changes for clean minc 2.0 build
+@MODIFIED   :
+@MODIFIED   :  Revision 96.11  2006/11/29 09:09:33  rotor
 @MODIFIED   :   * first bunch of changes for minc 2.0 compliance
 @MODIFIED   :
 @MODIFIED   :  Revision 96.10  2005/07/20 20:45:49  rotor
@@ -121,7 +124,7 @@ for(=; <; ++)
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 96.11 2006-11-29 09:09:33 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 96.12 2006-11-30 09:07:32 rotor Exp $";
 #endif
 
 
@@ -226,7 +229,7 @@ VIO_BOOL vol_cog(VIO_Volume d1, VIO_Volume m1, float *centroid, double *step)
      Point_z(scaled_directions[i]) = Point_z(directions[i]) * local_step[i];
    }
 
-  VIO_fill_Point( starting_position, wstart[0], wstart[1], wstart[2]);
+  fill_Point( starting_position, wstart[0], wstart[1], wstart[2]);
   
                                 /* calculate centroids */
 
@@ -253,7 +256,7 @@ VIO_BOOL vol_cog(VIO_Volume d1, VIO_Volume m1, float *centroid, double *step)
         convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
 
 
-        VIO_fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
+        fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
         
 
         if (point_not_masked(m1, Point_x(col), Point_y(col), Point_z(col))) {        
@@ -365,7 +368,7 @@ VIO_BOOL vol_cov(VIO_Volume d1, VIO_Volume m1, float *centroid, float **covar, d
    }
 
   
-  VIO_fill_Point( starting_position, wstart[0], wstart[1], wstart[2]);
+  fill_Point( starting_position, wstart[0], wstart[1], wstart[2]);
   
   si = 0.0;
   sxx = syy = szz = 0.0;
@@ -389,7 +392,7 @@ VIO_BOOL vol_cov(VIO_Volume d1, VIO_Volume m1, float *centroid, float **covar, d
         
         convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
         
-        VIO_fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
+        fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
         
         if (point_not_masked(m1, Point_x(col), Point_y(col), Point_z(col))) {        
           

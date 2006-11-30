@@ -68,7 +68,10 @@
 
 @CREATED    : Feb 9, 1992 lc
 @MODIFIED   :  $Log: rotmat_to_ang.c,v $
-@MODIFIED   :  Revision 96.5  2006-11-29 09:09:33  rotor
+@MODIFIED   :  Revision 96.6  2006-11-30 09:07:32  rotor
+@MODIFIED   :   * many more changes for clean minc 2.0 build
+@MODIFIED   :
+@MODIFIED   :  Revision 96.5  2006/11/29 09:09:33  rotor
 @MODIFIED   :   * first bunch of changes for minc 2.0 compliance
 @MODIFIED   :
 @MODIFIED   :  Revision 96.4  2005/07/20 20:45:49  rotor
@@ -128,7 +131,7 @@ Tue Jun  8 08:44:59 EST 1993 LC
 
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/rotmat_to_ang.c,v 96.5 2006-11-29 09:09:33 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/rotmat_to_ang.c,v 96.6 2006-11-30 09:07:32 rotor Exp $";
 #endif
 
 
@@ -192,16 +195,16 @@ VIO_BOOL rotmat_to_ang(float **rot, float *ang)
    }
 
    len = sqrt(i*i + j*j);        /* length of vect x on XY plane */
-   if (ABS(len)<EPS) {
+   if (fabs(len)<EPS) {
       print("WARNING: (%s:%d) %s\n",__FILE__, __LINE__,"step one: length of vect x null.");
       return(FALSE);
    }
 
-   if (ABS(i)>ABS(j)) {
-      rz = ABS(asin((double)(j/len)));
+   if (fabs(i)>fabs(j)) {
+      rz = fabs(asin((double)(j/len)));
    }
    else {
-      rz = ABS(acos((double)(i/len)));
+      rz = fabs(acos((double)(i/len)));
    }
 
    if (j>0)                        /* what is the counter clockwise angle */
@@ -234,16 +237,16 @@ VIO_BOOL rotmat_to_ang(float **rot, float *ang)
 
    len = sqrt(i*i + k*k);                /* length of vect x in XZ plane, after RZ */
 
-   if (ABS(len)<EPS) {
+   if (fabs(len)<EPS) {
       print("WARNING: (%s:%d) %s\n",__FILE__, __LINE__,"step two: length of vect z null.");
       return(FALSE);
    }
 
-   if (ABS(i)>ABS(k)) {
-      ry = ABS(asin((double)(k/len)));
+   if (fabs(i)>fabs(k)) {
+      ry = fabs(asin((double)(k/len)));
    }
    else {
-      ry = ABS(acos((double)(i/len)));
+      ry = fabs(acos((double)(i/len)));
    }
 
    /*    what is the counter clockwise angle necessary to bring  */
@@ -272,16 +275,16 @@ VIO_BOOL rotmat_to_ang(float **rot, float *ang)
 
    len = sqrt(j*j + k*k);        /* length of vect x in Y,Z plane */
 
-   if (ABS(len)<EPS) {
+   if (fabs(len)<EPS) {
       print("WARNING: (%s:%d) %s\n",__FILE__, __LINE__,"step three: length of vect z null.");
       return(FALSE);
    }
 
-   if (ABS(k)>ABS(j)) {
-      rx = ABS(asin((double)(j/len)));
+   if (fabs(k)>fabs(j)) {
+      rx = fabs(asin((double)(j/len)));
    }
    else {
-      rx = ABS(acos((double)(k/len)));
+      rx = fabs(acos((double)(k/len)));
    }
 
    if (j< 0) { 

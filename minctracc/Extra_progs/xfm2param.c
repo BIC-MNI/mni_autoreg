@@ -72,7 +72,7 @@ VIO_BOOL vol_to_cov(VIO_Volume d1, VIO_Volume m1, float centroid[4], float covar
   
                                 /* build sampling lattice info */
   for(i=0; i<3; i++) {        
-    step[i] *= thickness[i] / ABS( thickness[i]);
+    step[i] *= thickness[i] / fabs( thickness[i]);
   }
 
   fill_Vector( col_step,   step[COL_IND], 0.0,     0.0 );
@@ -81,12 +81,12 @@ VIO_BOOL vol_to_cov(VIO_Volume d1, VIO_Volume m1, float centroid[4], float covar
 
   convert_3D_voxel_to_world(d1, 0.0, 0.0, 0.0, &tx, &ty, &tz); 
 
-  VIO_fill_Point( starting_origin, tx, ty, tz);
+  fill_Point( starting_origin, tx, ty, tz);
 
   for(i=0; i<3; i++) {                /* for each dim, get # of steps in that direction,
                                    and set starting offset */
     t = sizes[i] * thickness[i] / step[i];
-    limits[i] = (int)( ABS( t ) );
+    limits[i] = abs( t );
     
     Point_coord( starting_offset, (i) ) = 
       ( (sizes[i]-1)*thickness[i] - (limits[i] * step[i] ) ) / 2.0;
@@ -116,7 +116,7 @@ VIO_BOOL vol_to_cov(VIO_Volume d1, VIO_Volume m1, float centroid[4], float covar
 
         convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
 
-        VIO_fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
+        fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
         
         if (point_not_masked(m1, Point_x(col), Point_y(col), Point_z(col))) {
           
@@ -163,7 +163,7 @@ VIO_BOOL vol_to_cov(VIO_Volume d1, VIO_Volume m1, float centroid[4], float covar
           
           convert_3D_world_to_voxel(d1, Point_x(col), Point_y(col), Point_z(col), &tx, &ty, &tz);
 
-          VIO_fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
+          fill_Point( voxel, tx, ty, tz ); /* build the voxel POINT */
         
           if (point_not_masked(m1, Point_x(col), Point_y(col), Point_z(col))) {
             

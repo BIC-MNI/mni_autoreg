@@ -16,8 +16,8 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 96.25  2006-11-29 09:09:34  rotor
-@MODIFIED   :  * first bunch of changes for minc 2.0 compliance
+@MODIFIED   : Revision 96.26  2006-11-30 09:07:32  rotor
+@MODIFIED   :  * many more changes for clean minc 2.0 build
 @MODIFIED   :
 @MODIFIED   : Revision 96.24  2005/07/20 20:45:50  rotor
 @MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
@@ -339,7 +339,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.25 2006-11-29 09:09:34 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.26 2006-11-30 09:07:32 rotor Exp $";
 #endif
 
 #include <config.h>                /* MAXtype and MIN defs                      */
@@ -352,13 +352,14 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #include <Proglib.h>        /* def of print_error_and_..                 */
 #include <deform_support.h>        /* prototypes for routines called
                                    from deformation procedures.              */
-
 #include "constants.h"                /* internal constant definitions             */
 #include "interpolation.h"
 #include "super_sample_def.h"
 #include <sys/types.h>                /* for timing the deformations               */
 #include <time.h>
 time_t time(time_t *tloc);
+
+#include "local_macros.h"
 
 #include <stats.h>              /* for local stats computations              */
 #include <sub_lattice.h>        /* prototypes for sub_lattice manipulation   */
@@ -488,6 +489,9 @@ extern int        Diameter_of_local_lattice;
 #define DEFAULT_STD_E0   0.018712
 #define DEFAULT_STD_E1   0.010252
 #define DEFAULT_STD_E2   0.002711
+
+#define  MAX( x, y )  ( ((x) >= (y)) ? (x) : (y) )
+#define  MAX3( x, y, z )  ( ((x) >= (y)) ? MAX( x, z ) : MAX( y, z ) )
 
 static VIO_Real
 previous_mean_eig_val[3] = {DEFAULT_MEAN_E0,DEFAULT_MEAN_E1,DEFAULT_MEAN_E2};
@@ -714,7 +718,7 @@ VIO_Status do_non_linear_optimization(Arg_Data *globals)
    VIO_progress_struct                /* to print out program progress report */
       progress;
 
-   STRING filenamestring;
+   VIO_STR filenamestring;
    VIO_BOOL condition;
 
   /*******************************************************************************/
@@ -728,7 +732,7 @@ VIO_Status do_non_linear_optimization(Arg_Data *globals)
    
    /* pour eviter d'avoir une option -2Dnonlin ou 3d le fcalcul se fait directement */
    num_of_dims_to_optimize = 0;
-   for(i=0; i<N_DIMENSIONS; i++) {
+   for(i=0; i<VIO_N_DIMENSIONS; i++) {
      if (Gglobals->count[i] > 1) 
        num_of_dims_to_optimize++ ;
    }
@@ -781,14 +785,12 @@ VIO_Status do_non_linear_optimization(Arg_Data *globals)
    ALLOC(TY,MAX_G_LEN+1);
    ALLOC(TZ,MAX_G_LEN+1);
 
-
    /* split the total transformation into the first linear part and the
       last non-linear def.  */  
    split_up_the_transformation(globals->trans_info.transformation,
                                &all_until_last,
                                &current_warp);
    
-
                                 /* exit if no deformation */
    if (current_warp == (VIO_General_transform *)NULL) { 
       print_error_and_line_num("Cannot find the deformation field to optimize at end of input transform",
@@ -837,7 +839,7 @@ VIO_Status do_non_linear_optimization(Arg_Data *globals)
    for(i=0; i<3; i++)
       mag_steps[i] = steps[ xyzv[i] ];
    set_volume_separations(additional_mag, mag_steps);
-   for(i=0; i<MAX_DIMENSIONS; i++)
+   for(i=0; i<VIO_MAX_DIMENSIONS; i++)
       voxel[i] = 0.0;
    convert_voxel_to_world(additional_vol, 
                           voxel,
@@ -869,11 +871,11 @@ VIO_Status do_non_linear_optimization(Arg_Data *globals)
                                 /* Gsimplex_size is in voxel units
                                    in the data volume.             */
 
-     for(i=0; i<N_DIMENSIONS; i++) {step_magnitude[i] = ABS(steps_data[i]); }
+     for(i=0; i<VIO_N_DIMENSIONS; i++) {step_magnitude[i] = fabs(steps_data[i]); }
 
-      Gsimplex_size= ABS(steps[xyzv[VIO_X]]) / MAX3(step_magnitude[0],step_magnitude[1],step_magnitude[2]);  
+      Gsimplex_size= fabs(steps[xyzv[VIO_X]]) / MAX3(step_magnitude[0],step_magnitude[1],step_magnitude[2]);  
 
-      if (ABS(Gsimplex_size) < ABS(steps_data[0])) {
+      if (fabs(Gsimplex_size) < fabs(steps_data[0])) {
          print ("*** WARNING ***\n");
          print ("Simplex size will be smaller than data voxel size (%f < %f)\n",
                 Gsimplex_size,steps_data[0]);
@@ -904,7 +906,7 @@ VIO_Status do_non_linear_optimization(Arg_Data *globals)
     
 
     if (globals->flags.debug) {
-      for(i=0; i<MAX_DIMENSIONS; i++) {
+      for(i=0; i<VIO_MAX_DIMENSIONS; i++) {
         voxel[i]=0.0;
         debug_sizes[i]=0.0;
         debug_steps[i]=0.0;
@@ -946,7 +948,7 @@ VIO_Status do_non_linear_optimization(Arg_Data *globals)
     if (globals->flags.debug) {
 
 
-      for(i=0; i<MAX_DIMENSIONS; i++) {
+      for(i=0; i<VIO_MAX_DIMENSIONS; i++) {
         voxel[i]=0.0;
         debug_sizes[i]=0.0;
         debug_steps[i]=0.0;
@@ -1013,7 +1015,7 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
     print("Iteration limit      = %d\n", iteration_limit);
     print("Iteration weight     = %f\n", iteration_weight);
     print("xyzv                 = %3d %3d %3d %3d \n",
-          xyzv[VIO_X], xyzv[VIO_Y], xyzv[VIO_Z], xyzv[Z+1]);
+          xyzv[VIO_X], xyzv[VIO_Y], xyzv[VIO_Z], xyzv[VIO_Z+1]);
     print("number_dimensions    = %d\n",number_dimensions);
     print("num_of_dims_to_opt   = %d\n",num_of_dims_to_optimize);
     print("smoothing_weight     = %f\n",smoothing_weight);
@@ -1026,7 +1028,7 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
     
     if ( Gglobals->trans_info.use_magnitude) {
 
-     for(i=0; i<N_DIMENSIONS; i++) {step_magnitude[i] = ABS(steps_data[i]); }
+     for(i=0; i<VIO_N_DIMENSIONS; i++) {step_magnitude[i] = fabs(steps_data[i]); }
 
       if ( Gglobals->trans_info.use_simplex) {
         print ("  This fit will use local simplex optimization and\n");
@@ -1142,7 +1144,6 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
 
        init_the_volume_to_zero(estimated_flag_vol);
 
-
        print("Iteration %2d of %2d\n",iters+1, iteration_limit);
 
 
@@ -1178,34 +1179,34 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
           
        temp_start_time = time(NULL);
        
-       for(i=0; i<MAX_DIMENSIONS; i++) index[i]=0;
+       for(i=0; i<VIO_MAX_DIMENSIONS; i++) index[i]=0;
        
        /* step index[] through all the nodes in the deformation field. */
        
 
-       for(index[xyzv[VIO_X]]=start[X]; index[xyzv[VIO_X]]<end[X]; index[xyzv[VIO_X]]++) 
+       for(index[xyzv[VIO_X]]=start[VIO_X]; index[xyzv[VIO_X]]<end[VIO_X]; index[xyzv[VIO_X]]++) 
          {
            
            timer1 = time(NULL);               /* for stats on this slice */
            nfunk1 = 0; nodes1 = 0;
            
-           for(index[xyzv[VIO_Y]]=start[Y]; index[xyzv[VIO_Y]]<end[Y]; index[xyzv[VIO_Y]]++) 
+           for(index[xyzv[VIO_Y]]=start[VIO_Y]; index[xyzv[VIO_Y]]<end[VIO_Y]; index[xyzv[VIO_Y]]++) 
              {
              
-               for(index[xyzv[VIO_Z]]=start[Z]; index[xyzv[VIO_Z]]<end[Z]; index[xyzv[VIO_Z]]++) 
+               for(index[xyzv[VIO_Z]]=start[VIO_Z]; index[xyzv[VIO_Z]]<end[VIO_Z]; index[xyzv[VIO_Z]]++) 
                  {
                
                    nodes_seen++;          
                                         /* get the lattice coordinate 
                                            of the current index node  */
-                   for(i=0; i<MAX_DIMENSIONS; i++) voxel[i]=index[i];
+                   for(i=0; i<VIO_MAX_DIMENSIONS; i++) voxel[i]=index[i];
 
                    convert_voxel_to_world(current_vol, 
                                           voxel,
                                           &(target_node[VIO_X]), &(target_node[VIO_Y]), &(target_node[VIO_Z]));
 
-                   for(index[xyzv[Z+1]]=start[Z+1]; index[xyzv[Z+1]]<end[Z+1]; index[xyzv[Z+1]]++) 
-                     current_def_vector[ index[ xyzv[Z+1] ] ] = 
+                   for(index[xyzv[VIO_Z+1]]=start[VIO_Z+1]; index[xyzv[VIO_Z+1]]<end[VIO_Z+1]; index[xyzv[VIO_Z+1]]++) 
+                     current_def_vector[ index[ xyzv[VIO_Z+1] ] ] = 
                      get_volume_real_value(current_vol,
                                            index[0],index[1],index[2],index[3],index[4]);
 
@@ -1231,13 +1232,14 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
                                          /* now get the mean warped position of 
                                             the target's neighbours */
                      
-                     index[ xyzv[Z+1] ] = 0;
+                     index[ xyzv[VIO_Z+1] ] = 0;
                      if (get_average_warp_of_neighbours(current_warp,
                                                         index, mean_target)) {
                        
                                         /* what is the offset to the mean_target? */
-
-                       for(i=X; i<=Z; i++)
+                     
+                       // this is a tad dumb is it not?
+                       for(i=VIO_X; i<=VIO_Z; i++)
                          mean_vector[i] = mean_target[i] - target_node[i];
                        
                                         /* get the targets homolog in the
@@ -1293,20 +1295,20 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
                                              that when added to current_vol (below) I will
                                              have the correct result!  */
 
-                               for(i=X; i<=Z; i++)
+                               for(i=VIO_X; i<=VIO_Z; i++)
                                  result_def_vector[ i ] -= current_def_vector[ i ];
                                
 
-                               for(index[xyzv[Z+1]]=start[Z+1]; index[xyzv[Z+1]]<end[Z+1]; index[xyzv[Z+1]]++)  
+                               for(index[xyzv[VIO_Z+1]]=start[VIO_Z+1]; index[xyzv[VIO_Z+1]]<end[VIO_Z+1]; index[xyzv[VIO_Z+1]]++)  
                                  {
                                    set_volume_real_value(additional_vol,
                                                          index[0],index[1],index[2],
                                                          index[3],index[4],
-                                                         result_def_vector[index[ xyzv[Z+1]]]);
+                                                         result_def_vector[index[ xyzv[VIO_Z+1]]]);
                                    set_volume_real_value(another_vol,
                                                          index[0],index[1],index[2],
                                                          index[3],index[4],
-                                                         another_vector[ index[ xyzv[Z+1] ] ]);
+                                                         another_vector[ index[ xyzv[VIO_Z+1] ] ]);
                                  }
 
                              }
@@ -1315,11 +1317,11 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
                                            actually be done after all nodes 
                                            have been estimated  */
                                
-                               for(index[xyzv[Z+1]]=start[Z+1]; index[xyzv[Z+1]]<end[Z+1]; index[xyzv[Z+1]]++) 
+                               for(index[xyzv[VIO_Z+1]]=start[VIO_Z+1]; index[xyzv[VIO_Z+1]]<end[VIO_Z+1]; index[xyzv[VIO_Z+1]]++) 
                                  set_volume_real_value(additional_vol,
                                                        index[0],index[1],index[2],
                                                        index[3],index[4],
-                                                       def_vector[ index[ xyzv[Z+1] ] ]);
+                                                       def_vector[ index[ xyzv[VIO_Z+1] ] ]);
 
                              }
                                          /* store the def magnitude */
@@ -1333,7 +1335,7 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
                                                  1.0);
                            
                                          /* tally up some statistics for this iteration */
-                           if (ABS(result) > 0.95*steps[xyzv[VIO_X]]) over++;
+                           if (fabs(result) > 0.95*steps[xyzv[VIO_X]]) over++;
                            
                            nfunk_total += nfunks;
                            nfunk1      += nfunks; 
@@ -1686,13 +1688,13 @@ static VIO_BOOL is_a_sub_lattice_needed (char obj_func[],
 /*  #define CONF_FN( x ) ( ((x) < 2.0*CONST_P) ? \
       ( (1.0 + cos( (0.5*PI * (x)/CONST_P)))/2.0 ) : 0.0 )
 
-      c_max = ABS(k1) / (A_const + B_const*Smin  +C_const*ABS(k1));
-      c_min = ABS(k2) / (A_const + B_const*Smin  +C_const*ABS(k2));
+      c_max = fabs(k1) / (A_const + B_const*Smin  +C_const*fabs(k1));
+      c_min = fabs(k2) / (A_const + B_const*Smin  +C_const*fabs(k2));
       c_norm= gradient_magnitude / G_MEAN;
       
-      c_norm= ABS(gradient_magnitude) / (P1_MEAN + B_const*Smin  +C_const*ABS(gradient_magnitude));
-      c_max = ABS(k1) / (P2_MEAN + B_const*Smin  +C_const*ABS(k1));
-      c_min = ABS(k2) / (P3_MEAN + B_const*Smin  +C_const*ABS(k2));
+      c_norm= fabs(gradient_magnitude) / (P1_MEAN + B_const*Smin  +C_const*fabs(gradient_magnitude));
+      c_max = fabs(k1) / (P2_MEAN + B_const*Smin  +C_const*fabs(k1));
+      c_min = fabs(k2) / (P3_MEAN + B_const*Smin  +C_const*fabs(k2));
       
          */
       
@@ -1768,11 +1770,12 @@ static double return_locally_smoothed_def(int isotropic_smoothing,
 
                                 /* let the mean be the average of the 
                                    previous_def and the previous neighbour_mean */
-  for(i=X; i<=Z; i++) 
+  for(i=0; i<3; i++){
     mean_vector[i] =  (previous_def[i] + neighbour_mean[i]) / 2.0;
+    }
 
                                 /* calc the diff vec = estimated - mean */
-  for(i=X; i<=Z; i++) {
+  for(i=0; i<3; i++) {
     diff[i] = previous_def[i] + iteration_wght*additional_def[i] - 
               mean_vector[i];
   }
@@ -1794,8 +1797,9 @@ static double return_locally_smoothed_def(int isotropic_smoothing,
              -> no smoothing at all.  the vector returned is simply the
                 estimated deformation vector. */
 
-    for(i=X; i<=Z; i++) 
+    for(i=0; i<3; i++) {
       smoothed_result[i] = mean_vector[i] + (1.0 - smoothing_wght)*diff[i]; 
+      }
 
   }
   else {
@@ -1812,7 +1816,7 @@ static double return_locally_smoothed_def(int isotropic_smoothing,
        the _new_ target position */
 
                       /* take into account the weighting for this iteration */
-    for(i=X; i<=Z; i++) {
+    for(i=0; i<3; i++) {
       voxel_displacement[i] *= iteration_wght;
     }
                       /* update target lattice position */
@@ -1880,7 +1884,7 @@ static double return_locally_smoothed_def(int isotropic_smoothing,
                                    result, using the confidence values
                                    as a weighting factor: 
                                    see eq. above for def(n+1) */
-      for(i=X; i<=Z; i++) {
+      for(i=0; i<3; i++) {
         smoothed_result[i] = mean_vector[i] + 
                              conf[2] * len[2] * eig_vecs[2][i] +
                              conf[1] * len[1] * eig_vecs[1][i] +
@@ -1902,10 +1906,10 @@ static double return_locally_smoothed_def(int isotropic_smoothing,
 
     }
     else {                        /* default to local isotropic smoothing */
-      for(i=X; i<=Z; i++) 
+      for(i=0; i<3; i++) 
         smoothed_result[i] = mean_vector[i]  +(1.0 - smoothing_wght)*diff[i]; 
 
-      for(i=X; i<=Z; i++)        /* debugging volume */
+      for(i=0; i<3; i++)        /* debugging volume */
         another_vector[i] = 0.0;
     }
 
@@ -2050,17 +2054,17 @@ static VIO_Real get_optical_flow_vector(VIO_Real threshold1,
     mag = sqrt (dx[0]*dx[0] + dy[0]*dy[0] + dz[0]*dz[0]);
       
 
-    if (ABS(dx[0]) > thresh)   /* fastest (X) */
+    if (fabs(dx[0]) > thresh)   /* fastest (X) */
       def_vector[0] = ((Gproj_d1 - Gproj_d2) /  dx[0]);
     else
       def_vector[0] = 0.0;
     
-    if (ABS(dy[0]) > thresh)
+    if (fabs(dy[0]) > thresh)
       def_vector[1] = ((Gproj_d1 - Gproj_d2) /  dy[0]);
     else
       def_vector[1] = 0.0;
     
-    if (ABS(dz[0]) > thresh && ndim==3)  /* slowest  (Z) */
+    if (fabs(dz[0]) > thresh && ndim==3)  /* slowest  (Z) */
       def_vector[2] = ((Gproj_d1 - Gproj_d2) /  dz[0]);
     else
       def_vector[2] = 0.0;
@@ -2230,17 +2234,17 @@ print ("%5.3f: %7.2f %7.2f %7.2f -> %7.2f %7.2f %7.2f [%7.2f %7.2f %7.2f ]",
 
      /* print ("%7.2f: %7.2f %7.2f\n",dist,dist_weight,capture_limit); */
      
-     if (ABS(dx[0]) > thresh)              /* fastest (X) */
+     if (fabs(dx[0]) > thresh)              /* fastest (X) */
         def_vector[0] = -1.0 * dist_weight * val[0] /  dx[0];
      else
         def_vector[0] = 0.0;
      
-     if (ABS(dy[0]) > thresh)
+     if (fabs(dy[0]) > thresh)
         def_vector[1] = -1.0 * dist_weight * val[0] /  dy[0];
      else
         def_vector[1] = 0.0;
      
-     if (ABS(dz[0]) > thresh && ndim==3)  /* slowest  (Z) */
+     if (fabs(dz[0]) > thresh && ndim==3)  /* slowest  (Z) */
         def_vector[2] = -1.0 * dist_weight * val[0] /  dz[0];
      else
         def_vector[2] = 0.0;
@@ -2857,7 +2861,7 @@ void from_param_to_grid_weights(
   
   
   j=0;
-  for(i=0; i<N_DIMENSIONS; i++)
+  for(i=0; i<VIO_N_DIMENSIONS; i++)
     {
       if(Gglobals->count[i]>1) 
         {
@@ -2882,7 +2886,7 @@ void from_grid_weights_to_param(
   int i,j;
   
   j=0;
-  for(i=0; i<N_DIMENSIONS; i++)
+  for(i=0; i<VIO_N_DIMENSIONS; i++)
     if(grid[i]>0)
       {
         p[j]=grid[i];
@@ -2907,12 +2911,12 @@ void map_def_to_grid_space( VIO_Real dx,
     voxel_mag[VIO_N_DIMENSIONS],
     g[3];
  
-  for(i=0; i<N_DIMENSIONS; i++)
+  for(i=0; i<VIO_N_DIMENSIONS; i++)
     {
-      voxel_mag[i] = ABS(Gglobals->step[i]);
+      voxel_mag[i] = fabs(Gglobals->step[i]);
     }
 
-  for(i=0; i<N_DIMENSIONS; i++)
+  for(i=0; i<VIO_N_DIMENSIONS; i++)
     g[i] = (Point_x(Gglobals->directions[i])/voxel_mag[i])*dx +  
            (Point_y(Gglobals->directions[i])/voxel_mag[i])*dy +  
            (Point_z(Gglobals->directions[i])/voxel_mag[i])*dz;
@@ -2943,12 +2947,12 @@ void map_def_from_grid_space(VIO_Real g0,
   g[1]=g1;
   g[2]=g2;
   
-  for(i=0; i<N_DIMENSIONS; i++)
+  for(i=0; i<VIO_N_DIMENSIONS; i++)
     {
-      voxel_mag[i] = ABS(Gglobals->step[i]);
+      voxel_mag[i] = fabs(Gglobals->step[i]);
     }
   
-  for(i=0; i<N_DIMENSIONS; i++)
+  for(i=0; i<VIO_N_DIMENSIONS; i++)
     {
       *dx += (Point_x(Gglobals->directions[i])/voxel_mag[i])*g[i];
       *dy += (Point_y(Gglobals->directions[i])/voxel_mag[i])*g[i];

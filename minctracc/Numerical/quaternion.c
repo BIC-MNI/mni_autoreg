@@ -51,7 +51,7 @@
  */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/quaternion.c,v 96.4 2006-11-29 09:09:33 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/quaternion.c,v 96.5 2006-11-30 09:07:32 rotor Exp $";
 #endif
 
 #include <volume_io.h>
@@ -256,7 +256,7 @@ void extract_quaternions(float **m, double *quat){
 
  if(indice==0)
    {
-   quat[0] = (double) sqrt(ABS(a[0]))/2;
+   quat[0] = (double) sqrt(fabs(a[0]))/2;
    max = 4*quat[0];
    quat[1] =(double) (m[1][2] + m[2][1])/max;
    quat[2] =(double) (m[3][1] + m[1][3])/max;
@@ -265,7 +265,7 @@ void extract_quaternions(float **m, double *quat){
    
  if(indice==1)
    {
-   quat[1] = (double) sqrt(ABS(a[1]))/2;
+   quat[1] = (double) sqrt(fabs(a[1]))/2;
    max = 4*quat[1];
    quat[0] = (double)(m[2][1] + m[1][2])/max;
    quat[3] = (double)(m[1][3] - m[3][1])/max;
@@ -275,7 +275,7 @@ void extract_quaternions(float **m, double *quat){
    
  if(indice==2)
    {
-   quat[2] = (double) sqrt(ABS(a[2]))/2;
+   quat[2] = (double) sqrt(fabs(a[2]))/2;
    max = 4*quat[2];
    quat[3] = (double) (m[2][1] - m[1][2])/max;
    quat[0] = (double) (m[3][1] + m[1][3])/max;
@@ -284,7 +284,7 @@ void extract_quaternions(float **m, double *quat){
    
  if(indice==3)
    {
-   quat[3] = (double) sqrt(ABS(a[3]))/2;
+   quat[3] = (double) sqrt(fabs(a[3]))/2;
    max = 4*quat[3];
    quat[2] = (double) (m[2][1] - m[1][2])/max;
    quat[1] = (double) (m[1][3] - m[3][1])/max;

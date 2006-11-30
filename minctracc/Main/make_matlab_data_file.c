@@ -23,8 +23,8 @@
 
 @CREATED    : Mon Oct  4 13:06:17 EST 1993 Louis
 @MODIFIED   : $Log: make_matlab_data_file.c,v $
-@MODIFIED   : Revision 96.7  2006-11-29 09:09:32  rotor
-@MODIFIED   :  * first bunch of changes for minc 2.0 compliance
+@MODIFIED   : Revision 96.8  2006-11-30 09:07:31  rotor
+@MODIFIED   :  * many more changes for clean minc 2.0 build
 @MODIFIED   :
 @MODIFIED   : Revision 96.6  2005/07/20 20:45:48  rotor
 @MODIFIED   :     * Complete rewrite of the autoconf stuff (configure.in -> configure.am)
@@ -83,7 +83,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/make_matlab_data_file.c,v 96.7 2006-11-29 09:09:32 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/make_matlab_data_file.c,v 96.8 2006-11-30 09:07:31 rotor Exp $";
 #endif
 
 
@@ -95,6 +95,8 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #include "objectives.h"
 #include "segment_table.h"
 #include "Proglib.h"
+
+#include "local_macros.h"
 
 extern Arg_Data main_args;
 
@@ -156,7 +158,7 @@ void make_matlab_data_file(VIO_Volume d1,
   VIO_Real
     start,step;
   double trans[3], quats[4], shears[3], scales[3],rots[3];
-  Data_types
+  VIO_Data_types
     data_type;
 
   start = 0.0;

@@ -6,8 +6,8 @@
               writing the resulting values out to a file.
               
 @MODIFIED   : $Log: measure_code.c,v $
-@MODIFIED   : Revision 1.2  2006-11-29 09:09:32  rotor
-@MODIFIED   :  * first bunch of changes for minc 2.0 compliance
+@MODIFIED   : Revision 1.3  2006-11-30 09:07:31  rotor
+@MODIFIED   :  * many more changes for clean minc 2.0 build
 @MODIFIED   :
 @MODIFIED   : Revision 1.1  1999/10/25 19:52:19  louis
 @MODIFIED   : final checkin before switch to CVS

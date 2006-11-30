@@ -12,7 +12,7 @@
 
 #@CREATED    : Wed Jun 25, 1997, Louis Collins
 #@MODIFIED   : not yet!
-#@VERSION    : $Id: vox_space.c,v 1.9 2006-11-29 09:09:34 rotor Exp $
+#@VERSION    : $Id: vox_space.c,v 1.10 2006-11-30 09:07:33 rotor Exp $
 #----------------------------------------------------------------------------- */
 
 #include <volume_io.h>
@@ -221,7 +221,7 @@ void get_into_voxel_space(Arg_Data *globals,
 
       reorder_xyz_to_voxel( v1, s_voxel_xyz, s_voxel );
       convert_voxel_to_world(v1,s_voxel,&s_world[0],&s_world[1],&s_world[2]);
-      VIO_fill_Point(pnt, s_world[0], s_world[1], s_world[2]);
+      fill_Point(pnt, s_world[0], s_world[1], s_world[2]);
 
       print ("source: w- %9.3f %9.3f %9.3f -> v- %9.3f %9.3f %9.3f\n",
              s_world[0], s_world[1], s_world[2],
