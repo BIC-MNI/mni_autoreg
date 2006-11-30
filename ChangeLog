@@ -1,3 +1,7 @@
+2006-11-30  Andrew L Janke <a.janke@gmail.com>
+
+	* many changes (many) for a clean minc 2.0 build
+
 2006-06-04  Andrew L Janke <a.janke@gmail.com>
 
 	* Fixed a 64 bit problem with function pointers and ParseArgv 
