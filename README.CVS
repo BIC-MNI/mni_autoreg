@@ -4,8 +4,3 @@ files are missing, most notably the configure script.
 To regenerate the missing files, run the provided shell script:
 
 	./autogen.sh
-
-You will need reasonably recent versions of autoconf and automake.
-
-This step needs only be done once.  Rules in the Makefiles will keep
-all the generated files up-to-date when files are edited.

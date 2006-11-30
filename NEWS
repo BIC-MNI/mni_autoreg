@@ -1,5 +1,11 @@
 CHANGES to the MNI_AutoReg package...
 
+Release 0.98v
+-------------
+
+* added vladimir fonovs changes to xfmtool to allow .gz grid files
+
+=======
 Release 0.99.3
 --------------
 
@@ -15,6 +21,7 @@ Release 0.99.1
 
 * fixed a bug in autocrop regarding split_path
 
+>>>>>>> 1.17
 Release 0.98u
 -------------
 

@@ -16,7 +16,10 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 96.26  2006-11-30 09:07:32  rotor
+@MODIFIED   : Revision 96.27  2006-11-30 09:17:49  rotor
+@MODIFIED   :  * even more changes for a clean minc 2.0 build
+@MODIFIED   :
+@MODIFIED   : Revision 96.26  2006/11/30 09:07:32  rotor
 @MODIFIED   :  * many more changes for clean minc 2.0 build
 @MODIFIED   :
 @MODIFIED   : Revision 96.24  2005/07/20 20:45:50  rotor
@@ -339,7 +342,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.26 2006-11-30 09:07:32 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.27 2006-11-30 09:17:49 rotor Exp $";
 #endif
 
 #include <config.h>                /* MAXtype and MIN defs                      */
@@ -1142,7 +1145,10 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
 
          }  
 
+      printf("foo2\n");
+
        init_the_volume_to_zero(estimated_flag_vol);
+      printf("foo2\n");
 
        print("Iteration %2d of %2d\n",iters+1, iteration_limit);
 

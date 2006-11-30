@@ -28,6 +28,9 @@ AC_CHECK_HEADERS(float.h limits.h malloc.h math.h stdlib.h)
 # Checks for libraries.  See m4/README.
 mni_REQUIRE_VOLUMEIO
 
+# for clean MINC2.0 volume_io
+AC_DEFINE_UNQUOTED(VIO_PREFIX_NAMES, 1, [Play nice with the other kids volume_io])
+
 # for louis' confangulated history string
 AC_CANONICAL_HOST
 
