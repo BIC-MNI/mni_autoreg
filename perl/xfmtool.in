@@ -13,7 +13,7 @@
 #@CALLS      : 
 #@CREATED    : 1996/06/07, Greg Ward
 #@MODIFIED   : 
-#@VERSION    : $Id: xfmtool.in,v 1.5 2005-10-01 16:41:46 rotor Exp $
+#@VERSION    : $Id: xfmtool.in,v 1.6 2007-10-17 00:37:06 rotor Exp $
 #-----------------------------------------------------------------------------
 
 require 5.002;
@@ -352,8 +352,48 @@ sub print
       $self->print_single ($file, $self->{transforms}[$t]);
    }
 }
-      
-   
+
+# ------------------------------ MNI Header ----------------------------------
+#@NAME       : &parse_num_list - this used to be in string_utilities.pl
+#@INPUT      : $list - a string containing a "list" of numbers, something
+#                      like "1-3,4,6,9-11"
+#@OUTPUT     : 
+#@RETURNS    : a real Perl list with the string expanded as you'd expect
+#              (e.g. (1,2,3,4,6,9,10,11))
+#              OR empty list if your string is bogus (and prints a warning)
+#@DESCRIPTION: 
+#@METHOD     : 
+#@GLOBALS    : 
+#@CALLS      : 
+#@CREATED    : January 1996, Greg Ward
+#@MODIFIED   : 
+#-----------------------------------------------------------------------------
+sub parse_num_list 
+{
+   my ($list) = @_;
+   my ($chunk, @chunks, @list);
+
+   $list =~ s/\s//;
+   @chunks = split (/,/, $list);
+   for $chunk (@chunks)
+   {
+      if ($chunk =~ /^\d+$/)
+      {
+	 push (@list, $chunk);
+      }
+      elsif ($chunk =~ /^(\d+)\-(\d+)$/)
+      {
+	 push (@list, $1 .. $2);
+      }
+      else
+      {
+	 warn "Numeric list $list is illegal";
+	 return ();
+      }
+   }
+   @list;
+}
+
 
 package main;
 
