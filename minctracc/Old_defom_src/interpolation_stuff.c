@@ -165,7 +165,7 @@ get_value_from_nn_closest(closest, nn, cx,cy,s, dx,dy)
 
    total = 0.0;
    for (i=1; i<=nn; i++) {
-      closest[i][3] = fsqrt(closest[i][3]);
+      closest[i][3] = sqrtf(closest[i][3]);
       total += closest[i][3];
    }
 
