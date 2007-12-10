@@ -22,7 +22,7 @@
 
 # By Greg Ward 94/9/22
 
-# $Id: autocrop.in,v 1.10 2007-06-18 14:46:50 rotor Exp $
+# $Id: autocrop.in,v 1.11 2007-12-10 23:46:57 rotor Exp $
 
 use warnings "all";
 
@@ -678,11 +678,8 @@ sub GetBBoxBounds
                                         # (but mincbbox is also wrong)
    $base = (&split_path ($volume))[1];
    $bbox_file = "$TmpDir/${base}.bbox";
-   Spawn ("mincbbox -threshold $threshold -two_lines $volume", stdout => $bbox_file);
 
-   open (BBOX, $bbox_file) || die "Couldn't open $bbox_file: $!\n";
-   @output = <BBOX>;
-   close (BBOX);
+   @output = split(/\n/, `mincbbox -threshold $threshold -two_lines $volume`);
    @start = split (' ', $output[-2]);
    @extent = split (' ', $output[-1]);
    die "urghh! bad mincbbox output" 
