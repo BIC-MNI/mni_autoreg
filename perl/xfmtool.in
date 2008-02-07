@@ -13,7 +13,7 @@
 #@CALLS      : 
 #@CREATED    : 1996/06/07, Greg Ward
 #@MODIFIED   : 
-#@VERSION    : $Id: xfmtool.in,v 1.6 2007-10-17 00:37:06 rotor Exp $
+#@VERSION    : $Id: xfmtool.in,v 1.7 2008-02-07 12:50:38 rotor Exp $
 #-----------------------------------------------------------------------------
 
 require 5.002;
@@ -370,7 +370,7 @@ sub print
 #-----------------------------------------------------------------------------
 sub parse_num_list 
 {
-   my ($list) = @_;
+   my ($self, $list) = @_;
    my ($chunk, @chunks, @list);
 
    $list =~ s/\s//;
@@ -401,6 +401,17 @@ $::Usage = <<USAGE;
 
 xfmtool is a tool to perform various operations on xfm files.  
 Currently it just inverts and concatenates any number of xfm's
+
+The operations that are supported are "invert" and "extract". 
+The extract option is followed by a number in parentheses () 
+that allows you to extract a single part of a multipart transformation
+
+eg: 
+
+   xfmtool 'extract(1)in.xfm' out.xfm
+
+The above will extract the first xfm from in.xfm and put the result
+in out.xfm
 
 Usage: xfmtool in_xfm in_xfm ... out_xfm
        xfmtool in1.xfm invert:in2.xfm in3.xfm ... result.xfm
@@ -436,7 +447,7 @@ while ($arg = shift)
       }
       elsif ($command eq "extract")
       {
-         $xfm = $xfm->extract (&parse_num_list ($args));
+         $xfm = $xfm->extract ($xfm->parse_num_list ($args));
       }
       else
       {
