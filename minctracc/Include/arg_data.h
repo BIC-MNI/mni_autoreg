@@ -4,7 +4,7 @@ typedef struct Arg_Data_struct Arg_Data;
 
 /* enums to define interpolants and objective functions */
 enum Interpolating_Type { TRILINEAR, TRICUBIC, N_NEIGHBOUR };
-enum Objective_Type { XCORR, ZSCORE, SSC, VR, MUTUAL_INFORMATION };
+enum Objective_Type { XCORR, ZSCORE, SSC, VR, MUTUAL_INFORMATION, NORMALIZED_MUTUAL_INFORMATION };
 
 
 typedef float (*Objective_Function) (VIO_Volume d1,

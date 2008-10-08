@@ -14,7 +14,10 @@
               express or implied warranty.
 
 @MODIFIED   : $Log: optimize.c,v $
-@MODIFIED   : Revision 96.15  2006-11-30 09:07:32  rotor
+@MODIFIED   : Revision 96.16  2008-10-08 15:17:49  louis
+@MODIFIED   : added -nmi option for linear normalized mutual information
+@MODIFIED   :
+@MODIFIED   : Revision 96.15  2006/11/30 09:07:32  rotor
 @MODIFIED   :  * many more changes for clean minc 2.0 build
 @MODIFIED   :
 @MODIFIED   : Revision 96.14  2006/11/29 09:09:34  rotor
@@ -157,7 +160,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 96.15 2006-11-30 09:07:32 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 96.16 2008-10-08 15:17:49 louis Exp $";
 #endif
 
 #include <config.h>
@@ -1082,7 +1085,7 @@ VIO_BOOL optimize_linear_transformation(VIO_Volume d1,
         }
       }
     } else
-  if (globals->obj_function == mutual_information_objective)
+  if (globals->obj_function == mutual_information_objective || globals->obj_function == normalized_mutual_information_objective )
                                 /* Collignon's mutual information */
     {
 
@@ -1252,7 +1255,7 @@ VIO_BOOL optimize_linear_transformation(VIO_Volume d1,
     {
       stat = stat && free_segment_table(segment_table);
     } else
-  if (globals->obj_function == mutual_information_objective)
+  if (globals->obj_function == mutual_information_objective || globals->obj_function == normalized_mutual_information_objective )
                                 /* Collignon's mutual information */
     {
       FREE(   prob_fn1 );
@@ -1374,7 +1377,7 @@ VIO_BOOL optimize_linear_transformation_quater(VIO_Volume d1,
         }
       }
     } else
-  if (globals->obj_function == mutual_information_objective)
+  if (globals->obj_function == mutual_information_objective || globals->obj_function == normalized_mutual_information_objective )
                                 /* Collignon's mutual information */
     {
 
@@ -1549,7 +1552,7 @@ VIO_BOOL optimize_linear_transformation_quater(VIO_Volume d1,
     {
       stat = stat && free_segment_table(segment_table);
     } else
-  if (globals->obj_function == mutual_information_objective)
+  if (globals->obj_function == mutual_information_objective || globals->obj_function == normalized_mutual_information_objective  )
                                 /* Collignon's mutual information */
     {
       FREE(   prob_fn1 );
@@ -1641,7 +1644,7 @@ float measure_fit(VIO_Volume d1,
         print_error_and_line_num("Could not build segment table for target volume\n",__FILE__, __LINE__);
     }
 
-  } else if (globals->obj_function == mutual_information_objective)
+  } else if (globals->obj_function == mutual_information_objective || globals->obj_function == normalized_mutual_information_objective )
                                 /* Collignon's mutual information */
     {
 
@@ -1870,7 +1873,7 @@ if(globals->trans_info.rotation_type == TRANS_ROT)
       (void)fprintf(stderr, "Error in line %d, file %s\n",__LINE__, __FILE__);
     }
   } else
-  if (globals->obj_function == mutual_information_objective)
+  if (globals->obj_function == mutual_information_objective  || globals->obj_function == normalized_mutual_information_objective )
                                 /* Collignon's mutual information */
     {
       FREE(   prob_fn1 );

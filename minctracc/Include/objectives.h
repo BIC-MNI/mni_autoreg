@@ -28,3 +28,10 @@ float mutual_information_objective(VIO_Volume d1,
                            VIO_Volume m2, 
                            Arg_Data *globals);
 
+float normalized_mutual_information_objective(VIO_Volume d1,
+                           VIO_Volume d2,
+                           VIO_Volume m1,
+                           VIO_Volume m2, 
+                           Arg_Data *globals);
+
+

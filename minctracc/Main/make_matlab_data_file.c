@@ -23,7 +23,10 @@
 
 @CREATED    : Mon Oct  4 13:06:17 EST 1993 Louis
 @MODIFIED   : $Log: make_matlab_data_file.c,v $
-@MODIFIED   : Revision 96.8  2006-11-30 09:07:31  rotor
+@MODIFIED   : Revision 96.9  2008-10-08 15:17:49  louis
+@MODIFIED   : added -nmi option for linear normalized mutual information
+@MODIFIED   :
+@MODIFIED   : Revision 96.8  2006/11/30 09:07:31  rotor
 @MODIFIED   :  * many more changes for clean minc 2.0 build
 @MODIFIED   :
 @MODIFIED   : Revision 96.6  2005/07/20 20:45:48  rotor
@@ -83,7 +86,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/make_matlab_data_file.c,v 96.8 2006-11-30 09:07:31 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/make_matlab_data_file.c,v 96.9 2008-10-08 15:17:49 louis Exp $";
 #endif
 
 
@@ -196,7 +199,7 @@ void make_matlab_data_file(VIO_Volume d1,
       }
     }
     
-  } else if (globals->obj_function == mutual_information_objective)
+  } else if (globals->obj_function == mutual_information_objective || globals->obj_function == normalized_mutual_information_objective)
                                 /* Collignon's mutual information */
     {
 
@@ -575,7 +578,7 @@ print ("scale: %10.5f %10.5f %10.5f \n",
       (void)fprintf(stderr, "Error in line %d, file %s\n",__LINE__, __FILE__);
     }
   } else
-  if (globals->obj_function == mutual_information_objective)
+  if (globals->obj_function == mutual_information_objective || globals->obj_function == normalized_mutual_information_objective )
                                 /* Collignon's mutual information */
     {
       FREE(   prob_fn1 );

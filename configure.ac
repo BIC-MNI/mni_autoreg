@@ -2,7 +2,7 @@
 AC_PREREQ([2.57])
 
 # The arguments are package name, and package version.
-AC_INIT([mni_autoreg],[0.99.3],[Louis Collins <louis@bic.mni.mcgill.ca>])
+AC_INIT([mni_autoreg],[0.99.4],[Louis Collins <louis@bic.mni.mcgill.ca>])
 AC_CONFIG_SRCDIR([minctracc/Include/minctracc.h])
 
 AM_INIT_AUTOMAKE

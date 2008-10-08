@@ -13,7 +13,10 @@
 
    @CREATED    : February 3, 1992 - louis collins
    @MODIFIED   : $Log: minctracc.c,v $
-   @MODIFIED   : Revision 96.17  2006-11-30 09:07:31  rotor
+   @MODIFIED   : Revision 96.18  2008-10-08 15:17:49  louis
+   @MODIFIED   : added -nmi option for linear normalized mutual information
+   @MODIFIED   :
+   @MODIFIED   : Revision 96.17  2006/11/30 09:07:31  rotor
    @MODIFIED   :  * many more changes for clean minc 2.0 build
    @MODIFIED   :
    @MODIFIED   : Revision 96.15  2006/06/04 07:02:35  rotor
@@ -146,7 +149,7 @@ Wed May 26 13:05:44 EST 1993 lc
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.17 2006-11-30 09:07:31 rotor Exp $";
+static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.18 2008-10-08 15:17:49 louis Exp $";
 #endif
 
 #include <config.h>
@@ -155,6 +158,7 @@ static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autore
 #include <volume_io.h>
 #include <minctracc.h>
 #include <globals.h>
+#include <objectives.h>
 #include "local_macros.h"
 
 /* objective function for nonlinear optimization.
@@ -243,6 +247,9 @@ int main ( int argc, char* argv[] )
     break;
   case MUTUAL_INFORMATION:
     main_args.obj_function = mutual_information_objective;
+    break;
+  case NORMALIZED_MUTUAL_INFORMATION:
+    main_args.obj_function = normalized_mutual_information_objective;
     break;
   default:
     (void) fprintf(stderr, "Error determining objective function type\n");
@@ -382,7 +389,7 @@ int main ( int argc, char* argv[] )
                          main_args.threshold[0],main_args.threshold[1], main_args.speckle);
           }
           else
-            if (main_args.obj_function == mutual_information_objective) {
+            if (main_args.obj_function == mutual_information_objective || main_args.obj_function == normalized_mutual_information_objective ) {
               print( "mutual information (groups = %d) \n",
                            main_args.groups);
             }

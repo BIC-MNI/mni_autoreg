@@ -1,3 +1,8 @@
+2008-10-08  D. Louis Collins <louis.collins@mcgill.ca>
+
+	* added -nmi option (normalized mutual information) as an objective
+	  function for linear registration.
+	
 2008-02-07  Andrew L Janke <a.janke@gmail.com>
 
 	* added a bugfix to xfmtool from Jim Nikelski

@@ -21,7 +21,10 @@
 
 @CREATED    : Tue Mar 12 09:37:44 MET 1996
 @MODIFIED   : $Log: obj_fn_mutual_info.c,v $
-@MODIFIED   : Revision 96.9  2006-11-30 09:07:32  rotor
+@MODIFIED   : Revision 96.10  2008-10-08 15:17:49  louis
+@MODIFIED   : added -nmi option for linear normalized mutual information
+@MODIFIED   :
+@MODIFIED   : Revision 96.9  2006/11/30 09:07:32  rotor
 @MODIFIED   :  * many more changes for clean minc 2.0 build
 @MODIFIED   :
 @MODIFIED   : Revision 96.8  2006/11/29 09:09:34  rotor
@@ -76,7 +79,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/obj_fn_mutual_info.c,v 96.9 2006-11-30 09:07:32 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/obj_fn_mutual_info.c,v 96.10 2008-10-08 15:17:49 louis Exp $";
 #endif
 
 #include <volume_io.h>
@@ -84,6 +87,8 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #include "local_macros.h"
 #include "arg_data.h"
 #include "vox_space.h"
+#include "objectives.h"
+#include <math.h>
 
 extern Arg_Data main_args;
 
@@ -358,6 +363,10 @@ float mutual_information_objective(VIO_Volume d1,
     fractional_vals1[8],        /* fractional values to add to histo */
     fractional_vals2[8],
     value1, value2;
+  double
+    Hy, Hx, Ixy;		/* entropies */
+  double
+    product, Redundancy;
   float 
     mutual_info_result;                        
 
@@ -502,6 +511,12 @@ float mutual_information_objective(VIO_Volume d1,
 
       
   mutual_info_result = 0.0;
+  Hx = 0.0;
+  Hy = 0.0;
+  Ixy = 0.0;
+  
+
+
   if (count2>0) {
 
                                 /* normalize to count2  */
@@ -515,20 +530,79 @@ float mutual_information_objective(VIO_Volume d1,
         prob_hash_table[i][j] /= count2;
     
 
-    for(i=0; i<globals->groups; i++) 
-      for(j=0; j<globals->groups; j++) {
-        
-        if ( prob_fn1[i] > 0.0 &&  prob_fn2[j] > 0.0 && prob_hash_table[i][j]>0.0)
 
-          mutual_info_result += prob_hash_table[i][j] * 
-                 log( prob_hash_table[i][j] / (prob_fn1[i] * prob_fn2[j])
-                    );
+    if ( globals->obj_function == normalized_mutual_information_objective ) { /* ie, -nmi option */
+
+      /* mutual information of X and Y is defined as
+	 I(X;Y) = sum_x ( sum_y ( p(x,y) * log[ p(x,y) / ( p1(x)*p2(y) )  ]  )
+	 where p(x,y) is joint pobability distribution of X and Y
+	 and p1(x) and p2(y) are the marginal probability distibutions
+	     I(X;Y) is computed for -mi option (below in the else)
+
+	 note that 
+	 I(X;Y) = I(Y,X) -> symmetic
+	 I(X,Y) >=0      -> non-negative
+     
+	 if X and Y are inpendent, then 
+	    ->  p(x,y) = p(x)*p(z) and 
+	    -> log [ p(x,y) / (p(x)*p(y) ] = log (1) = 0
+	 
+	 normalized MI = nMI = redundancy:
+
+	 R = I(X;Y) / (H(X) + H(Y))
+	 attains a minimum of 0; 
+	 and a max of min( H(X),H(Y) ) /  (H(X) + H(Y))
+
+	 where H(x) = - sum_i p(x_i)*log p(x_i)
+
+	 so here, we compute the normalized symmetric redudancy based on MI
+
+	 so we need 
+	    H(X) and H(Y) (these are variables Hx and Hy below
+	    I(X;Y) (stored in Ixy below)
+      */
+
+
+
+      for(i=0; i<globals->groups; i++) {	/* compute marginal entropies */
+	if (prob_fn1[i]>0.0) Hx += -1.0 * (double)prob_fn1[i] * log((double)prob_fn1[i]);
+	if (prob_fn2[i]>0.0) Hy += -1.0 * (double)prob_fn2[i] * log((double)prob_fn2[i]);	
+	
       }
-    
+      
+      for(i=0; i<globals->groups; i++) {        /* compute mutual information */
+	for(j=0; j<globals->groups; j++) {
+	  product = prob_fn1[i]*prob_fn2[j] ;
+	  if (prob_hash_table[i][j]>0.0 && product>0.0) 
+	    Ixy += (double)prob_hash_table[i][j] *  log( (double)( prob_hash_table[i][j]/product));
+	}
+      }
+	     
+      if (( Hx + Hy) > 0.0) {	/* compute redundancy, and return as the normalized mutual info */
+	Redundancy = Ixy / (Hx + Hy);
+	mutual_info_result = Redundancy;
+      }
+      else {
+	mutual_info_result = 0.0;
+      }
+
+    } else {			/* this is the standard MI computation pre Oct 2008 (the -mi option for linear reg) */
+      for(i=0; i<globals->groups; i++) 
+	for(j=0; j<globals->groups; j++) {
+	  
+	  if ( prob_fn1[i] > 0.0 &&  prob_fn2[j] > 0.0 && prob_hash_table[i][j]>0.0)
+	    /* this is the same as Ixy, just above */
+	    mutual_info_result += prob_hash_table[i][j] * 
+	      log( prob_hash_table[i][j] / (prob_fn1[i] * prob_fn2[j]) );
+	}
+    }
+
     mutual_info_result *= -1.0;
   }
 
-  if (globals->flags.debug) (void)print ("%7d %7d -> %f\n",count1,count2,mutual_info_result);
+  if (globals->flags.debug) {
+    (void)print ("%7d %7d -> %f ( %f %f %f )\n",count1,count2,mutual_info_result, Hx, Hy, Ixy);
+  }
 
 
   /* don't forget to free up any variables you declared above */
@@ -537,3 +611,12 @@ float mutual_information_objective(VIO_Volume d1,
   
 }
 
+
+float normalized_mutual_information_objective(VIO_Volume d1,
+                                          VIO_Volume d2,
+                                          VIO_Volume m1,
+                                          VIO_Volume m2, 
+                                          Arg_Data *globals)
+{
+  return (mutual_information_objective(d1,d2,m1,m2,globals));
+}
