@@ -10,7 +10,14 @@
 @CALLS      : 
 @CREATED    : Tue Aug 23 15:32:30 EST 1994 - Louis
 @MODIFIED   : $Log: rand_param.c,v $
-@MODIFIED   : Revision 96.4  2006-11-29 09:09:31  rotor
+@MODIFIED   : Revision 96.5  2008-11-07 23:54:54  sjschen
+@MODIFIED   :
+@MODIFIED   :
+@MODIFIED   : Change the way the seed value is generated for srand(). Now gives different
+@MODIFIED   : values when program in run multiple times under a second. Uses the product
+@MODIFIED   : of pid and microsecond time as seed.
+@MODIFIED   :
+@MODIFIED   : Revision 96.4  2006/11/29 09:09:31  rotor
 @MODIFIED   :  * first bunch of changes for minc 2.0 compliance
 @MODIFIED   :
 @MODIFIED   : Revision 96.3  2005/07/20 20:45:46  rotor
@@ -110,7 +117,12 @@ int main(int argc, char *argv[])
      skews[i]  = 0.0;
    }
 
-   t = 2*time(NULL);
+/*    t = 2*time(NULL); */
+
+   struct timeval tv;
+   gettimeofday(&tv, NULL);
+   t = tv.tv_usec * getpid(); /* use usec time and program id as seed*/
+
    seedval.l = t; 
 
    tmp = seedval.c[0]; seedval.c[0] = seedval.c[3]; seedval.c[3] = tmp; 
@@ -124,7 +136,8 @@ int main(int argc, char *argv[])
       exit(EXIT_FAILURE);
    }
 
-   for(i=0; i<3; i++) {
+   for(i=0; i<3; i++)
+   {
      rots[i]   = 2.0*(-0.5 + drand48()) * mag_rots;
      scales[i] = 1.0 + 2.0*(-0.5 + drand48()) * mag_scales;
      trans[i]  = 2.0*(-0.5 + drand48()) * mag_trans;
