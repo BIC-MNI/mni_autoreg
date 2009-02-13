@@ -54,7 +54,10 @@
               express or implied warranty.
    @CREATED    : January 25, 1992 louis collins (Original using .iff files)
    @MODIFIED   : $Log: mincblur.c,v $
-   @MODIFIED   : Revision 96.4  2006-11-28 09:12:21  rotor
+   @MODIFIED   : Revision 96.5  2009-02-13 04:14:40  rotor
+   @MODIFIED   :  * small updated to arguments of mincblur
+   @MODIFIED   :
+   @MODIFIED   : Revision 96.4  2006/11/28 09:12:21  rotor
    @MODIFIED   :  * fixes to allow clean compile against minc 2.0
    @MODIFIED   :
    @MODIFIED   : Revision 96.3  2005/07/20 20:45:39  rotor
@@ -112,7 +115,7 @@
         rewrite using mnc files and David Macdonald's libmni.a
    ---------------------------------------------------------------------------- */
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/mincblur.c,v 96.4 2006-11-28 09:12:21 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/mincblur.c,v 96.5 2009-02-13 04:14:40 rotor Exp $";
 #endif
 
 #include <config.h>
@@ -132,7 +135,7 @@ int main (int argc, char *argv[] )
 {   
   
   FILE 
-    *ifd, *ofd, *reals_fp;
+    *ofd, *reals_fp;
  
   char 
     *infilename,
@@ -168,16 +171,17 @@ int main (int argc, char *argv[] )
   output_basename      = (char *)NULL;
   temp_basename        = (char *)NULL;
   partials_name        = (char *)NULL;
-  ifd                  = (FILE *)NULL;
   ofd                  = (FILE *)NULL;
   reals_fp             = (FILE *)NULL;
   dimensions           = 3;
   kernel_type          = KERN_GAUSSIAN;
                                 /* init kernel size */
-  fwhm = standard      =  0.0;
-  for(i=0; i<3; i++) 
+  standard             =  0.0;
+  fwhm                 =  0.0;
+  for(i=0; i<3; i++){
     fwhm_3D[i] = -DBL_MAX;
-
+  } 
+  
   history = history_string(argc, argv);
 
 
@@ -220,7 +224,7 @@ int main (int argc, char *argv[] )
                                 /* check to see if the output file can be written */
 
   if (!clobber_flag && file_exists(tname)) {
-    print ("File %s exists.\n",tname);
+    print ("File %s exists. -- %d\n", tname);
     print ("Use -clobber to overwrite.\n");
     return ERROR;
   }

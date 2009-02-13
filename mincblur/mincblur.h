@@ -15,7 +15,10 @@
 
 @CREATED    : Wed Jun 23 09:04:34 EST 1993 Louis Collins
 @MODIFIED   : $Log: mincblur.h,v $
-@MODIFIED   : Revision 96.3  2006-11-28 09:12:21  rotor
+@MODIFIED   : Revision 96.4  2009-02-13 04:14:40  rotor
+@MODIFIED   :  * small updated to arguments of mincblur
+@MODIFIED   :
+@MODIFIED   : Revision 96.3  2006/11/28 09:12:21  rotor
 @MODIFIED   :  * fixes to allow clean compile against minc 2.0
 @MODIFIED   :
 @MODIFIED   : Revision 96.2  2004/02/12 05:53:48  rotor
@@ -78,9 +81,8 @@ double
   fwhm_3D[3],
   fwhm,
   standard;
-int 
-  verbose, 
-  debug,
+int verbose;
+int debug,
   clobber_flag, 
   apodize_data_flg,
   kernel_type,
@@ -89,17 +91,22 @@ int
   do_partials_flag;
 
 
-static ArgvInfo argTable[] = {
-  {"-fwhm", ARGV_FLOAT, (char *) 0, (char *) &fwhm, 
+ArgvInfo argTable[] = {
+  {"-fwhm", ARGV_FLOAT, (char *) 1, (char *) &fwhm, 
      "Full-width-half-maximum of gaussian kernel"},
-  {"-standarddev", ARGV_FLOAT, (char *) 0, (char *) &standard,
+  {"-standarddev", ARGV_FLOAT, (char *) 1, (char *) &standard,
      "Standard deviation of gaussian kernel"},
   {"-3dfwhm", ARGV_FLOAT, (char *) 3, (char *) fwhm_3D, 
      "Full-width-half-maximum of gaussian kernel"},
   {"-dimensions", ARGV_INT, (char *) 0, (char *) &dimensions,
      "Number of dimensions to blur (either 1,2 or 3)."},
+  
   {NULL, ARGV_HELP, NULL, NULL,
      "Program flags."},
+  {"-no_clobber", ARGV_CONSTANT, (char *) FALSE, (char *) &clobber_flag,
+     "Do not overwrite output file (default)."},
+  {"-clobber", ARGV_CONSTANT, (char *) TRUE, (char *) &clobber_flag,
+     "Overwrite output file."},
   {"-gaussian", ARGV_CONSTANT, (char *) KERN_GAUSSIAN, (char *) &kernel_type,
      "Use a gaussian smoothing kernel (default)."},
   {"-rect", ARGV_CONSTANT, (char *) KERN_RECT, (char *) &kernel_type,
@@ -110,10 +117,7 @@ static ArgvInfo argTable[] = {
      "Create the partial derivative and gradient magnitude volumes as well."},
   {"-no_apodize", ARGV_CONSTANT, (char *) FALSE, (char *) &apodize_data_flg, 
      "Do not apodize the data before blurring."},
-  {"-no_clobber", ARGV_CONSTANT, (char *) FALSE, (char *) &clobber_flag,
-     "Do not overwrite output file (default)."},
-  {"-clobber", ARGV_CONSTANT, (char *) TRUE, (char *) &clobber_flag,
-     "Overwrite output file."},
+  
   {NULL, ARGV_HELP, NULL, NULL,
      "Options for logging progress. Default = -verbose."},
   {"-verbose", ARGV_CONSTANT, (char *) TRUE, (char *) &verbose,
