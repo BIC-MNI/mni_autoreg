@@ -13,7 +13,10 @@
 
    @CREATED    : February 3, 1992 - louis collins
    @MODIFIED   : $Log: minctracc.c,v $
-   @MODIFIED   : Revision 96.18  2008-10-08 15:17:49  louis
+   @MODIFIED   : Revision 96.19  2009-03-13 19:51:31  claude
+   @MODIFIED   : fixed bug in offsets for minctracc and free memory upon exit
+   @MODIFIED   :
+   @MODIFIED   : Revision 96.18  2008/10/08 15:17:49  louis
    @MODIFIED   : added -nmi option for linear normalized mutual information
    @MODIFIED   :
    @MODIFIED   : Revision 96.17  2006/11/30 09:07:31  rotor
@@ -149,7 +152,7 @@ Wed May 26 13:05:44 EST 1993 lc
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.18 2008-10-08 15:17:49 louis Exp $";
+static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.19 2009-03-13 19:51:31 claude Exp $";
 #endif
 
 #include <config.h>
@@ -757,6 +760,10 @@ int main ( int argc, char* argv[] )
                 __FILE__, __LINE__);
     exit(EXIT_FAILURE);
   }
+  if( comments ) {
+    FREE( comments );
+    comments = NULL;
+  }
   
   delete_general_transform(main_args.trans_info.transformation);
   FREE(main_args.trans_info.transformation);
@@ -863,6 +870,9 @@ int get_transformation(char *dst, char *key, char *nextArg)
 
 
    copy_general_transform(&input_transformation, transformation);
+
+   delete_general_transform(&input_transformation);
+   FREE(input_transformation);
 
    /* set a GLOBAL flag, to show that a transformation has been read in */
 

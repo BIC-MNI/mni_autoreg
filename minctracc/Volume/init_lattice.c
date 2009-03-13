@@ -28,7 +28,10 @@
 
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   :  $Log: init_lattice.c,v $
-@MODIFIED   :  Revision 96.11  2006-11-30 09:07:33  rotor
+@MODIFIED   :  Revision 96.12  2009-03-13 19:51:31  claude
+@MODIFIED   :  fixed bug in offsets for minctracc and free memory upon exit
+@MODIFIED   :
+@MODIFIED   :  Revision 96.11  2006/11/30 09:07:33  rotor
 @MODIFIED   :   * many more changes for clean minc 2.0 build
 @MODIFIED   :
 @MODIFIED   :  Revision 96.9  2005/07/20 20:45:51  rotor
@@ -108,7 +111,7 @@ made change to init lattice to not change start when there is only 1 slice.
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/init_lattice.c,v 96.11 2006-11-30 09:07:33 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/init_lattice.c,v 96.12 2009-03-13 19:51:31 claude Exp $";
 #endif
 
 #include <config.h>
@@ -316,13 +319,13 @@ void set_up_lattice(VIO_Volume data,       /* in: volume  */
                                             since the voxel's  coordinates is 
                                             at its center */
                              
-                                 + (offset[i]/separations[xyzv[i]]) 
+                                 + (offset[xyzv[i]]/separations[xyzv[i]]) 
                                          /* the offset to edge of lattice */
                                  + (step[i]/2)/separations[xyzv[i]]);
                                             /* the offset to the center of the 
                                             lattice voxel */
 
-      start_world[xyzv[i]] =  starts[xyzv[i]] - separations[xyzv[i]]/2.0 - sign*offset[i] 
+      start_world[xyzv[i]] =  starts[xyzv[i]] - separations[xyzv[i]]/2.0 - sign*offset[xyzv[i]] 
         + step[i]/2.0;
     }
     

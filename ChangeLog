@@ -1,3 +1,7 @@
+2009-03-13  Claude Lepage <claude@bic.mni.mcgill.ca>
+	* fixed a bug for the offsets in minctracc/Volume/init_lattice.c
+	* free memory after usage in minctracc
+
 2008-10-08  D. Louis Collins <louis.collins@mcgill.ca>
 
 	* added -nmi option (normalized mutual information) as an objective

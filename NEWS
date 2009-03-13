@@ -5,7 +5,8 @@ Release 0.99.4
 
 * added -nmi option (normalized mutual information) as an objective
   function for linear registration.
-	
+* fixed a bug for the offsets in minctracc/Volume/init_lattice.c
+* free memory after usage in minctracc
 
 Release 0.99.3
 --------------

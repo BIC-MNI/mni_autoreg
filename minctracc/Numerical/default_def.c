@@ -35,7 +35,10 @@
       created by removing build_default_deformation_field from 
       transformations.c
 @MODIFIED   : $Log: default_def.c,v $
-@MODIFIED   : Revision 96.11  2006-11-30 09:07:32  rotor
+@MODIFIED   : Revision 96.12  2009-03-13 19:51:31  claude
+@MODIFIED   : fixed bug in offsets for minctracc and free memory upon exit
+@MODIFIED   :
+@MODIFIED   : Revision 96.11  2006/11/30 09:07:32  rotor
 @MODIFIED   :  * many more changes for clean minc 2.0 build
 @MODIFIED   :
 @MODIFIED   : Revision 96.10  2006/11/29 09:09:33  rotor
@@ -531,7 +534,7 @@ static void append_new_default_deformation_field(Arg_Data *globals)
   concat_general_transforms(globals->trans_info.transformation, grid_trans, 
                             globals->trans_info.transformation);
   
-
+  delete_volume(new_field);
   delete_general_transform(grid_trans);
 
 
