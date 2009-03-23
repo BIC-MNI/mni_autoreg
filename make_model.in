@@ -13,6 +13,8 @@
 # get program name
 me=`basename $0`
 
+MINC_COMPRESS_ORIG=${MINC_COMPRESS}
+
 # check args
 if [ $# -eq 0 ] ; then
    echo "usage: $me <base_filename>"
@@ -50,21 +52,26 @@ then
    echo "$PAD exists already..."
 else
    echo "** Making $PAD from $HIRES by resampling on 2mm grid and padding by 16mm"
+   export MINC_COMPRESS=0
    autocrop -clobber $HIRES $PAD -isostep 2 -isoexpand 16mm
+   export MINC_COMPRESS=${MINC_COMPRESS_ORIG}
 fi
 
 
 # build the 16mm FWHM feature volumes.
 BLURBASE=${BASE}_16
 BLUR=${BLURBASE}_blur.mnc
-if [ -e $BLUR ];
+MASK=${BLURBASE}_mask.mnc
+if [ -e $BLUR -a -e $MASK ];
 then
-   echo "$BLUR exists already..."
+   echo "$BLUR and $MASK exist already..."
 else
    echo "** Building 16mm data for $BASE"
+   export MINC_COMPRESS=0
    mincblur -clobber $PAD tmp_16 -fwhm 16.0
    autocrop -clobber tmp_16_blur.mnc $BLUR -extend -16mm,-16mm -16mm,-16mm -36mm,-36mm
-   mincresample -clobber -nearest ${BASE}_mask.mnc ${BASE}_16_mask.mnc -like ${BLUR}
+   export MINC_COMPRESS=${MINC_COMPRESS_ORIG}
+   mincresample -clobber -nearest ${BASE}_mask.mnc ${MASK} -like ${BLUR}
    rm -f tmp_16*
 fi
 
@@ -73,15 +80,18 @@ fi
 BLURBASE=${BASE}_8
 BLUR=${BLURBASE}_blur.mnc
 GRAD=${BLURBASE}_dxyz.mnc
-if [ -e $BLUR -a -e $GRAD ];
+MASK=${BLURBASE}_mask.mnc
+if [ -e $BLUR -a -e $GRAD -a -e $MASK ];
 then
-   echo "$BLUR and $GRAD exist already..."
+   echo "$BLUR, $GRAD, and $MASK exist already..."
 else
    echo "** Building 8mm data for $BASE"
+   export MINC_COMPRESS=0
    mincblur -clobber $PAD tmp_8 -fwhm 8.0 -gradient
    autocrop -clobber tmp_8_blur.mnc $BLUR -extend -16mm,-16mm -16mm,-16mm -26mm,-26mm
    autocrop -clobber tmp_8_dxyz.mnc $GRAD -extend -16mm,-16mm -16mm,-16mm -26mm,-26mm
-   mincresample -clobber -nearest  ${BASE}_mask.mnc ${BASE}_8_mask.mnc  -like ${BLUR}
+   export MINC_COMPRESS=${MINC_COMPRESS_ORIG}
+   mincresample -clobber -nearest ${BASE}_mask.mnc ${MASK} -like ${BLUR}
    rm -f tmp_8*
 fi
 
@@ -93,7 +103,9 @@ then
    echo "$PAD4 exists already..."
 else
    echo "** Making $PAD4 from $HIRES by padding by 4mm"
+   export MINC_COMPRESS=0
    autocrop -clobber $HIRES $PAD4 -isoexpand 4mm
+   export MINC_COMPRESS=${MINC_COMPRESS_ORIG}
 fi
 
 
@@ -101,15 +113,18 @@ fi
 BLURBASE=${BASE}_4
 BLUR=${BLURBASE}_blur.mnc
 GRAD=${BLURBASE}_dxyz.mnc
-if [ -e $BLUR -a -e $GRAD ];
+MASK=${BLURBASE}_mask.mnc
+if [ -e $BLUR -a -e $GRAD -a -e $MASK ];
 then
-   echo "$BLUR and $GRAD exist already..."
+   echo "$BLUR, $GRAD, and $MASK exist already..."
 else
    echo "** Building 4mm data for $BASE"
+   export MINC_COMPRESS=0
    mincblur -clobber $PAD4 tmp_4 -fwhm 4.0 -gradient
    autocrop -clobber tmp_4_blur.mnc $BLUR -isoexpand -9mm
    autocrop -clobber tmp_4_dxyz.mnc $GRAD -isoexpand -9mm
-   mincresample -clobber -nearest  ${BASE}_mask.mnc ${BASE}_4_mask.mnc -like ${BLUR}
+   export MINC_COMPRESS=${MINC_COMPRESS_ORIG}
+   mincresample -clobber -nearest ${BASE}_mask.mnc ${MASK} -like ${BLUR}
    rm -f tmp_4*
 fi
 
@@ -118,15 +133,18 @@ fi
 BLURBASE=${BASE}_2
 BLUR=${BLURBASE}_blur.mnc
 GRAD=${BLURBASE}_dxyz.mnc
-if [ -e $BLUR -a -e $GRAD ];
+MASK=${BLURBASE}_mask.mnc
+if [ -e $BLUR -a -e $GRAD -a -e $MASK ];
 then
-   echo "$BLUR and $GRAD exist already..."
+   echo "$BLUR, $GRAD, and $MASK exist already..."
 else
    echo "** Building 2mm data for $BASE"
+   export MINC_COMPRESS=0
    mincblur -clobber $PAD4 tmp_2 -fwhm 2.0 -gradient
    autocrop -clobber tmp_2_blur.mnc $BLUR -isoexpand -7mm
    autocrop -clobber tmp_2_dxyz.mnc $GRAD -isoexpand -7mm
-   mincresample -clobber -nearest  ${BASE}_mask.mnc ${BASE}_2_mask.mnc -like ${BLUR}
+   export MINC_COMPRESS=${MINC_COMPRESS_ORIG}
+   mincresample -clobber -nearest ${BASE}_mask.mnc ${MASK} -like ${BLUR}
    rm -f tmp_2*
 fi
 

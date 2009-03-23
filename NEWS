@@ -7,6 +7,7 @@ Release 0.99.4
   function for linear registration.
 * fixed a bug for the offsets in minctracc/Volume/init_lattice.c
 * free memory after usage in minctracc
+* disable file compression (minc2) on temporary files in make_model.in
 
 Release 0.99.3
 --------------

@@ -1,3 +1,6 @@
+2009-03-23  Claude Lepage <claude@bic.mni.mcgill.ca>
+	* disable file compression (minc2) on temporary files in make_model.in
+
 2009-03-13  Claude Lepage <claude@bic.mni.mcgill.ca>
 	* fixed a bug for the offsets in minctracc/Volume/init_lattice.c
 	* free memory after usage in minctracc
