@@ -52,26 +52,27 @@ Questions:
    specify all the start coordinates, voxel step sizes, dimension
    lengths, and direction cosines of the sampling axes.)  For example,
    if you have installed the MNI_AutoReg model files in
-   /data/avgbrain/models, you could use the average_305.mnc file there
-   as a resampling model with the following command:
+   /usr/local/bic/share/mni-models, you could use the 
+   average305_t1_tal_lin.mnc file there as a resampling model with 
+   the following command:
 
       mincresample smith_john_mri.mnc smith_john_mrital.mnc \
          -transform smith_john_mrital.xfm \
-         -like /data/avgbrain/models/average_305.mnc
+         -like /usr/local/bic/share/mni-models/average305_t1_tal_lin.mnc
 
-   This works by taking every voxel in average_305.mnc, transforming
+   This works by taking every voxel in average305_t1_tal_lin.mnc, transforming
    it's (x,y,z) coordinates *back* to native space using the inverse
    of the specified transformation, and sampling the native MRI data
    there (using trilinear interpolation).  For more information, see
    the mincresample man page.
 
    Next, you'll want to look at the resampled MRI data, preferably
-   alongside the registration model (average_305.mnc).  You can
+   alongside the registration model (average305_t1_tal_lin.mnc).  You can
    obtain Register (in precompiled form) from packages.mni.mcgill.ca
    When you have Register installed on your system, try the following 
    command (assuming you have already done the above resampling):
 
-   register /usr/local/mni/share/mni_autoreg/average_305.mnc smith_john_mrital.mnc
+   register /usr/local/bic/share/mni-models/average305_t1_tal_lin.mnc smith_john_mrital.mnc
 
 
 2- HOW DO I CUSTOMIZE OBJECTIVE FUNCTIONS USED FOR FITTING?
@@ -103,8 +104,8 @@ Questions:
    stereotaxic model.  Your input volume must be in Talairach space, and
    should have a simple name that will identify the model: for example,
    the input volume supplied with the model package is
-   "average_305.mnc".  Run make_model with the *base* name of your input
-   volume, eg. "make_model average_305".  This will then perform the
+   "average305_t1_tal_lin.mnc".  Run make_model with the *base* name of your input
+   volume, eg. "make_model average305_t1_tal_lin".  This will then perform the
    necessary processing to make a set of feature volumes (16mm intensity
    blur, 8mm intensity and gradient blurs) needed for fitting with
    mritotal.
@@ -115,10 +116,10 @@ Questions:
 
    One is a mask of all the voxels in the head.  This must be named 
    <BASE>_headmask.mnc, with <BASE> replaced by the base name of your model.
-   For example, the MNI's model package contains average_305_headmask.mnc.
+   For example, the MNI's model package contains average305_t1_tal_lin_headmask.mnc.
 
    The second mask is a mask of all voxels in the brain.  This must be
-   named <BASE>_mask.mnc; e.g. the file average_305_mask.mnc included
+   named <BASE>_mask.mnc; e.g. the file average305_t1_tal_lin_mask.mnc included
    with the model package.  This particular mask was created
    semi-automatically using the interactive program Display;
    presumably, other 3-D volume display/manipulation programs have

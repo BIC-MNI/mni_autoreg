@@ -14,7 +14,7 @@
 #              rewrite #2: December 1995-February 1996, GW
 #@MODIFIED   : April-May 1996, Louis Collins: modifications to make an
 #                              official mritoself for ICBM and AI data
-#@VERSION    : $Id: mritoself.in,v 1.9 2006-04-05 20:33:42 rotor Exp $
+#@VERSION    : $Id: mritoself.in,v 1.10 2009-03-30 22:47:58 rotor Exp $
 #@COMMENTS   : 
 #  possible additions:
 #    figure out the thresholding stuff
@@ -166,8 +166,8 @@ sub Initialize
    @Thresholds = ();                # only has meaning if $Threshold == 1 and
                                 # !$AutoThreshold
 
-   $Model = "average_305";
-   $ModelDir = "$FindBin::Bin/../share/mni_autoreg";
+   $Model = "average305_t1_tal_lin";
+   $ModelDir = "$FindBin::Bin/../share/mni-models";
 
 
    $Simplex = 3;

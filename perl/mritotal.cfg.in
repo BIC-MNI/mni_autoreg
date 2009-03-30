@@ -20,7 +20,7 @@
 # ---------------------------------------------------------------
 
 # -modeldir <newdir>    # use this if you wish to place models somewhere else
--model average_305
+-model average305_t1_tal_lin
 -protocol default
 
 

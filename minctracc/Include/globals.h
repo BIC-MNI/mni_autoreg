@@ -107,7 +107,7 @@ static ArgvInfo argTable[] = {
      "Specifies a binary mask file for the source."},
   
   {NULL, ARGV_HELP, NULL, NULL,
-     "\nInterpolation options."},
+     "\nInterpolation options. (Default = -trilinear)"},
   {"-trilinear", ARGV_CONSTANT, (char *) TRILINEAR,
      (char *) &main_args.interpolant_type,
      "Do trilinear interpolation"},

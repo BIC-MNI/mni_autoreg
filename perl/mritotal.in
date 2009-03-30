@@ -46,7 +46,7 @@
 # the same copyright as above.
 # --------------------------------------------------------------------
 
-# $Id: mritotal.in,v 1.19 2006-04-05 20:33:42 rotor Exp $
+# $Id: mritotal.in,v 1.20 2009-03-30 22:47:58 rotor Exp $
 
 require 5.001;
 
@@ -570,8 +570,8 @@ sub Initialize
 
    # Set defaults for the global variables.  These can be overridden by 
    # the configuration file or the command line.
-   $ModelDir     = "$FindBin::Bin/../share/mni_autoreg";
-   $Model        = "average_305";
+   $ModelDir     = "$FindBin::Bin/../share/mni-models";
+   $Model        = "average305_t1_tal_lin";
    $Protocol     = "default";
 
    $Verbose      = 1;

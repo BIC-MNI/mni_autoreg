@@ -88,13 +88,13 @@ them by supplying just the basename to the "-model" option.
 .IP "-model <basename>" 5
 Tells mritotal the base filename of the model files to use for
 fitting.  For instance, the default model files (available as
-mni_autoreg_model-1.0.tar.gz) are average_305.mnc,
-average_305_16_blur.mnc, average_305_8_blur.mnc,
-average_305_8_dxyz.mnc, and average_305_mask.mnc.  Obviously, it makes
-sense to install these all in the same directory (specified with
--modeldir), and just use "-model average_305" to pick these model
+mni-models_average305-lin-1.1.tar.gz) are average305_t1_tal_lin.mnc,
+average305_t1_tal_lin_16_blur.mnc, average305_t1_tal_lin__8_blur.mnc,
+and others... 
+It makes sense to install these all in the same directory (specified with
+-modeldir), and just use "-model average305_t1_tal_li" to pick these model
 files.  (Of course, this particular example is not necessary --
-mritotal's built-in default is to look for the average_305 model
+mritotal's built-in default is to look for the average305_t1_tal_lin model
 files.  -model is only needed if you wish to use an alternate set of
 model files.)  Note that if the base filename specified by -model
 starts with a "/" (i.e., it's an absolute path), then the directory

@@ -1,13 +1,15 @@
 CHANGES to the MNI_AutoReg package...
 
+
 Release 0.99.4
 --------------
 
 * added -nmi option (normalized mutual information) as an objective
   function for linear registration.
-* fixed a bug for the offsets in minctracc/Volume/init_lattice.c
+* modeldir is now $prefix/share/mni-models
+* fixed a bug for offsets in minctracc/Volume/init_lattice.c
 * free memory after usage in minctracc
-* disable file compression (minc2) on temporary files in make_model.in
+* file compression (minc2) disabled for temporary files in make_model
 
 Release 0.99.3
 --------------

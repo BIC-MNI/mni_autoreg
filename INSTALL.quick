@@ -70,11 +70,9 @@ executables, scripts, and their man pages, MNI_Autoreg installs
 
 and will look for 
 
-	model files		in $datadir/mni_autoreg
+	model files		in $datadir/mni-models
 
-These directories can all be set at configure time; by default, 
-they are $prefix/etc/mni_autoreg, and $prefix/share/mni_autoreg, 
-respectively ($prefix defaults to /usr/local).
+These directories can all be set at configure time.
 
 Note that if you feel like setting ALL of these (e.g., to install
 MNI_AutoReg to /tmp or your home directory), you're generally better

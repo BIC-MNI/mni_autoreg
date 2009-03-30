@@ -1,8 +1,14 @@
 .rn '' }`
-''' $RCSfile: autocrop.1,v $$Revision: 1.2 $$Date: 2005-08-03 15:33:30 $
+''' $RCSfile: autocrop.1,v $$Revision: 1.3 $$Date: 2009-03-30 22:47:58 $
 '''
 ''' $Log: autocrop.1,v $
-''' Revision 1.2  2005-08-03 15:33:30  rotor
+''' Revision 1.3  2009-03-30 22:47:58  rotor
+'''  * changed modeldir to $prefix/share/mni-models instead of
+'''     $prefix/share/mni_autoreg
+'''  * changed default model to average_305_t1_tal_lin
+'''     (was: average_305)
+'''
+''' Revision 1.2  2005/08/03 15:33:30  rotor
 '''  * Finished conversion from internal perllib to MNI::perllib
 '''  * added -version arguments to all perl scripts
 '''  * added more sensical help to xfmtool
@@ -537,7 +543,7 @@ feature-laden behemoth you now find before you.)
 As a concrete example, let's say we have an MRI volume in
 \fIsmith_john_mri.mnc\fR, the transformation to get it into Talairach space
 in \fIsmith_john_mrital.xfm\fR, and a tightly-cropped mask of the brain in
-Talairach space in \fIaverage_305_mask.mnc\fR.  We wish to crop the native
+Talairach space in \fIaverage305_t1_tal_lin_mask.mnc\fR.  We wish to crop the native
 MRI volume using the extent of the brain, but first we need to transform
 the information about that extent back to native space.  This can be
 done using \fBautocrop\fR's \fB\-transform\fR option, along with the \fB\-invert\fR
@@ -546,7 +552,7 @@ Talairach-to-native):
 .PP
 .Vb 3
 \&    autocrop smith_john_mri.mnc smith_john_crop.mnc \e
-\&      -from average_305_mask.mnc \e
+\&      -from average305_t1_tal_lin_mask.mnc \e
 \&      -transform smith_john_mrital.xfm -invert
 .Ve
 (If you happen to have the Talairach-to-native transform handy, you can
