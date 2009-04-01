@@ -1,4 +1,10 @@
 
+
+2009-04-01  Andrew L Janke  <a.janke@gmail.com>
+
+   * Fixed bug in mritoself with same named files
+      in different directories (thanks Soren!)
+
 2009-03-31  Andrew L Janke  <a.janke@gmail.com>
 
    * FAQ, perl/autocrop.1, perl/mritoself.in, perl/mritotal.1

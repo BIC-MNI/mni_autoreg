@@ -10,6 +10,7 @@ Release 0.99.4
 * fixed a bug for offsets in minctracc/Volume/init_lattice.c
 * free memory after usage in minctracc
 * file compression (minc2) disabled for temporary files in make_model
+* fixed bug in mritoself with same file names in different directories
 
 Release 0.99.3
 --------------

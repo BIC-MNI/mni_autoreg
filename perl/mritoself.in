@@ -14,7 +14,7 @@
 #              rewrite #2: December 1995-February 1996, GW
 #@MODIFIED   : April-May 1996, Louis Collins: modifications to make an
 #                              official mritoself for ICBM and AI data
-#@VERSION    : $Id: mritoself.in,v 1.10 2009-03-30 22:47:58 rotor Exp $
+#@VERSION    : $Id: mritoself.in,v 1.11 2009-04-01 11:19:02 rotor Exp $
 #@COMMENTS   : 
 #  possible additions:
 #    figure out the thresholding stuff
@@ -65,10 +65,10 @@ $TargetBase = (&split_path ($Target, "last"))[1];
 # Possibly crop/subsample both volumes
 
 ($source_cropped, $source_crop, $source_subsample)=
-   &Crop ($SourceBase, $Source, "crop", 
+   &Crop ($SourceBase, $Source, "cropS", 
           $GuessCrop, $GuessSubsample, \@Subsample, \@Crop);
 ($target_cropped, $target_crop, $target_subsample) =
-   &Crop ($TargetBase, $Target, "crop",
+   &Crop ($TargetBase, $Target, "cropT",
           $GuessCrop, $GuessSubsample, \@Subsample, \@Crop);
 
 
