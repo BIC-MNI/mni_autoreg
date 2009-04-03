@@ -13,7 +13,10 @@
 
    @CREATED    : February 3, 1992 - louis collins
    @MODIFIED   : $Log: minctracc.c,v $
-   @MODIFIED   : Revision 96.19  2009-03-13 19:51:31  claude
+   @MODIFIED   : Revision 96.20  2009-04-03 18:36:59  louis
+   @MODIFIED   : made changes to use only DOUBLES for input source and model volumes, and for all estimation of deformation fields
+   @MODIFIED   :
+   @MODIFIED   : Revision 96.19  2009/03/13 19:51:31  claude
    @MODIFIED   : fixed bug in offsets for minctracc and free memory upon exit
    @MODIFIED   :
    @MODIFIED   : Revision 96.18  2008/10/08 15:17:49  louis
@@ -110,7 +113,7 @@
  * Montreal Neurological Institute version.
  * compiled and working on SGI.  this is before any changes for SPARC/
  * Solaris.
-c *
+ *
  * Revision 1.12  94/05/28  16:18:54  louis
  * working version before modification of non-linear optimiation
  * 
@@ -152,7 +155,7 @@ Wed May 26 13:05:44 EST 1993 lc
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.19 2009-03-13 19:51:31 claude Exp $";
+static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.20 2009-04-03 18:36:59 louis Exp $";
 #endif
 
 #include <config.h>
@@ -491,7 +494,7 @@ int main ( int argc, char* argv[] )
   ALLOC(data,1);
 
   status = input_volume( main_args.filenames.data, 3, default_dim_names, 
-                         NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+                         NC_DOUBLE, FALSE, 0.0, 0.0,
                          TRUE, &data, (minc_input_options *)NULL );
 
   if (status != OK)
@@ -500,7 +503,7 @@ int main ( int argc, char* argv[] )
   data_dxyz = data;
  
   status = input_volume( main_args.filenames.model, 3, default_dim_names, 
-                         NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+                         NC_DOUBLE, FALSE, 0.0, 0.0,
                          TRUE, &model, (minc_input_options *)NULL );
   if (status != OK)
     print_error_and_line_num("Cannot input volume '%s'",
@@ -510,25 +513,30 @@ int main ( int argc, char* argv[] )
 
   get_volume_separations(data, step);
   get_volume_sizes(data, sizes);
-  get_volume_real_range(data, &min_value, &max_value);
   DEBUG_PRINT3 ( "Source volume size: %3d  by %3d  by %d \n",
                 sizes[VIO_X], sizes[VIO_Y], sizes[VIO_Z]);
-  DEBUG_PRINT3 ( "Source voxel = %8.3f %8.3f %8.3f\n", 
+  DEBUG_PRINT3 ( "Source voxel size = %8.3f %8.3f %8.3f\n", 
                 step[VIO_X], step[VIO_Y], step[VIO_Z]);
-  DEBUG_PRINT2 ( "min/max value= %8.3f %8.3f\n", min_value, max_value);
+
+  get_volume_minimum_maximum_real_value(data, &min_value, &max_value);
+  DEBUG_PRINT2 ( "Source min/max real range = %8.3f %8.3f\n", min_value, max_value);
+
   get_volume_voxel_range(data, &min_value, &max_value);
-  DEBUG_PRINT2 ( "min/max voxel= %8.3f %8.3f\n\n", min_value, max_value);
+  DEBUG_PRINT2 ( "Source min/max voxel= %8.3f %8.3f\n\n", min_value, max_value);
 
   get_volume_separations(model, step); 
   get_volume_sizes(model, sizes);
-  get_volume_real_range(model, &min_value, &max_value);
+
   DEBUG_PRINT3 ( "Target volume size: %3d  by %3d  by %d \n",
                 sizes[VIO_X], sizes[VIO_Y], sizes[VIO_Z]);
   DEBUG_PRINT3 ( "Target voxel = %8.3f %8.3f %8.3f\n", 
                 step[VIO_X], step[VIO_Y], step[VIO_Z]);
-  DEBUG_PRINT2 ( "min/max value= %8.3f %8.3f\n", min_value, max_value);
+
+  get_volume_minimum_maximum_real_value(model, &min_value, &max_value);
+  DEBUG_PRINT2 ( "Target min/max real range= %8.3f %8.3f\n", min_value, max_value);
+
   get_volume_voxel_range(model, &min_value, &max_value);
-  DEBUG_PRINT2 ( "min/max voxel= %8.3f %8.3f\n\n\n", min_value, max_value);
+  DEBUG_PRINT2 ( "Target min/max voxel = %8.3f %8.3f\n\n\n", min_value, max_value);
   
   if (get_volume_n_dimensions(data)!=3) 
     {
@@ -981,24 +989,8 @@ int get_feature_volumes(char *dst, char *key, int argc, char **argv)
   if ( argc >=2 && argv[0] != NULL && argv[1] != NULL ) {
 
     data_name = argv[0];
-    status = input_volume(data_name, 3, default_dim_names, 
-                          NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                          TRUE, &data_vol, 
-                          (minc_input_options *)NULL );
-    if (status != OK) {
-      (void)fprintf(stderr, "Cannot input feature %s.\n",data_name);
-      return(-1);
-    } 
 
     model_name = argv[1];
-    status = input_volume(model_name, 3, default_dim_names, 
-                          NC_UNSPECIFIED, FALSE, 0.0, 0.0,
-                          TRUE, &model_vol, 
-                          (minc_input_options *)NULL );
-    if (status != OK) {
-      (void)fprintf(stderr, "Cannot input feature %s.\n",model_name);
-      return(-1);
-    } 
 
     obj_func        = NONLIN_XCORR;
     weight          = 1.0;
@@ -1016,6 +1008,10 @@ int get_feature_volumes(char *dst, char *key, int argc, char **argv)
       obj_func_index = weight_index = 2;
       if ( strncmp(argv[obj_func_index], "xcorr", 2)==0 ) {
         obj_func =  NONLIN_XCORR;
+        weight_index++; args_used++;
+      }
+      if ( strncmp(argv[obj_func_index], "sqdiff", 2)==0 ) {
+        obj_func =  NONLIN_SQDIFF;
         weight_index++; args_used++;
       }
       if ( strncmp(argv[obj_func_index], "diff", 2)==0 ) {
@@ -1047,6 +1043,49 @@ int get_feature_volumes(char *dst, char *key, int argc, char **argv)
       }
         
     }
+
+    if (obj_func == NONLIN_LABEL) { /* if the feature is a label, then load data as is */
+
+      status = input_volume(data_name, 3, default_dim_names, 
+			    NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+			    TRUE, &data_vol, 
+			    (minc_input_options *)NULL );
+      if (status != OK) {
+	(void)fprintf(stderr, "Cannot input feature %s.\n",data_name);
+	return(-1);
+      } 
+      status = input_volume(model_name, 3, default_dim_names, 
+			    NC_UNSPECIFIED, FALSE, 0.0, 0.0,
+			    TRUE, &model_vol, 
+			    (minc_input_options *)NULL );
+      if (status != OK) {
+	(void)fprintf(stderr, "Cannot input feature %s.\n",model_name);
+	return(-1);
+      } 
+
+    }
+    else {			/* if feature is not a label, then force load as DOUBLEs */
+
+      status = input_volume(data_name, 3, default_dim_names, 
+			    NC_DOUBLE, FALSE, 0.0, 0.0,
+			    TRUE, &data_vol, 
+			    (minc_input_options *)NULL );
+      if (status != OK) {
+	(void)fprintf(stderr, "Cannot input feature %s.\n",data_name);
+	return(-1);
+      } 
+      status = input_volume(model_name, 3, default_dim_names, 
+			    NC_DOUBLE, FALSE, 0.0, 0.0,
+			    TRUE, &model_vol, 
+			    (minc_input_options *)NULL );
+      if (status != OK) {
+	(void)fprintf(stderr, "Cannot input feature %s.\n",model_name);
+	return(-1);
+      } 
+
+    }
+
+
 
     add_a_feature_for_matching(&(main_args.features),
                                data_vol, model_vol, data_mask, model_mask,
@@ -1099,14 +1138,16 @@ int get_nonlinear_objective(char *dst, char *key, char* nextArg)
         obj_func0 = NONLIN_XCORR;
     } else if (strcmp( "diff", nextArg ) == 0 ) {
         obj_func0 = NONLIN_DIFF;
+    } else if (strcmp( "sqdiff", nextArg ) == 0 ) {
+        obj_func0 = NONLIN_SQDIFF;
     } else if (strcmp( "label", nextArg ) == 0 ) {
         obj_func0 = NONLIN_LABEL;
     } else if (strcmp( "chamfer", nextArg ) == 0 ) {
         obj_func0 = NONLIN_CHAMFER;
+    } else if (strcmp( "opticalflow", nextArg ) == 0 ) {
+        obj_func0 = NONLIN_OPTICALFLOW;
     } else if (strcmp( "corrcoeff", nextArg ) == 0 ) {
         obj_func0 = NONLIN_CORRCOEFF;
-    } else if (strcmp( "sqdiff", nextArg ) == 0 ) {
-        obj_func0 = NONLIN_SQDIFF;
     } else {
         obj_func0 = NONLIN_XCORR;
         return 0;

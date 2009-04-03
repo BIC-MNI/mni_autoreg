@@ -8,7 +8,7 @@
 .\" software for any purpose.  It is provided "as is" without
 .\" express or implied warranty.
 .\"
-.\" $Header: /private-cvsroot/registration/mni_autoreg/minctracc/minctracc.1,v 1.1 2000-01-28 16:21:37 stever Exp $
+.\" $Header: /private-cvsroot/registration/mni_autoreg/minctracc/minctracc.1,v 1.2 2009-04-03 18:36:59 louis Exp $
 .\"
 .TH MINCTRACC 1
 
@@ -104,6 +104,11 @@ good idea to have a reasonable guess for the center of rotation and
 scaling since it makes the parameters more orthogonal to each other
 (e.g.  a small change in rotation will not grossly affect the
 translations).
+
+Note that when estimating a non-linear registration, if no
+transformation is given as input, the program will estimate a linear
+transformation first.  If you are interested in only the non-linear
+transformation, then use -identity.
 
 .SH OPTIONS
 Note that options can be specified in abbreviated form (as long as
@@ -302,6 +307,79 @@ value is 4.0 4.0 4.0.
 .P
 .I -zstep
 <sz>: Step size along the Z dimension (default = 4.0)
+.SH Options for optimization of non-linear transformations
+
+The non-linear transformation is represented by a deformation field,
+(normally) defined in the space of the target volume.  The full
+transformation is equal to the linear transformation plus the
+deformation stored in the deformation field.  The deformation field is
+represented by a vector-valued 3D volume with -step distance between
+nodes.
+
+.P
+.I -nonlinear
+specifies that a non-linear deformation field should be estimated.
+the -nonlinear can take on one of the following optional arguments:
+xcorr, diff, sqdiff, label, chamfer, corrcoeff, or opticalflow to
+define the objective function to be used to compare the source and
+target volumes.
+
+.P
+.I -sub_lattice
+<val>: 
+Defines the number of nodes along the diameter of the
+sublattice that defined the local neighbourhood used to estimate the
+deformation vector.
+.P
+.I -lattice_diameter
+<valx> <valy> <valz>:
+determines the size (in mm) of the sublattice used to define the local neighbouhood.
+.P
+.I  -use_magnitude         
+use magnitude data local deformation (default).  this flag tells
+minctracc that a local sublattice will be needed.  You normally don't
+have to specify this flag.
+.P
+.I   -optical_flow
+a flag to use optical flow to compute deformation on the two firstmain source/model volumes.
+.P
+.I  -use_simplex
+a flag to use 3D simplex optimization for local deformation (default).
+.P
+.I   -quadratic
+a flag to turn on local quadratic fitting for local deformation.
+.P
+.I   -use_local
+a flag to turn on local smoothing.  by default, minctracc uses global smoothing for regularization.
+.P
+.I   -use_nonisotropic
+a flag to turn on directionally sensitive smoothing (def=isotropic smoothing) when usinglocal smoothing.
+.P
+.I   -super
+<val>:
+super sample deformation field during optimization (default=2) to speed up the evaluation of local deformation vectors.
+.P
+.I   -no_super
+turn off the super sample deformation field during optimization.
+.P
+.I   -iterations
+<val>
+this is the number of iterations for non-linear optimization (default value: 4).
+.P
+.I   -weight
+<val>: 
+Weighting factor for each iteration in nl optimization. This defines
+how much of the currently estimated vector should be added to the
+deformation field (default value: 0.6).
+.P
+.I   -stiffness 
+<val>:
+Weighting factor to define smoothness for regularization at each iteration (default value: 0.5).
+.P
+.I   -similarity_cost_ratio
+<val>
+Weighting factor to reduce the effect of large deformations [ r=similarity*w + cost(1*w) ] (default value: 0.5)
+
 .SH Options for logging progress.
 .P
 .I -verbose

@@ -1,6 +1,11 @@
 CHANGES to the MNI_AutoReg package...
 
+Release 0.99.5
+--------------
 
+* input source and volumes are read as DOUBLES.  
+* deformation fields are created and manipulated as DOUBLES.
+	
 Release 0.99.4
 --------------
 

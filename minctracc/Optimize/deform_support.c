@@ -20,7 +20,10 @@
 
 @CREATED    : Tue Feb 22 08:37:49 EST 1994
 @MODIFIED   : $Log: deform_support.c,v $
-@MODIFIED   : Revision 96.14  2006-11-30 17:23:43  rotor
+@MODIFIED   : Revision 96.15  2009-04-03 18:36:59  louis
+@MODIFIED   : made changes to use only DOUBLES for input source and model volumes, and for all estimation of deformation fields
+@MODIFIED   :
+@MODIFIED   : Revision 96.14  2006/11/30 17:23:43  rotor
 @MODIFIED   :  * fixed a small bug in init_volume_to_zero
 @MODIFIED   :
 @MODIFIED   : Revision 96.13  2006/11/30 09:07:32  rotor
@@ -219,7 +222,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 96.14 2006-11-30 17:23:43 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 96.15 2009-04-03 18:36:59 louis Exp $";
 #endif
 
 #include <config.h>
@@ -547,9 +550,6 @@ void add_additional_warp_to_current(VIO_General_transform *additional,
 
           additional_value = current_value + additional_value*weight;
 
-          if (additional_value >  40.0) additional_value =  40.0;
-          if (additional_value < -40.0) additional_value = -40.0;
-
           set_volume_real_value(additional->displacement_volume,
                                 index[0],index[1],index[2],index[3],index[4],
                                 additional_value);
@@ -616,7 +616,7 @@ void smooth_the_warp(VIO_General_transform *smoothed,
                                __FILE__, __LINE__);
     }
   }
-
+  
   get_volume_XYZV_indices(smoothed->displacement_volume, xyzv);
   get_volume_XYZV_indices(current->displacement_volume, xyzv_current);
   for(i=0; i<get_volume_n_dimensions(current->displacement_volume); i++) {
@@ -628,7 +628,7 @@ void smooth_the_warp(VIO_General_transform *smoothed,
   
   get_volume_XYZV_indices(warp_mag, xyzv_mag);
   get_volume_sizes(warp_mag, count_mag);
-
+  
   for(i=0; i<get_volume_n_dimensions(warp_mag); i++) {
     if (count_current[xyzv_current[i]] != count_mag[i]) {
       print_error_and_line_num("smooth_the_warp: dim count error w/mag (%d: %d != %d)\n",
@@ -645,96 +645,75 @@ void smooth_the_warp(VIO_General_transform *smoothed,
   get_voxel_spatial_loop_limits(smoothed->displacement_volume, start, end);
   start[VIO_Z+1] = 0;
   end[VIO_Z+1] = 3;
- 
-
+  
+  
   initialize_progress_report( &progress, FALSE, 
-                             (end[VIO_X]-start[VIO_X])*
-                             (end[VIO_Y]-start[VIO_Y]) + 1,
-                             "Smoothing deformations" );
-
-
+			      (end[VIO_X]-start[VIO_X])*
+			      (end[VIO_Y]-start[VIO_Y]) + 1,
+			      "Smoothing deformations" );
+  
+  
   for(index[xyzv[VIO_X]]=start[VIO_X]; index[xyzv[VIO_X]]<end[VIO_X]; index[xyzv[VIO_X]]++) {
     for(index[xyzv[VIO_Y]]=start[VIO_Y]; index[xyzv[VIO_Y]]<end[VIO_Y]; index[xyzv[VIO_Y]]++) {
       for(index[xyzv[VIO_Z]]=start[VIO_Z]; index[xyzv[VIO_Z]]<end[VIO_Z]; index[xyzv[VIO_Z]]++) {
-
+	
         for(i=0; i<get_volume_n_dimensions(warp_mag); i++){
           mag_index[ xyzv_mag[i] ] = index[ xyzv[i] ];
-          }
-        
-        if (  get_volume_real_value(warp_mag, 
-                                    mag_index[ VIO_X ],
-                                    mag_index[ VIO_Y ],
-                                    mag_index[ VIO_Z ],
-                                    0, 0) >= thres) {
-
-                                /* go get the current warp vector for
-                                   this node. */
-          
-          for(index[xyzv[VIO_Z+1]]=start[VIO_Z+1]; index[xyzv[VIO_Z+1]]<end[VIO_Z+1]; index[xyzv[VIO_Z+1]]++) {
-
-            value[index[ xyzv[VIO_Z+1] ]] = 
-              get_volume_real_value(current->displacement_volume,
-                                    index[0],index[1],index[2],
-                                    index[3],index[4]);
-
-          }
-                                /* store the current warp in wx, wy,
-                                   wz */
-
-          wx = value[VIO_X]; wy = value[VIO_Y]; wz = value[VIO_Z]; 
-
-          index[ xyzv[VIO_Z+1]] = 0;
-
-                                /* if we can get a neighbourhood mean
-                                   warp vector, then we average it
-                                   with the current warp vector */
-
-          if ( get_average_warp_vector_from_neighbours(current,
-                                                      index, 2 ,
-                                                      &mx, &my, &mz) ) {
-            
-            wx = (1.0 - smoothing_weight) * value[VIO_X] + smoothing_weight * mx;
-            wy = (1.0 - smoothing_weight) * value[VIO_Y] + smoothing_weight * my;
-            wz = (1.0 - smoothing_weight) * value[VIO_Z] + smoothing_weight * mz;
-            value[VIO_X] = wx; 
-            value[VIO_Y] = wy; 
-            value[VIO_Z] = wz; 
-
-          } 
+	}
+	
+	
+	/* go get the current warp vector for
+	   this node. */
+	
+	for(index[xyzv[VIO_Z+1]]=start[VIO_Z+1]; index[xyzv[VIO_Z+1]]<end[VIO_Z+1]; index[xyzv[VIO_Z+1]]++) {
+	  
+	  value[index[ xyzv[VIO_Z+1] ]] = 
+	    get_volume_real_value(current->displacement_volume,
+				  index[0],index[1],index[2],
+				  index[3],index[4]);
+	  
+	}
+	/* store the current warp in wx, wy,wz */
+	
+	wx = value[VIO_X]; wy = value[VIO_Y]; wz = value[VIO_Z]; 
+	
+	index[ xyzv[VIO_Z+1]] = 0;
+	
+	/* if we can get a neighbourhood mean
+	   warp vector, then we average it
+	   with the current warp vector */
+	
+	if ( get_average_warp_vector_from_neighbours(current,
+						     index, 2 ,
+						     &mx, &my, &mz) ) {
+	  
+	  wx = (1.0 - smoothing_weight) * value[VIO_X] + smoothing_weight * mx;
+	  wy = (1.0 - smoothing_weight) * value[VIO_Y] + smoothing_weight * my;
+	  wz = (1.0 - smoothing_weight) * value[VIO_Z] + smoothing_weight * mz;
+	  value[VIO_X] = wx; 
+	  value[VIO_Y] = wy; 
+	  value[VIO_Z] = wz; 
+	  
+	} 
           
                                 /* now put the averaged vector into
                                    the smoothed volume */
  
-          for(index[xyzv[VIO_Z+1]]=start[VIO_Z+1]; index[xyzv[VIO_Z+1]]<end[VIO_Z+1]; index[xyzv[VIO_Z+1]]++)  
-            set_volume_real_value(smoothed->displacement_volume,
-                                  index[0],index[1],index[2],
-                                  index[3],index[4],
-                                  value[index[ xyzv[VIO_Z+1] ]] );  
-        }
-        else {
-
-          for(index[xyzv[VIO_Z+1]]=start[VIO_Z+1]; index[xyzv[VIO_Z+1]]<end[VIO_Z+1]; index[xyzv[VIO_Z+1]]++)  {
-            
-            value[index[ xyzv[VIO_Z+1] ]] = 
-              get_volume_real_value(current->displacement_volume,
-                                    index[0],index[1],index[2],
-                                    index[3],index[4]);
-
-            set_volume_real_value(smoothed->displacement_volume,
-                                  index[0],index[1],index[2],
-                                  index[3],index[4],
-                                  value[index[ xyzv[VIO_Z+1] ]] );
-          }
-
-        } /* mag > thresh */
-          
+	for(index[xyzv[VIO_Z+1]]=start[VIO_Z+1]; index[xyzv[VIO_Z+1]]<end[VIO_Z+1]; index[xyzv[VIO_Z+1]]++)  
+	  set_volume_real_value(smoothed->displacement_volume,
+				index[0],index[1],index[2],
+				index[3],index[4],
+				value[index[ xyzv[VIO_Z+1] ]] );  
       }
-      update_progress_report( &progress,
-                             ((end[ VIO_Y ]-start[ VIO_Y ])*
-                              (index[ xyzv[VIO_X]  ]-start[ VIO_X ])) +
-                             (index[ xyzv[VIO_Y] ]-start[ VIO_X ])  +    1  );
+
+          
     }
+    update_progress_report( &progress,
+			    ((end[ VIO_Y ]-start[ VIO_Y ])*
+			     (index[ xyzv[VIO_X]  ]-start[ VIO_X ])) +
+			    (index[ xyzv[VIO_Y] ]-start[ VIO_X ])  +    1  );
   }
+
 
   terminate_progress_report( &progress );
 }

@@ -16,7 +16,10 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 96.28  2006-11-30 17:23:43  rotor
+@MODIFIED   : Revision 96.29  2009-04-03 18:36:59  louis
+@MODIFIED   : made changes to use only DOUBLES for input source and model volumes, and for all estimation of deformation fields
+@MODIFIED   :
+@MODIFIED   : Revision 96.28  2006/11/30 17:23:43  rotor
 @MODIFIED   :  * fixed a small bug in init_volume_to_zero
 @MODIFIED   :
 @MODIFIED   : Revision 96.27  2006/11/30 09:17:49  rotor
@@ -345,7 +348,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.28 2006-11-30 17:23:43 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.29 2009-04-03 18:36:59 louis Exp $";
 #endif
 
 #include <config.h>                /* MAXtype and MIN defs                      */
@@ -831,7 +834,7 @@ VIO_Status do_non_linear_optimization(Arg_Data *globals)
    another_vol = another_warp->displacement_volume;
 
 
-   set_volume_real_range(another_vol, -1.0*globals->trans_info.max_def_magnitude, globals->trans_info.max_def_magnitude );
+   /* set_volume_real_range(another_vol, -1.0*globals->trans_info.max_def_magnitude, globals->trans_info.max_def_magnitude ); no longer needed, since we are now using doubles for defs */
 
    init_the_volume_to_zero(another_vol);
 
@@ -1028,8 +1031,8 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
     print("loop                 = (%d %d) (%d %d) (%d %d)\n",
           start[0],end[0],start[1],end[1],start[2],end[2]);
     print("current_def_vector   = %f %f %f\n",current_def_vector[VIO_X], current_def_vector[VIO_Y],current_def_vector[VIO_Z]);
-
-
+    
+    
     print ("\nFitting STRATEGY ----------\n");
     
     if ( Gglobals->trans_info.use_magnitude) {
@@ -1381,14 +1384,6 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
        if (globals->flags.debug) 
          {
            
-           
-           /*
-             ALLOC(filenamestring,512);
-             sprintf (filenamestring,"pr_axes2_%d.xfm",iters);
-             (void)output_transform_file(filenamestring,NULL,another_warp);
-             FREE(filenamestring);
-           */
-           
            stat_title();
            report_stats(&stat_num_funks);
            report_stats(&stat_def_mag);
@@ -1504,8 +1499,12 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
 
            temp_start_time = time(NULL);
            
-           smooth_the_warp(current_warp,
+           smooth_the_warp(another_warp, /* try smoothing twice to get better def fields? or we could smooth once, and then use Pierrick's nlmeans*/
                            additional_warp,
+                            additional_mag, -1.0);
+
+           smooth_the_warp(current_warp,   
+                           another_warp,
                             additional_mag, -1.0);
            
            if (globals->flags.debug) 
@@ -1540,6 +1539,7 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
         
                if (globals->features.obj_func[i] == NONLIN_OPTICALFLOW ) 
                  {
+
                    normalize_data_to_match_target(globals->features.data[i],
                                                   globals->features.data_mask[i],
                                                   globals->features.thresh_data[i],
@@ -1547,6 +1547,8 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
                                                   globals->features.model_mask[i],
                                                   globals->features.thresh_model[i],
                                                   globals);
+
+
                  }
              }
          }
@@ -2054,8 +2056,7 @@ static VIO_Real get_optical_flow_vector(VIO_Real threshold1,
     
                                 /* compute deformations directly!       */
 
-    get_volume_real_range(model, &min, &max);
-    thresh = Min_deriv * (max - min); /* should compute a better
+    thresh = Min_deriv; /* should compute a better
     threshold value here, possibly based on a histogram of the
     grandient magnitudes across the 3D lattice. */
 
@@ -2232,9 +2233,6 @@ print ("%5.3f: %7.2f %7.2f %7.2f -> %7.2f %7.2f %7.2f [%7.2f %7.2f %7.2f ]",
                               NULL,NULL,NULL,
                               NULL,NULL,NULL);
      
-
-     get_volume_real_range(chamfer, &min, &max);
-     thresh = Min_deriv * (max - min);
 
      thresh = 0.1;                /* gradient threshold... testing */
 
@@ -2591,6 +2589,7 @@ static VIO_Real get_deformation_vector_for_node(VIO_Real spacing,
      required */
 
   if (other_partial_weight > 0.0) {
+
     /* -------------------------------------------------------------- */
     /*  FIND BEST DEFORMATION VECTOR
         now find the best local deformation that maximises the local
@@ -2733,7 +2732,7 @@ static VIO_Real get_deformation_vector_for_node(VIO_Real spacing,
       
     } /* else use_simplex */
  
-   
+  
 
 
     /* -------------------------------------------------------------- */
@@ -2797,6 +2796,7 @@ static VIO_Real get_deformation_vector_for_node(VIO_Real spacing,
 
   if (optical_partial_weight > 0.0) {
 
+
     for(i=0; i<3; i++) {                /* init optical/chamfer to zero */
       optical_def_vector[i] = 0.0;
       optical_voxel_displacement[i] = 0.0;
@@ -2809,13 +2809,15 @@ static VIO_Real get_deformation_vector_for_node(VIO_Real spacing,
       if (Gglobals->features.obj_func[i] == NONLIN_OPTICALFLOW ||  
           Gglobals->features.obj_func[i] == NONLIN_CHAMFER)  {
         
-        if (Gglobals->features.obj_func[i] == NONLIN_OPTICALFLOW)
+        if (Gglobals->features.obj_func[i] == NONLIN_OPTICALFLOW) {
           result =  get_optical_flow_vector(threshold1, 
                                             source_coord, mean_target,
                                             real_def, vox_def,
                                             Gglobals->features.data[i],
                                             Gglobals->features.model[i],
                                             ndim);
+
+	}
         else                   /* must be CHAMFER */
           result =  get_chamfer_vector(spacing,   
                                        source_coord, mean_target,

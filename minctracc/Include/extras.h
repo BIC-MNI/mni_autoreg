@@ -4,7 +4,7 @@
 @DESCRIPTION: prototypes for Optimize/extras.c              
 @CREATED    : Mon Nov  3, 1997 , Louis Collins
 @MODIFIED   : not yet!
-@VERSION    : $Id: extras.h,v 1.4 2006-11-30 09:07:31 rotor Exp $
+@VERSION    : $Id: extras.h,v 1.5 2009-04-03 18:36:59 louis Exp $
 #-----------------------------------------------------------------------------
 */
 
@@ -17,3 +17,5 @@ VIO_Real get_volume_maximum_real_value(VIO_Volume volume);
 
 void save_data(char *basename, int i, int j,
                       VIO_General_transform *transform);
+
+void get_volume_minimum_maximum_real_value(VIO_Volume volume, VIO_Real *min, VIO_Real *max);

@@ -14,7 +14,10 @@
 
 @CREATED    : Tue Jun 15 08:57:23 EST 1993 LC
 @MODIFIED   :  $Log: volume_functions.c,v $
-@MODIFIED   :  Revision 96.13  2006-11-30 09:07:33  rotor
+@MODIFIED   :  Revision 96.14  2009-04-03 18:36:59  louis
+@MODIFIED   :  made changes to use only DOUBLES for input source and model volumes, and for all estimation of deformation fields
+@MODIFIED   :
+@MODIFIED   :  Revision 96.13  2006/11/30 09:07:33  rotor
 @MODIFIED   :   * many more changes for clean minc 2.0 build
 @MODIFIED   :
 @MODIFIED   :  Revision 96.11  2005/07/20 20:45:52  rotor
@@ -93,7 +96,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/volume_functions.c,v 96.13 2006-11-30 09:07:33 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/volume_functions.c,v 96.14 2009-04-03 18:36:59 louis Exp $";
 #endif
 
 #include <config.h>
@@ -449,6 +452,8 @@ void normalize_data_to_match_target(VIO_Volume d1, VIO_Volume m1, VIO_Real thres
   VIO_progress_struct
     progress;
 
+  VIO_Data_types 
+    data_type;
 
 
   set_feature_value_threshold(d1,d2, 
@@ -542,46 +547,83 @@ void normalize_data_to_match_target(VIO_Volume d1, VIO_Volume m1, VIO_Real thres
       print_error_and_line_num("Error computing normalization ratio `%f'.",__FILE__, __LINE__, result);
     }
     else {
-      /* build temporary working volume */
-      
-      vol = copy_volume_definition_no_alloc(d1, NC_UNSPECIFIED, FALSE, 0.0, 0.0);
-      get_volume_real_range(d1, &min_range, &max_range);
-      min_range /= result;
-      max_range /= result;
-      set_volume_real_range(vol, min_range, max_range);
-      get_volume_sizes(d1, sizes);
-      
-      initialize_progress_report(&progress, FALSE, sizes[0]*sizes[1]*sizes[2] + 1,
-                                 "Normalizing source data" );
-      count1 = 0;
-      
-      /* reset values in the data volume */
-      
-      for(i=0; i<sizes[0]; i++)
-        for(j=0; j<sizes[1]; j++) {
-          count1++;
-          update_progress_report( &progress, count1);
-          for(k=0; k<sizes[2]; k++) {
-            GET_VOXEL_3D( data_vox,  d1, i, j, k );
-            data_val = CONVERT_VOXEL_TO_VALUE(d1, data_vox);
-            data_val /= result;
-            data_vox = CONVERT_VALUE_TO_VOXEL( vol, data_val);
-            SET_VOXEL_3D( d1 , i, j, k, data_vox );
-          }
-        }
 
-      terminate_progress_report( &progress );
+      data_type = get_volume_data_type(d1);
+
+
+
       
-      set_volume_real_range(d1, min_range, max_range);
-
-      if (globals->flags.debug) (void)print ("After normalization min,max, thresh = %f %f %f\n",
-                                             min_range, max_range, t1/result);
-
-      delete_volume(vol);
-    
+      switch( data_type ) {
+      case SIGNED_BYTE: 
+      case UNSIGNED_BYTE: 
+      case SIGNED_SHORT: 
+      case UNSIGNED_SHORT: 
+	
+	/* build temporary working volume */
+	
+	vol = copy_volume_definition_no_alloc(d1, NC_UNSPECIFIED, FALSE, 0.0, 0.0);
+	get_volume_minimum_maximum_real_value(d1, &min_range, &max_range);
+	min_range /= result;
+	max_range /= result;
+	set_volume_real_range(vol, min_range, max_range);
+	get_volume_sizes(d1, sizes);
+	
+	initialize_progress_report(&progress, FALSE, sizes[0]*sizes[1]*sizes[2] + 1,
+				   "Normalizing source data" );
+	count1 = 0;
+	
+	/* reset values in the data volume */
+	
+	for(i=0; i<sizes[0]; i++)
+	  for(j=0; j<sizes[1]; j++) {
+	    count1++;
+	    update_progress_report( &progress, count1);
+	    for(k=0; k<sizes[2]; k++) {
+	      GET_VOXEL_3D( data_vox,  d1, i, j, k );
+	      data_val = CONVERT_VOXEL_TO_VALUE(d1, data_vox);
+	      data_val /= result;
+	      data_vox = CONVERT_VALUE_TO_VOXEL( vol, data_val);
+	      SET_VOXEL_3D( d1 , i, j, k, data_vox );
+	    }
+	  }
+	
+	terminate_progress_report( &progress );
+	
+	set_volume_real_range(d1, min_range, max_range);
+	
+	if (globals->flags.debug) (void)print ("After normalization min,max, thresh = %f %f %f\n",
+					       min_range, max_range, t1/result);
+	
+	delete_volume(vol);
+	break;
+	
+      default:			/* then volume should be either float or double */
+	
+	get_volume_sizes(d1, sizes);
+	initialize_progress_report(&progress, FALSE, sizes[0]*sizes[1]*sizes[2] + 1,
+				   "Normalizing source data" );
+	count1 = 0;
+	
+	/* nomalize the values in the data volume */
+	
+	for(i=0; i<sizes[0]; i++)
+	  for(j=0; j<sizes[1]; j++) {
+	    count1++;
+	    update_progress_report( &progress, count1);
+	    
+	    for(k=0; k<sizes[2]; k++) {	/* it should be possible to directly stream through the voxels, without indexing... */
+	      GET_VOXEL_3D( data_vox,  d1, i, j, k );
+	      data_val = CONVERT_VOXEL_TO_VALUE(d1, data_vox);
+	      data_val /= result;
+	      data_vox = CONVERT_VALUE_TO_VOXEL( d1, data_val);
+	      SET_VOXEL_3D( d1 , i, j, k, data_vox );
+	    }
+	  }
+	terminate_progress_report( &progress );
+      }
     }
+    
   }
-
   FREE(ratios);
 
   

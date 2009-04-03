@@ -19,7 +19,10 @@
 
 @CREATED    : 
 @MODIFIED   : $Log: switch_obj_func.c,v $
-@MODIFIED   : Revision 96.6  2006-11-29 09:09:34  rotor
+@MODIFIED   : Revision 96.7  2009-04-03 18:36:59  louis
+@MODIFIED   : made changes to use only DOUBLES for input source and model volumes, and for all estimation of deformation fields
+@MODIFIED   :
+@MODIFIED   : Revision 96.6  2006/11/29 09:09:34  rotor
 @MODIFIED   :  * first bunch of changes for minc 2.0 compliance
 @MODIFIED   :
 @MODIFIED   : Revision 96.5  2005/07/18 19:14:02  rotor
@@ -57,56 +60,56 @@
  *
 ---------------------------------------------------------------------------- */
 
-        switch (obj_func) {
+switch (obj_func) {
    
-        case NONLIN_XCORR:
-          s2 += (*a1) * (*a1);
-          s1 += *a1 * sample; /* compute correlation */
-          s3 += sample * sample;
-          break;
-     
-        case NONLIN_DIFF:
-          tmp = *a1 - sample;
-          if (tmp<0){
-        tmp *= -1.0;
-     }
-          s1 += tmp;            /* add the difference */
-          number_of_nonzero_samples++;
-          break;
-     
-        case NONLIN_LABEL:
-          tmp = *a1 - sample;
-          if (tmp<0){
-        tmp *= -1.0;
-     }
-          if (tmp < 0.01){
-            s1 += 1.0;          /* count up similar labels */
-     }
-          number_of_nonzero_samples++;
-          break;
-     
-        case NONLIN_CHAMFER:
-          if (*a1 > 0) {
-             s1 += sample;         /* add the distance */
-             number_of_nonzero_samples++;
-          }
-          break;
-     
-        case NONLIN_CORRCOEFF:
-            s1 += *a1;
-            s2 += sample;
-            s3 += (*a1) * (*a1);
-            s4 += sample * sample;
-            s5 += *a1 * sample;
-            number_of_nonzero_samples++;
-            break;
-       
-        case NONLIN_SQDIFF:
-          tmp = *a1 - sample;
-          s1 += tmp*tmp;
-          number_of_nonzero_samples++;
-          break;
-     
-        default:
-          print_error_and_line_num("Objective function %d not supported in go_get_samples_with_offset",__FILE__, __LINE__,obj_func);
-        }
+ case NONLIN_CORRCOEFF:		/* compute the correlation coefficient (placed first, because used most often) */
+   s1 += *a1;
+   s2 += sample;
+   s3 += (*a1) * (*a1);
+   s4 += sample * sample;
+   s5 += *a1 * sample;
+   number_of_nonzero_samples++;
+   break;
+   
+ case NONLIN_XCORR:          /* compute correlation */
+   s2 += (*a1) * (*a1);
+   s1 += *a1 * sample; 
+   s3 += sample * sample;
+   break;
+   
+ case NONLIN_CHAMFER:
+   if (*a1 > 0) {
+     s1 += sample;         /* add the distance */
+     number_of_nonzero_samples++;
+   }
+   break;
+   
+ case NONLIN_SQDIFF:		/* sompute the squared intensity difference */
+   tmp = *a1 - sample;
+   s1 += tmp*tmp;
+   number_of_nonzero_samples++;
+   break;
+   
+ case NONLIN_DIFF:           /* compute the sample-to-sample difference */
+   tmp = *a1 - sample;
+   if (tmp<0){
+     tmp *= -1.0;
+   }
+   s1 += tmp;            
+   number_of_nonzero_samples++;
+   break;
+   
+ case NONLIN_LABEL:		/* sum up the number of similar labels */
+   tmp = *a1 - sample;
+   if (tmp<0){
+     tmp *= -1.0;
+   }
+   if (tmp < 0.01){
+     s1 += 1.0;          /* count similar labels */
+   }
+   number_of_nonzero_samples++;
+   break;
+   
+ default:
+   print_error_and_line_num("Objective function %d not supported in go_get_samples_with_offset",__FILE__, __LINE__,obj_func);
+ }

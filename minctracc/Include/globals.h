@@ -95,7 +95,7 @@ static ArgvInfo argTable[] = {
      "\nOptions for feature volumes."},
   {"-feature_vol", ARGV_GENFUNC, (char *) get_feature_volumes, 
      (char *) &main_args.filenames.mask_model,
-     "Specify extra featurs <f1.mnc> <f2.mnc> [obj_func] [weight]."},
+     "Specify extra features <f1.mnc> <f2.mnc> [xcorr|diff|sqdiff|label|chamfer|corrcoeff|opticalflow] [weight]."},
 
   {NULL, ARGV_HELP, NULL, NULL,
      "\nOptions for mask volumes."},
@@ -207,7 +207,7 @@ static ArgvInfo argTable[] = {
   {NULL, ARGV_HELP, NULL, NULL,
      "\nNon-linear transformation information:"},
   {"-nonlinear", ARGV_FUNC, (char*)get_nonlinear_objective, NULL,
-      "recover nonlinear deformation field.  Optional arg sets objective function."},
+      "recover nonlinear deformation field.  Optional arg {xcorr|diff|sqdiff|label|chamfer|corrcoeff|opticalflow} sets objective function."},
 /*   {"-2D-non-lin", ARGV_CONSTANT, (char *) 2, (char *) &number_dimensions, */
 /*      "Estimate the non-lin fit on a 2D slice only."}, */
 /*   {"-3D-non-lin", ARGV_CONSTANT, (char *) 3, (char *) &number_dimensions, */

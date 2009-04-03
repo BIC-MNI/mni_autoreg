@@ -14,9 +14,12 @@
                                     to create a sublattice defined on the target.
      
 @CREATED    : Mon Nov  3, 1997 , Louis Collins
-@VERSION    : $Id: sub_lattice.c,v 1.15 2006-11-30 09:07:32 rotor Exp $
+@VERSION    : $Id: sub_lattice.c,v 1.16 2009-04-03 18:36:59 louis Exp $
 @MODIFIED   : $Log: sub_lattice.c,v $
-@MODIFIED   : Revision 1.15  2006-11-30 09:07:32  rotor
+@MODIFIED   : Revision 1.16  2009-04-03 18:36:59  louis
+@MODIFIED   : made changes to use only DOUBLES for input source and model volumes, and for all estimation of deformation fields
+@MODIFIED   :
+@MODIFIED   : Revision 1.15  2006/11/30 09:07:32  rotor
 @MODIFIED   :  * many more changes for clean minc 2.0 build
 @MODIFIED   :
 @MODIFIED   : Revision 1.14  2006/11/29 09:09:34  rotor
@@ -289,25 +292,27 @@ void go_get_samples_in_source(VIO_Volume data, VIO_Volume mask,
 
    CAVEAT 1: only nearest neighbour and tri-linear interpolation
              are supported.
+
+	     *** AJ + LC: 3/17/2009:  only DOUBLE data now supported.
    CAVEAT 2: only VIO_Volume data types of UNSIGNED_BYTE, SIGNED_SHORT, and
              UNSIGNED_SHORT are supported.
 
 */
 
 float go_get_samples_with_offset(
-     VIO_Volume data,                  /* The volume of data */
-     VIO_Volume mask,                  /* The target mask */  
-     float *x, float *y, float *z, /* the positions of the sub-lattice */
-     VIO_Real  dx, VIO_Real  dy, VIO_Real dz,  /* the local displacement to apply  */
-     int obj_func,                 /* the type of obj function req'd   */
-     int len,                      /* number of sub-lattice nodes      */
-     int *sample_target_count,      /* number of nonmasked  sub-lattice nodes */
-     float normalization,                /* normalization factor for obj func*/
-     float *a1,                    /* feature value for (x,y,z) nodes  */
-     VIO_BOOL *m1,                  /* mask flag for (x,y,z) nodes in source */ 
-     VIO_BOOL use_nearest_neighbour) /* interpolation flag              */
+				 VIO_Volume data,                  /* The volume of data */
+				 VIO_Volume mask,                  /* The target mask */  
+				 float *x, float *y, float *z,     /* the positions of the sub-lattice */
+				 VIO_Real  dx, VIO_Real  dy, VIO_Real dz,  /* the local displacement to apply  */
+				 int obj_func,                     /* the type of obj function req'd   */
+				 int len,                          /* number of sub-lattice nodes      */
+				 int *sample_target_count,         /* number of nonmasked  sub-lattice nodes */
+				 float normalization,              /* normalization factor for obj func*/
+				 float *a1,                        /* feature value for (x,y,z) nodes  */
+				 VIO_BOOL *m1,                     /* mask flag for (x,y,z) nodes in source */ 
+				 VIO_BOOL use_nearest_neighbour)   /* interpolation flag              */
 {
-  float
+  double
     sample, r,
     s1,s2,s3,s4,s5,tmp;                   /* accumulators for inner loop */
   int 
@@ -323,30 +328,20 @@ float go_get_samples_with_offset(
   static double f0, f1, f2, r0, r1, r2, r1r2, r1f2, f1r2, f1f2;
   static double v000, v001, v010, v011, v100, v101, v110, v111;
 
-  unsigned char  ***byte_ptr;
-  unsigned short ***ushort_ptr;
-           short ***sshort_ptr;
-
-  VIO_Data_types 
-    data_type;
+  double ***double_ptr;
   
-  double mean_s = 0.0;
+  double mean_s = 0.0;		/* init variables for stats */
   double mean_t = 0.0;
   double var_s = 0.0;
   double var_t = 0.0;
   double covariance = 0.0;
   
-  
   number_of_nonzero_samples = 0;
 
-  data_type = get_volume_data_type(data);
   get_volume_sizes(data, sizes);  
   xs = sizes[0];  
   ys = sizes[1];  
   zs = sizes[2];
-
-  f_trans = data->real_value_translation;
-  f_scale = data->real_value_scale;
 
 
   s1 = s2 = s3 = s4 = s5 = 0.0;
@@ -363,16 +358,13 @@ float go_get_samples_with_offset(
     dy += 0.;                        /* ind2 below */
     dz += 0.;
     
-    switch( data_type ) {
-    case UNSIGNED_BYTE:  
+    double_ptr = VOXEL_DATA (data); 
       
-      byte_ptr = VOXEL_DATA (data); 
+    /* increment by one as we index from 1...n (but the array is ALLOC'd from 0..n) */
+    x++; y++; z++; 
       
-      /* increment by one as we index from 1...n */
-      ++x; ++y; ++z; 
-      
-     /* for each sub-lattice node */
-     for(c=len; c--;) {
+    /* for each sub-lattice node */
+    for(c=len; c--;) {
         
         /*
          *  this is code to test timing of David's evaluate_volume_in_world()
@@ -389,7 +381,7 @@ float go_get_samples_with_offset(
          *  evaluate_volume_in_world(data, wx, wy, wz,
          *                            0, TRUE, 0.0, &sampleR,
          *                            NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
-         *   sample = (float)sampleR;
+         *   sample = (double)sampleR;
          */
         
         if (!(*m1) && (voxel_point_not_masked(mask, (VIO_Real)*x, (VIO_Real)*y, (VIO_Real)*z)) && (!(obj_func==NONLIN_CHAMFER) ||  (*a1>0)) ) {
@@ -401,103 +393,24 @@ float go_get_samples_with_offset(
          if (ind0>=0 && ind0<xs &&
              ind1>=0 && ind1<ys &&
              ind2>=0 && ind2<zs) {
-            sample = (float)(byte_ptr[ind0][ind1][ind2]) * f_scale + f_trans;
+	   sample = (double)(double_ptr[ind0][ind1][ind2]);
          }
          else{
             sample = 0.0;
          }
 
-#include "switch_obj_func.c"
+#include "switch_obj_func.c"	/* contains a case statement to do the sample-to-sample computations required for each possible non-lin objective function */
       }
         
        /* increment the coordinate, value and mask array pointers */  
-       x++;
+       x++;			/* x,y,z are the coords of the sublattice in the fixed (source) image */
        y++;
        z++;
-       a1++;
-            m1++;
+       a1++;			/* a1 is from the fixed image */
+       m1++;			/* m1 is rom the mask on the fixed image */
      
     }
-    break;
-    
-    case SIGNED_SHORT:  
-      
-      sshort_ptr = VOXEL_DATA (data); 
-
-      /* increment by one as we index from 1...n */
-      ++x; ++y; ++z; 
-      
-     /* for each sub-lattice node */
-     for(c=len; c--;) {
-        
-        if  (  !(*m1) && (voxel_point_not_masked(mask, (VIO_Real)*x, (VIO_Real)*y, (VIO_Real)*z)) && (!(obj_func==NONLIN_CHAMFER) ||  (*a1>0)) ) {
-            ind0 = (int) ( *x + dx );
-            ind1 = (int) ( *y + dy );
-            ind2 = (int) ( *z + dz );
-            
-            if (ind0>=0 && ind0<xs &&
-                ind1>=0 && ind1<ys &&
-                ind2>=0 && ind2<zs) {
-               sample = sshort_ptr[ind0][ind1][ind2] * f_scale + f_trans;
-            }
-            else{
-               sample = 0.0;
-               }
-        
-#include "switch_obj_func.c"
-         }
-     
-       /* increment the pointers */  
-       ++x;
-       ++y;
-       ++z;
-       ++a1;
-            ++m1;
-      }
-      break;
-      
-    case UNSIGNED_SHORT:  
-      
-      ushort_ptr = VOXEL_DATA (data);
-      ushort_ptr = (unsigned short ***)data->array.data;
-
-      /* increment by one as we index from 1...n */
-      ++x; ++y; ++z; 
-      
-        /* for each sub-lattice node */
-        for(c=len; c--;) {
-        
-        if  (  !(*m1) && (voxel_point_not_masked(mask, (VIO_Real)*x, (VIO_Real)*y, (VIO_Real)*z)) && (!(obj_func==NONLIN_CHAMFER) ||  (*a1>0)) ) {
-            ind0 = (int) ( *x + dx );
-            ind1 = (int) ( *y + dy );
-            ind2 = (int) ( *z + dz );
-            
-            if (ind0>=0 && ind0<xs &&
-                ind1>=0 && ind1<ys &&
-                ind2>=0 && ind2<zs) {
-               sample = (float)(ushort_ptr[ind0][ind1][ind2]) * f_scale + f_trans;
-            }
-            else
-               sample = 0.0;
-            
-#include "switch_obj_func.c"
-         }
-     
-       /* increment the pointers */  
-       ++x;
-       ++y;
-       ++z;
-       ++a1;
-            ++m1;
-      }
-      break;
-      
-    default:
-      print_error_and_line_num("Image data type not supported in go_get_samples_with_offset (only unsigned_byte, signed_short, unsigned_short allowed)",__FILE__, __LINE__);
-    }
-    
   }
-  
   else {                        /* then do fast trilinear interpolation */
     
     /* set up offsets */
@@ -505,20 +418,17 @@ float go_get_samples_with_offset(
     offset1 = (Gglobals->count[VIO_Y] > 1) ? 1 : 0;
     offset2 = (Gglobals->count[VIO_X] > 1) ? 1 : 0;
     
-    switch( data_type ) {
-    
-        case UNSIGNED_BYTE:
-        byte_ptr = VOXEL_DATA (data);
+    double_ptr = VOXEL_DATA (data);
         
-        /* increment by one as we index from 1...n */
-        ++x; ++y; ++z; 
+    /* increment by one as we index from 1...n */
+    ++x; ++y; ++z; 
         
-        /* for each sub-lattice node */
-        for(c=len; c--;) {
+    /* for each sub-lattice node */
+    for(c=len; c--;) {
            
            /*  fast tri-linear interplation */
            
-          if  (  !(*m1) && (voxel_point_not_masked(mask, (VIO_Real)*x, (VIO_Real)*y, (VIO_Real)*z)) && (!(obj_func==NONLIN_CHAMFER) ||  (*a1>0)) ) {
+      if  (  !(*m1) && (voxel_point_not_masked(mask, (VIO_Real)*x, (VIO_Real)*y, (VIO_Real)*z)) && (!(obj_func==NONLIN_CHAMFER) ||  (*a1>0)) ) {
               v0 = (VIO_Real) ( *x + dx );
               v1 = (VIO_Real) ( *y + dy );
               v2 = (VIO_Real) ( *z + dz );
@@ -532,14 +442,14 @@ float go_get_samples_with_offset(
                   ind2>=0 && ind2<(zs-offset2)) {
                  
                  /* get the data */
-                 v000 = (VIO_Real)(byte_ptr[ind0        ][ind1        ][ind2        ]);
-                 v001 = (VIO_Real)(byte_ptr[ind0        ][ind1        ][ind2+offset2]);
-                 v010 = (VIO_Real)(byte_ptr[ind0        ][ind1+offset1][ind2        ]);
-                 v011 = (VIO_Real)(byte_ptr[ind0        ][ind1+offset1][ind2+offset2]);
-                 v100 = (VIO_Real)(byte_ptr[ind0+offset0][ind1        ][ind2        ]);
-                 v101 = (VIO_Real)(byte_ptr[ind0+offset0][ind1        ][ind2+offset2]);
-                 v110 = (VIO_Real)(byte_ptr[ind0+offset0][ind1+offset1][ind2        ]);
-                 v111 = (VIO_Real)(byte_ptr[ind0+offset0][ind1+offset1][ind2+offset2]);
+                 v000 = (VIO_Real)(double_ptr[ind0        ][ind1        ][ind2        ]);
+                 v001 = (VIO_Real)(double_ptr[ind0        ][ind1        ][ind2+offset2]);
+                 v010 = (VIO_Real)(double_ptr[ind0        ][ind1+offset1][ind2        ]);
+                 v011 = (VIO_Real)(double_ptr[ind0        ][ind1+offset1][ind2+offset2]);
+                 v100 = (VIO_Real)(double_ptr[ind0+offset0][ind1        ][ind2        ]);
+                 v101 = (VIO_Real)(double_ptr[ind0+offset0][ind1        ][ind2+offset2]);
+                 v110 = (VIO_Real)(double_ptr[ind0+offset0][ind1+offset1][ind2        ]);
+                 v111 = (VIO_Real)(double_ptr[ind0+offset0][ind1+offset1][ind2+offset2]);
                  
                  /* Get the fraction parts */
                  f0 = v0 - ind0;
@@ -566,191 +476,27 @@ float go_get_samples_with_offset(
                            f1r2 * v110 +
                            f1f2 * v111);
                  
-                 sample = sample * f_scale + f_trans;
+                 sample = sample;
                  
                  
               }
               else{
-                 sample = 0.0;
-                 }
+		sample = 0.0;
+	      }
               
               
 #include "switch_obj_func.c"
-           }
 
-/*  this one */
-       
-       /* increment the pointers */  
-       ++x;
-       ++y;
-       ++z;
-       ++a1;
-            ++m1;
-           
-        }
-        break;
-        case SIGNED_SHORT:  
-        
-        sshort_ptr = VOXEL_DATA (data); 
-        
-        /* increment by one as we index from 1...n */
-        ++x; ++y; ++z; 
-        
-        /* for each sub-lattice node */
-        for(c=len; c--;) {
-           
-        /*  fast tri-linear interpolation */
-        
-            if  (  !(*m1) && (voxel_point_not_masked(mask, (VIO_Real)*x, (VIO_Real)*y, (VIO_Real)*z)) && (!(obj_func==NONLIN_CHAMFER) ||  (*a1>0)) ) {
-              v0 = (VIO_Real) ( *x + dx );
-              v1 = (VIO_Real) ( *y + dy );
-              v2 = (VIO_Real) ( *z + dz );
-              
-              ind0 = (int)v0;
-              ind1 = (int)v1;
-              ind2 = (int)v2;
-              
-              if (ind0>=0 && ind0<(xs-offset0) &&
-                  ind1>=0 && ind1<(ys-offset1) &&
-                  ind2>=0 && ind2<(zs-offset2)) {
-                 
-                 /* get the data */
-                 v000 = (VIO_Real)(sshort_ptr[ind0        ][ind1        ][ind2        ]);
-                 v001 = (VIO_Real)(sshort_ptr[ind0        ][ind1        ][ind2+offset2]);
-                 v010 = (VIO_Real)(sshort_ptr[ind0        ][ind1+offset1][ind2        ]);
-                 v011 = (VIO_Real)(sshort_ptr[ind0        ][ind1+offset1][ind2+offset2]);
-                 v100 = (VIO_Real)(sshort_ptr[ind0+offset0][ind1        ][ind2        ]);
-                 v101 = (VIO_Real)(sshort_ptr[ind0+offset0][ind1        ][ind2+offset2]);
-                 v110 = (VIO_Real)(sshort_ptr[ind0+offset0][ind1+offset1][ind2        ]);
-                 v111 = (VIO_Real)(sshort_ptr[ind0+offset0][ind1+offset1][ind2+offset2]);
-                 
-                 /* Get the fraction parts */
-                 f0 = v0 - ind0;
-                 f1 = v1 - ind1;
-                 f2 = v2 - ind2;
-                 r0 = 1.0 - f0;
-                 r1 = 1.0 - f1;
-                 r2 = 1.0 - f2;
-                 
-                 /* Do the interpolation */
-                 r1r2 = r1 * r2;
-                 r1f2 = r1 * f2;
-                 f1r2 = f1 * r2;
-                 f1f2 = f1 * f2;
-                 
-                 sample   = 
-                    r0 *  (r1r2 * v000 +
-                           r1f2 * v001 +
-                           f1r2 * v010 +
-                           f1f2 * v011);
-                 sample  +=
-                    f0 *  (r1r2 * v100 +
-                           r1f2 * v101 +
-                           f1r2 * v110 +
-                           f1f2 * v111);
-                 
-                 sample = sample * f_scale + f_trans;
-                 
-              }
-              else
-                 sample = 0.0;
-              
-#include "switch_obj_func.c"
-           }
-     
-       /* increment the pointers */  
-       ++x;
-       ++y;
-       ++z;
-       ++a1;
-            ++m1;
-           
-        }
-        break;
-        case UNSIGNED_SHORT:  
-        
-        ushort_ptr = VOXEL_DATA (data);
-        
-        /* increment by one as we index from 1...n */
-        ++x; ++y; ++z; 
-        
-        /* for each sub-lattice node */
-        for(c=len; c--;) {
-           
-           if  (  !(*m1) && (voxel_point_not_masked(mask, (VIO_Real)*x, (VIO_Real)*y, (VIO_Real)*z)) && (!(obj_func==NONLIN_CHAMFER) ||  (*a1>0)) ) {
-              /*  fast tri-linear interplation */
-              
-              v0 = (VIO_Real) ( *x + dx );
-              v1 = (VIO_Real) ( *y + dy );
-              v2 = (VIO_Real) ( *z + dz );
-              
-              ind0 = (int)v0;
-              ind1 = (int)v1;
-              ind2 = (int)v2;
-              
-              if (ind0>=0 && ind0<(xs-offset0) &&
-                  ind1>=0 && ind1<(ys-offset1) &&
-                  ind2>=0 && ind2<(zs-offset2)) {
-                 
-                 /* get the data */
-                 v000 = (VIO_Real)(ushort_ptr[ind0        ][ind1        ][ind2        ]);
-                 v001 = (VIO_Real)(ushort_ptr[ind0        ][ind1        ][ind2+offset2]);
-                 v010 = (VIO_Real)(ushort_ptr[ind0        ][ind1+offset1][ind2        ]);
-                 v011 = (VIO_Real)(ushort_ptr[ind0        ][ind1+offset1][ind2+offset2]);
-                 v100 = (VIO_Real)(ushort_ptr[ind0+offset0][ind1        ][ind2        ]);
-                 v101 = (VIO_Real)(ushort_ptr[ind0+offset0][ind1        ][ind2+offset2]);
-                 v110 = (VIO_Real)(ushort_ptr[ind0+offset0][ind1+offset1][ind2        ]);
-                 v111 = (VIO_Real)(ushort_ptr[ind0+offset0][ind1+offset1][ind2+offset2]);
-                 
-                 /* Get the fraction parts */
-                 f0 = v0 - ind0;
-                 f1 = v1 - ind1;
-                 f2 = v2 - ind2;
-                 r0 = 1.0 - f0;
-                 r1 = 1.0 - f1;
-                 r2 = 1.0 - f2;
-                 
-                 /* Do the interpolation */
-                 r1r2 = r1 * r2;
-                 r1f2 = r1 * f2;
-                 f1r2 = f1 * r2;
-                 f1f2 = f1 * f2;
-                 
-                 sample   = 
-                    r0 *  (r1r2 * v000 +
-                           r1f2 * v001 +
-                           f1r2 * v010 +
-                           f1f2 * v011);
-                 sample  +=
-                    f0 *  (r1r2 * v100 +
-                           r1f2 * v101 +
-                           f1r2 * v110 +
-                           f1f2 * v111);
-                 
-                 sample = sample * f_scale + f_trans;
-                 
-              }
-              else
-                 sample = 0.0;
-              
-#include "switch_obj_func.c"
-           }
-         
-     
-       /* increment the pointers */  
-       ++x;
-       ++y;
-       ++z;
-       ++a1;
-            ++m1;
-
-        }
-        break;
-        default:
-        print_error_and_line_num("Image data type not supported in go_get_samples_with_offset (only unsigned_byte, signed_short, unsigned_short allowed)",__FILE__, __LINE__);
-     }
-     
-  }
+      }
+      
+      /* increment the coordinate, value and mask array pointers */  
+      x++;			/* x,y,z are the coords of the sublattice in the fixed (source) image */
+      y++;
+      z++;
+      a1++;			/* a1 is from the fixed image */
+      m1++;			/* m1 is rom the mask on the fixed image */
+      
+    } 
   
 
 
@@ -760,8 +506,6 @@ float go_get_samples_with_offset(
   r = 0.0;
 
   switch (obj_func) {
-
-
 
   case NONLIN_XCORR:            /* use standard normalized cross-correlation 
                                    where 0.0 < r < 1.0, where 1.0 is best*/
@@ -863,7 +607,12 @@ float go_get_samples_with_offset(
   
   
   return(r);
+  }
+
 }
+
+
+
 
 /* Build the target lattice by transforming the source points through the
    current non-linear transformation stored in:
@@ -875,8 +624,8 @@ float go_get_samples_with_offset(
 
 */
 void    build_target_lattice(float px[], float py[], float pz[],
-                                    float tx[], float ty[], float tz[],
-                                    int len, int dim)
+			     float tx[], float ty[], float tz[],
+			     int len, int dim)
 {
   int i;
   VIO_Real x,y,z;

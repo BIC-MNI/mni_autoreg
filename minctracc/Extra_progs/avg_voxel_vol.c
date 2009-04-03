@@ -73,7 +73,7 @@ main(int argc, char *argv[])
     mask = (VIO_Volume)NULL;
   
   get_volume_sizes(data1,sizes1);
-  get_volume_real_range(data1, &r_min, &r_max);
+  get_volume_minimum_maximum_real_value(data1, &r_min, &r_max);
   
   smag = s1 = s2 = s12 = 0.0; count = 0;
   for(i=0; i<MAX_DIMENSIONS; i++) index[i] = 0;

@@ -5,7 +5,7 @@
                procedures.               
 @CREATED    : Mon Nov  3, 1997 , Louis Collins
 @MODIFIED   : not yet!
-@VERSION    : $Id: extras.c,v 1.10 2006-11-30 17:23:43 rotor Exp $
+@VERSION    : $Id: extras.c,v 1.11 2009-04-03 18:36:59 louis Exp $
 #-----------------------------------------------------------------------------
 */
 
@@ -49,10 +49,14 @@ void init_the_volume_to_zero(VIO_Volume volume)
     int             v0, v1, v2, v3, v4;
     VIO_Real            zero;
     int    sizes[VIO_MAX_DIMENSIONS];
-    int ndims;
+    int i,ndims;
 
     ndims = get_volume_n_dimensions(volume);
     get_volume_sizes(volume, sizes);
+    for (i=ndims; i < VIO_MAX_DIMENSIONS; i++) {
+      sizes[i] = 1;
+    }
+
 
     /* figure out what 0 is */
     zero = CONVERT_VALUE_TO_VOXEL(volume,0.0);
@@ -85,10 +89,15 @@ VIO_Real get_volume_maximum_real_value(VIO_Volume volume)
 {
     int             v0, v1, v2, v3, v4;
     VIO_Real            val,max;
-    int    sizes[VIO_MAX_DIMENSIONS];
+    int    ndims,i,sizes[VIO_MAX_DIMENSIONS];
     
     get_volume_sizes(volume, sizes);
-    
+
+    ndims = get_volume_n_dimensions(volume);
+    for (i=ndims; i < VIO_MAX_DIMENSIONS; i++) {
+      sizes[i] = 1;
+    }
+
     max = -DBL_MAX;
     
     for(v0=sizes[0]; v0--; ){
@@ -103,6 +112,51 @@ VIO_Real get_volume_maximum_real_value(VIO_Volume volume)
              }
           }
        }
+
+    return(max);
+}
+
+
+/* 
+   run through volume, reading values, and extract the minimum and maximum values 
+*/
+
+void get_volume_minimum_maximum_real_value(VIO_Volume volume, VIO_Real *min, VIO_Real *max)
+{
+    int             v0, v1, v2, v3, v4;
+    VIO_Real            val;
+    int    i,ndims, sizes[VIO_MAX_DIMENSIONS];
+
+    get_volume_sizes(volume, sizes);
+
+    ndims = get_volume_n_dimensions(volume);
+    for (i=ndims; i < VIO_MAX_DIMENSIONS; i++) {
+      sizes[i] = 1;
+    }
+
+
+    *max = -DBL_MAX;
+    *min =  DBL_MAX;
+    
+    
+    for(v0=sizes[0]; v0--; ){
+      for(v1=sizes[1]; v1--; ){
+	for(v2=sizes[2]; v2--; ){
+	  for(v3=sizes[3]; v3--; ){
+	    
+	    val = get_volume_real_value( volume, v0, v1, v2, v3, 0 );
+	    if (val > *max) {
+	      *max = val;
+	    }
+	    else {
+	      if (val < *min ) {
+		*min = val;
+	      }
+	    }
+	  }
+	}
+      }
+    }
 
     return(max);
 }

@@ -21,7 +21,10 @@
 
 @CREATED    : Tue Mar 12 09:37:44 MET 1996
 @MODIFIED   : $Log: obj_fn_mutual_info.c,v $
-@MODIFIED   : Revision 96.10  2008-10-08 15:17:49  louis
+@MODIFIED   : Revision 96.11  2009-04-03 18:36:59  louis
+@MODIFIED   : made changes to use only DOUBLES for input source and model volumes, and for all estimation of deformation fields
+@MODIFIED   :
+@MODIFIED   : Revision 96.10  2008/10/08 15:17:49  louis
 @MODIFIED   : added -nmi option for linear normalized mutual information
 @MODIFIED   :
 @MODIFIED   : Revision 96.9  2006/11/30 09:07:32  rotor
@@ -79,7 +82,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/obj_fn_mutual_info.c,v 96.10 2008-10-08 15:17:49 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/obj_fn_mutual_info.c,v 96.11 2009-04-03 18:36:59 louis Exp $";
 #endif
 
 #include <volume_io.h>
@@ -388,11 +391,17 @@ float mutual_information_objective(VIO_Volume d1,
     for(j=0; j<globals->groups; j++) 
       prob_hash_table[i][j] = 0.0;
 
-  get_volume_real_range(d1, &min_range1, &max_range1);
-  get_volume_real_range(d2, &min_range2, &max_range2);
+  /*
+    this was here, but appears to be useless!  dlc 04/2009
 
-  range1 = max_range1 - min_range1;
-  range2 = max_range2 - min_range2;
+    get_volume_minimum_maximum_real_value(d1, &min_range1, &max_range1);
+    get_volume_minimum_maximum_real_value(d2, &min_range2, &max_range2);
+    
+    range1 = max_range1 - min_range1;
+    range2 = max_range2 - min_range2;
+
+  */
+
 
                                 /* prepare data for the voxel-to-voxel
                                    space transformation (instead of the

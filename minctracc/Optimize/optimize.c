@@ -14,7 +14,10 @@
               express or implied warranty.
 
 @MODIFIED   : $Log: optimize.c,v $
-@MODIFIED   : Revision 96.16  2008-10-08 15:17:49  louis
+@MODIFIED   : Revision 96.17  2009-04-03 18:36:59  louis
+@MODIFIED   : made changes to use only DOUBLES for input source and model volumes, and for all estimation of deformation fields
+@MODIFIED   :
+@MODIFIED   : Revision 96.16  2008/10/08 15:17:49  louis
 @MODIFIED   : added -nmi option for linear normalized mutual information
 @MODIFIED   :
 @MODIFIED   : Revision 96.15  2006/11/30 09:07:32  rotor
@@ -160,7 +163,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 96.16 2008-10-08 15:17:49 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 96.17 2009-04-03 18:36:59 louis Exp $";
 #endif
 
 #include <config.h>
@@ -928,18 +931,25 @@ VIO_BOOL replace_volume_data_with_ubyte(VIO_Volume data)
   int i,j,k,count,n_dim;
   VIO_progress_struct                
     progress;
+  VIO_Real min, max;
 
-  n_dim = get_volume_n_dimensions(data);
+
   get_volume_sizes(data, sizes);
+  n_dim = get_volume_n_dimensions(data);
 
   if (n_dim != 3) {
     print ("Volume must have 3 dimensions for byte copy\n");
     return(FALSE);
   }
+
+  get_volume_minimum_maximum_real_value(data, &min, &max);
+
+
                                 /* build a matching temporary ubyte 
                                    volume */
 
   tmp_vol = copy_volume_definition(data, NC_BYTE, FALSE, 0.0, 0.0);
+  set_volume_real_range(tmp_vol, min, max);
 
                                 /* copy the original voxel data into
                                    the byte voxels */
@@ -1994,6 +2004,7 @@ VIO_BOOL optimize_non_linear_transformation(Arg_Data *globals)
       
       if (globals->features.obj_func[i] == NONLIN_OPTICALFLOW ) 
         {
+
           normalize_data_to_match_target(globals->features.data[i],
                                          globals->features.data_mask[i],
                                          globals->features.thresh_data[i],
@@ -2001,6 +2012,7 @@ VIO_BOOL optimize_non_linear_transformation(Arg_Data *globals)
                                          globals->features.model_mask[i],
                                          globals->features.thresh_model[i],
                                          globals);
+
         }
     }
 

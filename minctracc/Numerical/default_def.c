@@ -35,7 +35,10 @@
       created by removing build_default_deformation_field from 
       transformations.c
 @MODIFIED   : $Log: default_def.c,v $
-@MODIFIED   : Revision 96.12  2009-03-13 19:51:31  claude
+@MODIFIED   : Revision 96.13  2009-04-03 18:36:59  louis
+@MODIFIED   : made changes to use only DOUBLES for input source and model volumes, and for all estimation of deformation fields
+@MODIFIED   :
+@MODIFIED   : Revision 96.12  2009/03/13 19:51:31  claude
 @MODIFIED   : fixed bug in offsets for minctracc and free memory upon exit
 @MODIFIED   :
 @MODIFIED   : Revision 96.11  2006/11/30 09:07:32  rotor
@@ -224,7 +227,7 @@ static void resample_the_deformation_field(Arg_Data *globals)
 
   /* build a vector volume to store the Grid VIO_Transform */
   
-  new_field = create_volume(4, dim_name_vector_vol, NC_SHORT, TRUE, 0.0, 0.0);
+  new_field = create_volume(4, dim_name_vector_vol, NC_DOUBLE, TRUE, 0.0, 0.0);
 
   get_volume_XYZV_indices(new_field, xyzv);
 
@@ -259,8 +262,10 @@ static void resample_the_deformation_field(Arg_Data *globals)
 
   set_volume_sizes(       new_field, count); 
   set_volume_separations( new_field, step);
-  set_volume_voxel_range( new_field, -MY_MAX_VOX, MY_MAX_VOX);
-  set_volume_real_range(  new_field, -1.0*globals->trans_info.max_def_magnitude, globals->trans_info.max_def_magnitude);
+
+  /*  set_volume_voxel_range( new_field, -MY_MAX_VOX, MY_MAX_VOX);
+      set_volume_real_range(  new_field, -1.0*globals->trans_info.max_def_magnitude, globals->trans_info.max_def_magnitude);  - no longer needed, because now using doubles*/
+
   set_volume_translation( new_field, voxel, start);
   
   for(i=0; i<VIO_N_DIMENSIONS; i++) {
@@ -408,7 +413,7 @@ static void append_new_default_deformation_field(Arg_Data *globals)
 
   if (globals->flags.debug) { print ("In append_new_default_deformation_field...\n"); }
   
-  new_field = create_volume(4, dim_name_vector_vol, NC_SHORT, TRUE, 0.0, 0.0);
+  new_field = create_volume(4, dim_name_vector_vol, NC_DOUBLE, TRUE, 0.0, 0.0);
 
   get_volume_XYZV_indices(new_field, xyzv);
 
@@ -426,8 +431,9 @@ static void append_new_default_deformation_field(Arg_Data *globals)
 
   set_volume_sizes(       new_field, count); 
   set_volume_separations( new_field, step);
-  set_volume_voxel_range( new_field, -MY_MAX_VOX, MY_MAX_VOX);
-  set_volume_real_range(  new_field, -1.0*globals->trans_info.max_def_magnitude, globals->trans_info.max_def_magnitude);
+  /* 
+     set_volume_voxel_range( new_field, -MY_MAX_VOX, MY_MAX_VOX);
+     set_volume_real_range(  new_field, -1.0*globals->trans_info.max_def_magnitude, globals->trans_info.max_def_magnitude); no longer needed, now using floats */
 
 
   for(i=0; i<VIO_N_DIMENSIONS; i++) {
@@ -514,14 +520,14 @@ static void append_new_default_deformation_field(Arg_Data *globals)
 
               /* Initilize the field to zero deformation */
   
-  zero = CONVERT_VALUE_TO_VOXEL(new_field, 0.0);
+  /* zero = CONVERT_VALUE_TO_VOXEL(new_field, 0.0); not needed, defs are now doubles */
 
   for(index[0]=0; index[0]<count[0]; index[0]++)
     for(index[1]=0; index[1]<count[1]; index[1]++)
       for(index[2]=0; index[2]<count[2]; index[2]++)
         for(index[3]=0; index[3]<count[3]; index[3]++)
           {
-            SET_VOXEL(new_field, index[0],index[1],index[2],index[3],0, zero);
+            SET_VOXEL(new_field, index[0],index[1],index[2],index[3],0, 0.0);  /* was set to 'zero', but now as a double,can be set to 0.0 */
           }
   
               /* build the new GRID_TRANSFORM */
