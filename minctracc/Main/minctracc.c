@@ -13,7 +13,10 @@
 
    @CREATED    : February 3, 1992 - louis collins
    @MODIFIED   : $Log: minctracc.c,v $
-   @MODIFIED   : Revision 96.20  2009-04-03 18:36:59  louis
+   @MODIFIED   : Revision 96.21  2009-05-22 15:49:19  claude
+   @MODIFIED   : fixed memory bug freeing initial transform
+   @MODIFIED   :
+   @MODIFIED   : Revision 96.20  2009/04/03 18:36:59  louis
    @MODIFIED   : made changes to use only DOUBLES for input source and model volumes, and for all estimation of deformation fields
    @MODIFIED   :
    @MODIFIED   : Revision 96.19  2009/03/13 19:51:31  claude
@@ -155,7 +158,7 @@ Wed May 26 13:05:44 EST 1993 lc
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.20 2009-04-03 18:36:59 louis Exp $";
+static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.21 2009-05-22 15:49:19 claude Exp $";
 #endif
 
 #include <config.h>
@@ -216,6 +219,7 @@ int main ( int argc, char* argv[] )
 
 
   /* Call ParseArgv to interpret all command line args (returns TRUE if error) */
+
   parse_flag = ParseArgv(&argc, argv, argTable, 0);
 
   measure_matlab_flag = 
@@ -880,7 +884,6 @@ int get_transformation(char *dst, char *key, char *nextArg)
    copy_general_transform(&input_transformation, transformation);
 
    delete_general_transform(&input_transformation);
-   FREE(input_transformation);
 
    /* set a GLOBAL flag, to show that a transformation has been read in */
 
