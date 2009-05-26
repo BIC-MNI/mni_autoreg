@@ -16,7 +16,10 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
-@MODIFIED   : Revision 96.29  2009-04-03 18:36:59  louis
+@MODIFIED   : Revision 96.30  2009-05-26 18:03:07  claude
+@MODIFIED   : free more memory after usage
+@MODIFIED   :
+@MODIFIED   : Revision 96.29  2009/04/03 18:36:59  louis
 @MODIFIED   : made changes to use only DOUBLES for input source and model volumes, and for all estimation of deformation fields
 @MODIFIED   :
 @MODIFIED   : Revision 96.28  2006/11/30 17:23:43  rotor
@@ -348,7 +351,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.29 2009-04-03 18:36:59 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.30 2009-05-26 18:03:07 claude Exp $";
 #endif
 
 #include <config.h>                /* MAXtype and MIN defs                      */
@@ -1609,6 +1612,7 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
    if (Gglobals->features.number_of_features>0) 
      {
        FREE2D(Ga1_features);
+       FREE2D(masked_samples_in_source);
        FREE(Gsqrt_features);
      }
  

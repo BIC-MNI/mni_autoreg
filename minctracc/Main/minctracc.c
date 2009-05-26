@@ -13,7 +13,10 @@
 
    @CREATED    : February 3, 1992 - louis collins
    @MODIFIED   : $Log: minctracc.c,v $
-   @MODIFIED   : Revision 96.21  2009-05-22 15:49:19  claude
+   @MODIFIED   : Revision 96.22  2009-05-26 18:03:07  claude
+   @MODIFIED   : free more memory after usage
+   @MODIFIED   :
+   @MODIFIED   : Revision 96.21  2009/05/22 15:49:19  claude
    @MODIFIED   : fixed memory bug freeing initial transform
    @MODIFIED   :
    @MODIFIED   : Revision 96.20  2009/04/03 18:36:59  louis
@@ -158,7 +161,7 @@ Wed May 26 13:05:44 EST 1993 lc
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.21 2009-05-22 15:49:19 claude Exp $";
+static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.22 2009-05-26 18:03:07 claude Exp $";
 #endif
 
 #include <config.h>
@@ -782,7 +785,8 @@ int main ( int argc, char* argv[] )
   delete_general_transform(main_args.trans_info.orig_transformation);
   FREE(main_args.trans_info.orig_transformation);
   free_features (&(main_args.features));
-
+  FREE(main_args.trans_info.file_contents);
+  // Note: don't know how to free ALLOC(data) above. (Claude).
 
   return( status );
 }
