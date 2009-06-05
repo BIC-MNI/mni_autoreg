@@ -1,3 +1,6 @@
+2009-06-05  Claude Lepage <claude@bic.mni.mcgill.ca>
+	* Free memory after usage in mincblur.
+
 2009-04-03  D. Louis Collins <louis.collins@mcgill.ca>
 
 	* added Andrew's changes so that input source and target volumes are read in as DOUBLE.  Modified the deformation code so that deformation field are created and manipulated as DOUBLES.  Simplified the non-linear objective function code to deal only with DOUBLES (and not all possible types).

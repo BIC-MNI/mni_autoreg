@@ -19,7 +19,10 @@
 
 @CREATED    : some time in 1993
 @MODIFIED   : $Log: gradmag_volume.c,v $
-@MODIFIED   : Revision 96.4  2006-11-28 09:12:21  rotor
+@MODIFIED   : Revision 96.5  2009-06-05 20:49:52  claude
+@MODIFIED   : Free memory after usage in mincblur
+@MODIFIED   :
+@MODIFIED   : Revision 96.4  2006/11/28 09:12:21  rotor
 @MODIFIED   :  * fixes to allow clean compile against minc 2.0
 @MODIFIED   :
 @MODIFIED   : Revision 96.3  2005/07/20 20:45:39  rotor
@@ -72,7 +75,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/gradmag_volume.c,v 96.4 2006-11-28 09:12:21 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/gradmag_volume.c,v 96.5 2009-06-05 20:49:52 claude Exp $";
 #endif
 
 #include <config.h>             /* for EXIT_FAILURE (on some systems) */
@@ -133,6 +136,12 @@ void calc_gradient_magnitude(char *infilename,
 
   /* Finish up */
   finish_up(in_vol1, in_vol2, in_vol3, out_vol);
+
+  /* Release memory */
+  free_vol_info(out_vol);
+  free_vol_info(in_vol1);
+  free_vol_info(in_vol2);
+  free_vol_info(in_vol3);
   
 }
 
@@ -204,7 +213,15 @@ if (debug)
   /* Finish up */
   finish_up(in_volx, in_voly, in_volz, out_vol);
   finish_up(in_volxx, in_volyy, in_volzz, (MincVolume *)NULL);
-  
+
+  /* Release memory */
+  free_vol_info(out_vol);
+  free_vol_info(in_volx);
+  free_vol_info(in_voly);
+  free_vol_info(in_volz);
+  free_vol_info(in_volxx);
+  free_vol_info(in_volyy);
+  free_vol_info(in_volzz);
 }
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -483,6 +500,42 @@ void load_vol_info(char   *infile,
     }        /* End loop over variables MIimagemax/min */
     
   }        /* If both MIimagemax/min exist */
+}
+
+/* ----------------------------- MNI Header -----------------------------------
+@NAME       : free_vol_info
+@INPUT      : volume
+@OUTPUT     : 
+@RETURNS    : (nothing)
+@DESCRIPTION: Routine to free memory allocated in input_vol_info.
+@METHOD     : 
+@GLOBALS    : 
+@CALLS      : 
+@CREATED    : Fri Jun  5 14:20:54 EDT 2009  Claude Lepage
+@MODIFIED   : 
+---------------------------------------------------------------------------- */
+void free_vol_info( MincVolume * vol ) {
+
+  if( vol ) {
+    if( vol->slice ) {
+      if( vol->slice->data ) FREE( vol->slice->data );
+      FREE( vol->slice );
+      vol->slice = NULL;
+    }
+  
+    if( vol->volume ) {
+      if( vol->volume->scale ) FREE( vol->volume->scale );
+      if( vol->volume->offset ) FREE( vol->volume->offset );
+      FREE( vol->volume );
+      vol->volume = NULL;
+    }
+
+    if( vol->file ) {
+      miicv_free( vol->file->icvid );
+      FREE( vol->file );
+      vol->file = NULL;
+    }
+  }
 }
 
 /* ----------------------------- MNI Header -----------------------------------

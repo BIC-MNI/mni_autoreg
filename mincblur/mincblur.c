@@ -54,7 +54,10 @@
               express or implied warranty.
    @CREATED    : January 25, 1992 louis collins (Original using .iff files)
    @MODIFIED   : $Log: mincblur.c,v $
-   @MODIFIED   : Revision 96.5  2009-02-13 04:14:40  rotor
+   @MODIFIED   : Revision 96.6  2009-06-05 20:49:52  claude
+   @MODIFIED   : Free memory after usage in mincblur
+   @MODIFIED   :
+   @MODIFIED   : Revision 96.5  2009/02/13 04:14:40  rotor
    @MODIFIED   :  * small updated to arguments of mincblur
    @MODIFIED   :
    @MODIFIED   : Revision 96.4  2006/11/28 09:12:21  rotor
@@ -115,7 +118,7 @@
         rewrite using mnc files and David Macdonald's libmni.a
    ---------------------------------------------------------------------------- */
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/mincblur.c,v 96.5 2009-02-13 04:14:40 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/mincblur.c,v 96.6 2009-06-05 20:49:52 claude Exp $";
 #endif
 
 #include <config.h>
@@ -217,16 +220,19 @@ int main (int argc, char *argv[] )
   infilename      = argv[1];        
   output_basename = argv[2]; 
 
-  tname = malloc(strlen(output_basename)+strlen("_blur.mnc")+2 * sizeof(char*));
-  strcpy(tname,output_basename);
-  strcat(tname,"_blur.mnc");
-
                                 /* check to see if the output file can be written */
 
-  if (!clobber_flag && file_exists(tname)) {
-    print ("File %s exists. -- %d\n", tname);
-    print ("Use -clobber to overwrite.\n");
-    return ERROR;
+  if (!clobber_flag ) {
+    tname = malloc(strlen(output_basename)+strlen("_blur.mnc")+2 * sizeof(char*));
+    strcpy(tname,output_basename);
+    strcat(tname,"_blur.mnc");
+    if( file_exists(tname)) {
+      print ("File %s exists. -- %d\n", tname);
+      print ("Use -clobber to overwrite.\n");
+      free(tname);
+      return ERROR;
+    }
+    free(tname);
   }
 
   status = open_file( output_basename , WRITE_FILE, BINARY_FORMAT,  &ofd );
@@ -359,22 +365,12 @@ int main (int argc, char *argv[] )
 
   }
 
+  delete_volume( data );
+  if( history ) free( history );
+  if( temp_basename ) free( temp_basename );
+
   return(status);
    
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 

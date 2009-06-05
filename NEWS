@@ -1,5 +1,9 @@
 CHANGES to the MNI_AutoReg package...
 
+Release 
+--------------
+* Free memory after usage in mincblur.
+
 Release 0.99.5
 --------------
 

@@ -15,7 +15,10 @@
 @CREATED    : Wed Jun 30 13:25:33 EST 1993 Louis Collins
                 copied and modified from mincresample.h from Peter Neelin
 @MODIFIED   : $Log: gradmag_volume.h,v $
-@MODIFIED   : Revision 96.2  2006-11-28 09:12:21  rotor
+@MODIFIED   : Revision 96.3  2009-06-05 20:49:52  claude
+@MODIFIED   : Free memory after usage in mincblur
+@MODIFIED   :
+@MODIFIED   : Revision 96.2  2006/11/28 09:12:21  rotor
 @MODIFIED   :  * fixes to allow clean compile against minc 2.0
 @MODIFIED   :
 @MODIFIED   : Revision 96.1  2004/02/12 05:53:48  rotor
@@ -131,6 +134,7 @@ void build_vol_info(char *infilename, char *outfilename,
                         MincVolume *in_vol, MincVolume *out_vol, char *history);
 
 void load_vol_info(char *infilename, MincVolume *in_vol);
+void free_vol_info( MincVolume * vol );
 
 void get_file_info(char *filename, 
                           Volume_Definition *volume_def,
