@@ -43,7 +43,7 @@ static float normal_height(float fwhm,float mu,float x)
    return(f);
 }
 
-void apodize_data(VIO_Volume data, 
+void apodize_data(VIO_Volume data, int xyzv[VIO_MAX_DIMENSIONS],
                          double xramp1,double xramp2,
                          double yramp1,double yramp2,
                          double zramp1,double zramp2)
@@ -60,221 +60,92 @@ void apodize_data(VIO_Volume data,
     voxel_value;
 
   int
-    sizes[3];
+    sizes[3], pos[3];
   VIO_Real
-    step[3];
+    step[3], ramp1[3], ramp2[3];
 
   get_volume_sizes(data, sizes);
   get_volume_separations(data, step);
   get_volume_voxel_range(data, &valid_min, &valid_max);
 
-  if (zramp1 > ABS(step[VIO_Z])/2) {
+  ramp1[VIO_X] = xramp1;
+  ramp1[VIO_Y] = yramp1;
+  ramp1[VIO_Z] = zramp1;
+  ramp2[VIO_X] = xramp2;
+  ramp2[VIO_Y] = yramp2;
+  ramp2[VIO_Z] = zramp2;
 
-    /* number of slices to be apodized */
-    num_steps = ROUND( 1.25*zramp1/ABS(step[VIO_Z]) + 0.5);      
+  int dim0, dim1, dim2;
 
-    if (num_steps>ABS(sizes[VIO_Z])) {
-      print_error_and_line_num("FWHM is greater than slice dimension\n",__FILE__, __LINE__);
-    }
+  for( dim0 = 0; dim0 < 3; dim0++ ) {
+
+    dim1 = ( dim0 + 1 ) % 3;
+    dim2 = ( dim0 + 2 ) % 3;
+
+    if (ramp1[dim0] > ABS(step[xyzv[dim0]])/2) {
+
+      /* number of slices to be apodized */
+      num_steps = ROUND( 1.25*ramp1[dim0]/ABS(step[xyzv[dim0]]) + 0.5);      
+
+      if (num_steps>ABS(sizes[xyzv[dim0]])) {
+        print_error_and_line_num("FWHM is greater than slice dimension\n",__FILE__, __LINE__);
+      }
     
-    for(slice=0; slice<num_steps; slice++) {
+      for(slice=0; slice<num_steps; slice++) {
       
-      scale1 = normal_height( zramp1*GWID1, 1.25*zramp1, (float)slice*ABS(step[VIO_Z]));
-      scale2 = normal_height( zramp1*GWID2, 0.0, (float)(num_steps - 1 - slice)*ABS(step[VIO_Z]));
+        scale1 = normal_height( ramp1[dim0]*GWID1, 1.25*ramp1[dim0], (float)slice*ABS(step[xyzv[dim0]]));
+        scale2 = normal_height( ramp1[dim0]*GWID2, 0.0, (float)(num_steps - 1 - slice)*ABS(step[xyzv[dim0]]));
+        scale = INTERPOLATE( slice/(num_steps-1.0) , scale1, scale2);
 
-      scale = INTERPOLATE( slice/(num_steps-1.0) , scale1, scale2);
-
-      for(row=0; row<sizes[VIO_Y]; row++) {
-        
-        for(col=0; col<sizes[VIO_X]; col++) {
-
-          GET_VOXEL_3D(voxel_value, data, col, row, slice);
-          if (voxel_value >= valid_min && voxel_value <= valid_max) {
-
-            real_value = CONVERT_VOXEL_TO_VALUE(data, voxel_value);
-
-            real_value *= scale;
-
-            voxel_value = CONVERT_VALUE_TO_VOXEL(data, real_value);
-
-            SET_VOXEL_3D( data, col, row, slice, voxel_value);
-
-
+        for(row=0; row<sizes[xyzv[dim1]]; row++) {
+          for(col=0; col<sizes[xyzv[dim2]]; col++) {
+            pos[xyzv[dim0]] = slice;
+            pos[xyzv[dim1]] = row;
+            pos[xyzv[dim2]] = col;
+            GET_VOXEL_3D(voxel_value, data, pos[0], pos[1], pos[2] );
+            if (voxel_value >= valid_min && voxel_value <= valid_max) {
+              real_value = CONVERT_VOXEL_TO_VALUE(data, voxel_value);
+              real_value *= scale;
+              voxel_value = CONVERT_VALUE_TO_VOXEL(data, real_value);
+              SET_VOXEL_3D( data, pos[0], pos[1], pos[2], voxel_value);
+            }
           }
-
         }
-        
       }
     }
     
-  }
-  
-  if (zramp2 > ABS(step[VIO_Z])/2 ) {
+    if (ramp2[dim0] > ABS(step[xyzv[dim0]])/2 ) {
 
-    /* number of slices to be apodized */
-    num_steps = ROUND( 1.25*zramp2/ABS(step[VIO_Z]) + 0.5);      
+      /* number of slices to be apodized */
+      num_steps = ROUND( 1.25*ramp2[dim0]/ABS(step[xyzv[dim0]]) + 0.5);      
 
-    if (num_steps>sizes[VIO_Z]) {
-      print_error_and_line_num("FWHM is greater than slice dimension\n",__FILE__, __LINE__);
-    }
+      if (num_steps>sizes[xyzv[dim0]]) {
+        print_error_and_line_num("FWHM is greater than slice dimension\n",__FILE__, __LINE__);
+      }
     
-    for(slice=0; slice<num_steps; slice++) {
+      for(slice=0; slice<num_steps; slice++) {
       
-      scale1 = normal_height( zramp2*GWID1, 1.25*zramp2, (float)slice*ABS(step[VIO_Z]));
-      scale2 = normal_height( zramp2*GWID2, 0.0, (float)(num_steps - 1 - slice)*ABS(step[VIO_Z]));
-      scale = INTERPOLATE( slice/(num_steps-1.0) , scale1, scale2);
+        scale1 = normal_height( ramp2[dim0]*GWID1, 1.25*ramp2[dim0], (float)slice*ABS(step[xyzv[dim0]]));
+        scale2 = normal_height( ramp2[dim0]*GWID2, 0.0, (float)(num_steps - 1 - slice)*ABS(step[xyzv[dim0]]));
+        scale = INTERPOLATE( slice/(num_steps-1.0) , scale1, scale2);
 
-      for(row=0; row<sizes[VIO_Y]; row++) {
-        
-        for(col=0; col<sizes[VIO_X]; col++) {
-
-          GET_VOXEL_3D(voxel_value, data, col, row, sizes[VIO_Z]-1-slice);
-          if (voxel_value >= valid_min && voxel_value <= valid_max) {
-            real_value = CONVERT_VOXEL_TO_VALUE(data, voxel_value);
-            real_value *= scale;
-            voxel_value = CONVERT_VALUE_TO_VOXEL(data, real_value);
-            SET_VOXEL_3D( data, col, row, sizes[VIO_Z]-1-slice, voxel_value);
+        for(row=0; row<sizes[xyzv[dim1]]; row++) {
+          for(col=0; col<sizes[xyzv[dim2]]; col++) {
+            pos[xyzv[dim0]] = sizes[xyzv[dim0]]-1-slice;
+            pos[xyzv[dim1]] = row;
+            pos[xyzv[dim2]] = col;
+            GET_VOXEL_3D(voxel_value, data, pos[0], pos[1], pos[2] );
+            if (voxel_value >= valid_min && voxel_value <= valid_max) {
+              real_value = CONVERT_VOXEL_TO_VALUE(data, voxel_value);
+              real_value *= scale;
+              voxel_value = CONVERT_VALUE_TO_VOXEL(data, real_value);
+              SET_VOXEL_3D( data, pos[0], pos[1], pos[2], voxel_value );
+            }
           }
         }
-        
       }
     }
-    
   }
-  
-  if (yramp1 > ABS(step[VIO_Y])/2 ) {
-                                /* number of rows to be apodized */
-    num_steps = ROUND( 1.25*yramp1/ABS(step[VIO_Y]) + 0.5);      
-
-    if (num_steps>sizes[VIO_Y]) {
-      print_error_and_line_num("FWHM is greater than col dimension\n",__FILE__, __LINE__);
-    }
-    
-    for(row=0; row<num_steps; row++) {
-      
-      scale1 = normal_height( yramp1*GWID1, 1.25*yramp1, (float)row*ABS(step[VIO_Y]));
-      scale2 = normal_height( yramp1*GWID2, 0.0, (float)(num_steps - 1 - row)*ABS(step[VIO_Y]));
-      scale = INTERPOLATE( row/(num_steps-1.0) , scale1, scale2);
-
-      for(slice=0; slice<sizes[VIO_Z]; slice++) {
-        
-        for(col=0; col<sizes[VIO_X]; col++) {
-          
-          GET_VOXEL_3D(voxel_value, data, col, row, slice);
-          if (voxel_value >= valid_min && voxel_value <= valid_max) {
-            real_value = CONVERT_VOXEL_TO_VALUE(data, voxel_value);
-            real_value *= scale;
-            voxel_value = CONVERT_VALUE_TO_VOXEL(data, real_value);
-            SET_VOXEL_3D( data, col, row, slice, voxel_value);
-          }
-        }
-        
-      }
-    }
-    
-  }
-
-  if (yramp2 > ABS(step[VIO_Y])/2) {
-                                /* number of rows to be apodized */
-    num_steps = ROUND( 1.25*yramp2/ABS(step[VIO_Y]) + 0.5);      
-    
-    if (num_steps>sizes[VIO_Y]) {
-      print_error_and_line_num("FWHM is greater than col dimension\n",__FILE__, __LINE__);
-    }
-    
-    for(row=0; row<num_steps; row++) {
-      
-      scale1 = normal_height( yramp2*GWID1, 1.25*yramp2, (float)row*ABS(step[VIO_Y]));
-      scale2 = normal_height( yramp2*GWID2, 0.0, (float)(num_steps - 1 - row)*ABS(step[VIO_Y]));
-      scale = INTERPOLATE( row/(num_steps-1.0) , scale1, scale2);
-      
-      for(slice=0; slice<sizes[VIO_Z]; slice++) {
-        
-        for(col=0; col<sizes[VIO_X]; col++) {
-          
-          GET_VOXEL_3D(voxel_value, data, col, sizes[VIO_Y]-1-row, slice);
-          if (voxel_value >= valid_min && voxel_value <= valid_max) {
-            real_value = CONVERT_VOXEL_TO_VALUE(data, voxel_value);
-            real_value *= scale;
-            voxel_value = CONVERT_VALUE_TO_VOXEL(data, real_value);
-            SET_VOXEL_3D( data, col, sizes[VIO_Y]-1-row, slice, voxel_value);
-          }
-        }
-        
-      }
-    }
-    
-  }
-  
-  if (xramp1 > ABS(step[VIO_X])/2) {
-                                /* number of slices to be apodized */
-    num_steps = ROUND( 1.25*xramp1/ABS(step[VIO_X]) + 0.5);      
-    
-    if (num_steps>sizes[VIO_X]) {
-      print_error_and_line_num("FWHM is greater than col dimension\n",__FILE__, __LINE__);
-    }
-    
-    for(col=0; col<num_steps; col++) {
-
-
-      scale1 = normal_height( xramp1*GWID1, 1.25*xramp1, (float)col*ABS(step[VIO_X]));
-      scale2 = normal_height( xramp1*GWID2, 0.0, (float)(num_steps - 1 - col)*ABS(step[VIO_X]));
-      scale = INTERPOLATE( col/(num_steps-1.0) , scale1, scale2);
-
-      for(slice=0; slice<sizes[VIO_Z]; slice++) {
-        
-        for(row=0; row<sizes[VIO_Y]; row++) {
-          
-          GET_VOXEL_3D( voxel_value, data, col, row, slice);
-          if (voxel_value >= valid_min && voxel_value <= valid_max) {
-            real_value = CONVERT_VOXEL_TO_VALUE(data, voxel_value);
-            real_value *= scale;
-            voxel_value = CONVERT_VALUE_TO_VOXEL(data, real_value);
-            SET_VOXEL_3D( data, col, row, slice, voxel_value);
-          }
-          
-        }
-        
-      }
-    }
-    
-  }
-  
-  if (xramp2 > ABS(step[VIO_X])/2) {
-                                /* number of slices to be apodized */
-    num_steps = ROUND( 1.25*xramp2/step[VIO_X] + 0.5);      
-
-    if (num_steps>sizes[VIO_X]) {
-      print_error_and_line_num("FWHM is greater than col dimension\n",__FILE__, __LINE__);
-    }
-    
-    for(col=0; col<num_steps; col++) {
-      
-      scale1 = normal_height( xramp2*GWID1, 1.25*xramp2, (float)col*ABS(step[VIO_X]));
-      scale2 = normal_height( xramp2*GWID2, 0.0, (float)(num_steps - 1 - col)*ABS(step[VIO_X]));
-      scale = INTERPOLATE( col/(num_steps-1.0) , scale1, scale2);
-
-      for(slice=0; slice<sizes[VIO_Z]; slice++) {
-        
-        for(row=0; row<sizes[VIO_Y]; row++) {
-          
-          GET_VOXEL_3D( voxel_value, data, sizes[VIO_X]-1-col, row, slice);
-          if (voxel_value >= valid_min && voxel_value <= valid_max) {
-            real_value = CONVERT_VOXEL_TO_VALUE(data, voxel_value);
-            real_value *= scale;
-            voxel_value = CONVERT_VALUE_TO_VOXEL(data, real_value);
-            SET_VOXEL_3D( data, sizes[VIO_X]-1-col, row, slice, voxel_value);
-          }
-          
-        }
-        
-      }
-    }
-    
-  }
-  
-  
-  
   
 }
 

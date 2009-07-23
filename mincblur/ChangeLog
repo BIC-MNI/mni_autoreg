@@ -1,3 +1,8 @@
+2009-07-23  Claude Lepage <claude@bic.mni.mcgill.ca>
+	* fixed one bug in apodize_data.c for ABS(step) in one direction
+	* now use VIO_X, VIO_Y, VIO_Z (no more X, Y, Z) and make invariant
+          to dimension order
+
 2000-02-19  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
 
 	* mincblur.c (main): create history from history_string.

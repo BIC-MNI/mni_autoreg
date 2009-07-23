@@ -15,7 +15,10 @@
 
 @CREATED    : Wed Jun 23 09:04:34 EST 1993 Louis Collins
 @MODIFIED   : $Log: mincblur.h,v $
-@MODIFIED   : Revision 96.4  2009-02-13 04:14:40  rotor
+@MODIFIED   : Revision 96.5  2009-07-23 22:34:00  claude
+@MODIFIED   : cleanup in mincblur for VIO_X, VIO_Y, VIO_Z
+@MODIFIED   :
+@MODIFIED   : Revision 96.4  2009/02/13 04:14:40  rotor
 @MODIFIED   :  * small updated to arguments of mincblur
 @MODIFIED   :
 @MODIFIED   : Revision 96.3  2006/11/28 09:12:21  rotor
@@ -41,7 +44,7 @@
  *
 ---------------------------------------------------------------------------- */
 
-VIO_Status blur3D_volume(VIO_Volume data,
+VIO_Status blur3D_volume(VIO_Volume data, int *xyzv,
                             double  kernel1, double  kernel2, double  kernel3, 
                             char *infile, 
                             char *outfile, 
@@ -50,6 +53,7 @@ VIO_Status blur3D_volume(VIO_Volume data,
 
 VIO_Status gradient3D_volume(FILE *ifd, 
                                 VIO_Volume data, 
+                                int *xyzv,
                                 char *infile, 
                                 char *outfile, 
                                 int ndim,
@@ -57,7 +61,7 @@ VIO_Status gradient3D_volume(FILE *ifd,
                                 int curvature_flg);
 
 
-void apodize_data(VIO_Volume data, 
+void apodize_data(VIO_Volume data, int *xyzv,
                          double xramp1,double xramp2,
                          double yramp1,double yramp2,
                          double zramp1,double zramp2);
@@ -70,10 +74,6 @@ void calc_gradient_magnitude(char *infilename,
 void calc_gaussian_curvature(char *infilename, char *history,
                                     VIO_Real min_value, VIO_Real max_value);
 
-
-#define INTERNAL_X  2
-#define INTERNAL_Y  1
-#define INTERNAL_Z  0
 
 char *prog_name;
 

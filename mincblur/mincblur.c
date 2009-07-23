@@ -54,7 +54,10 @@
               express or implied warranty.
    @CREATED    : January 25, 1992 louis collins (Original using .iff files)
    @MODIFIED   : $Log: mincblur.c,v $
-   @MODIFIED   : Revision 96.6  2009-06-05 20:49:52  claude
+   @MODIFIED   : Revision 96.7  2009-07-23 22:34:00  claude
+   @MODIFIED   : cleanup in mincblur for VIO_X, VIO_Y, VIO_Z
+   @MODIFIED   :
+   @MODIFIED   : Revision 96.6  2009/06/05 20:49:52  claude
    @MODIFIED   : Free memory after usage in mincblur
    @MODIFIED   :
    @MODIFIED   : Revision 96.5  2009/02/13 04:14:40  rotor
@@ -118,7 +121,7 @@
         rewrite using mnc files and David Macdonald's libmni.a
    ---------------------------------------------------------------------------- */
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/mincblur.c,v 96.6 2009-06-05 20:49:52 claude Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/mincblur.c,v 96.7 2009-07-23 22:34:00 claude Exp $";
 #endif
 
 #include <config.h>
@@ -130,8 +133,26 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur
 #include "kernel.h"
 #include "mincblur.h"
 
-static char *default_dim_names[VIO_N_DIMENSIONS] = { MIzspace, MIyspace, MIxspace };
- 
+/* confiscated from minctracc.c */
+void get_volume_XYZV_indices(VIO_Volume data, int xyzv[]) {
+
+  int     axis, i, vol_dims;
+  char ** data_dim_names;
+
+  vol_dims       = get_volume_n_dimensions(data);
+  data_dim_names = get_volume_dimension_names(data);
+
+  for(i=0; i<VIO_N_DIMENSIONS+1; i++) xyzv[i] = -1;
+  for(i=0; i<vol_dims; i++) {
+    if (convert_dim_name_to_spatial_axis(data_dim_names[i], &axis )) {
+      xyzv[axis] = i;
+    } else {     /* not a spatial axis */
+      xyzv[VIO_Z+1] = i;
+    }
+  }
+
+  delete_dimension_names(data, data_dim_names);
+}
 
 
 int main (int argc, char *argv[] )
@@ -158,7 +179,8 @@ int main (int argc, char *argv[] )
   int
     n_dimensions,
     i,
-    sizes[3];
+    sizes[3],
+    xyzv[VIO_MAX_DIMENSIONS];
   char *history;
   char *tname;
 
@@ -270,12 +292,16 @@ int main (int argc, char *argv[] )
   /******************************************************************************/
   /*             create blurred volume first                                    */
   /******************************************************************************/
-  
-  status = input_volume(infilename, 3, default_dim_names, NC_UNSPECIFIED,
-                        FALSE, 0.0, 0.0, TRUE, &data, (minc_input_options *)NULL);
+
+  status = input_volume(infilename, VIO_N_DIMENSIONS, 
+                        get_default_dim_names( VIO_N_DIMENSIONS ),
+                        NC_UNSPECIFIED, FALSE, 0.0, 0.0, TRUE, 
+                        &data, (minc_input_options *)NULL);
   if ( status != OK )
     print_error_and_line_num("problems reading `%s'.\n",__FILE__, __LINE__,infilename);
-    
+
+  get_volume_XYZV_indices( data, xyzv );
+
   if (debug) {
     get_volume_sizes(data, sizes);
     get_volume_separations(data, step);
@@ -283,9 +309,9 @@ int main (int argc, char *argv[] )
     printf ( "Data filename     = %s\n", infilename);
     printf ( "Output basename   = %s\n", output_basename);
     printf ( "Input volume      = %3d cols by %3d rows by %d slices\n",
-            sizes[INTERNAL_X], sizes[INTERNAL_Y], sizes[INTERNAL_Z]);
+            sizes[xyzv[VIO_X]], sizes[xyzv[VIO_Y]], sizes[xyzv[VIO_Z]]);
     printf ( "Input voxels are  = %8.3f %8.3f %8.3f\n", 
-            step[INTERNAL_X], step[INTERNAL_Y], step[INTERNAL_Z]);
+            step[xyzv[VIO_X]], step[xyzv[VIO_Y]], step[xyzv[VIO_Z]]);
     get_volume_real_range(data,&min_value, &max_value);
     printf ( "min/max value     = %8.3f %8.3f\n", min_value, max_value);
   }
@@ -298,18 +324,18 @@ int main (int argc, char *argv[] )
   
                                 /* apodize data if needed */
   if (apodize_data_flg) {
-    if (debug) print ("Apodizing data at %f\n",fwhm);
-    apodize_data(data, fwhm_3D[0], fwhm_3D[0], fwhm_3D[1], fwhm_3D[1], fwhm_3D[2], fwhm_3D[2] );
+    if (debug) print ("Apodizing data at (%f,%f) (%f,%f) (%f,%f)\n",
+                      fwhm_3D[0], fwhm_3D[0], fwhm_3D[1], fwhm_3D[1], fwhm_3D[2], fwhm_3D[2] );
+    apodize_data(data, xyzv, fwhm_3D[0], fwhm_3D[0], fwhm_3D[1], fwhm_3D[1], fwhm_3D[2], fwhm_3D[2] );
   }
-  
+ 
                                 /* now _BLUR_ the DATA! */
-  status = blur3D_volume(data,
+  status = blur3D_volume(data, xyzv,
                          fwhm_3D[0],fwhm_3D[1],fwhm_3D[2],
                          infilename,
                          output_basename,
                          reals_fp,
                          dimensions,kernel_type,history);
-
 
   /******************************************************************************/
   /*             calculate d/dx,  d/dy and d/dz volumes                         */
@@ -333,7 +359,7 @@ int main (int argc, char *argv[] )
       partials_name = temp_basename;
 
 
-    status = gradient3D_volume(reals_fp, data, infilename, partials_name, dimensions,
+    status = gradient3D_volume(reals_fp, data, xyzv, infilename, partials_name, dimensions,
                                history, FALSE);
     if (status!=OK)
       print_error_and_line_num("Can't calculate the gradient volumes.",__FILE__, __LINE__);

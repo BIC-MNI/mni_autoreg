@@ -1,8 +1,9 @@
-CHANGES to the MNI_AutoReg package...
-
 Release 
 --------------
 * Free memory after usage in mincblur.
+* fixed one bug in apodize_data.c for ABS(step) in one direction
+* now use VIO_X, VIO_Y, VIO_Z (no more X, Y, Z) in mincblur and
+  make it invariant to dimension order
 
 Release 0.99.5
 --------------
