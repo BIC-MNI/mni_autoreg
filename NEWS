@@ -1,5 +1,4 @@
-=======
-Release 
+Release 0.99.6
 --------------
 * Free memory after usage in mincblur.
 * fixed one bug in apodize_data.c for ABS(step) in one direction
