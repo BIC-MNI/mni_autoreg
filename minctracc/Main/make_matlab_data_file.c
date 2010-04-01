@@ -23,7 +23,10 @@
 
 @CREATED    : Mon Oct  4 13:06:17 EST 1993 Louis
 @MODIFIED   : $Log: make_matlab_data_file.c,v $
-@MODIFIED   : Revision 96.9  2008-10-08 15:17:49  louis
+@MODIFIED   : Revision 96.10  2010-04-01 04:49:16  rotor
+@MODIFIED   :  * fixed time.h include
+@MODIFIED   :
+@MODIFIED   : Revision 96.9  2008/10/08 15:17:49  louis
 @MODIFIED   : added -nmi option for linear normalized mutual information
 @MODIFIED   :
 @MODIFIED   : Revision 96.8  2006/11/30 09:07:31  rotor
@@ -86,7 +89,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/make_matlab_data_file.c,v 96.9 2008-10-08 15:17:49 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/make_matlab_data_file.c,v 96.10 2010-04-01 04:49:16 rotor Exp $";
 #endif
 
 

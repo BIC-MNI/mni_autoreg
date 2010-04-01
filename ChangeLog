@@ -1,23 +1,24 @@
+
+2010-04-01  Andrew L Janke  <a.janke@gmail.com>
+	* minctracc/Extra_progs/rand_param.c: changed from <time.h> to <sys/time.h>
+		for cygwin
+
 2009-07-23  Claude Lepage <claude@bic.mni.mcgill.ca>
-        * fixed one bug in apodize_data.c for ABS(step) in one direction
-        * now use VIO_X, VIO_Y, VIO_Z (no more X, Y, Z) in mincblur and 
-          make it invariant to dimension order
+	* fixed one bug in apodize_data.c for ABS(step) in one direction
+	* now use VIO_X, VIO_Y, VIO_Z (no more X, Y, Z) in mincblur and 
+		make it invariant to dimension order
 
 2009-06-05  Claude Lepage <claude@bic.mni.mcgill.ca>
 	* Free memory after usage in mincblur.
 
 2009-04-03  D. Louis Collins <louis.collins@mcgill.ca>
-
 	* added Andrew's changes so that input source and target volumes are read in as DOUBLE.  Modified the deformation code so that deformation field are created and manipulated as DOUBLES.  Simplified the non-linear objective function code to deal only with DOUBLES (and not all possible types).
-	
 
 2009-04-01  Andrew L Janke  <a.janke@gmail.com>
-
-   * Fixed bug in mritoself with same named files
-      in different directories (thanks Soren!)
+	* Fixed bug in mritoself with same named files
+		in different directories (thanks Soren!)
 
 2009-03-31  Andrew L Janke  <a.janke@gmail.com>
-
    * FAQ, perl/autocrop.1, perl/mritoself.in, perl/mritotal.1
       perl/mritotal.cfg.in, perl/mritotal.in:
          Changed default model to average305_t1_tal_lin
@@ -26,55 +27,42 @@
       interpoation options
 
 2009-03-23  Claude Lepage <claude@bic.mni.mcgill.ca>
-
 	* disable file compression (minc2) on temporary files in make_model.in
 
 2009-03-13  Claude Lepage <claude@bic.mni.mcgill.ca>
-
 	* fixed a bug for the offsets in minctracc/Volume/init_lattice.c
 	* free memory after usage in minctracc
 
-
 2008-10-08  D. Louis Collins <louis.collins@mcgill.ca>
-
 	* added -nmi option (normalized mutual information) as an objective
 	  function for linear registration.
 	
 2008-02-07  Andrew L Janke <a.janke@gmail.com>
-
 	* added a bugfix to xfmtool from Jim Nikelski
 
 2006-11-30  Andrew L Janke <a.janke@gmail.com>
-
 	* many changes (many) for a clean minc 2.0 build
 
 2006-06-04  Andrew L Janke <a.janke@gmail.com>
-
 	* Fixed a 64 bit problem with function pointers and ParseArgv 
 	   (thanks Jason!)
 
 2006-05-30  Andrew L Janke <a.janke@gmail.com>
-
 	* Added an include fix to get_history.c (thanks claude)
 
 2006-04-06  Andrew L Janke <a.janke@gmail.com>
-
 	* Fixed use of self_announce in mritotal and mritoself
 	
 2006-03-31  Andrew L Janke <a.janke@gmail.com>
-
 	* Fixed use declaration of split_path in autocrop
 	
 2005-10-01  Andrew L Janke  <a.janke@gmail.com>
-
 	* Added vladimir fonovs changes to xfmtool that allows a .gz grid xfm
 	
 2005-08-03  Andrew L Janke  <a.janke@gmail.com>
-
 	* Finished perl perllib stuff (finally)
 
 2005-07-20  Andrew Janke <a.janke@gmail.com>
-
 	* Complete rewrite of the autoconf stuff (configure.in -> configure.am)
 	* Many changes to includes of files (float.h, limits.h, etc)
 	* Removed old VOLUME_IO cruft #defines
@@ -83,29 +71,23 @@
 	* Still working on fixing up perl subdirectory - removing mni_perllib
 
 2005-06-28  Andrew Janke <a.janke@gmail.com>
-
 	* Added masking for feature volumes from Patricia Le Nezet & Irina Kezele
 
 2005-01-29  Andrew Janke <a.janke@gmail.com>
-
 	* removed #include <malloc.h> from mincblur build to assist OSX build
 
 2004-03-18  Andrew Janke <rotor@cmr.uq.edu.au>
-
 	* changed make_model from csh to sh (Cygwin has no csh by default)
 
 2004-02-08  Andrew Janke <rotor@cmr.uq.edu.au>
-
 	* removed all the public/private syntatic sugar (private->static)
 	* Added use of FindBin::Bin to perl progs for libs, data and config
 	    the old method failed with binary distributions with a prefix
 
 2004-02-04  patricia Le Nezet <lenezet@bic.mni.mcgill.ca>
-
 	* fixed direction cosines problems
 
 2002-03-26  Steve M. Robbins  <steve@nyongwa.montreal.qc.ca>
-
 	* configure.in: Updated to conform to autoconf 2.5x.  Use the BIC
 	standard macros in directory m4; these need to be checked out from
 	repository 'mni-acmacros'.
@@ -121,15 +103,12 @@
 	<volume_io/internal_volume_io.h> to match practice of MINC 0.7.
 
 2001-02-16  Steve ROBBINS  <stever@bic.mni.mcgill.ca>
-
 	* configure.in: Set VERSION to 0.98k.
 
 2001-01-28  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
-
 	* INSTALL.quick: Updated to account for changes to configure.
 
 2001-01-25  Steve Robbins  <steve@nyongwa.montreal.qc.ca>
-
 	* configure.in: Do not automatically add lib and include
 	directories from /usr/local and ${prefix}.  Add configure flag
 	--with-build-path to allow specifying extra locations for the

@@ -10,7 +10,10 @@
 @CALLS      : 
 @CREATED    : Tue Aug 23 15:32:30 EST 1994 - Louis
 @MODIFIED   : $Log: rand_param.c,v $
-@MODIFIED   : Revision 96.5  2008-11-07 23:54:54  sjschen
+@MODIFIED   : Revision 96.6  2010-04-01 04:49:16  rotor
+@MODIFIED   :  * fixed time.h include
+@MODIFIED   :
+@MODIFIED   : Revision 96.5  2008/11/07 23:54:54  sjschen
 @MODIFIED   :
 @MODIFIED   :
 @MODIFIED   : Change the way the seed value is generated for srand(). Now gives different
@@ -65,7 +68,7 @@ static char rcsid[]="";
 #include <ParseArgv.h>
 
 #include <sys/types.h>
-#include <time.h>
+#include <sys/time.h>
 
 
 time_t time(time_t *tloc);

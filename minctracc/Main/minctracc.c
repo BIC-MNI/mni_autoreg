@@ -13,7 +13,10 @@
 
    @CREATED    : February 3, 1992 - louis collins
    @MODIFIED   : $Log: minctracc.c,v $
-   @MODIFIED   : Revision 96.22  2009-05-26 18:03:07  claude
+   @MODIFIED   : Revision 96.23  2010-04-01 04:49:16  rotor
+   @MODIFIED   :  * fixed time.h include
+   @MODIFIED   :
+   @MODIFIED   : Revision 96.22  2009/05/26 18:03:07  claude
    @MODIFIED   : free more memory after usage
    @MODIFIED   :
    @MODIFIED   : Revision 96.21  2009/05/22 15:49:19  claude
@@ -161,7 +164,7 @@ Wed May 26 13:05:44 EST 1993 lc
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.22 2009-05-26 18:03:07 claude Exp $";
+static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.23 2010-04-01 04:49:16 rotor Exp $";
 #endif
 
 #include <config.h>
