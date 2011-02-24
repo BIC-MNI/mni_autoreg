@@ -16,6 +16,9 @@
 @CREATED    : Thu Nov 18 11:22:26 EST 1993 LC
 
 @MODIFIED   : $Log: do_nonlinear.c,v $
+@MODIFIED   : Revision 96.31  2011-02-24 20:02:35  louis
+@MODIFIED   : update for normalized mutual informatoin
+@MODIFIED   :
 @MODIFIED   : Revision 96.30  2009-05-26 18:03:07  claude
 @MODIFIED   : free more memory after usage
 @MODIFIED   :
@@ -351,7 +354,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.30 2009-05-26 18:03:07 claude Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.31 2011-02-24 20:02:35 louis Exp $";
 #endif
 
 #include <config.h>                /* MAXtype and MIN defs                      */
@@ -2060,9 +2063,10 @@ static VIO_Real get_optical_flow_vector(VIO_Real threshold1,
     
                                 /* compute deformations directly!       */
 
-    thresh = Min_deriv; /* should compute a better
-    threshold value here, possibly based on a histogram of the
-    grandient magnitudes across the 3D lattice. */
+    thresh = Min_deriv * (get_volume_real_max(data) - get_volume_real_min(data)); 
+				/* should compute a better
+				   threshold value here, possibly based on a histogram of the
+				   grandient magnitudes across the 3D lattice. */
 
     mag = sqrt (dx[0]*dx[0] + dy[0]*dy[0] + dz[0]*dz[0]);
       

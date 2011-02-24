@@ -5,7 +5,7 @@
                procedures.               
 @CREATED    : Mon Nov  3, 1997 , Louis Collins
 @MODIFIED   : not yet!
-@VERSION    : $Id: extras.c,v 1.11 2009-04-03 18:36:59 louis Exp $
+@VERSION    : $Id: extras.c,v 1.12 2011-02-24 20:02:35 louis Exp $
 #-----------------------------------------------------------------------------
 */
 
@@ -158,7 +158,6 @@ void get_volume_minimum_maximum_real_value(VIO_Volume volume, VIO_Real *min, VIO
       }
     }
 
-    return(max);
 }
 
 
