@@ -20,7 +20,10 @@
               express or implied warranty.
    @CREATED    : Wed Mar 16 20:20:50 EST 1994  Louis Collins
    @MODIFIED   : $Log: make_phantom.c,v $
-   @MODIFIED   : Revision 1.7  2006-11-28 08:57:13  rotor
+   @MODIFIED   : Revision 1.8  2011-12-08 01:53:04  rotor
+   @MODIFIED   :  * added a fix from Vlad to handle cases where an object is on the boundary
+   @MODIFIED   :
+   @MODIFIED   : Revision 1.7  2006/11/28 08:57:13  rotor
    @MODIFIED   :  * many changes to allow clean build against minc 2.0
    @MODIFIED   :
    @MODIFIED   : Revision 1.6  2005/07/20 20:45:32  rotor
@@ -79,11 +82,11 @@ void  set_min_max(VIO_Real *voxel,
 {
   int x,y,z;
 
-  /* If voxel[X] = 0.6, then *minx will be set to 1.
+  /* If voxel[VIO_X] = 0.6, then *minx will be set to 1.
      Is that correct, or do we want *minx = 0 ? */
-  x = ROUND(voxel[X]);
-  y = ROUND(voxel[Y]);
-  z = ROUND(voxel[Z]);
+  x = ROUND(voxel[VIO_X]);
+  y = ROUND(voxel[VIO_Y]);
+  z = ROUND(voxel[VIO_Z]);
   
   if (x > *maxx) *maxx = x;
   if (x < *minx) *minx = x;
@@ -100,14 +103,14 @@ void  set_min_max_r(VIO_Real *voxel,
                             VIO_Real *miny, VIO_Real *maxy, 
                             VIO_Real *minz, VIO_Real *maxz)
 {
-  if (voxel[X] > *maxx) *maxx = voxel[X];
-  if (voxel[X] < *minx) *minx = voxel[X];
+  if (voxel[VIO_X] > *maxx) *maxx = voxel[VIO_X];
+  if (voxel[VIO_X] < *minx) *minx = voxel[VIO_X];
 
-  if (voxel[Y] > *maxy) *maxy = voxel[Y];
-  if (voxel[Y] < *miny) *miny = voxel[Y];
+  if (voxel[VIO_Y] > *maxy) *maxy = voxel[VIO_Y];
+  if (voxel[VIO_Y] < *miny) *miny = voxel[VIO_Y];
 
-  if (voxel[Z] > *maxz) *maxz = voxel[Z];
-  if (voxel[Z] < *minz) *minz = voxel[Z];
+  if (voxel[VIO_Z] > *maxz) *maxz = voxel[VIO_Z];
+  if (voxel[VIO_Z] < *minz) *minz = voxel[VIO_Z];
 }
 
 
@@ -135,14 +138,14 @@ VIO_Real partial_elliptical(VIO_Volume data, VIO_Real center[], VIO_Real r2[], V
 
         convert_3D_voxel_to_world(data, 
                                   ((VIO_Real)vx+istep), ((VIO_Real)vy+jstep), ((VIO_Real)vz+kstep), 
-                                  &coord[X], &coord[Y], &coord[Z]);
+                                  &coord[VIO_X], &coord[VIO_Y], &coord[VIO_Z]);
         
    for(m=0; m<3; ++m){
            coord[m] = center[m] - coord[m];
            coord[m] = coord[m]*coord[m] / r2[m];
       }
         
-        if ( (coord[X] + coord[Y] + coord[Z]) <= 1.0000001 ) 
+        if ( (coord[VIO_X] + coord[VIO_Y] + coord[VIO_Z]) <= 1.0000001 ) 
           total_in++;
 
         total++;
@@ -173,14 +176,14 @@ VIO_BOOL is_inside_ellipse(VIO_Volume data, VIO_Real center[], VIO_Real r2[], in
 
   convert_3D_voxel_to_world(data, 
                             (VIO_Real)i, (VIO_Real)j, (VIO_Real)k, 
-                            &coord[X], &coord[Y], &coord[Z]);
+                            &coord[VIO_X], &coord[VIO_Y], &coord[VIO_Z]);
 
   for(m=0; m<3; ++m){
      coord[m] = center[m] - coord[m];
      coord[m] = coord[m]*coord[m] / r2[m];
   }
   
-  return (coord[X] + coord[Y] + coord[Z]) <= 1.0000001;
+  return (coord[VIO_X] + coord[VIO_Y] + coord[VIO_Z]) <= 1.0000001;
 }
 
 
@@ -220,7 +223,6 @@ int main (int argc, char *argv[] )
   history = history_string(argc, argv);
 
   /* Call ParseArgv to interpret all command line args */
-
   if (ParseArgv(&argc, argv, argTable, 0) || (argc!=2)) {
     (void) fprintf(stderr, 
                    "\nUsage: %s [<options>] output.mnc\n", 
@@ -228,16 +230,17 @@ int main (int argc, char *argv[] )
     (void) fprintf(stderr,"       %s [-help]\n\n", prog_name);
     exit(EXIT_FAILURE);
   }
-
-  outfilename  = argv[1];        /* set up necessary file names */
-
+  
+  /* set up necessary file names */
+  outfilename  = argv[1];
+  
   if (!clobber_flag && file_exists(outfilename)) {
     print ("File %s exists.\n",outfilename);
     print ("Use -clobber to overwrite.\n");
     return ERROR;
   }
 
-                                /* check to see if the output file can be written */
+  /* check to see if the output file can be written */
   status = open_file( outfilename , WRITE_FILE, BINARY_FORMAT,  &ofd );
   if ( status != OK ) {
     print ("filename `%s' cannot be opened.", outfilename);
@@ -269,14 +272,13 @@ int main (int argc, char *argv[] )
   if (debug) print ("zero: real = %f, voxel = %f\n", background, zero);
   if (debug) print ("one: real = %f, voxel = %f\n", fill_value, one);
 
-
   /******************************************************************************/
   /*             write out background value                                     */
   /******************************************************************************/
 
-  for(i=count[X]; i--; )
-    for(j=count[Y]; j--; )
-      for(k=count[Z]; k--; ){
+  for(i=count[VIO_X]; i--; )
+    for(j=count[VIO_Y]; j--; )
+      for(k=count[VIO_Z]; k--; ){
         SET_VOXEL_3D(data, i,j,k, zero);
       }
 
@@ -284,114 +286,114 @@ int main (int argc, char *argv[] )
   /*             build object data                                              */
   /******************************************************************************/
 
-                                /* begin by finding bounding box for data */
+  /* begin by finding bounding box for data */
   maxx = maxy = maxz = -INT_MAX;
   minx = miny = minz = INT_MAX;
   w_maxx = w_maxy = w_maxz = -DBL_MAX;
   w_minx = w_miny = w_minz = DBL_MAX;
 
+/* sometimes we may want the object to be outside the volume
   for(i=3; i<3; i++){
      coord[i] = center[i];
      }
   convert_3D_world_to_voxel(data, 
-                            coord[X], coord[Y], coord[Z], 
-                            &voxel[X], &voxel[Y], &voxel[Z]);  
+                            coord[VIO_X], coord[VIO_Y], coord[VIO_Z], 
+                            &voxel[VIO_X], &voxel[VIO_Y], &voxel[VIO_Z]);
   set_min_max(voxel, &minx, &maxx, &miny, &maxy, &minz, &maxz);
   set_min_max_r(coord, &w_minx, &w_maxx, &w_miny, &w_maxy, &w_minz, &w_maxz);
-  if (debug) print ("%f %f %f\n",voxel[X], voxel[Y], voxel[Z]);
+  if (debug) print ("%f %f %f\n",voxel[VIO_X], voxel[VIO_Y], voxel[VIO_Z]);
+*/
 
   for(i=0; i<3; i++){
      coord[i] = center[i];
      }
-  coord[Z] += width[Z]/2.0;
+  coord[VIO_Z] += width[VIO_Z]/2.0;
   
   convert_3D_world_to_voxel(data, 
-                            coord[X], coord[Y], coord[Z], 
-                            &voxel[X], &voxel[Y], &voxel[Z]);  
-  if (debug) print ("%f %f %f\n",voxel[X], voxel[Y], voxel[Z]);
+                            coord[VIO_X], coord[VIO_Y], coord[VIO_Z], 
+                            &voxel[VIO_X], &voxel[VIO_Y], &voxel[VIO_Z]);  
+  if (debug) print ("%f %f %f\n",voxel[VIO_X], voxel[VIO_Y], voxel[VIO_Z]);
   set_min_max(voxel, &minx, &maxx, &miny, &maxy, &minz, &maxz);
   set_min_max_r(coord, &w_minx, &w_maxx, &w_miny, &w_maxy, &w_minz, &w_maxz);
 
   for(i=0; i<3; i++){
      coord[i] = center[i];
      }
-  coord[Z] -= width[Z]/2.0;
+  coord[VIO_Z] -= width[VIO_Z]/2.0;
   convert_3D_world_to_voxel(data, 
-                            coord[X], coord[Y], coord[Z], 
-                            &voxel[X], &voxel[Y], &voxel[Z]);  
-  if (debug) print ("%f %f %f\n",voxel[X], voxel[Y], voxel[Z]);
+                            coord[VIO_X], coord[VIO_Y], coord[VIO_Z], 
+                            &voxel[VIO_X], &voxel[VIO_Y], &voxel[VIO_Z]);  
+  if (debug) print ("%f %f %f\n",voxel[VIO_X], voxel[VIO_Y], voxel[VIO_Z]);
   set_min_max(voxel, &minx, &maxx, &miny, &maxy, &minz, &maxz);
   set_min_max_r(coord, &w_minx, &w_maxx, &w_miny, &w_maxy, &w_minz, &w_maxz);
   
   for(i=0; i<3; i++){
      coord[i] = center[i];
      }
-  coord[Y] += width[Y]/2.0;
+  coord[VIO_Y] += width[VIO_Y]/2.0;
   convert_3D_world_to_voxel(data, 
-                            coord[X], coord[Y], coord[Z], 
-                            &voxel[X], &voxel[Y], &voxel[Z]);  
-  if (debug) print ("%f %f %f\n",voxel[X], voxel[Y], voxel[Z]);
+                            coord[VIO_X], coord[VIO_Y], coord[VIO_Z], 
+                            &voxel[VIO_X], &voxel[VIO_Y], &voxel[VIO_Z]);  
+  if (debug) print ("%f %f %f\n",voxel[VIO_X], voxel[VIO_Y], voxel[VIO_Z]);
   set_min_max(voxel, &minx, &maxx, &miny, &maxy, &minz, &maxz);
   set_min_max_r(coord, &w_minx, &w_maxx, &w_miny, &w_maxy, &w_minz, &w_maxz);
 
   for(i=0; i<3; i++){
      coord[i] = center[i];
      }
-  coord[Y] -= width[Y]/2.0;
+  coord[VIO_Y] -= width[VIO_Y]/2.0;
   convert_3D_world_to_voxel(data, 
-                            coord[X], coord[Y], coord[Z], 
-                            &voxel[X], &voxel[Y], &voxel[Z]);  
-  if (debug) print ("%f %f %f\n",voxel[X], voxel[Y], voxel[Z]);
+                            coord[VIO_X], coord[VIO_Y], coord[VIO_Z], 
+                            &voxel[VIO_X], &voxel[VIO_Y], &voxel[VIO_Z]);  
+  if (debug) print ("%f %f %f\n",voxel[VIO_X], voxel[VIO_Y], voxel[VIO_Z]);
   set_min_max(voxel, &minx, &maxx, &miny, &maxy, &minz, &maxz);
   set_min_max_r(coord, &w_minx, &w_maxx, &w_miny, &w_maxy, &w_minz, &w_maxz);
 
   for(i=0; i<3; i++){
      coord[i] = center[i];
      }
-  coord[X] += width[X]/2.0;
+  coord[VIO_X] += width[VIO_X]/2.0;
   convert_3D_world_to_voxel(data, 
-                            coord[X], coord[Y], coord[Z], 
-                            &voxel[X], &voxel[Y], &voxel[Z]);  
-  if (debug) print ("%f %f %f\n",voxel[X], voxel[Y], voxel[Z]);
+                            coord[VIO_X], coord[VIO_Y], coord[VIO_Z], 
+                            &voxel[VIO_X], &voxel[VIO_Y], &voxel[VIO_Z]);  
+  if (debug) print ("%f %f %f\n",voxel[VIO_X], voxel[VIO_Y], voxel[VIO_Z]);
   set_min_max(voxel, &minx, &maxx, &miny, &maxy, &minz, &maxz);
   set_min_max_r(coord, &w_minx, &w_maxx, &w_miny, &w_maxy, &w_minz, &w_maxz);
 
   for(i=0; i<3; i++){
      coord[i] = center[i];
      }
-  coord[X] -= width[X]/2.0;
+  coord[VIO_X] -= width[VIO_X]/2.0;
   convert_3D_world_to_voxel(data, 
-                            coord[X], coord[Y], coord[Z], 
-                            &voxel[X], &voxel[Y], &voxel[Z]);  
-  if (debug) print ("%f %f %f\n",voxel[X], voxel[Y], voxel[Z]);
+                            coord[VIO_X], coord[VIO_Y], coord[VIO_Z], 
+                            &voxel[VIO_X], &voxel[VIO_Y], &voxel[VIO_Z]);  
+  if (debug) print ("%f %f %f\n",voxel[VIO_X], voxel[VIO_Y], voxel[VIO_Z]);
   set_min_max(voxel, &minx, &maxx, &miny, &maxy, &minz, &maxz);
   set_min_max_r(coord, &w_minx, &w_maxx, &w_miny, &w_maxy, &w_minz, &w_maxz);
 
   if (debug) print ("mins, maxs: %3d %3d %3d %3d %3d %3d\n", minx, maxx, miny, maxy, minz, maxz);
 
 
-                                /* check to see if limits of object fit
-                                   in data volume */
-
+  /* check to see if limits of object fit in data volume */
   if ( maxx < 0  || maxy < 0 || maxz < 0 ||
-       minx > count[X] || miny > count[Y] || minz > count[Z]) {
+       minx > count[VIO_X] || miny > count[VIO_Y] || minz > count[VIO_Z]) {
     print ("There is no voxel overlap between object and volume as defined.\n");
     return ERROR;
   }
 
-                                /* add one voxel all around, for partial volume 
-                                   calculations. */
+  /* add one voxel all around, for partial volume calculations. */
   if (object==ELLIPSE) {
     --minx;  --miny;  --minz;
     ++maxx;  ++maxy;  ++maxz;
   }
-                                /* readjust for edge of volume */
+  
+  /* readjust for edge of volume */
   if (minx < 0) minx = 0;
-  if (maxx > count[X]-1) maxx = count[X]-1;
+  if (maxx > count[VIO_X]-1) maxx = count[VIO_X]-1;
   if (miny < 0) miny = 0;
-  if (maxy > count[Y]-1) maxy = count[Y]-1;
+  if (maxy > count[VIO_Y]-1) maxy = count[VIO_Y]-1;
   if (minz < 0) minz = 0;
-  if (maxz > count[Z]-1) maxz = count[Z]-1;
+  if (maxz > count[VIO_Z]-1) maxz = count[VIO_Z]-1;
 
 
   if (debug) print ("mins, maxs: %3d %3d %3d %3d %3d %3d\n", minx, maxx, miny, maxy, minz, maxz);
