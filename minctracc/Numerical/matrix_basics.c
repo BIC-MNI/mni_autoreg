@@ -97,6 +97,7 @@ Fri Jun  4 14:10:34 EST 1993 LC
 static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/matrix_basics.c,v 96.6 2006-11-29 09:09:33 rotor Exp $";
 #endif
 
+#include <config.h>
 #include <volume_io.h>
 #include "local_macros.h"
 

@@ -166,7 +166,6 @@
 static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 96.17 2009-04-03 18:36:59 louis Exp $";
 #endif
 
-#include <config.h>
 #include <volume_io.h>
 #include <Proglib.h>
 #include <amoeba.h>

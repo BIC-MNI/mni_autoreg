@@ -1,5 +1,6 @@
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 /* void  (*print_function) ( char [] ); */
 extern   char *prog_name;

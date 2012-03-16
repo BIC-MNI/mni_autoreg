@@ -134,7 +134,7 @@ Tue Jun  8 08:44:59 EST 1993 LC
 static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/rotmat_to_ang.c,v 96.6 2006-11-30 09:07:32 rotor Exp $";
 #endif
 
-
+#include <config.h>
 #include <volume_io.h>
 #include "local_macros.h"
 #include "matrix_basics.h"

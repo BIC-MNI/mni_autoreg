@@ -85,6 +85,8 @@
 static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/make_rots.c,v 96.7 2006-11-29 09:09:33 rotor Exp $";
 #endif
 
+#include "config.h"
+
 #include <volume_io.h>
 #include "matrix_basics.h"
 #include "rotmat_to_ang.h"
