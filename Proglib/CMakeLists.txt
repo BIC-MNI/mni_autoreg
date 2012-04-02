@@ -1,4 +1,4 @@
-ADD_LIBRARY(Proglib 	
+ADD_LIBRARY(Proglib STATIC
   Proglib.h 
 	print_error.c 
 	print_version.c 

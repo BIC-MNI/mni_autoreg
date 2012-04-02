@@ -1,9 +1,9 @@
 INCLUDE_DIRECTORIES(Include)
 
-ADD_LIBRARY(minctracc_files 
+ADD_LIBRARY(minctracc_files STATIC
    Files/read_data_files.c)
 
-ADD_LIBRARY(minctracc_optimize 
+ADD_LIBRARY(minctracc_optimize STATIC
  	Optimize/def_obj_functions.c 
 	Optimize/extras.c 
 	Optimize/sub_lattice.c
@@ -19,7 +19,7 @@ ADD_LIBRARY(minctracc_optimize
 	Optimize/do_nonlinear.c
 )
 
-ADD_LIBRARY(minctracc_numerical
+ADD_LIBRARY(minctracc_numerical STATIC
 	Numerical/cov_to_praxes.c 
 	Numerical/init_params.c 
 	Numerical/quaternion.c
@@ -30,7 +30,7 @@ ADD_LIBRARY(minctracc_numerical
 	Numerical/quad_max_fit.c 
 	Numerical/stats.c)
 
-ADD_LIBRARY(minctracc_volume
+ADD_LIBRARY(minctracc_volume STATIC
 	Volume/init_lattice.c 
 	Volume/interpolation.c 
 	Volume/volume_functions.c)
