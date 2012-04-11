@@ -9,3 +9,8 @@ ADD_EXECUTABLE(mincblur
 	mincblur.c mincblur.h)
 
 TARGET_LINK_LIBRARIES(mincblur Proglib)
+
+
+INSTALL(TARGETS 
+  mincblur 
+  DESTINATION bin)
