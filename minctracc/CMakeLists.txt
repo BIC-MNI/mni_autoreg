@@ -30,7 +30,7 @@ ADD_LIBRARY(minctracc_numerical STATIC
 	Numerical/quad_max_fit.c 
 	Numerical/stats.c)
 
-ADD_LIBRARY(minctracc_volume STATIC
+ADD_LIBRARY(minctracc_volume  STATIC
 	Volume/init_lattice.c 
 	Volume/interpolation.c 
 	Volume/volume_functions.c)
@@ -49,13 +49,13 @@ ADD_EXECUTABLE(minctracc
 	Main/minctracc.c )
 
 ADD_EXECUTABLE(check_scale Extra_progs/check_scale.c)
-ADD_EXECUTABLE(crispify Extra_progs/crispify.c)
-ADD_EXECUTABLE(param2xfm Extra_progs/param2xfm.c)
-ADD_EXECUTABLE(volume_cog Extra_progs/volume_cog.c)
-ADD_EXECUTABLE(rand_param Extra_progs/rand_param.c)
-ADD_EXECUTABLE(xcorr_vol Extra_progs/xcorr_vol.c)
-ADD_EXECUTABLE(xfm2param Extra_progs/xfm2param.c)
-ADD_EXECUTABLE(zscore_vol Extra_progs/zscore_vol.c)
+ADD_EXECUTABLE(crispify    Extra_progs/crispify.c)
+ADD_EXECUTABLE(param2xfm   Extra_progs/param2xfm.c)
+ADD_EXECUTABLE(volume_cog  Extra_progs/volume_cog.c)
+ADD_EXECUTABLE(rand_param  Extra_progs/rand_param.c)
+ADD_EXECUTABLE(xcorr_vol   Extra_progs/xcorr_vol.c)
+ADD_EXECUTABLE(xfm2param   Extra_progs/xfm2param.c)
+ADD_EXECUTABLE(zscore_vol  Extra_progs/zscore_vol.c)
 
 INSTALL(TARGETS 
  minctracc check_scale crispify param2xfm volume_cog rand_param xcorr_vol xfm2param zscore_vol
