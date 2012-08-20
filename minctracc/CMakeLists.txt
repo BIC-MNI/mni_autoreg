@@ -56,7 +56,18 @@ ADD_EXECUTABLE(rand_param  Extra_progs/rand_param.c)
 ADD_EXECUTABLE(xcorr_vol   Extra_progs/xcorr_vol.c)
 ADD_EXECUTABLE(xfm2param   Extra_progs/xfm2param.c)
 ADD_EXECUTABLE(zscore_vol  Extra_progs/zscore_vol.c)
+ADD_EXECUTABLE(cmpxfm      Extra_progs/cmpxfm.c)
+
 
 INSTALL(TARGETS 
- minctracc check_scale crispify param2xfm volume_cog rand_param xcorr_vol xfm2param zscore_vol
+ minctracc 
+ check_scale 
+ crispify 
+ param2xfm 
+ volume_cog 
+ rand_param 
+ xcorr_vol 
+ xfm2param 
+ zscore_vol
+ cmpxfm
  RUNTIME DESTINATION bin)
