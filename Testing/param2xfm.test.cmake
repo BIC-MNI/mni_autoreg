@@ -1,10 +1,9 @@
 #! /bin/sh
 
 check_transform () {
-    ./param2xfm -clobber $@ test1.xfm
+    param2xfm -clobber $@ test1.xfm
     cat > test2.xfm
-    if ./cmpxfm -linear_tolerance 0.0001 -translation_tolerance 0.0001 \
-	test1.xfm test2.xfm; then
+    if cmpxfm -linear_tolerance 0.0001 -translation_tolerance 0.0001 test1.xfm test2.xfm; then
 	:
     else
 	echo >&2 $0 failed: param2xfm $@ produced incorrect results.
@@ -12,6 +11,17 @@ check_transform () {
     fi
 }
 
+check_invert_transform () {
+    param2xfm -clobber $@ test1.xfm
+    xfminvert -clobber test1.xfm test1_invert.xfm
+    cat > test2.xfm
+    if cmpxfm -linear_tolerance 0.0001 -translation_tolerance 0.0001 test1_invert.xfm test2.xfm; then
+  :
+    else
+  echo >&2 $0 failed: xfminvert $@ produced incorrect results.
+  exit 1
+    fi
+}
 
 check_transform -translation 2 3 4 <<EOF
 MNI Transform File
@@ -57,3 +67,13 @@ Linear_Transform =
 EOF
 
 
+
+check_invert_transform -scales 2 4 8 <<EOF
+MNI Transform File
+
+Transform_Type = Linear;
+Linear_Transform =
+ 0.5 0 0 0
+ 0 0.25 0 0
+ 0 0 0.125 0;
+EOF
