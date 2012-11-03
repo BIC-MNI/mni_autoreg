@@ -5,7 +5,7 @@ set_directory_properties( PROPERTIES ENVIRONMENT "${MINC_TEST_ENVIRONMENT}")
 
 MACRO(add_minc_test name command )
  ADD_TEST( ${name}
-    ${command} ${ARGV2} ${ARGV3} ${ARGV4} ${ARGV5} ${ARGV6} ${ARGV7} ${ARGV8} ${ARGV9} ${ARGV10} ${ARGV11}
+    cmake -E chdir ${CMAKE_CURRENT_BINARY_DIR} ${command} ${ARGV2} ${ARGV3} ${ARGV4} ${ARGV5} ${ARGV6} ${ARGV7} ${ARGV8} ${ARGV9} ${ARGV10} ${ARGV11}
       ${ARGV12} ${ARGV13} ${ARGV14} ${ARGV15} ${ARGV16} ${ARGV17} ${ARGV18} ${ARGV19} ${ARGV20} ${ARGV21} ${ARGV22}
       ${ARGV23} ${ARGV24} ${ARGV25} ${ARGV26}
  )
@@ -16,157 +16,172 @@ ENDMACRO(add_minc_test)
 
 
 add_custom_command(
-  OUTPUT  ellipse0.mnc
-  COMMAND make_phantom -clobber -ellipse -nele 64 64 64 -step 2 2 2 -start -64 -64 -64 -center 0 0 0 ellipse0.mnc 
+  OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc
+  COMMAND make_phantom -clobber -ellipse -nele 64 64 64 -step 2 2 2 -start -64 -64 -64 -center 0 0 0 ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc 
 )
 
 add_custom_command(
-  OUTPUT test1.xfm
-  COMMAND param2xfm -clobber -translation 10 20 30 test1.xfm
+  OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/test1.xfm
+  COMMAND param2xfm -clobber -translation 10 20 30 ${CMAKE_CURRENT_BINARY_DIR}/test1.xfm
 )
 # This could be done by applying test1.xfm to ellipse0,
 # but we choose to do it by making a phantom with a different centre.
 add_custom_command(
-  OUTPUT ellipse1.mnc
-  COMMAND make_phantom -clobber -ellipse -nele 64 64 64 -step 2 2 2 -start -64 -64 -64 -center 10 20 30 ellipse1.mnc
+  OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/ellipse1.mnc
+  COMMAND make_phantom -clobber -ellipse -nele 64 64 64 -step 2 2 2 -start -64 -64 -64 -center 10 20 30 ${CMAKE_CURRENT_BINARY_DIR}/ellipse1.mnc
 )
 
 add_custom_command(
-  OUTPUT test2.xfm
-  COMMAND  param2xfm -clobber -translation 5 2 -6 -rotation -4 7 10 test2.xfm
+  OUTPUT   ${CMAKE_CURRENT_BINARY_DIR}/test2.xfm
+  COMMAND  param2xfm -clobber -translation 5 2 -6 -rotation -4 7 10 ${CMAKE_CURRENT_BINARY_DIR}/test2.xfm
 )
 
 add_custom_command(
-  OUTPUT ellipse2.mnc
-  DEPENDS ellipse0.mnc test2.xfm
-  COMMAND mincresample -clobber -transformation test2.xfm -like ellipse0.mnc ellipse0.mnc ellipse2.mnc
+  OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/ellipse2.mnc
+  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc ${CMAKE_CURRENT_BINARY_DIR}/test2.xfm
+  COMMAND mincresample -clobber -transformation ${CMAKE_CURRENT_BINARY_DIR}/test2.xfm -like ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc ${CMAKE_CURRENT_BINARY_DIR}/ellipse2.mnc
 )
 add_custom_command(
-  OUTPUT test3.xfm
-  COMMAND param2xfm -clobber -translation 5 2 -6 -rotation -4 7 10  -scales 1.7 1.7 1.7 test3.xfm
+  OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/test3.xfm
+  COMMAND param2xfm -clobber -translation 5 2 -6 -rotation -4 7 10  -scales 1.7 1.7 1.7 ${CMAKE_CURRENT_BINARY_DIR}/test3.xfm
 )
 add_custom_command(
-  OUTPUT ellipse3.mnc
-  DEPENDS ellipse0.mnc test3.xfm
-  COMMAND mincresample -clobber -transformation test3.xfm -like ellipse0.mnc ellipse0.mnc  ellipse3.mnc
+  OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/ellipse3.mnc
+  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc ${CMAKE_CURRENT_BINARY_DIR}/test3.xfm
+  COMMAND mincresample -clobber -transformation ${CMAKE_CURRENT_BINARY_DIR}/test3.xfm -like ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc  ${CMAKE_CURRENT_BINARY_DIR}/ellipse3.mnc
 )
 add_custom_command(
-  OUTPUT warped_ellipse4.mnc
-  DEPENDS ellipse0.mnc
-  COMMAND mincmath ellipse0.mnc ellipse_tmp1.mnc -mult -constant 4.5  -clob
-  COMMAND mincresample -clobber -transformation ${CMAKE_CURRENT_SOURCE_DIR}/tps.xfm -like ellipse0.mnc ellipse_tmp1.mnc warped_ellipse4.mnc 
-  COMMAND rm -f ellipse_tmp1.mnc
-)
-
-add_custom_command(
-  OUTPUT ellipse0_dxyz.mnc
-  DEPENDS ellipse0.mnc
-  COMMAND mincblur -clobber -gradient -fwhm 6 ellipse0.mnc ellipse0
+  OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/warped_ellipse4.mnc
+  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc
+  COMMAND mincmath ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc ${CMAKE_CURRENT_BINARY_DIR}/ellipse_tmp1.mnc -mult -constant 4.5  -clob
+  COMMAND mincresample -clobber -transformation ${CMAKE_CURRENT_SOURCE_DIR}/tps.xfm -like ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc ${CMAKE_CURRENT_BINARY_DIR}/ellipse_tmp1.mnc ${CMAKE_CURRENT_BINARY_DIR}/warped_ellipse4.mnc 
+  COMMAND rm -f ${CMAKE_CURRENT_BINARY_DIR}/ellipse_tmp1.mnc
 )
 
 add_custom_command(
-  OUTPUT ellipse1_dxyz.mnc
-  DEPENDS ellipse1.mnc
-  COMMAND mincblur -clobber -gradient -fwhm 6 ellipse1.mnc ellipse1
+  OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/ellipse0_dxyz.mnc
+  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc
+  COMMAND mincblur -clobber -gradient -fwhm 6 ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc ${CMAKE_CURRENT_BINARY_DIR}/ellipse0
 )
 
 add_custom_command(
-  OUTPUT ellipse2_dxyz.mnc
-  DEPENDS ellipse2.mnc
-  COMMAND mincblur -clobber -gradient -fwhm 6 ellipse2.mnc ellipse2
+  OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/ellipse1_dxyz.mnc
+  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/ellipse1.mnc
+  COMMAND mincblur -clobber -gradient -fwhm 6 ${CMAKE_CURRENT_BINARY_DIR}/ellipse1.mnc ${CMAKE_CURRENT_BINARY_DIR}/ellipse1
 )
 
 add_custom_command(
-  OUTPUT ellipse3_dxyz.mnc
-  DEPENDS ellipse3.mnc
-  COMMAND mincblur -clobber -gradient -fwhm 6 ellipse3.mnc ellipse3
+  OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/ellipse2_dxyz.mnc
+  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/ellipse2.mnc
+  COMMAND mincblur -clobber -gradient -fwhm 6 ${CMAKE_CURRENT_BINARY_DIR}/ellipse2.mnc ${CMAKE_CURRENT_BINARY_DIR}/ellipse2
 )
 
 add_custom_command(
-  OUTPUT warped_ellipse4_dxyz.mnc
-  DEPENDS warped_ellipse4.mnc
-  COMMAND mincblur -clobber -gradient -fwhm 6 warped_ellipse4.mnc warped_ellipse4
+  OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/ellipse3_dxyz.mnc
+  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/ellipse3.mnc
+  COMMAND mincblur -clobber -gradient -fwhm 6 ${CMAKE_CURRENT_BINARY_DIR}/ellipse3.mnc ${CMAKE_CURRENT_BINARY_DIR}/ellipse3
 )
 
 add_custom_command(
-  OUTPUT ellipse4.mnc 
-  DEPENDS ellipse0.mnc
-  COMMAND mincresample -clobber -xdircos 0.891006529493696 0 0.453990489327253 -ydircos 0 1 0 -zdircos -0.453990489327253 0 0.891006529493696 ellipse0.mnc ellipse4.mnc 
+  OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/warped_ellipse4_dxyz.mnc
+  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/warped_ellipse4.mnc
+  COMMAND mincblur -clobber -gradient -fwhm 6 ${CMAKE_CURRENT_BINARY_DIR}/warped_ellipse4.mnc ${CMAKE_CURRENT_BINARY_DIR}/warped_ellipse4
 )
 
 add_custom_command(
-  OUTPUT ellipse4_dxyz.mnc
-  DEPENDS ellipse4.mnc
-  COMMAND mincblur -clobber -gradient -fwhm 6 ellipse4.mnc ellipse4
+  OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/ellipse4.mnc 
+  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc
+  COMMAND mincresample -clobber -xdircos 0.891006529493696 0 0.453990489327253 -ydircos 0 1 0 -zdircos -0.453990489327253 0 0.891006529493696 ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc ${CMAKE_CURRENT_BINARY_DIR}/ellipse4.mnc 
 )
 
 add_custom_command(
-  OUTPUT test4.xfm
-  COMMAND param2xfm -clobber -translation 3 2 0 test4.xfm
+  OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/ellipse4_dxyz.mnc
+  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/ellipse4.mnc
+  COMMAND mincblur -clobber -gradient -fwhm 6 ${CMAKE_CURRENT_BINARY_DIR}/ellipse4.mnc ${CMAKE_CURRENT_BINARY_DIR}/ellipse4
 )
 
 add_custom_command(
-  OUTPUT ellipse0_slice_x.mnc
-  DEPENDS ellipse0.mnc test4.xfm
-  COMMAND mincresample -clobber -transformation test4.xfm -like ellipse0.mnc ellipse0.mnc ellipse_tmp2.mnc
-  COMMAND mincreshape -clobber -dimrange xspace=32,1 ellipse_tmp2.mnc ellipse0_slice_x.mnc
-  COMMAND rm -f ellipse_tmp2.mnc
+  OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/test4.xfm
+  COMMAND param2xfm -clobber -translation 3 2 0 ${CMAKE_CURRENT_BINARY_DIR}/test4.xfm
 )
 
 add_custom_command(
-  OUTPUT ellipse0_slice_y.mnc
-  DEPENDS ellipse1.mnc test4.xfm
-  COMMAND mincresample -clobber -transformation test4.xfm -like ellipse0.mnc ellipse0.mnc ellipse_tmp3.mnc
-  COMMAND mincreshape -clobber -dimrange yspace=35,1 ellipse_tmp3.mnc ellipse0_slice_y.mnc
-  COMMAND rm -f ellipse_tmp3.mnc
+  OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/ellipse0_slice_x.mnc
+  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc ${CMAKE_CURRENT_BINARY_DIR}/test4.xfm
+  COMMAND mincresample -clobber -transformation ${CMAKE_CURRENT_BINARY_DIR}/test4.xfm -like ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc ${CMAKE_CURRENT_BINARY_DIR}/ellipse_tmp2.mnc
+  COMMAND mincreshape -clobber -dimrange xspace=32,1 ${CMAKE_CURRENT_BINARY_DIR}/ellipse_tmp2.mnc ${CMAKE_CURRENT_BINARY_DIR}/ellipse0_slice_x.mnc
+  COMMAND rm -f ${CMAKE_CURRENT_BINARY_DIR}/ellipse_tmp2.mnc
 )
 
 add_custom_command(
-  OUTPUT ellipse0_slice_z.mnc
-  DEPENDS ellipse1.mnc test4.xfm
-  COMMAND mincresample -clobber -transformation test4.xfm -like ellipse0.mnc ellipse0.mnc ellipse_tmp4.mnc
-  COMMAND mincreshape -clobber -dimrange zspace=35,1 ellipse_tmp4.mnc ellipse0_slice_z.mnc
-  COMMAND rm -f ellipse_tmp4.mnc
+  OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/ellipse0_slice_y.mnc
+  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/ellipse1.mnc ${CMAKE_CURRENT_BINARY_DIR}/test4.xfm
+  COMMAND mincresample -clobber -transformation ${CMAKE_CURRENT_BINARY_DIR}/test4.xfm -like ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc ${CMAKE_CURRENT_BINARY_DIR}/ellipse_tmp3.mnc
+  COMMAND mincreshape -clobber -dimrange yspace=35,1 ${CMAKE_CURRENT_BINARY_DIR}/ellipse_tmp3.mnc ${CMAKE_CURRENT_BINARY_DIR}/ellipse0_slice_y.mnc
+  COMMAND rm -f ${CMAKE_CURRENT_BINARY_DIR}/ellipse_tmp3.mnc
 )
 
 add_custom_command(
-  OUTPUT object1.mnc 
-  COMMAND make_phantom -nele 64 64 64 -step 2 2 2 -start -64 -64 -64 -ellipse -center 0 0 0 -clobber object1.mnc
+  OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/ellipse0_slice_z.mnc
+  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/ellipse1.mnc ${CMAKE_CURRENT_BINARY_DIR}/test4.xfm
+  COMMAND mincresample -clobber -transformation ${CMAKE_CURRENT_BINARY_DIR}/test4.xfm -like ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc ${CMAKE_CURRENT_BINARY_DIR}/ellipse_tmp4.mnc
+  COMMAND mincreshape -clobber -dimrange zspace=35,1 ${CMAKE_CURRENT_BINARY_DIR}/ellipse_tmp4.mnc ${CMAKE_CURRENT_BINARY_DIR}/ellipse0_slice_z.mnc
+  COMMAND rm -f ${CMAKE_CURRENT_BINARY_DIR}/ellipse_tmp4.mnc
 )
 
 add_custom_command(
- OUTPUT  test.xfm 
- COMMAND param2xfm -center 0 0 0 -rot -4 7 10 -trans 5 2 -6 -clobber test.xfm
+  OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/object1.mnc 
+  COMMAND make_phantom -nele 64 64 64 -step 2 2 2 -start -64 -64 -64 -ellipse -center 0 0 0 -clobber ${CMAKE_CURRENT_BINARY_DIR}/object1.mnc
 )
 
 add_custom_command(
-  OUTPUT object2.mnc 
-  DEPENDS object1.mnc  test.xfm
-  COMMAND mincresample object1.mnc object2.mnc -like object1.mnc -transformation test.xfm -clobber
+ OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/test.xfm 
+ COMMAND param2xfm -center 0 0 0 -rot -4 7 10 -trans 5 2 -6 -clobber ${CMAKE_CURRENT_BINARY_DIR}/test.xfm
 )
 
 add_custom_command(
- OUTPUT  object1_dxyz.mnc 
- DEPENDS object1.mnc
- COMMAND mincblur -clobber -gradient -fwhm 6 object1.mnc object1
+  OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/object2.mnc 
+  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/object1.mnc  ${CMAKE_CURRENT_BINARY_DIR}/test.xfm
+  COMMAND mincresample ${CMAKE_CURRENT_BINARY_DIR}/object1.mnc ${CMAKE_CURRENT_BINARY_DIR}/object2.mnc -like ${CMAKE_CURRENT_BINARY_DIR}/object1.mnc -transformation ${CMAKE_CURRENT_BINARY_DIR}/test.xfm -clobber
+)
+
+add_custom_command(
+ OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/object1_dxyz.mnc 
+ DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/object1.mnc
+ COMMAND mincblur -clobber -gradient -fwhm 6 ${CMAKE_CURRENT_BINARY_DIR}/object1.mnc ${CMAKE_CURRENT_BINARY_DIR}/object1
 )
  
 add_custom_command(
- OUTPUT  object2_dxyz.mnc
- DEPENDS object2.mnc
- COMMAND mincblur -clobber -gradient -fwhm 6 object2.mnc object2
+ OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/object2_dxyz.mnc
+ DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/object2.mnc
+ COMMAND mincblur -clobber -gradient -fwhm 6 ${CMAKE_CURRENT_BINARY_DIR}/object2.mnc ${CMAKE_CURRENT_BINARY_DIR}/object2
 )
 
 add_custom_target(create_test_data ALL echo 
- DEPENDS  ellipse0.mnc ellipse1.mnc ellipse2.mnc ellipse3.mnc 
- DEPENDS  ellipse4.mnc warped_ellipse4.mnc ellipse0_dxyz.mnc 
- DEPENDS  ellipse1_dxyz.mnc ellipse2_dxyz.mnc ellipse3_dxyz.mnc 
- DEPENDS  ellipse4_dxyz.mnc warped_ellipse4_dxyz.mnc ellipse0_slice_x.mnc 
- DEPENDS  ellipse0_slice_y.mnc ellipse0_slice_z.mnc test1.xfm 
- DEPENDS  test2.xfm test3.xfm 
- DEPENDS  object1.mnc object2.mnc object1_dxyz.mnc object2_dxyz.mnc
+ DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc 
+ DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/ellipse1.mnc 
+ DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/ellipse2.mnc
+ DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/ellipse3.mnc 
+ DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/ellipse4.mnc 
+ DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/warped_ellipse4.mnc 
+ DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/ellipse0_dxyz.mnc 
+ DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/ellipse1_dxyz.mnc 
+ DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/ellipse2_dxyz.mnc 
+ DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/ellipse3_dxyz.mnc 
+ DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/ellipse4_dxyz.mnc 
+ DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/warped_ellipse4_dxyz.mnc 
+ DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/ellipse0_slice_x.mnc 
+ DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/ellipse0_slice_y.mnc 
+ DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/ellipse0_slice_z.mnc 
+ DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/test1.xfm 
+ DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/test2.xfm 
+ DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/test3.xfm 
+ DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/object1.mnc 
+ DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/object2.mnc 
+ DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/object1_dxyz.mnc 
+ DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/object2_dxyz.mnc
 )
 
-add_minc_test(param2xfm ${CMAKE_CURRENT_SOURCE_DIR}/param2xfm.test.cmake)
-add_minc_test(minctracc_linear ${CMAKE_CURRENT_SOURCE_DIR}/minctracc.test1.cmake)
+add_minc_test(param2xfm           ${CMAKE_CURRENT_SOURCE_DIR}/param2xfm.test.cmake)
+add_minc_test(minctracc_linear    ${CMAKE_CURRENT_SOURCE_DIR}/minctracc.test1.cmake)
 add_minc_test(minctracc_nonlinear ${CMAKE_CURRENT_SOURCE_DIR}/minctracc.test2.cmake)
