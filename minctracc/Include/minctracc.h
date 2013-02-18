@@ -1,3 +1,6 @@
+#ifndef MINCTRACC_H
+#define MINCTRACC_H
+
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : minctracc.h
 @DESCRIPTION: Header file for minctracc.c
@@ -238,56 +241,7 @@ void add_a_feature_for_matching(Feature_volumes *features,
 
 /*  ------------------------ Global data structure for program  ------------------------ */
 
-Arg_Data main_args = {
-  {"","","","","","",""},        /* filenames           */
-  {1,FALSE},                        /* verbose, debug      */
-  {                                /* transformation info */
-    FALSE,                        /*   use identity tranformation to start */
-    TRUE,                        /*   do default tranformation (PAT) to start */
-    TRUE,                        /*   use_mag=TRUE; do not use projections by default */
-    50.0,
-    TRUE,                        /*   use_simplex=TRUE ie use 3d simplex by default */
-    2,                                /*   use super sampling of deformation field  */
-    FALSE,                        /* use local smoothing       */
-    TRUE,                        /* use isotropic smoothing */
-    "",                                /*   filename */
-    NULL,                        /*   file_contents */
-    0,                          /* buffer_length   */
-    (VIO_General_transform *)NULL,        /*   General transform */
-    (VIO_General_transform *)NULL,        /*   General transform copy of input */
-    TRANS_LSQ7,                        /*   default type      */
-    {-DBL_MAX, -DBL_MAX, -DBL_MAX},                /*   center            */
-    {1.0, 1.0, 1.0},                /*   scale             */
-    {0.0, 0.0, 0.0},                /*   shears            */
-    {0.0, 0.0, 0.0},                /*   translations      */
-    {0.0, 0.0, 0.0, 1.0},              /*   quaternions       */
-    {0.0, 0.0, 0.0},            /*   rotations         */
-    {1.0, 1.0, 1.0,  3.1415927/180.0, 3.1415927/180.0, 3.1415927/180.0, 0.02, 0.02, 0.02,  0.02, 0.02, 0.02}, /* optimization weights*/
-    FALSE,                        /*   invert_mapping_flag                  */
-    TRANS_ROT},                  /* default use normal rotation */
-  {0,NULL, NULL, NULL, NULL, NULL, NULL},        /* FEATURE VOL */
-  trilinear_interpolant,        /* use trilinear interpolation by default */
-  TRILINEAR,                   /* use trilinear interpolation by default */
-  xcorr_objective,              /* use cross-correlation by default       */
-  XCORR,                        /* use cross-correlation by default       */
-  OPT_SIMPLEX,                  /* use simplex optimization strategy      */
-  0,                            /* do not force lattice on source or target */
-  {4.0,4.0,4.0},                /* default step sizes for lattice         */
-  {24.0,24.0,24.0},                /* default lattice diameter               */
-  {0.0,0.0,0.0},                /* default start for lattice, reset in init_lattice */
-  {0,0,0},                      /* default number of element in lattice, also reset */
-
-  {{{1.0,0.0,0.0}},                /* default sampling lattice axes directions */
-   {{0.0,1.0,0.0}},
-   {{0.0,0.0,1.0}}},
-
-  1,                            /* use first volume as default smallest volume      */
-  {FALSE, FALSE, FALSE, FALSE},        /* VIO_Transform flags: est_cent, _scale, _rots, _trans */
-  {0.0,0.0},                        /* lower limit of voxels considered                 */
-  5.0,                                /* percent noise speckle                            */
-  256,                                /* number of groups to use for ratio of variance    */
-  3                                /* pdf blurring size for -mi                        */
-};
-
+extern Arg_Data main_args;
 
  
+#endif

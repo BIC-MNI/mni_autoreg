@@ -1,3 +1,6 @@
+#ifndef ARG_DATA_H
+#define ARG_DATA_H
+
 #include "point_vector.h"
 
 typedef struct Arg_Data_struct Arg_Data;
@@ -109,3 +112,5 @@ struct Arg_Data_struct {
   int                    blur_pdf;     /* number of voxels for blurring in -mi pdfs */
 };
 
+
+#endif

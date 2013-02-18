@@ -357,6 +357,8 @@
 static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.31 2011-02-24 20:02:35 louis Exp $";
 #endif
 
+#include "globals.h"
+
 #include <config.h>                /* MAXtype and MIN defs                      */
 #include <float.h>
 #include <volume_io.h>        /* structs & tools to deal with volumes data */
@@ -380,6 +382,8 @@ time_t time(time_t *tloc);
 #include <sub_lattice.h>        /* prototypes for sub_lattice manipulation   */
 #include <extras.h>             /* prototypes for extra convienience routines*/
 #include <quad_max_fit.h>       /* prototypes for quadratic fitting routines */
+
+
 
 int stat_quad_total=0;            /* these are used as globals to tally stats  */
 int stat_quad_zero=0;             /* in Numerical/quad_max_stats.c             */
