@@ -1,4 +1,4 @@
-INCLUDE_DIRECTORIES(Include)
+INCLUDE_DIRECTORIES(Include ${LIBLBFGS_INCLUDE_DIR})
 
 SET ( MINCTRACC_FILES
 	Files/read_data_files.c
@@ -105,13 +105,16 @@ LINK_LIBRARIES(
  Proglib
 )
 
-LINK_LIBRARIES(
+TARGET_LINK_LIBRARIES(
 	minctracc
+	${VOLUME_IO_LIBRARIES}
+	${LIBMINC_LIBRARIES}
+	${LIBLBFGS_LIBRARIES}
 )
 
-ADD_EXECUTABLE(minctracc-e 
-  Main/make_matlab_data_file.c 
-	Main/minctracc.c )
+#ADD_EXECUTABLE(minctracc-e 
+ # Main/make_matlab_data_file.c 
+#	Main/minctracc.c )
 
 ADD_EXECUTABLE(check_scale Extra_progs/check_scale.c)
 ADD_EXECUTABLE(crispify    Extra_progs/crispify.c)
@@ -127,7 +130,7 @@ INSTALL(TARGETS minctracc ${LIBRARY_INSTALL} DESTINATION lib)
 INSTALL(FILES ${MINCTRACC_HEADERS} DESTINATION include)
 
 INSTALL(TARGETS 
- minctracc-e 
+# minctracc-e 
  check_scale 
  crispify 
  param2xfm 

@@ -77,7 +77,7 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 
 #include "arg_data.h"
 
-extern Arg_Data main_args;
+extern Arg_Data *main_args;
 
 
 VIO_General_transform *get_linear_part_of_transformation(VIO_General_transform *trans)

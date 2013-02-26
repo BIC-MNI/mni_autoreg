@@ -93,7 +93,7 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #include "objectives.h"
 #include <math.h>
 
-extern Arg_Data main_args;
+extern Arg_Data *main_args;
 
                         /* these are defined/alloc'd in optimize.c  */
 

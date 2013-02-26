@@ -128,7 +128,6 @@ void get_into_voxel_space(Arg_Data *globals,
                                 /* take care of the directions required to step
                                    through the volume */
 
-
    for(i=0; i<3; i++) {
 
 
@@ -167,6 +166,7 @@ void get_into_voxel_space(Arg_Data *globals,
    concat_general_transforms(vox->voxel_to_voxel_space,
                              globals->trans_info.transformation,
                              vox->voxel_to_voxel_space );
+
    concat_general_transforms(vox->voxel_to_voxel_space, w2v, 
                              vox->voxel_to_voxel_space);
    build_reorder_matrix_xyz2vox(reorder, v2);
