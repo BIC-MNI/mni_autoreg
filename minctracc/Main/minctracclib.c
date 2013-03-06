@@ -132,7 +132,7 @@ VIO_General_transform* minctracc( VIO_Volume source, VIO_Volume target, VIO_Volu
 		print_error_and_line_num("%s",__FILE__, __LINE__,"Could not initialize transformation parameters\n");
 	}
 	
-	if args->features.number_of_features == 0 {
+	if (args->features.number_of_features == 0) {
 		num_features = allocate_a_new_feature(&(args->features));
 		args->features.data[0]            = source; 
 		args->features.model[0]           = target;
