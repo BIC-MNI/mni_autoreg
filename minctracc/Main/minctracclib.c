@@ -56,7 +56,8 @@ VIO_General_transform* minctracc( VIO_Volume source, VIO_Volume target, VIO_Volu
   
  
 	// Kill this (and main_args) to test whether the thread safety is working
-	data = source; model = target;	
+	data = source; model = target;
+	mask_data = sourceMask; mask_model = targetMask;
 	main_args = args;
 			
 	
