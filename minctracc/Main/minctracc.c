@@ -170,7 +170,10 @@ Wed May 26 13:05:44 EST 1993 lc
 static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.24 2011-02-24 20:02:35 louis Exp $";
 #endif
 
-#include <config.h>
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif /*HAVE_CONFIG_H*/
+
 #include <float.h>
 #include <ParseArgv.h>
 #include <volume_io.h>

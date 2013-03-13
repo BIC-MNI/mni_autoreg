@@ -1,27 +1,27 @@
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : default_def.c
-@DESCRIPTION: 
+@DESCRIPTION:
    build_default_deformation_field: using the info in *globals, this
    routine will build the structure that will represent the deformation
    field that is to be optimized in the program.
 
    there are two possibilities:
 
-1- If there is NO non-linear deformation (as defined by a GRID_TRANSFORM) 
+1- If there is NO non-linear deformation (as defined by a GRID_TRANSFORM)
    in the globals->trans_info.transformation, then the routine will:
 
-     concatenate a zero-valued non-linear deformation field transformation 
-     to the end of the globals->trans_info.transformation, using the lattice 
+     concatenate a zero-valued non-linear deformation field transformation
+     to the end of the globals->trans_info.transformation, using the lattice
      information (in *globals) to build the deformation volumes.
 
-2- If there is already a deformation field in the input transformation, then 
+2- If there is already a deformation field in the input transformation, then
    this deformation will be replaced by its equivalent, i.e. the field
    must be replaced by a structure that corresponds to the data in *globals,
    and the values in this new structure must be interpolated from the
-   existing deformation field. 
+   existing deformation field.
 
 @COPYRIGHT  :
-              Copyright 1993 Louis Collins, McConnell Brain Imaging Centre, 
+              Copyright 1993 Louis Collins, McConnell Brain Imaging Centre,
               Montreal Neurological Institute, McGill University.
               Permission to use, copy, modify, and distribute this
               software and its documentation for any purpose and without
@@ -32,7 +32,7 @@
               express or implied warranty.
 
 @CREATED    : Thu Apr 27 10:00:52 MET DST 1995
-      created by removing build_default_deformation_field from 
+      created by removing build_default_deformation_field from
       transformations.c
 @MODIFIED   : $Log: default_def.c,v $
 @MODIFIED   : Revision 96.13  2009-04-03 18:36:59  louis
@@ -121,7 +121,7 @@ static char rcsid[]="";
 #define MY_MAX_VOX 32766.0
 #define MY_MAX_REAL 50.0
 
-static  char *dim_name_vector_vol[] = 
+static  char *dim_name_vector_vol[] =
                 { MIvector_dimension, MIzspace,MIyspace, MIxspace };
 
 void set_up_lattice(VIO_Volume data,       /* in: volume  */
@@ -147,23 +147,23 @@ void build_default_deformation_field(Arg_Data *globals)
 
   if (get_n_concated_transforms(globals->trans_info.transformation)==1) {
 
-    append_new_default_deformation_field(globals); 
+    append_new_default_deformation_field(globals);
 
   }
   else {        /* we are starting with concatenated transforms,
                    so go get a point to the linear part....      */
-    
+
     resample_the_deformation_field(globals);
   }
 
 }
 
 
-/* 
+/*
    This procedure will replace the existing deformation by a resampled
    equivalent, where the volumetric definition of the new deformation
-   field corresponds to the data in *globals, and the values in this 
-   new structure must be interpolated from the existing deformation field. 
+   field corresponds to the data in *globals, and the values in this
+   new structure must be interpolated from the existing deformation field.
 */
 
 static void resample_the_deformation_field(Arg_Data *globals)
@@ -172,75 +172,75 @@ static void resample_the_deformation_field(Arg_Data *globals)
   VIO_Volume
     existing_field,
     new_field;
-  VIO_Real 
+  VIO_Real
     vector_val[3],
-    XYZstart[ VIO_MAX_DIMENSIONS ], 
-    wstart[ VIO_MAX_DIMENSIONS ], 
-    start[    VIO_MAX_DIMENSIONS ], 
-    XYZstep[  VIO_MAX_DIMENSIONS ], 
-    step[     VIO_MAX_DIMENSIONS ],  
+    XYZstart[ VIO_MAX_DIMENSIONS ],
+    wstart[ VIO_MAX_DIMENSIONS ],
+    start[    VIO_MAX_DIMENSIONS ],
+    XYZstep[  VIO_MAX_DIMENSIONS ],
+    step[     VIO_MAX_DIMENSIONS ],
     step2[    VIO_MAX_DIMENSIONS ],
     s1[       VIO_MAX_DIMENSIONS ],
     voxel[    VIO_MAX_DIMENSIONS ],
     dir[3][3];
-  int 
+  int
     i,
     siz[      VIO_MAX_DIMENSIONS ],
     index[    VIO_MAX_DIMENSIONS ],
     xyzv[     VIO_MAX_DIMENSIONS ],
     XYZcount[ VIO_MAX_DIMENSIONS ],
     count[    VIO_MAX_DIMENSIONS ];
-  VIO_General_transform 
+  VIO_General_transform
     *non_lin_part;
-  VectorR 
+  VectorR
     XYZdirections[ VIO_MAX_DIMENSIONS ];
-  VIO_Real 
+  VIO_Real
     del_x, del_y, del_z, wx, wy,wz;
   VIO_progress_struct
     progress;
-  char 
+  char
     **data_dim_names;
 
-  
+
                                 /* get the nonlinear part
                                    of the transformation           */
-  
+
   existing_field = (VIO_Volume)NULL;
   non_lin_part = get_nth_general_transform(globals->trans_info.transformation,
                                            get_n_concated_transforms(
                                                globals->trans_info.transformation)
-                                           -1); 
+                                           -1);
 
   if (get_transform_type( non_lin_part ) == GRID_TRANSFORM){
     existing_field = (VIO_Volume)(non_lin_part->displacement_volume);
   }
   else {
     for(i=0; i<get_n_concated_transforms(globals->trans_info.transformation); i++)
-      print ("Transform %d is of type %d\n",i, 
+      print ("Transform %d is of type %d\n",i,
              get_transform_type(
                 get_nth_general_transform(globals->trans_info.transformation,
                                 i) ));
-    
+
     print_error_and_line_num("Cannot find the deformation field transform to resample",
                              __FILE__, __LINE__);
   }
 
   /* build a vector volume to store the Grid VIO_Transform */
-  
+
   new_field = create_volume(4, dim_name_vector_vol, NC_DOUBLE, TRUE, 0.0, 0.0);
 
   get_volume_XYZV_indices(new_field, xyzv);
 
-  for(i=0; i<VIO_N_DIMENSIONS; i++) 
-    step2[i] = globals->step[i];  
+  for(i=0; i<VIO_N_DIMENSIONS; i++)
+    step2[i] = globals->step[i];
                                 /* get new start, count, step and directions,
                                    all returned in X, Y, Z order.          */
-   
+
   set_up_lattice(existing_field, step2, XYZstart, wstart, XYZcount, XYZstep, XYZdirections);
 
                                 /* reset count and step to be in volume order */
   for(i=0; i<VIO_N_DIMENSIONS; i++) {
-    start[      i  ] = wstart[ i ]; 
+    start[      i  ] = wstart[ i ];
     count[ xyzv[i] ] = XYZcount[ i ];
     step[  xyzv[i] ] = XYZstep[  i ];
   }
@@ -251,23 +251,23 @@ static void resample_the_deformation_field(Arg_Data *globals)
 
          /* use the sign of the step returned to set the true step size */
   for(i=0; i<VIO_N_DIMENSIONS; i++) {
-    if (step[xyzv[i]]<0) 
-      step[xyzv[i]] = -1.0 * fabs(globals->step[i]); 
-    else 
+    if (step[xyzv[i]]<0)
+      step[xyzv[i]] = -1.0 * fabs(globals->step[i]);
+    else
       step[xyzv[i]] = fabs(globals->step[i]);
   }
 
   for(i=0; i<VIO_MAX_DIMENSIONS; i++)  /* set the voxel origin, used in the vol def */
-    voxel[i] = 0.0; 
+    voxel[i] = 0.0;
 
-  set_volume_sizes(       new_field, count); 
+  set_volume_sizes(       new_field, count);
   set_volume_separations( new_field, step);
 
   /*  set_volume_voxel_range( new_field, -MY_MAX_VOX, MY_MAX_VOX);
       set_volume_real_range(  new_field, -1.0*globals->trans_info.max_def_magnitude, globals->trans_info.max_def_magnitude);  - no longer needed, because now using doubles*/
 
   set_volume_translation( new_field, voxel, start);
-  
+
   for(i=0; i<VIO_N_DIMENSIONS; i++) {
     dir[VIO_X][i]=XYZdirections[VIO_X].coords[i];
     dir[VIO_Y][i]=XYZdirections[VIO_Y].coords[i];
@@ -280,8 +280,8 @@ static void resample_the_deformation_field(Arg_Data *globals)
   set_volume_direction_cosine(new_field,xyzv[VIO_Y],dir[VIO_Y]);
   set_volume_direction_cosine(new_field,xyzv[VIO_Z],dir[VIO_Z]);
 
-  
-                                /* make sure that the vector dimension 
+
+                                /* make sure that the vector dimension
                                    is named! */
   data_dim_names = get_volume_dimension_names(new_field);
 
@@ -302,13 +302,13 @@ static void resample_the_deformation_field(Arg_Data *globals)
     print ("seps: %7.3f %7.3f %7.3f %7.3f %7.3f \n",s1[0],s1[1],s1[2],s1[3],s1[4]);
     print ("size: %7d %7d %7d %7d %7d \n",siz[0],siz[1],siz[2],siz[3],siz[4]);
   }
-    
+
   alloc_volume_data(new_field);
-  
+
   if (globals->flags.verbose>0)
     initialize_progress_report( &progress, FALSE, count[xyzv[VIO_X]],
                                "Interpolating new field" );
-  
+
   /* now resample the values from the input deformation */
 
   for(i=0; i<VIO_MAX_DIMENSIONS; i++) {
@@ -328,38 +328,38 @@ static void resample_the_deformation_field(Arg_Data *globals)
         convert_voxel_to_world(new_field, voxel, &wx,&wy,&wz);
 
 
-           grid_transform_point(non_lin_part, wx, wy, wz, 
+           grid_transform_point(non_lin_part, wx, wy, wz,
                              &del_x, &del_y, &del_z);
 
 
-        
+
                                 /* get just the deformation part */
-        del_x = del_x - wx;        
+        del_x = del_x - wx;
         del_y = del_y - wy;
         del_z = del_z - wz;
 
 
 /*        del_x = del_y = del_z = 0.0;
 */
-        vector_val[0] = CONVERT_VALUE_TO_VOXEL(new_field, del_x); 
-        vector_val[1] = CONVERT_VALUE_TO_VOXEL(new_field, del_y); 
-        vector_val[2] = CONVERT_VALUE_TO_VOXEL(new_field, del_z); 
+        vector_val[0] = CONVERT_VALUE_TO_VOXEL(new_field, del_x);
+        vector_val[1] = CONVERT_VALUE_TO_VOXEL(new_field, del_y);
+        vector_val[2] = CONVERT_VALUE_TO_VOXEL(new_field, del_z);
 
         for(index[xyzv[VIO_Z+1]]=0; index[xyzv[VIO_Z+1]]<3; index[xyzv[VIO_Z+1]]++) {
           SET_VOXEL(new_field, \
                     index[0], index[1], index[2], index[3], index[4], \
                     vector_val[ index[ xyzv[ VIO_Z+1] ] ]);
         }
-        
-        
+
+
       }
     }
-    if (globals->flags.verbose>0) 
+    if (globals->flags.verbose>0)
       update_progress_report( &progress,index[xyzv[VIO_X]]+1);
   }
-  if (globals->flags.verbose>0) 
+  if (globals->flags.verbose>0)
     terminate_progress_report( &progress );
-  
+
                  /* delete and free up old data */
   delete_volume(non_lin_part->displacement_volume);
                /* set new volumes into transform */
@@ -369,10 +369,10 @@ static void resample_the_deformation_field(Arg_Data *globals)
 
 
 
-/* 
+/*
   this procedure will concatenate a zero-valued non-linear deformation
-  field transformation to the end of the globals->trans_info.transformation, 
-  using the lattice information (in *globals) to build the deformation 
+  field transformation to the end of the globals->trans_info.transformation,
+  using the lattice information (in *globals) to build the deformation
   volumes.
 */
 
@@ -380,39 +380,39 @@ static void append_new_default_deformation_field(Arg_Data *globals)
 {
 
   VIO_Volume
-    new_field;  
-  VIO_Real 
-    zero, 
-    st[VIO_MAX_DIMENSIONS],  
-    wst[VIO_MAX_DIMENSIONS],  
-    step[VIO_MAX_DIMENSIONS],  
+    new_field;
+  VIO_Real
+    zero,
+    st[VIO_MAX_DIMENSIONS],
+    wst[VIO_MAX_DIMENSIONS],
+    step[VIO_MAX_DIMENSIONS],
     XYZstart[ VIO_MAX_DIMENSIONS ],
-    XYZstep[ VIO_MAX_DIMENSIONS ],   
-    voxel[VIO_MAX_DIMENSIONS], 
+    XYZstep[ VIO_MAX_DIMENSIONS ],
+    voxel[VIO_MAX_DIMENSIONS],
     point[VIO_N_DIMENSIONS],
     dir[3][3];
 
-  int 
+  int
     index[VIO_MAX_DIMENSIONS],
     xyzv[VIO_MAX_DIMENSIONS],
     i,
     count[VIO_MAX_DIMENSIONS],
     XYZcount[VIO_MAX_DIMENSIONS],
     count_extended[VIO_MAX_DIMENSIONS];
-  
-  VIO_General_transform 
+
+  VIO_General_transform
     *grid_trans;
-  
-   VectorR 
+
+   VectorR
     XYZdirections[ VIO_MAX_DIMENSIONS ];
-  
+
   /* build a vector volume to store the Grid VIO_Transform */
-  
+
    /*  ALLOC(new_field,1); not needed since create volume allocs it
        internally and returns a pointer*/
 
   if (globals->flags.debug) { print ("In append_new_default_deformation_field...\n"); }
-  
+
   new_field = create_volume(4, dim_name_vector_vol, NC_DOUBLE, TRUE, 0.0, 0.0);
 
   get_volume_XYZV_indices(new_field, xyzv);
@@ -422,16 +422,16 @@ static void append_new_default_deformation_field(Arg_Data *globals)
     count[xyzv[i]] = globals->count[i];
     count_extended[xyzv[i]] = count[xyzv[i]];
     step[xyzv[i]]  = globals->step[i];
-  } 
+  }
                                 /* add info for the vector dimension */
   count[xyzv[VIO_Z+1]] = 3;
-  count_extended[xyzv[VIO_Z+1]] = 3;   
+  count_extended[xyzv[VIO_Z+1]] = 3;
   step[xyzv[VIO_Z+1]] = 0.0;
 
 
-  set_volume_sizes(       new_field, count); 
+  set_volume_sizes(       new_field, count);
   set_volume_separations( new_field, step);
-  /* 
+  /*
      set_volume_voxel_range( new_field, -MY_MAX_VOX, MY_MAX_VOX);
      set_volume_real_range(  new_field, -1.0*globals->trans_info.max_def_magnitude, globals->trans_info.max_def_magnitude); no longer needed, now using floats */
 
@@ -448,14 +448,14 @@ static void append_new_default_deformation_field(Arg_Data *globals)
   set_volume_direction_cosine(new_field,xyzv[VIO_Y],dir[VIO_Y]);
   set_volume_direction_cosine(new_field,xyzv[VIO_Z],dir[VIO_Z]);
 
- 
+
   for(i=0; i<VIO_MAX_DIMENSIONS; i++)  /* set the voxel origin, used in the vol def */
-    voxel[i] = 0.0; 
+    voxel[i] = 0.0;
 
   set_volume_translation( new_field, voxel, globals->start);
 
 
- 
+
   if (globals->flags.debug) {
     print("in append new def, the start is: %8.3f %8.3f %8.3f\n", globals->start[VIO_X], globals->start[VIO_Y], globals->start[VIO_Z]);
   }
@@ -463,7 +463,7 @@ static void append_new_default_deformation_field(Arg_Data *globals)
                    /* now pad the volume along the spatial axis
                       to ensure good coverage of the data space
                       with the deformation field */
- 
+
   for(i=0; i<VIO_N_DIMENSIONS; i++) {
     if (globals->count[i]>1) {
       voxel[xyzv[i]] = -2.5;
@@ -514,12 +514,12 @@ static void append_new_default_deformation_field(Arg_Data *globals)
 
   }
 
-  
+
               /* allocate space for the deformation field data */
   alloc_volume_data(new_field);
 
               /* Initilize the field to zero deformation */
-  
+
   /* zero = CONVERT_VALUE_TO_VOXEL(new_field, 0.0); not needed, defs are now doubles */
 
   for(index[0]=0; index[0]<count[0]; index[0]++)
@@ -529,21 +529,21 @@ static void append_new_default_deformation_field(Arg_Data *globals)
           {
             SET_VOXEL(new_field, index[0],index[1],index[2],index[3],0, 0.0);  /* was set to 'zero', but now as a double,can be set to 0.0 */
           }
-  
+
               /* build the new GRID_TRANSFORM */
 
-  ALLOC(grid_trans, 1); 
+  ALLOC(grid_trans, 1);
 
-  create_grid_transform(grid_trans, new_field);
+  create_grid_transform(grid_trans, new_field, NULL);
 
               /* append the deforamation to the current transformation */
-  concat_general_transforms(globals->trans_info.transformation, grid_trans, 
+  concat_general_transforms(globals->trans_info.transformation, grid_trans,
                             globals->trans_info.transformation);
-  
+
   delete_volume(new_field);
   delete_general_transform(grid_trans);
 
 
 
-  
+
 }
