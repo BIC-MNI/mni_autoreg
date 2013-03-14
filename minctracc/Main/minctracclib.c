@@ -44,7 +44,7 @@ static char *default_dim_names[VIO_N_DIMENSIONS] =
 
 
 
-VIO_General_transform* minctracc( VIO_Volume source, VIO_Volume target, VIO_Volume sourceMask, VIO_Volume targetMask, VIO_General_transform *initialXFM, Arg_Data *args) {
+VIO_General_transform* minctracc( VIO_Volume source, VIO_Volume target, VIO_Volume sourceMask, VIO_Volume targetMask, VIO_General_transform *initialXFM, int iterations, Arg_Data *args) {
 
 	VIO_Transform identityTransform;
 	VIO_General_transform *origTransform = NULL;
@@ -59,6 +59,7 @@ VIO_General_transform* minctracc( VIO_Volume source, VIO_Volume target, VIO_Volu
 	data = source; model = target;
 	mask_data = sourceMask; mask_model = targetMask;
 	main_args = args;
+	iteration_limit = iterations;
 			
 	
 	// SET UP INPUT TRANSFORMATIONS
