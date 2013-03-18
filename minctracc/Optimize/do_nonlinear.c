@@ -1004,8 +1004,6 @@ VIO_Status do_non_linear_optimization(Arg_Data *globals)
   Gcost_radius = 8*Gsimplex_size*Gsimplex_size*Gsimplex_size;
 
 
-print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],globals->threshold[1]);
-
  /*   set_feature_value_threshold(Gglobals->features.data[0],  */
 /*                               Gglobals->features.model[0], */
 /*                               &(globals->threshold[0]),  */
@@ -1162,10 +1160,10 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
 
          }  
 
-       print("Initializing deformation grid to 0...\n");
+	   if (globals->flags.verbose>1) print("Initializing deformation grid to 0...\n");
        init_the_volume_to_zero(estimated_flag_vol);
 
-       print("Iteration %2d of %2d\n",iters+1, iteration_limit);
+       if (globals->flags.verbose>1) print("Iteration %2d of %2d\n",iters+1, iteration_limit);
 
 
        /* for various stats on this iteration*/
