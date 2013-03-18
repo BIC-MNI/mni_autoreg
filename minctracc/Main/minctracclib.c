@@ -804,7 +804,7 @@ VIO_General_transform* minctraccScrap ( VIO_Volume source, VIO_Volume target, VI
       
     }
 
-    if (number_dimensions==3 && args->flags.verbose>0) {
+    if (number_dimensions==3 && main_args->flags.verbose>0) {
       print ("Initial objective function val = %0.8f\n",initial_corr); 
       print ("Final objective function value = %0.8f\n",final_corr);
     }
@@ -1551,7 +1551,7 @@ int minctraccOldFashioned ( int argc, char* argv[] )
       
     }
 
-    if (number_dimensions==3 && args->flags.verbose>0) {
+    if (number_dimensions==3 && main_args->flags.verbose>0) {
       print ("Initial objective function val = %0.8f\n",initial_corr); 
       print ("Final objective function value = %0.8f\n",final_corr);
     }
