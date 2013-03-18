@@ -894,7 +894,7 @@ VIO_Status do_non_linear_optimization(Arg_Data *globals)
 
       Gsimplex_size= fabs(steps[xyzv[VIO_X]]) / MAX3(step_magnitude[0],step_magnitude[1],step_magnitude[2]);  
 
-      if (fabs(Gsimplex_size) < fabs(steps_data[0])) {
+      if (fabs(Gsimplex_size) < fabs(steps_data[0]) && globals->flags.verbose>0) {
          print ("*** WARNING ***\n");
          print ("Simplex size will be smaller than data voxel size (%f < %f)\n",
                 Gsimplex_size,steps_data[0]);

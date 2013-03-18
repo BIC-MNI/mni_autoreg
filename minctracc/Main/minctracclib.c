@@ -212,7 +212,7 @@ void initializeArgs(Arg_Data *args) {
 	args->filenames.matlab_file = "";
 	
 	// Program flags
-	args->flags.verbose = 1; args->flags.debug = FALSE;
+	args->flags.verbose = 0; args->flags.debug = FALSE;
 
 	// Transformation flags
 	args->trans_info.use_identity = FALSE;
