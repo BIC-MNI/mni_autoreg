@@ -424,7 +424,7 @@ int volume_size_is_ok( VIO_Volume loaded_volume)
 
   int    *loaded_volume_sizes;
   int    loaded_volume_num_dims;
-  STRING *loaded_volume_dim_names;
+  VIO_STR *loaded_volume_dim_names;
   
   /* allocate memory for first volume sizes */
   ALLOC(loaded_volume_sizes, VIO_MAX_DIMENSIONS); 

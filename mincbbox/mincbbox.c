@@ -42,7 +42,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincbbox/mincbbox.c,v 1.4 2006-11-28 08:57:39 rotor Exp $";
+static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/mincbbox/mincbbox.c,v 1.4 2006-11-28 08:57:39 rotor Exp $";
 #endif
 
 
@@ -55,8 +55,8 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincbbox
 #include <ParseArgv.h>
 #include "mincbbox.h"
 
-#define  FLOOR( x )     ((int) floor(x))
-#define  ROUND( x )     FLOOR( (double) (x) + 0.5 )
+#define  VIO_FLOOR( x )     ((int) floor(x))
+#define  VIO_ROUND( x )     VIO_FLOOR( (double) (x) + 0.5 )
 
 static char *default_dim_names[VIO_N_DIMENSIONS] = { MIxspace, MIyspace, MIzspace };
 static char *My_File_order_dimension_names[VIO_MAX_DIMENSIONS] = { "", "", "", "", "" };
@@ -184,7 +184,7 @@ int main (int argc, char *argv[] )
   else
   if (mincresample)
     print ("-step 1.0 1.0 1.0 -start %f %f %f -nelements %d %d %d\n",
-           minx, miny, minz, ROUND(maxx-minx)+1, ROUND(maxy-miny)+1, ROUND(maxz-minz)+1);
+           minx, miny, minz, VIO_ROUND(maxx-minx)+1, VIO_ROUND(maxy-miny)+1, VIO_ROUND(maxz-minz)+1);
   else
     if (two_lines)
       print ("%f %f %f\n%f %f %f\n",minx, miny, minz, maxx-minx+1, maxy-miny+1, maxz-minz+1);

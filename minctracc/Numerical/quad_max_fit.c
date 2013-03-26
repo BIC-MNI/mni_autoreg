@@ -30,7 +30,7 @@
 @MODIFIED   :     * Still working on fixing up perl subdirectory - removing mni_perllib
 @MODIFIED   :
 @MODIFIED   : Revision 96.4  2004/02/13 00:16:48  rotor
-@MODIFIED   :  * removed public/private defs
+@MODIFIED   :  * removed /static defs
 @MODIFIED   :
 @MODIFIED   : Revision 96.3  2002/03/26 14:15:41  stever
 @MODIFIED   : Update includes to <volume_io/foo.h> style.
@@ -1151,10 +1151,10 @@ VIO_BOOL return_local_eigen(VIO_Real r[3][3][3],
   VIO_Real 
     **data, **weighted_data, **covar, **eigvec, *eigval;
 
-  ALLOC2D(data,27,4);
-  ALLOC2D(weighted_data,27,4);
-  ALLOC2D(eigvec,3,3);
-  ALLOC2D(covar,3,3);
+  VIO_ALLOC2D(data,27,4);
+  VIO_ALLOC2D(weighted_data,27,4);
+  VIO_ALLOC2D(eigvec,3,3);
+  VIO_ALLOC2D(covar,3,3);
   ALLOC(eigval,3);
 
   cnt = 0;
@@ -1223,10 +1223,10 @@ VIO_BOOL return_local_eigen(VIO_Real r[3][3][3],
   }
   
   
-  FREE2D(data);
-  FREE2D(weighted_data);
-  FREE2D(covar); 
-  FREE2D(eigvec);
+  VIO_FREE2D(data);
+  VIO_FREE2D(weighted_data);
+  VIO_FREE2D(covar); 
+  VIO_FREE2D(eigvec);
   FREE(eigval);
 
   return(eig_flag);
@@ -1264,8 +1264,8 @@ VIO_BOOL return_local_eigen_from_hessian(VIO_Real r[3][3][3],
     d;                        /* the 1st and second order derivatives */
 
 
-  ALLOC2D(covar,3,3);                /* ALLOC the matrices */
-  ALLOC2D(eigvec,3,3);
+  VIO_ALLOC2D(covar,3,3);                /* ALLOC the matrices */
+  VIO_ALLOC2D(eigvec,3,3);
   ALLOC(eigval,3);
 
                                 /* get the data for the Hessian */
@@ -1308,8 +1308,8 @@ VIO_BOOL return_local_eigen_from_hessian(VIO_Real r[3][3][3],
     dir_3[2] = dir_2[1] = dir_1[0] = 1.0;
   }
 
-  FREE2D(covar);                /* FREE UP the matrices */
-  FREE2D(eigvec);
+  VIO_FREE2D(covar);                /* FREE UP the matrices */
+  VIO_FREE2D(eigvec);
   FREE(eigval);
 
 

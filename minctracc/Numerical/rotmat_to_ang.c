@@ -83,7 +83,7 @@
 @MODIFIED   :      * Still working on fixing up perl subdirectory - removing mni_perllib
 @MODIFIED   :
 @MODIFIED   :  Revision 96.3  2004/02/13 00:17:15  rotor
-@MODIFIED   :   * removed public/private defs
+@MODIFIED   :   * removed /static defs
 @MODIFIED   :
 @MODIFIED   :  Revision 96.2  2002/03/26 14:15:41  stever
 @MODIFIED   :  Update includes to <volume_io/foo.h> style.
@@ -131,7 +131,7 @@ Tue Jun  8 08:44:59 EST 1993 LC
 
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/rotmat_to_ang.c,v 96.6 2006-11-30 09:07:32 rotor Exp $";
+static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/minctracc/Numerical/rotmat_to_ang.c,v 96.6 2006-11-30 09:07:32 rotor Exp $";
 #endif
 
 #include <config.h>
@@ -162,13 +162,13 @@ VIO_BOOL rotmat_to_ang(float **rot, float *ang)
    int
       m,n;
 
-   ALLOC2D(t  ,5,5);        /* make two column vectors */
-   ALLOC2D(s  ,5,5);
+   VIO_ALLOC2D(t  ,5,5);        /* make two column vectors */
+   VIO_ALLOC2D(s  ,5,5);
 
-   ALLOC2D(R  ,5,5);        /* working space matrices */
-   ALLOC2D(Rx ,5,5);
-   ALLOC2D(Ry ,5,5);
-   ALLOC2D(Rz ,5,5);
+   VIO_ALLOC2D(R  ,5,5);        /* working space matrices */
+   VIO_ALLOC2D(Rx ,5,5);
+   VIO_ALLOC2D(Ry ,5,5);
+   VIO_ALLOC2D(Rz ,5,5);
 
    nr_identf(R,1,4,1,4);        /* init R homogeneous matrix */
 
@@ -299,12 +299,12 @@ VIO_BOOL rotmat_to_ang(float **rot, float *ang)
    ang[2] = ry;
    ang[3] = rz;
 
-   FREE2D(t);
-   FREE2D(s);
-   FREE2D(R);
-   FREE2D(Rx);
-   FREE2D(Ry);
-   FREE2D(Rz);
+   VIO_FREE2D(t);
+   VIO_FREE2D(s);
+   VIO_FREE2D(R);
+   VIO_FREE2D(Rx);
+   VIO_FREE2D(Ry);
+   VIO_FREE2D(Rz);
 
    return(TRUE);
 }

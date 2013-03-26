@@ -32,7 +32,7 @@
 @MODIFIED   :     * Still working on fixing up perl subdirectory - removing mni_perllib
 @MODIFIED   :
 @MODIFIED   : Revision 96.7  2004/02/12 06:08:19  rotor
-@MODIFIED   :  * removed public/private defs
+@MODIFIED   :  * removed /static defs
 @MODIFIED   :
 @MODIFIED   : Revision 96.6  2004/02/04 20:44:11  lenezet
 @MODIFIED   : *** empty log message ***
@@ -101,7 +101,7 @@
    here, and bic_pl is not needed for minctracc.   This way, only 
    volume_io.h and amoeba.h are needed for inclusion.
 
-   there are four public functions that the user has to call (in order):
+   there are four  functions that the user has to call (in order):
    initialize_amoeba(), 
    perform_amoeba(),
    get_amoeba_parameters(),
@@ -141,7 +141,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/amoeba.c,v 96.10 2006-11-30 09:07:32 rotor Exp $";
+static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/minctracc/Optimize/amoeba.c,v 96.10 2006-11-30 09:07:32 rotor Exp $";
 #endif
 
 
@@ -253,7 +253,7 @@ static  VIO_Real  get_function_value(
     amoeba->function_data = function_data;
     amoeba->tolerance = tolerance;
     amoeba->n_steps_no_improvement = 0;
-    ALLOC2D( amoeba->parameters, n_parameters+1, n_parameters );
+    VIO_ALLOC2D( amoeba->parameters, n_parameters+1, n_parameters );
     ALLOC( amoeba->values, n_parameters+1 );
 
     ALLOC( amoeba->sum, n_parameters );
@@ -323,7 +323,7 @@ static  VIO_Real  get_function_value(
  void  terminate_amoeba(
     amoeba_struct  *amoeba )
 {
-    FREE2D( amoeba->parameters );
+    VIO_FREE2D( amoeba->parameters );
     FREE( amoeba->values );
     FREE( amoeba->sum );
 }

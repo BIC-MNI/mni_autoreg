@@ -41,7 +41,7 @@
 @MODIFIED   :     * Still working on fixing up perl subdirectory - removing mni_perllib
 @MODIFIED   :
 @MODIFIED   : Revision 96.5  2004/02/12 05:54:21  rotor
-@MODIFIED   :  * removed public/private defs
+@MODIFIED   :  * removed /static defs
 @MODIFIED   :
 @MODIFIED   : Revision 96.4  2002/08/14 19:54:42  lenezet
 @MODIFIED   :  quaternion option added for the rotation
@@ -89,7 +89,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/make_matlab_data_file.c,v 96.10 2010-04-01 04:49:16 rotor Exp $";
+static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/minctracc/Main/make_matlab_data_file.c,v 96.10 2010-04-01 04:49:16 rotor Exp $";
 #endif
 
 
@@ -231,7 +231,7 @@ void make_matlab_data_file(VIO_Volume d1,
 
       ALLOC(   prob_fn1,   globals->groups);
       ALLOC(   prob_fn2,   globals->groups);
-      ALLOC2D( prob_hash_table, globals->groups, globals->groups);
+      VIO_ALLOC2D( prob_hash_table, globals->groups, globals->groups);
 
     } 
 
@@ -586,7 +586,7 @@ print ("scale: %10.5f %10.5f %10.5f \n",
     {
       FREE(   prob_fn1 );
       FREE(   prob_fn2 );
-      FREE2D( prob_hash_table);
+      VIO_FREE2D( prob_hash_table);
     }
 
 

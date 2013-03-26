@@ -56,7 +56,7 @@
 @MODIFIED   :     * Still working on fixing up perl subdirectory - removing mni_perllib
 @MODIFIED   :
 @MODIFIED   : Revision 96.8  2004/02/12 05:54:27  rotor
-@MODIFIED   :  * removed public/private defs
+@MODIFIED   :  * removed /static defs
 @MODIFIED   :
 @MODIFIED   : Revision 96.7  2004/02/04 20:43:46  lenezet
 @MODIFIED   :  * change the start to fix the dir cos

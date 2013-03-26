@@ -121,7 +121,7 @@
         rewrite using mnc files and David Macdonald's libmni.a
    ---------------------------------------------------------------------------- */
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/mincblur.c,v 96.7 2009-07-23 22:34:00 claude Exp $";
+static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/mincblur/mincblur.c,v 96.7 2009-07-23 22:34:00 claude Exp $";
 #endif
 
 #include <config.h>

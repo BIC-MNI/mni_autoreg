@@ -42,7 +42,7 @@
 @MODIFIED   :     * Still working on fixing up perl subdirectory - removing mni_perllib
 @MODIFIED   :
 @MODIFIED   : Revision 96.6  2004/02/12 06:08:21  rotor
-@MODIFIED   :  * removed public/private defs
+@MODIFIED   :  * removed /static defs
 @MODIFIED   :
 @MODIFIED   : Revision 96.5  2002/03/26 14:15:44  stever
 @MODIFIED   : Update includes to <volume_io/foo.h> style.
@@ -82,7 +82,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/obj_fn_mutual_info.c,v 96.11 2009-04-03 18:36:59 louis Exp $";
+static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/minctracc/Optimize/obj_fn_mutual_info.c,v 96.11 2009-04-03 18:36:59 louis Exp $";
 #endif
 
 #include <volume_io.h>
@@ -289,7 +289,7 @@ static void blur_jpdf (VIO_Real **hist, int blur_size, int pdf_length) {
     if (blur_size > 1) 
     {
                     
-        ALLOC2D(temp_hist, pdf_length, pdf_length);
+        VIO_ALLOC2D(temp_hist, pdf_length, pdf_length);
         ALLOC  (temp_col, pdf_length);
 
         for(i=0; i<pdf_length; i++)   /* copy the histogram */
@@ -312,7 +312,7 @@ static void blur_jpdf (VIO_Real **hist, int blur_size, int pdf_length) {
         
 
         FREE  (temp_col);
-        FREE2D(temp_hist);
+        VIO_FREE2D(temp_hist);
     }
 
 }
@@ -480,8 +480,8 @@ float mutual_information_objective(VIO_Volume d1,
                        count2++;
                        
                        for(i=0; i<8; i++) {
-                          index1[i] = ROUND( intensity_vals1[i] );
-                          index2[i] = ROUND( intensity_vals2[i] );
+                          index1[i] = VIO_ROUND( intensity_vals1[i] );
+                          index2[i] = VIO_ROUND( intensity_vals2[i] );
                           prob_fn1[ index1[i] ] += fractional_vals1[i];
                           prob_fn2[ index2[i] ] += fractional_vals2[i];
                        }

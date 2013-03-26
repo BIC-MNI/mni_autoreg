@@ -5,7 +5,7 @@
 void get_volume_XYZV_indices(VIO_Volume data, int xyzv[]);
 
 void interpolate_deformation_slice(VIO_Volume volume, 
-                                          VIO_Real wx,Real wy,Real wz,
+                                          VIO_Real wx,VIO_Real wy,VIO_Real wz,
                                           VIO_Real def[]);
 
  void  grid_transform_point_in_trans_plane(
@@ -325,7 +325,7 @@ static void transform_or_inverse_point_in_trans_plane(VIO_General_transform *tra
 }
 
 void interpolate_deformation_slice(VIO_Volume volume, 
-                                          VIO_Real wx,Real wy,Real wz,
+                                          VIO_Real wx,VIO_Real wy,VIO_Real wz,
                                           VIO_Real def[])
 {
   VIO_Real
@@ -364,9 +364,9 @@ void interpolate_deformation_slice(VIO_Volume volume,
   if (/*(sizes[ xyzv[VIO_Z] ] == 1) &&*/ xyzv[VIO_Z]==1) {
     
     /* Get the whole and fractional part of the coordinate */
-    ind0 = FLOOR( voxel[ xyzv[VIO_Z] ] );
-    ind1 = FLOOR( voxel[ xyzv[VIO_Y] ] );
-    ind2 = FLOOR( voxel[ xyzv[VIO_X] ] );
+    ind0 = VIO_FLOOR( voxel[ xyzv[VIO_Z] ] );
+    ind1 = VIO_FLOOR( voxel[ xyzv[VIO_Y] ] );
+    ind2 = VIO_FLOOR( voxel[ xyzv[VIO_X] ] );
     frac[VIO_Y] = voxel[ xyzv[VIO_Y] ] - ind1;
     frac[VIO_X] = voxel[ xyzv[VIO_X] ] - ind2;
     
@@ -584,7 +584,7 @@ static  void   my_interpolate_volume(
     if( interpolating_dimensions == NULL || interpolating_dimensions[d]) {
       interp_dims[n_interp_dims] = d;
       pos = voxel[d] - bound;
-      start[d] =       FLOOR( pos );
+      start[d] =       VIO_FLOOR( pos );
       fraction[n_interp_dims] = pos - start[d];
       
       if( voxel[d] == (VIO_Real) sizes[d] - 1.0 - bound ) {

@@ -34,7 +34,7 @@
 
 @CREATED    : Wed Sep  6 09:15:07 MET DST 1995
               this routine was inspired by pascal code written by
-              D. CLARK in Doctor Dobbs 1984 and by public domaine
+              D. CLARK in Doctor Dobbs 1984 and by  domaine
               software made available by R. Hellman 2/21/86 from:
                   qiclab.scn.rain.com:/pub/math
               in file fft.c
@@ -48,7 +48,7 @@
 @MODIFIED   :  * fixes to allow clean compile against minc 2.0
 @MODIFIED   :
 @MODIFIED   : Revision 96.2  2004/02/12 05:53:48  rotor
-@MODIFIED   :  * removed public/private defs
+@MODIFIED   :  * removed /static defs
 @MODIFIED   :
 @MODIFIED   : Revision 96.1  2000/01/28 16:21:35  stever
 @MODIFIED   : Revamped configure process
@@ -78,7 +78,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/fft.c,v 96.3 2006-11-28 09:12:21 rotor Exp $";
+static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/mincblur/fft.c,v 96.3 2006-11-28 09:12:21 rotor Exp $";
 #endif
 
 

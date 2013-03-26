@@ -35,7 +35,7 @@
 @MODIFIED   :     * Still working on fixing up perl subdirectory - removing mni_perllib
 @MODIFIED   :
 @MODIFIED   : Revision 96.10  2004/02/12 06:08:21  rotor
-@MODIFIED   :  * removed public/private defs
+@MODIFIED   :  * removed /static defs
 @MODIFIED   :
 @MODIFIED   : Revision 96.9  2004/02/04 20:44:13  lenezet
 @MODIFIED   : *** empty log message ***
@@ -101,7 +101,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/super_sample_def.c,v 96.13 2006-11-30 09:07:33 rotor Exp $";
+static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/minctracc/Optimize/super_sample_def.c,v 96.13 2006-11-30 09:07:33 rotor Exp $";
 #endif
 
 #include <config.h>

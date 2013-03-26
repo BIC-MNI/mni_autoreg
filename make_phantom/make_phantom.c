@@ -35,7 +35,7 @@
    @MODIFIED   :     * Still working on fixing up perl subdirectory - removing mni_perllib
    @MODIFIED   :
    @MODIFIED   : Revision 1.5  2004/02/12 05:53:40  rotor
-   @MODIFIED   :  * removed public/private defs
+   @MODIFIED   :  * removed /static defs
    @MODIFIED   :
    @MODIFIED   : Revision 1.4  2000/02/20 04:00:58  stever
    @MODIFIED   : * use new history_string() function to generate history strings
@@ -72,7 +72,7 @@ static char *default_dim_names[VIO_N_DIMENSIONS] = { MIxspace, MIyspace, MIzspac
 
 #define SUBSTEPS  9
 
-#define  ROUND( x )     (int)floor( (double) (x) + 0.5 )
+#define  VIO_ROUND( x )     (int)floor( (double) (x) + 0.5 )
 
 
 void  set_min_max(VIO_Real *voxel, 
@@ -84,9 +84,9 @@ void  set_min_max(VIO_Real *voxel,
 
   /* If voxel[VIO_X] = 0.6, then *minx will be set to 1.
      Is that correct, or do we want *minx = 0 ? */
-  x = ROUND(voxel[VIO_X]);
-  y = ROUND(voxel[VIO_Y]);
-  z = ROUND(voxel[VIO_Z]);
+  x = VIO_ROUND(voxel[VIO_X]);
+  y = VIO_ROUND(voxel[VIO_Y]);
+  z = VIO_ROUND(voxel[VIO_Z]);
   
   if (x > *maxx) *maxx = x;
   if (x < *minx) *minx = x;

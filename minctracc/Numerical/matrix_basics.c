@@ -36,7 +36,7 @@
 @MODIFIED   :      * Still working on fixing up perl subdirectory - removing mni_perllib
 @MODIFIED   :
 @MODIFIED   :  Revision 96.4  2004/02/12 05:54:27  rotor
-@MODIFIED   :   * removed public/private defs
+@MODIFIED   :   * removed /static defs
 @MODIFIED   :
 @MODIFIED   :  Revision 96.3  2002/12/13 21:16:30  lenezet
 @MODIFIED   :  nonlinear in 2D has changed. The option -2D-non-lin is no more necessary. The grid transform has been adapted to feet on the target volume whatever is size. The Optimization is done on the dimensions for which "count" is greater than 1.
@@ -94,7 +94,7 @@ Fri Jun  4 14:10:34 EST 1993 LC
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/matrix_basics.c,v 96.6 2006-11-29 09:09:33 rotor Exp $";
+static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/minctracc/Numerical/matrix_basics.c,v 96.6 2006-11-29 09:09:33 rotor Exp $";
 #endif
 
 #include <config.h>
@@ -302,7 +302,7 @@ void transpose(int rows, int cols, float **mat, float **mat_transpose)
                                          the input before the compete transpose is 
                                          done. */
      /* Allocate a temporary matrix */
-     ALLOC2D(Ctemp,cols+1,rows+1);
+     VIO_ALLOC2D(Ctemp,cols+1,rows+1);
      
      for (i=1; i <= rows; ++i) {
        for (j=1; j <= cols; ++j) {
@@ -316,7 +316,7 @@ void transpose(int rows, int cols, float **mat, float **mat_transpose)
          mat_transpose[i][j] = Ctemp[i][j];
      
      /* Free the matrix */
-     FREE2D(Ctemp);
+     VIO_FREE2D(Ctemp);
    }
    else {
      for (i=1; i <= rows; ++i) {
@@ -351,8 +351,8 @@ void raw_invertmatrix(int n, float **mat, float **mat_invert)
   VIO_Real 
     **Rmat, **Rinv;
 
-  ALLOC2D( Rmat, n, n );
-  ALLOC2D( Rinv, n, n );
+  VIO_ALLOC2D( Rmat, n, n );
+  VIO_ALLOC2D( Rinv, n, n );
 
   for (i=1; i<=n; ++i)                /* copy the input matrix */
     for (j=1; j<=n; ++j) {
@@ -366,8 +366,8 @@ void raw_invertmatrix(int n, float **mat, float **mat_invert)
       mat_invert[i][j] = Rinv[i-1][j-1];
     }
 
-  FREE2D( Rmat );
-  FREE2D( Rinv );
+  VIO_FREE2D( Rmat );
+  VIO_FREE2D( Rinv );
 
 /*
                                this is the old inversion code
@@ -410,7 +410,7 @@ void invertmatrix(int ndim, float **mat, float **mat_invert)
                                          temporary space, so as not to overwrite
                                          the input as the inverse is being done. */
     /* Allocate a temporary matrix */
-    ALLOC2D(Ctemp,ndim+1,ndim+1);
+    VIO_ALLOC2D(Ctemp,ndim+1,ndim+1);
     
     /* invert the matrix */
     raw_invertmatrix(ndim, mat, Ctemp);
@@ -421,7 +421,7 @@ void invertmatrix(int ndim, float **mat, float **mat_invert)
         mat_invert[i][j] = Ctemp[i][j];
     
     /* Free the matrix */
-    FREE2D(Ctemp);
+    VIO_FREE2D(Ctemp);
   }
   else {
     raw_invertmatrix(ndim, mat, mat_invert);
@@ -500,7 +500,7 @@ void matrix_multiply(int ldim, int mdim, int ndim,
    float **Ctemp;
 
    /* Allocate a temporary matrix */
-   ALLOC2D(Ctemp, ldim+1, ndim+1);
+   VIO_ALLOC2D(Ctemp, ldim+1, ndim+1);
 
    /* Do the multiplication */
    raw_matrix_multiply(ldim,mdim,ndim,Amat,Bmat,Ctemp);
@@ -511,7 +511,7 @@ void matrix_multiply(int ldim, int mdim, int ndim,
          Cmat[i][j] = Ctemp[i][j];
 
    /* Free the matrix */
-   FREE2D(Ctemp);
+   VIO_FREE2D(Ctemp);
 }
                   
 
@@ -886,10 +886,10 @@ void transformations_to_homogeneous(int ndim,
 
    /* Allocate matrices and vectors */
    ALLOC(centre_translate,ndim+1);
-   ALLOC2D(trans1 ,size+1, size+1);
-   ALLOC2D(trans2 ,size+1, size+1);
-   ALLOC2D(trans_temp,size+1, size+1); 
-   ALLOC2D(rotation_and_scale,ndim+1, ndim+1);
+   VIO_ALLOC2D(trans1 ,size+1, size+1);
+   VIO_ALLOC2D(trans2 ,size+1, size+1);
+   VIO_ALLOC2D(trans_temp,size+1, size+1); 
+   VIO_ALLOC2D(rotation_and_scale,ndim+1, ndim+1);
 
 
    /* Construct translation matrix */
@@ -917,10 +917,10 @@ void transformations_to_homogeneous(int ndim,
 
    /* Free matrices */
    FREE(  centre_translate);
-   FREE2D(trans1);
-   FREE2D(trans2);
-   FREE2D(trans_temp);
-   FREE2D(rotation_and_scale);
+   VIO_FREE2D(trans1);
+   VIO_FREE2D(trans2);
+   VIO_FREE2D(trans_temp);
+   VIO_FREE2D(rotation_and_scale);
 
 }
 
@@ -1060,7 +1060,7 @@ void angles_to_homogeneous(int ndim, float *angles,
 
    size=ndim+1;
 
-   ALLOC2D(rot_matrix,5,5);
+   VIO_ALLOC2D(rot_matrix,5,5);
 
 
    if (ndim==2 || ndim==3) {
@@ -1095,7 +1095,7 @@ void angles_to_homogeneous(int ndim, float *angles,
 
 
 
-   FREE2D(rot_matrix);
+   VIO_FREE2D(rot_matrix);
 
 
 }

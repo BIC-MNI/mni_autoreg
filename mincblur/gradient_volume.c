@@ -43,7 +43,7 @@
 @MODIFIED   :     * Still working on fixing up perl subdirectory - removing mni_perllib
 @MODIFIED   :
 @MODIFIED   : Revision 96.1  2004/02/12 05:53:48  rotor
-@MODIFIED   :  * removed public/private defs
+@MODIFIED   :  * removed /static defs
 @MODIFIED   :
 @MODIFIED   : Revision 96.0  1996/08/21 18:22:24  louis
 @MODIFIED   : Release of MNI_AutoReg version 0.96
@@ -65,7 +65,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/gradient_volume.c,v 96.4 2009-07-23 22:34:00 claude Exp $";
+static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/mincblur/gradient_volume.c,v 96.4 2009-07-23 22:34:00 claude Exp $";
 #endif
 
 #include <float.h>
@@ -123,7 +123,7 @@ VIO_Status gradient3D_volume(FILE *ifd,
   char
     full_outfilename[256];        /* name of output file */
 
-  progress_struct 
+  VIO_progress_struct 
     progress;                        /* used to monitor progress of calculations         */
 
   VIO_Status 

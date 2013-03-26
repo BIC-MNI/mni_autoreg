@@ -102,9 +102,9 @@ int main(int argc, char *argv[])
         if (mask != NULL) {
           convert_3D_voxel_to_world(data1, i,j,k, &x, &y, &z);
           convert_3D_world_to_voxel(mask,  x,y,z, &u, &v, &w);
-          p = ROUND(u);
-          r = ROUND(v);
-          s = ROUND(w);
+          p = VIO_ROUND(u);
+          r = VIO_ROUND(v);
+          s = VIO_ROUND(w);
           if (p>=0 &&  p<sizes3[0] &&
               r>=0 &&  r<sizes3[1] &&
               s>=0 &&  s<sizes3[2]) {

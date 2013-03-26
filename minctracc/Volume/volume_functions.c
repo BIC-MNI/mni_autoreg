@@ -29,7 +29,7 @@
 @MODIFIED   :      * Still working on fixing up perl subdirectory - removing mni_perllib
 @MODIFIED   :
 @MODIFIED   :  Revision 96.10  2004/02/12 06:04:53  rotor
-@MODIFIED   :   * removed public/private defs
+@MODIFIED   :   * removed /static defs
 @MODIFIED   :
 @MODIFIED   :  Revision 96.9  2002/03/26 14:15:47  stever
 @MODIFIED   :  Update includes to <volume_io/foo.h> style.
@@ -55,7 +55,7 @@
 @MODIFIED   :  Also fixed qsort for vol int normlization
 @MODIFIED   :
 @MODIFIED   :  Revision 96.3  2000/05/08 17:40:45  louis
-@MODIFIED   :  addes a dummy change to Volume/volume_functions.c to test cvs and its
+@MODIFIED   :  addes a dummy change to VIO_Volume/volume_functions.c to test cvs and its
 @MODIFIED   :  suspected removal of all working files.
 @MODIFIED   :
 @MODIFIED   :  Revision 96.2  2000/05/05 17:57:06  louis
@@ -96,7 +96,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/volume_functions.c,v 96.14 2009-04-03 18:36:59 louis Exp $";
+static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/minctracc/VIO_Volume/volume_functions.c,v 96.14 2009-04-03 18:36:59 louis Exp $";
 #endif
 
 #include <config.h>

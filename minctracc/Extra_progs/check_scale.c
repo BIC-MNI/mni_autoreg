@@ -282,7 +282,7 @@ VIO_BOOL get_cog(char *file, double *c1)
   step[1] = 4.0;
   step[2] = 4.0;
 
-  ALLOC2D(cov,4,4);
+  VIO_ALLOC2D(cov,4,4);
   ALLOC(cog,4);
 
   if ( vol_to_cov(vol, NULL, cog, cov, step ) ) {
@@ -294,7 +294,7 @@ VIO_BOOL get_cog(char *file, double *c1)
   else
     return(FALSE);
 
-  FREE2D(cov);
+  VIO_FREE2D(cov);
   FREE(cog);
 
 }

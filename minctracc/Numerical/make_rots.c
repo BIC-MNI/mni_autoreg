@@ -26,7 +26,7 @@
 @MODIFIED   :     * Still working on fixing up perl subdirectory - removing mni_perllib
 @MODIFIED   :
 @MODIFIED   : Revision 96.5  2004/02/12 05:54:27  rotor
-@MODIFIED   :  * removed public/private defs
+@MODIFIED   :  * removed /static defs
 @MODIFIED   :
 @MODIFIED   : Revision 96.4  2002/11/20 21:38:49  lenezet
 @MODIFIED   :
@@ -82,7 +82,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/make_rots.c,v 96.7 2006-11-29 09:09:33 rotor Exp $";
+static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/minctracc/Numerical/make_rots.c,v 96.7 2006-11-29 09:09:33 rotor Exp $";
 #endif
 
 #include "config.h"
@@ -167,10 +167,10 @@ void   make_rots(float **xmat, float rot_x, float rot_y, float rot_z)
       **TRZ,
       **T1;
    
-   ALLOC2D(TRX  ,5,5);
-   ALLOC2D(TRY  ,5,5);
-   ALLOC2D(TRZ  ,5,5);
-   ALLOC2D(T1   ,5,5);
+   VIO_ALLOC2D(TRX  ,5,5);
+   VIO_ALLOC2D(TRY  ,5,5);
+   VIO_ALLOC2D(TRZ  ,5,5);
+   VIO_ALLOC2D(T1   ,5,5);
 
    nr_rotxf(TRX, rot_x);             /* create the rotate X matrix */
    nr_rotyf(TRY, rot_y);             /* create the rotate Y matrix */
@@ -180,10 +180,10 @@ void   make_rots(float **xmat, float rot_x, float rot_y, float rot_z)
    nr_multf(TRZ,1,4,1,4,  T1,1,4,1,4,   xmat); /* apply rz */
 
 
-   FREE2D(TRX);
-   FREE2D(TRY);
-   FREE2D(TRZ);
-   FREE2D(T1 );
+   VIO_FREE2D(TRX);
+   VIO_FREE2D(TRY);
+   VIO_FREE2D(TRZ);
+   VIO_FREE2D(T1 );
 
 }
 
@@ -256,15 +256,15 @@ void build_transformation_matrix(VIO_Transform *trans,
   int
     i,j;
   
-  ALLOC2D(T  ,5,5);
-  ALLOC2D(SH ,5,5);
-  ALLOC2D(S  ,5,5);
-  ALLOC2D(R  ,5,5);
-  ALLOC2D(C  ,5,5);
-  ALLOC2D(T1 ,5,5);
-  ALLOC2D(T2 ,5,5);
-  ALLOC2D(T3 ,5,5);
-  ALLOC2D(T4 ,5,5);
+  VIO_ALLOC2D(T  ,5,5);
+  VIO_ALLOC2D(SH ,5,5);
+  VIO_ALLOC2D(S  ,5,5);
+  VIO_ALLOC2D(R  ,5,5);
+  VIO_ALLOC2D(C  ,5,5);
+  VIO_ALLOC2D(T1 ,5,5);
+  VIO_ALLOC2D(T2 ,5,5);
+  VIO_ALLOC2D(T3 ,5,5);
+  VIO_ALLOC2D(T4 ,5,5);
   
                                              /* mat = (T)(C)(SH)(S)(R)(-C) */
 
@@ -301,15 +301,15 @@ void build_transformation_matrix(VIO_Transform *trans,
     for(j=0; j<4; j++)
       Transform_elem(*trans, i, j ) = T4[i+1][j+1];
 
-  FREE2D(T    );
-  FREE2D(SH   );
-  FREE2D(S    );
-  FREE2D(R    );
-  FREE2D(C );
-  FREE2D(T1   );
-  FREE2D(T2   );
-  FREE2D(T3   );
-  FREE2D(T4   );
+  VIO_FREE2D(T    );
+  VIO_FREE2D(SH   );
+  VIO_FREE2D(S    );
+  VIO_FREE2D(R    );
+  VIO_FREE2D(C );
+  VIO_FREE2D(T1   );
+  VIO_FREE2D(T2   );
+  VIO_FREE2D(T3   );
+  VIO_FREE2D(T4   );
 }
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -353,15 +353,15 @@ void build_transformation_matrix_quater(VIO_Transform *trans,
   int
     i,j;
   
-  ALLOC2D(T  ,5,5);
-  ALLOC2D(SH ,5,5);
-  ALLOC2D(S  ,5,5);
-  ALLOC2D(R  ,5,5);
-  ALLOC2D(C  ,5,5);
-  ALLOC2D(T1 ,5,5);
-  ALLOC2D(T2 ,5,5);
-  ALLOC2D(T3 ,5,5);
-  ALLOC2D(T4 ,5,5);
+  VIO_ALLOC2D(T  ,5,5);
+  VIO_ALLOC2D(SH ,5,5);
+  VIO_ALLOC2D(S  ,5,5);
+  VIO_ALLOC2D(R  ,5,5);
+  VIO_ALLOC2D(C  ,5,5);
+  VIO_ALLOC2D(T1 ,5,5);
+  VIO_ALLOC2D(T2 ,5,5);
+  VIO_ALLOC2D(T3 ,5,5);
+  VIO_ALLOC2D(T4 ,5,5);
   
  
   
@@ -416,15 +416,15 @@ void build_transformation_matrix_quater(VIO_Transform *trans,
     for(j=0; j<4; j++)
       Transform_elem(*trans, i, j ) = T4[i+1][j+1];
 
-  FREE2D(T    );
-  FREE2D(SH   );
-  FREE2D(S    );
-  FREE2D(R    );
-  FREE2D(C );
-  FREE2D(T1   );
-  FREE2D(T2   );
-  FREE2D(T3   );
-  FREE2D(T4   );
+  VIO_FREE2D(T    );
+  VIO_FREE2D(SH   );
+  VIO_FREE2D(S    );
+  VIO_FREE2D(R    );
+  VIO_FREE2D(C );
+  VIO_FREE2D(T1   );
+  VIO_FREE2D(T2   );
+  VIO_FREE2D(T3   );
+  VIO_FREE2D(T4   );
 }
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -465,15 +465,15 @@ void build_inverse_transformation_matrix(VIO_Transform *trans,
   int
     i,j;
   
-  ALLOC2D(T   ,5,5);
-  ALLOC2D(SH  ,5,5);
-  ALLOC2D(S   ,5,5);
-  ALLOC2D(R   ,5,5);
-  ALLOC2D(C   ,5,5);
-  ALLOC2D(T1  ,5,5);
-  ALLOC2D(T2  ,5,5);
-  ALLOC2D(T3  ,5,5);
-  ALLOC2D(T4  ,5,5);
+  VIO_ALLOC2D(T   ,5,5);
+  VIO_ALLOC2D(SH  ,5,5);
+  VIO_ALLOC2D(S   ,5,5);
+  VIO_ALLOC2D(R   ,5,5);
+  VIO_ALLOC2D(C   ,5,5);
+  VIO_ALLOC2D(T1  ,5,5);
+  VIO_ALLOC2D(T2  ,5,5);
+  VIO_ALLOC2D(T3  ,5,5);
+  VIO_ALLOC2D(T4  ,5,5);
   
                                 /* invmat = (C)(inv(r))(inv(S))(inv(SH))(-C)(-T)
                                    mat = (T)(C)(SH)(S)(R)(-C) */
@@ -519,15 +519,15 @@ void build_inverse_transformation_matrix(VIO_Transform *trans,
     for(j=0; j<4; j++)
       Transform_elem(*trans, i, j ) = T4[i+1][j+1];
 
-  FREE2D(T    );
-  FREE2D(SH   );
-  FREE2D(S    );
-  FREE2D(R    );
-  FREE2D(C );
-  FREE2D(T1   );
-  FREE2D(T2   );
-  FREE2D(T3   );
-  FREE2D(T4   );
+  VIO_FREE2D(T    );
+  VIO_FREE2D(SH   );
+  VIO_FREE2D(S    );
+  VIO_FREE2D(R    );
+  VIO_FREE2D(C );
+  VIO_FREE2D(T1   );
+  VIO_FREE2D(T2   );
+  VIO_FREE2D(T3   );
+  VIO_FREE2D(T4   );
 }
 
 
@@ -571,15 +571,15 @@ void build_inverse_transformation_matrix_quater(VIO_Transform *trans,
   int
     i,j;
   
-  ALLOC2D(T   ,5,5);
-  ALLOC2D(SH  ,5,5);
-  ALLOC2D(S   ,5,5);
-  ALLOC2D(R   ,5,5);
-  ALLOC2D(C   ,5,5);
-  ALLOC2D(T1  ,5,5);
-  ALLOC2D(T2  ,5,5);
-  ALLOC2D(T3  ,5,5);
-  ALLOC2D(T4  ,5,5);
+  VIO_ALLOC2D(T   ,5,5);
+  VIO_ALLOC2D(SH  ,5,5);
+  VIO_ALLOC2D(S   ,5,5);
+  VIO_ALLOC2D(R   ,5,5);
+  VIO_ALLOC2D(C   ,5,5);
+  VIO_ALLOC2D(T1  ,5,5);
+  VIO_ALLOC2D(T2  ,5,5);
+  VIO_ALLOC2D(T3  ,5,5);
+  VIO_ALLOC2D(T4  ,5,5);
   
                                 /* invmat = (C)(inv(r))(inv(S))(inv(SH))(-C)(-T)
                                    mat = (T)(C)(SH)(S)(R)(-C) */
@@ -621,15 +621,15 @@ void build_inverse_transformation_matrix_quater(VIO_Transform *trans,
     for(j=0; j<4; j++)
       Transform_elem(*trans, i, j ) = T4[i+1][j+1];
 
-  FREE2D(T    );
-  FREE2D(SH   );
-  FREE2D(S    );
-  FREE2D(R    );
-  FREE2D(C );
-  FREE2D(T1   );
-  FREE2D(T2   );
-  FREE2D(T3   );
-  FREE2D(T4   );
+  VIO_FREE2D(T    );
+  VIO_FREE2D(SH   );
+  VIO_FREE2D(S    );
+  VIO_FREE2D(R    );
+  VIO_FREE2D(C );
+  VIO_FREE2D(T1   );
+  VIO_FREE2D(T2   );
+  VIO_FREE2D(T3   );
+  VIO_FREE2D(T4   );
 }
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -669,21 +669,21 @@ VIO_BOOL extract_parameters_from_matrix(VIO_Transform *trans,
     *ang,*tmp,
     **xmat,**T,**Tinv,**C,**Sinv,**R,**SR,**SRinv,**Cinv,**TMP1,**TMP2;
 
-  ALLOC2D(xmat  ,5,5); nr_identf(xmat ,1,4,1,4);
-  ALLOC2D(TMP1  ,5,5); nr_identf(TMP1 ,1,4,1,4);
-  ALLOC2D(TMP2  ,5,5); nr_identf(TMP2 ,1,4,1,4);
-  ALLOC2D(Cinv  ,5,5); nr_identf(Cinv ,1,4,1,4);
-  ALLOC2D(SR    ,5,5); nr_identf(SR   ,1,4,1,4);
-  ALLOC2D(SRinv ,5,5); nr_identf(SRinv,1,4,1,4);
-  ALLOC2D(Sinv  ,5,5); nr_identf(Sinv ,1,4,1,4); 
-  ALLOC2D(T     ,5,5); nr_identf(T    ,1,4,1,4);
-  ALLOC2D(Tinv  ,5,5); nr_identf(Tinv ,1,4,1,4);
-  ALLOC2D(C     ,5,5); nr_identf(C    ,1,4,1,4);
-  ALLOC2D(R     ,5,5); nr_identf(R    ,1,4,1,4);
+  VIO_ALLOC2D(xmat  ,5,5); nr_identf(xmat ,1,4,1,4);
+  VIO_ALLOC2D(TMP1  ,5,5); nr_identf(TMP1 ,1,4,1,4);
+  VIO_ALLOC2D(TMP2  ,5,5); nr_identf(TMP2 ,1,4,1,4);
+  VIO_ALLOC2D(Cinv  ,5,5); nr_identf(Cinv ,1,4,1,4);
+  VIO_ALLOC2D(SR    ,5,5); nr_identf(SR   ,1,4,1,4);
+  VIO_ALLOC2D(SRinv ,5,5); nr_identf(SRinv,1,4,1,4);
+  VIO_ALLOC2D(Sinv  ,5,5); nr_identf(Sinv ,1,4,1,4); 
+  VIO_ALLOC2D(T     ,5,5); nr_identf(T    ,1,4,1,4);
+  VIO_ALLOC2D(Tinv  ,5,5); nr_identf(Tinv ,1,4,1,4);
+  VIO_ALLOC2D(C     ,5,5); nr_identf(C    ,1,4,1,4);
+  VIO_ALLOC2D(R     ,5,5); nr_identf(R    ,1,4,1,4);
 
-  ALLOC2D(center_of_rotation ,5,5);        /* make column vectors */
-  ALLOC2D(result             ,5,5);
-  ALLOC2D(unit_vec           ,5,5);
+  VIO_ALLOC2D(center_of_rotation ,5,5);        /* make column vectors */
+  VIO_ALLOC2D(result             ,5,5);
+  VIO_ALLOC2D(unit_vec           ,5,5);
 
   ALLOC(tmp ,4);
   ALLOC(ang ,4);
@@ -789,21 +789,21 @@ VIO_BOOL extract_parameters_from_matrix(VIO_Transform *trans,
     rotations[i] = ang[i+1];
 
 
-  FREE2D(xmat);
-  FREE2D(TMP1);
-  FREE2D(TMP2);
-  FREE2D(Cinv);
-  FREE2D(SR  );
-  FREE2D(SRinv);
-  FREE2D(Sinv);
-  FREE2D(T   );
-  FREE2D(Tinv);
-  FREE2D(C   );
-  FREE2D(R   );
+  VIO_FREE2D(xmat);
+  VIO_FREE2D(TMP1);
+  VIO_FREE2D(TMP2);
+  VIO_FREE2D(Cinv);
+  VIO_FREE2D(SR  );
+  VIO_FREE2D(SRinv);
+  VIO_FREE2D(Sinv);
+  VIO_FREE2D(T   );
+  VIO_FREE2D(Tinv);
+  VIO_FREE2D(C   );
+  VIO_FREE2D(R   );
   
-  FREE2D(center_of_rotation);
-  FREE2D(result            );
-  FREE2D(unit_vec          );
+  VIO_FREE2D(center_of_rotation);
+  VIO_FREE2D(result            );
+  VIO_FREE2D(unit_vec          );
 
   FREE(ang);
   FREE(tmp);
@@ -923,27 +923,27 @@ VIO_BOOL extract2_parameters_from_matrix(VIO_Transform *trans,
     **xmat,**T,**Tinv,**C,**Sinv,
     **R,**SR,**SRinv,**Cinv,**TMP1,**TMP2;
 
-  ALLOC2D(xmat  ,5,5); nr_identf(xmat ,1,4,1,4);
-  ALLOC2D(TMP1  ,5,5); nr_identf(TMP1 ,1,4,1,4);
-  ALLOC2D(TMP2  ,5,5); nr_identf(TMP2 ,1,4,1,4);
-  ALLOC2D(Cinv  ,5,5); nr_identf(Cinv ,1,4,1,4);
-  ALLOC2D(SR    ,5,5); nr_identf(SR   ,1,4,1,4);
-  ALLOC2D(SRinv ,5,5); nr_identf(SRinv,1,4,1,4);
-  ALLOC2D(Sinv  ,5,5); nr_identf(Sinv ,1,4,1,4); 
-  ALLOC2D(T     ,5,5); nr_identf(T    ,1,4,1,4);
-  ALLOC2D(Tinv  ,5,5); nr_identf(Tinv ,1,4,1,4);
-  ALLOC2D(C     ,5,5); nr_identf(C    ,1,4,1,4);
-  ALLOC2D(R     ,5,5); nr_identf(R    ,1,4,1,4);
+  VIO_ALLOC2D(xmat  ,5,5); nr_identf(xmat ,1,4,1,4);
+  VIO_ALLOC2D(TMP1  ,5,5); nr_identf(TMP1 ,1,4,1,4);
+  VIO_ALLOC2D(TMP2  ,5,5); nr_identf(TMP2 ,1,4,1,4);
+  VIO_ALLOC2D(Cinv  ,5,5); nr_identf(Cinv ,1,4,1,4);
+  VIO_ALLOC2D(SR    ,5,5); nr_identf(SR   ,1,4,1,4);
+  VIO_ALLOC2D(SRinv ,5,5); nr_identf(SRinv,1,4,1,4);
+  VIO_ALLOC2D(Sinv  ,5,5); nr_identf(Sinv ,1,4,1,4); 
+  VIO_ALLOC2D(T     ,5,5); nr_identf(T    ,1,4,1,4);
+  VIO_ALLOC2D(Tinv  ,5,5); nr_identf(Tinv ,1,4,1,4);
+  VIO_ALLOC2D(C     ,5,5); nr_identf(C    ,1,4,1,4);
+  VIO_ALLOC2D(R     ,5,5); nr_identf(R    ,1,4,1,4);
 
-  ALLOC2D(center_of_rotation ,5,5);        /* make column vectors */
-  ALLOC2D(result             ,5,5);
-  ALLOC2D(unit_vec           ,5,5);
-  ALLOC2D(x                  ,5,5);
-  ALLOC2D(y                  ,5,5);
-  ALLOC2D(z                  ,5,5);
-  ALLOC2D(nz                 ,5,5);
-  ALLOC2D(y_on_z             ,5,5);
-  ALLOC2D(ortho_y            ,5,5);
+  VIO_ALLOC2D(center_of_rotation ,5,5);        /* make column vectors */
+  VIO_ALLOC2D(result             ,5,5);
+  VIO_ALLOC2D(unit_vec           ,5,5);
+  VIO_ALLOC2D(x                  ,5,5);
+  VIO_ALLOC2D(y                  ,5,5);
+  VIO_ALLOC2D(z                  ,5,5);
+  VIO_ALLOC2D(nz                 ,5,5);
+  VIO_ALLOC2D(y_on_z             ,5,5);
+  VIO_ALLOC2D(ortho_y            ,5,5);
 
   ALLOC(tmp ,4);
   ALLOC(ang ,4);
@@ -1145,27 +1145,27 @@ VIO_BOOL extract2_parameters_from_matrix(VIO_Transform *trans,
   shears[2] = Tinv[3][2]/scales[2] ;
   
 
-  FREE2D(xmat);
-  FREE2D(TMP1);
-  FREE2D(TMP2);
-  FREE2D(Cinv);
-  FREE2D(SR  );
-  FREE2D(SRinv);
-  FREE2D(Sinv);
-  FREE2D(T   );
-  FREE2D(Tinv);
-  FREE2D(C   );
-  FREE2D(R   );
+  VIO_FREE2D(xmat);
+  VIO_FREE2D(TMP1);
+  VIO_FREE2D(TMP2);
+  VIO_FREE2D(Cinv);
+  VIO_FREE2D(SR  );
+  VIO_FREE2D(SRinv);
+  VIO_FREE2D(Sinv);
+  VIO_FREE2D(T   );
+  VIO_FREE2D(Tinv);
+  VIO_FREE2D(C   );
+  VIO_FREE2D(R   );
   
-  FREE2D(center_of_rotation);
-  FREE2D(result            );
-  FREE2D(unit_vec          );
-  FREE2D(x                 );
-  FREE2D(y                 );
-  FREE2D(z                 );
-  FREE2D(nz                );
-  FREE2D(y_on_z            );
-  FREE2D(ortho_y           );
+  VIO_FREE2D(center_of_rotation);
+  VIO_FREE2D(result            );
+  VIO_FREE2D(unit_vec          );
+  VIO_FREE2D(x                 );
+  VIO_FREE2D(y                 );
+  VIO_FREE2D(z                 );
+  VIO_FREE2D(nz                );
+  VIO_FREE2D(y_on_z            );
+  VIO_FREE2D(ortho_y           );
 
   FREE(ang);
   FREE(tmp);
@@ -1286,27 +1286,27 @@ VIO_BOOL extract2_parameters_from_matrix_quater(VIO_Transform *trans,
     **xmat,**T,**Tinv,**C,**Sinv,
     **R,**SR,**SRinv,**Cinv,**TMP1,**TMP2;
 
-  ALLOC2D(xmat  ,5,5); nr_identf(xmat ,1,4,1,4);
-  ALLOC2D(TMP1  ,5,5); nr_identf(TMP1 ,1,4,1,4);
-  ALLOC2D(TMP2  ,5,5); nr_identf(TMP2 ,1,4,1,4);
-  ALLOC2D(Cinv  ,5,5); nr_identf(Cinv ,1,4,1,4);
-  ALLOC2D(SR    ,5,5); nr_identf(SR   ,1,4,1,4);
-  ALLOC2D(SRinv ,5,5); nr_identf(SRinv,1,4,1,4);
-  ALLOC2D(Sinv  ,5,5); nr_identf(Sinv ,1,4,1,4); 
-  ALLOC2D(T     ,5,5); nr_identf(T    ,1,4,1,4);
-  ALLOC2D(Tinv  ,5,5); nr_identf(Tinv ,1,4,1,4);
-  ALLOC2D(C     ,5,5); nr_identf(C    ,1,4,1,4);
-  ALLOC2D(R     ,5,5); nr_identf(R    ,1,4,1,4);
+  VIO_ALLOC2D(xmat  ,5,5); nr_identf(xmat ,1,4,1,4);
+  VIO_ALLOC2D(TMP1  ,5,5); nr_identf(TMP1 ,1,4,1,4);
+  VIO_ALLOC2D(TMP2  ,5,5); nr_identf(TMP2 ,1,4,1,4);
+  VIO_ALLOC2D(Cinv  ,5,5); nr_identf(Cinv ,1,4,1,4);
+  VIO_ALLOC2D(SR    ,5,5); nr_identf(SR   ,1,4,1,4);
+  VIO_ALLOC2D(SRinv ,5,5); nr_identf(SRinv,1,4,1,4);
+  VIO_ALLOC2D(Sinv  ,5,5); nr_identf(Sinv ,1,4,1,4); 
+  VIO_ALLOC2D(T     ,5,5); nr_identf(T    ,1,4,1,4);
+  VIO_ALLOC2D(Tinv  ,5,5); nr_identf(Tinv ,1,4,1,4);
+  VIO_ALLOC2D(C     ,5,5); nr_identf(C    ,1,4,1,4);
+  VIO_ALLOC2D(R     ,5,5); nr_identf(R    ,1,4,1,4);
 
-  ALLOC2D(center_of_rotation ,5,5);        /* make column vectors */
-  ALLOC2D(result             ,5,5);
-  ALLOC2D(unit_vec           ,5,5);
-  ALLOC2D(x                  ,5,5);
-  ALLOC2D(y                  ,5,5);
-  ALLOC2D(z                  ,5,5);
-  ALLOC2D(nz                 ,5,5);
-  ALLOC2D(y_on_z             ,5,5);
-  ALLOC2D(ortho_y            ,5,5);
+  VIO_ALLOC2D(center_of_rotation ,5,5);        /* make column vectors */
+  VIO_ALLOC2D(result             ,5,5);
+  VIO_ALLOC2D(unit_vec           ,5,5);
+  VIO_ALLOC2D(x                  ,5,5);
+  VIO_ALLOC2D(y                  ,5,5);
+  VIO_ALLOC2D(z                  ,5,5);
+  VIO_ALLOC2D(nz                 ,5,5);
+  VIO_ALLOC2D(y_on_z             ,5,5);
+  VIO_ALLOC2D(ortho_y            ,5,5);
 
   ALLOC(tmp ,4);
   ALLOC(ang ,4);
@@ -1504,27 +1504,27 @@ VIO_BOOL extract2_parameters_from_matrix_quater(VIO_Transform *trans,
   shears[2] = Tinv[3][2]/scales[2] ;
   
 
-  FREE2D(xmat);
-  FREE2D(TMP1);
-  FREE2D(TMP2);
-  FREE2D(Cinv);
-  FREE2D(SR  );
-  FREE2D(SRinv);
-  FREE2D(Sinv);
-  FREE2D(T   );
-  FREE2D(Tinv);
-  FREE2D(C   );
-  FREE2D(R   );
+  VIO_FREE2D(xmat);
+  VIO_FREE2D(TMP1);
+  VIO_FREE2D(TMP2);
+  VIO_FREE2D(Cinv);
+  VIO_FREE2D(SR  );
+  VIO_FREE2D(SRinv);
+  VIO_FREE2D(Sinv);
+  VIO_FREE2D(T   );
+  VIO_FREE2D(Tinv);
+  VIO_FREE2D(C   );
+  VIO_FREE2D(R   );
   
-  FREE2D(center_of_rotation);
-  FREE2D(result            );
-  FREE2D(unit_vec          );
-  FREE2D(x                 );
-  FREE2D(y                 );
-  FREE2D(z                 );
-  FREE2D(nz                );
-  FREE2D(y_on_z            );
-  FREE2D(ortho_y           );
+  VIO_FREE2D(center_of_rotation);
+  VIO_FREE2D(result            );
+  VIO_FREE2D(unit_vec          );
+  VIO_FREE2D(x                 );
+  VIO_FREE2D(y                 );
+  VIO_FREE2D(z                 );
+  VIO_FREE2D(nz                );
+  VIO_FREE2D(y_on_z            );
+  VIO_FREE2D(ortho_y           );
 
   FREE(ang);
   FREE(tmp);

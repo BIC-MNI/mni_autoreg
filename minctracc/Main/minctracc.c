@@ -57,7 +57,7 @@
    @MODIFIED   :  * removed an extraneous printf from minctracc
    @MODIFIED   :
    @MODIFIED   : Revision 96.11  2004/02/12 05:54:22  rotor
-   @MODIFIED   :  * removed public/private defs
+   @MODIFIED   :  * removed /static defs
    @MODIFIED   :
    @MODIFIED   : Revision 96.10  2004/02/04 20:42:33  lenezet
    @MODIFIED   : *** empty log message ***
@@ -167,7 +167,7 @@ Wed May 26 13:05:44 EST 1993 lc
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char minctracc_rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.24 2011-02-24 20:02:35 louis Exp $";
+static char minctracc_rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/minctracc/Main/minctracc.c,v 96.24 2011-02-24 20:02:35 louis Exp $";
 #endif
 
 #ifdef HAVE_CONFIG_H

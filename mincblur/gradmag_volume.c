@@ -37,7 +37,7 @@
 @MODIFIED   :  * removed malloc.h include for smoother OSX build
 @MODIFIED   :
 @MODIFIED   : Revision 96.1  2004/02/12 05:53:48  rotor
-@MODIFIED   :  * removed public/private defs
+@MODIFIED   :  * removed /static defs
 @MODIFIED   :
 @MODIFIED   : Revision 96.0  1996/08/21 18:22:24  louis
 @MODIFIED   : Release of MNI_AutoReg version 0.96
@@ -75,7 +75,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/gradmag_volume.c,v 96.5 2009-06-05 20:49:52 claude Exp $";
+static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/mincblur/gradmag_volume.c,v 96.5 2009-06-05 20:49:52 claude Exp $";
 #endif
 
 #include <config.h>             /* for EXIT_FAILURE (on some systems) */
@@ -1071,7 +1071,7 @@ void make_gradmag_volumes(MincVolume *in_vol1,
 {
    long in_start[MAX_VAR_DIMS], in_count[MAX_VAR_DIMS], in_end[MAX_VAR_DIMS];
    long out_start[MAX_VAR_DIMS], out_count[MAX_VAR_DIMS];
-   long mm_start[MAX_VAR_DIMS];   /* Vector for min/max variables */
+   long mm_start[MAX_VAR_DIMS];   /* VIO_Vector for min/max variables */
    long nslice, islice;
    int idim, slice_dim, index, slice_index;
    double maximum, minimum, valid_range[2];
@@ -1215,7 +1215,7 @@ void make_curvature_volumes(MincVolume *in_vol1,
 {
    long in_start[MAX_VAR_DIMS], in_count[MAX_VAR_DIMS], in_end[MAX_VAR_DIMS];
    long out_start[MAX_VAR_DIMS], out_count[MAX_VAR_DIMS];
-   long mm_start[MAX_VAR_DIMS];   /* Vector for min/max variables */
+   long mm_start[MAX_VAR_DIMS];   /* VIO_Vector for min/max variables */
    long nslice, islice;
    int idim, slice_dim, index, slice_index;
    double maximum, minimum, valid_range[2];

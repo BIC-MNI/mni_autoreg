@@ -43,7 +43,7 @@
 @MODIFIED   :      * Still working on fixing up perl subdirectory - removing mni_perllib
 @MODIFIED   :
 @MODIFIED   :  Revision 96.8  2004/02/12 06:04:52  rotor
-@MODIFIED   :   * removed public/private defs
+@MODIFIED   :   * removed /static defs
 @MODIFIED   :
 @MODIFIED   :  Revision 96.7  2004/02/04 20:44:42  lenezet
 @MODIFIED   :  *** empty log message ***
@@ -111,7 +111,7 @@ made change to init lattice to not change start when there is only 1 slice.
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/init_lattice.c,v 96.12 2009-03-13 19:51:31 claude Exp $";
+static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/minctracc/VIO_Volume/init_lattice.c,v 96.12 2009-03-13 19:51:31 claude Exp $";
 #endif
 
 #include <config.h>

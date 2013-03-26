@@ -8,7 +8,7 @@ VIO_BOOL build_segment_table(Segment_Table **s_table, VIO_Volume d1, int groups)
 
   float
     frac;
-  Data_types
+  VIO_Data_types
     data_type;
   int
     i,min,max;
@@ -53,7 +53,7 @@ VIO_BOOL build_segment_table(Segment_Table **s_table, VIO_Volume d1, int groups)
     
     for(i=min; i<=max; i++) {                /* build the look up table */
       frac = 0.5 + ((float)(groups)-0.00001 )* (float)(i-min)/(float)(max-min);
-      (*s_table)->table[i] = ROUND( frac );
+      (*s_table)->table[i] = VIO_ROUND( frac );
     }
     
     return(TRUE);

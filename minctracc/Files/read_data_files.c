@@ -29,7 +29,7 @@
 @MODIFIED   :     * Still working on fixing up perl subdirectory - removing mni_perllib
 @MODIFIED   :
 @MODIFIED   : Revision 1.4  2004/02/12 05:54:11  rotor
-@MODIFIED   :  * removed public/private defs
+@MODIFIED   :  * removed /static defs
 @MODIFIED   :
 @MODIFIED   : Revision 1.3  2004/02/04 20:42:02  lenezet
 @MODIFIED   : *** empty log message ***
@@ -55,7 +55,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Files/read_data_files.c,v 1.6 2006-11-29 09:09:32 rotor Exp $";
+static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/minctracc/Files/read_data_files.c,v 1.6 2006-11-29 09:09:32 rotor Exp $";
 #endif
 
 #include <config.h>

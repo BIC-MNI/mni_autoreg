@@ -44,7 +44,7 @@
 @MODIFIED   :     * Still working on fixing up perl subdirectory - removing mni_perllib
 @MODIFIED   :
 @MODIFIED   : Revision 96.2  2004/02/12 05:53:48  rotor
-@MODIFIED   :  * removed public/private defs
+@MODIFIED   :  * removed /static defs
 @MODIFIED   :
 @MODIFIED   : Revision 96.1  2000/01/27 16:51:27  louis
 @MODIFIED   : working version
@@ -85,7 +85,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/blur_volume.c,v 96.5 2009-07-23 22:34:00 claude Exp $";
+static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/mincblur/blur_volume.c,v 96.5 2009-07-23 22:34:00 claude Exp $";
 #endif
 
 #include <float.h>
@@ -145,7 +145,7 @@ VIO_Status blur3D_volume(VIO_Volume data, int xyzv[VIO_MAX_DIMENSIONS],
   char
     full_outfilename[256];        /* name of output file */
 
-  progress_struct 
+  VIO_progress_struct 
     progress;                        /* used to monitor progress of calculations         */
 
   VIO_Status 

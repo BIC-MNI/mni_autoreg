@@ -52,7 +52,7 @@
 @MODIFIED   : :
 @MODIFIED   :
 @MODIFIED   : Revision 96.21  2004/02/12 06:08:20  rotor
-@MODIFIED   :  * removed public/private defs
+@MODIFIED   :  * removed /static defs
 @MODIFIED   :
 @MODIFIED   : Revision 96.20  2004/02/04 20:44:13  lenezet
 @MODIFIED   : *** empty log message ***
@@ -354,7 +354,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.31 2011-02-24 20:02:35 louis Exp $";
+static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.31 2011-02-24 20:02:35 louis Exp $";
 #endif
 
 #include <config.h>                /* MAXtype and MIN defs                      */
@@ -760,8 +760,8 @@ VIO_Status do_non_linear_optimization(Arg_Data *globals)
    /* allocate space required for some globals */
 
    if (Gglobals->features.number_of_features > 0) {
-      ALLOC2D (Ga1_features, Gglobals->features.number_of_features, MAX_G_LEN+1);
-      ALLOC2D (masked_samples_in_source, Gglobals->features.number_of_features, MAX_G_LEN+1);
+      VIO_ALLOC2D (Ga1_features, Gglobals->features.number_of_features, MAX_G_LEN+1);
+      VIO_ALLOC2D (masked_samples_in_source, Gglobals->features.number_of_features, MAX_G_LEN+1);
       ALLOC( Gsqrt_features, Gglobals->features.number_of_features);
 
       sub_lattice_needed = is_a_sub_lattice_needed (Gglobals->features.obj_func,
@@ -1614,8 +1614,8 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
   
    if (Gglobals->features.number_of_features>0) 
      {
-       FREE2D(Ga1_features);
-       FREE2D(masked_samples_in_source);
+       VIO_FREE2D(Ga1_features);
+       VIO_FREE2D(masked_samples_in_source);
        FREE(Gsqrt_features);
      }
  
