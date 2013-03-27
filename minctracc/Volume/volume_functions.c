@@ -554,10 +554,10 @@ void normalize_data_to_match_target(VIO_Volume d1, VIO_Volume m1, VIO_Real thres
 
       
       switch( data_type ) {
-      case SIGNED_BYTE: 
-      case UNSIGNED_BYTE: 
-      case SIGNED_SHORT: 
-      case UNSIGNED_SHORT: 
+      case VIO_SIGNED_BYTE: 
+      case VIO_UNSIGNED_BYTE: 
+      case VIO_SIGNED_SHORT: 
+      case VIO_UNSIGNED_SHORT: 
 	
 	/* build temporary working volume */
 	

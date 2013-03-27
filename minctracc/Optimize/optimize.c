@@ -1104,8 +1104,8 @@ VIO_BOOL optimize_linear_transformation(VIO_Volume d1,
       }
 
       data_type = get_volume_data_type (d1);
-      if (data_type != UNSIGNED_BYTE) {
-        print ("WARNING: source volume not UNSIGNED_BYTE, will do conversion now.\n");
+      if (data_type != VIO_UNSIGNED_BYTE) {
+        print ("WARNING: source volume not VIO_UNSIGNED_BYTE, will do conversion now.\n");
         if (!replace_volume_data_with_ubyte(d1)) {
           print_error_and_line_num("Can't replace volume data with unsigned bytes\n",
                              __FILE__, __LINE__);
@@ -1113,8 +1113,8 @@ VIO_BOOL optimize_linear_transformation(VIO_Volume d1,
       }
 
       data_type = get_volume_data_type (d2);
-      if (data_type != UNSIGNED_BYTE) {
-        print ("WARNING: target volume not UNSIGNED_BYTE, will do conversion now.\n");
+      if (data_type != VIO_UNSIGNED_BYTE) {
+        print ("WARNING: target volume not VIO_UNSIGNED_BYTE, will do conversion now.\n");
         if (!replace_volume_data_with_ubyte(d2)) {
           print_error_and_line_num("Can't replace volume data with unsigned bytes\n",
                              __FILE__, __LINE__);
@@ -1396,8 +1396,8 @@ VIO_BOOL optimize_linear_transformation_quater(VIO_Volume d1,
       }
 
       data_type = get_volume_data_type (d1);
-      if (data_type != UNSIGNED_BYTE) {
-        print ("WARNING: source volume not UNSIGNED_BYTE, will do conversion now.\n");
+      if (data_type != VIO_UNSIGNED_BYTE) {
+        print ("WARNING: source volume not VIO_UNSIGNED_BYTE, will do conversion now.\n");
         if (!replace_volume_data_with_ubyte(d1)) {
           print_error_and_line_num("Can't replace volume data with unsigned bytes\n",
                              __FILE__, __LINE__);
@@ -1405,8 +1405,8 @@ VIO_BOOL optimize_linear_transformation_quater(VIO_Volume d1,
       }
 
       data_type = get_volume_data_type (d2);
-      if (data_type != UNSIGNED_BYTE) {
-        print ("WARNING: target volume not UNSIGNED_BYTE, will do conversion now.\n");
+      if (data_type != VIO_UNSIGNED_BYTE) {
+        print ("WARNING: target volume not VIO_UNSIGNED_BYTE, will do conversion now.\n");
         if (!replace_volume_data_with_ubyte(d2)) {
           print_error_and_line_num("Can't replace volume data with unsigned bytes\n",
                              __FILE__, __LINE__);
@@ -1663,8 +1663,8 @@ float measure_fit(VIO_Volume d1,
       }
 
       data_type = get_volume_data_type (d1);
-      if (data_type != UNSIGNED_BYTE) {
-        print ("WARNING: source volume not UNSIGNED_BYTE, will do conversion now.\n");
+      if (data_type != VIO_UNSIGNED_BYTE) {
+        print ("WARNING: source volume not VIO_UNSIGNED_BYTE, will do conversion now.\n");
         if (!replace_volume_data_with_ubyte(d1)) {
           print_error_and_line_num("Can't replace volume data with unsigned bytes\n",
                              __FILE__, __LINE__);
@@ -1672,8 +1672,8 @@ float measure_fit(VIO_Volume d1,
       }
 
       data_type = get_volume_data_type (d2);
-      if (data_type != UNSIGNED_BYTE) {
-        print ("WARNING: target volume not UNSIGNED_BYTE, will do conversion now.\n");
+      if (data_type != VIO_UNSIGNED_BYTE) {
+        print ("WARNING: target volume not VIO_UNSIGNED_BYTE, will do conversion now.\n");
         if (!replace_volume_data_with_ubyte(d2)) {
           print_error_and_line_num("Can't replace volume data with unsigned bytes\n",
                              __FILE__, __LINE__);
