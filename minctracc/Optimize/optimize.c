@@ -2020,7 +2020,7 @@ VIO_BOOL optimize_non_linear_transformation(Arg_Data *globals)
            /* ---------------- call requested optimization strategy ---------*/
 
 
-  stat = ( do_non_linear_optimization(globals)==OK );
+  stat = ( do_non_linear_optimization(globals)==VIO_OK );
  
   
           /* ----------------finish up parameter/matrix manipulations ------*/

@@ -1634,7 +1634,7 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
     
 
 
-   return (OK);
+   return (VIO_OK);
 
 }
 

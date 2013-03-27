@@ -322,7 +322,7 @@ int main(int argc, char *argv[])
    }
 
    /* Read in file to check scale */
-   if (input_transform_file(argv[1], &transform) != OK) {
+   if (input_transform_file(argv[1], &transform) != VIO_OK) {
       (void) fprintf(stderr, "%s: Error reading transform file %s\n",
                      argv[0], argv[1]);
       exit(EXIT_FAILURE);
@@ -388,7 +388,7 @@ int main(int argc, char *argv[])
    
 
    /* Write out the transform */
-   if (output_transform_file(argv[2], NULL, &new_transform) != OK) {
+   if (output_transform_file(argv[2], NULL, &new_transform) != VIO_OK) {
       (void) fprintf(stderr, "%s: Error writing transform file %s\n",
                      argv[0], argv[2]);
       exit(EXIT_FAILURE);

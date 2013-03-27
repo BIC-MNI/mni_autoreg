@@ -513,7 +513,7 @@ int main ( int argc, char* argv[] )
                          NC_DOUBLE, FALSE, 0.0, 0.0,
                          TRUE, &data, (minc_input_options *)NULL );
 
-  if (status != OK)
+  if (status != VIO_OK)
     print_error_and_line_num("Cannot input volume '%s'",
                              __FILE__, __LINE__,main_args.filenames.data);
   data_dxyz = data;
@@ -521,7 +521,7 @@ int main ( int argc, char* argv[] )
   status = input_volume( main_args.filenames.model, 3, default_dim_names, 
                          NC_DOUBLE, FALSE, 0.0, 0.0,
                          TRUE, &model, (minc_input_options *)NULL );
-  if (status != OK)
+  if (status != VIO_OK)
     print_error_and_line_num("Cannot input volume '%s'",
                              __FILE__, __LINE__,main_args.filenames.model);
   model_dxyz = model;
@@ -620,7 +620,7 @@ int main ( int argc, char* argv[] )
     {
       init_lattice( data, model, mask_data, mask_model, &main_args );
       make_matlab_data_file( data, model, mask_data, mask_model, comments, &main_args );
-      exit( OK );
+      exit( VIO_OK );
     }
 
   if (strlen(main_args.filenames.measure_file) != 0) 
@@ -779,7 +779,7 @@ int main ( int argc, char* argv[] )
                                  comments,
                                  main_args.trans_info.transformation);
      
-  if (status!=OK) {
+  if (status!=VIO_OK) {
     print_error_and_line_num("Error saving transformation file.`\n",
                 __FILE__, __LINE__);
     exit(EXIT_FAILURE);
@@ -861,7 +861,7 @@ int get_transformation(char *dst, char *key, char *nextArg)
                                             get_default_transform_file_suffix(),
                                             READ_FILE, ASCII_FORMAT, &fp );
 
-      if (status != OK) {
+      if (status != VIO_OK) {
          (void)fprintf(stderr, "Error opening transformation file %s.\n",
                         nextArg);
          exit(EXIT_FAILURE);
@@ -886,7 +886,7 @@ int get_transformation(char *dst, char *key, char *nextArg)
    rewind(fp);
 
    /* Read the file */
-   if (input_transform(fp, nextArg, &input_transformation)!=OK) {
+   if (input_transform(fp, nextArg, &input_transformation)!=VIO_OK) {
      (void)fprintf(stderr, "Error reading transformation file.\n");
      exit(EXIT_FAILURE);
    }
@@ -944,7 +944,7 @@ int get_mask_file(char *dst, char *key, char *nextArg)
     main_args.filenames.mask_data = nextArg;
   }
 
-  if (status != OK)
+  if (status != VIO_OK)
   {
     (void)fprintf(stderr, "Cannot input mask file %s.",nextArg);
     return(FALSE);
@@ -1066,7 +1066,7 @@ int get_feature_volumes(char *dst, char *key, int argc, char **argv)
 			    NC_UNSPECIFIED, FALSE, 0.0, 0.0,
 			    TRUE, &data_vol, 
 			    (minc_input_options *)NULL );
-      if (status != OK) {
+      if (status != VIO_OK) {
 	(void)fprintf(stderr, "Cannot input feature %s.\n",data_name);
 	return(-1);
       } 
@@ -1074,7 +1074,7 @@ int get_feature_volumes(char *dst, char *key, int argc, char **argv)
 			    NC_UNSPECIFIED, FALSE, 0.0, 0.0,
 			    TRUE, &model_vol, 
 			    (minc_input_options *)NULL );
-      if (status != OK) {
+      if (status != VIO_OK) {
 	(void)fprintf(stderr, "Cannot input feature %s.\n",model_name);
 	return(-1);
       } 
@@ -1086,7 +1086,7 @@ int get_feature_volumes(char *dst, char *key, int argc, char **argv)
 			    NC_DOUBLE, FALSE, 0.0, 0.0,
 			    TRUE, &data_vol, 
 			    (minc_input_options *)NULL );
-      if (status != OK) {
+      if (status != VIO_OK) {
 	(void)fprintf(stderr, "Cannot input feature %s.\n",data_name);
 	return(-1);
       } 
@@ -1094,7 +1094,7 @@ int get_feature_volumes(char *dst, char *key, int argc, char **argv)
 			    NC_DOUBLE, FALSE, 0.0, 0.0,
 			    TRUE, &model_vol, 
 			    (minc_input_options *)NULL );
-      if (status != OK) {
+      if (status != VIO_OK) {
 	(void)fprintf(stderr, "Cannot input feature %s.\n",model_name);
 	return(-1);
       } 
@@ -1129,7 +1129,7 @@ int get_feature_volumes(char *dst, char *key, int argc, char **argv)
   }
   argc -= args_used;
 
-  return (argc);                        /* OK */
+  return (argc);                        /* VIO_OK */
   
 }
 

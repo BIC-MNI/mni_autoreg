@@ -328,7 +328,7 @@ print ("scale: %10.5f %10.5f %10.5f \n",
     
     
     status = open_file(  globals->filenames.matlab_file, WRITE_FILE, BINARY_FORMAT,  &ofd );
-    if ( status != OK ) 
+    if ( status != VIO_OK ) 
       print_error_and_line_num ("filename `%s' cannot be opened.", 
                    __FILE__, __LINE__, globals->filenames.matlab_file);
     
@@ -394,7 +394,7 @@ print ("scale: %10.5f %10.5f %10.5f \n",
     }
     
     status = close_file(ofd);
-    if ( status != OK ) 
+    if ( status != VIO_OK ) 
       print_error_and_line_num ("filename `%s' cannot be closed.", 
                    __FILE__, __LINE__, globals->filenames.matlab_file);
     
@@ -498,7 +498,7 @@ print ("scale: %10.5f %10.5f %10.5f \n",
     
     
     status = open_file(  globals->filenames.matlab_file, WRITE_FILE, BINARY_FORMAT,  &ofd );
-    if ( status != OK ) 
+    if ( status != VIO_OK ) 
       print_error_and_line_num ("filename `%s' cannot be opened.", 
                    __FILE__, __LINE__, globals->filenames.matlab_file);
     
@@ -567,7 +567,7 @@ print ("scale: %10.5f %10.5f %10.5f \n",
     }
     
     status = close_file(ofd);
-    if ( status != OK ) 
+    if ( status != VIO_OK ) 
       print_error_and_line_num ("filename `%s' cannot be closed.", 
                    __FILE__, __LINE__, globals->filenames.matlab_file);
     

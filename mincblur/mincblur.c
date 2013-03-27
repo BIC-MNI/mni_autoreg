@@ -13,7 +13,7 @@
         5 - | d^3/dxdydz | = sqrt ( (d/dx)^2 + (d/dy)^2 + (d/dz)^2 ) 
                            i.e. the derivative magnitude of the blurred volume.
 
-   @RETURNS    : TRUE if ok, ERROR if error.
+   @RETURNS    : TRUE if ok, VIO_ERROR if error.
 
    @DESCRIPTION: This program will read in a volumetric dataset in
                  .mnc format.  This file is assumed to contain rectangular 
@@ -252,13 +252,13 @@ int main (int argc, char *argv[] )
       print ("File %s exists. -- %d\n", tname);
       print ("Use -clobber to overwrite.\n");
       free(tname);
-      return ERROR;
+      return VIO_ERROR;
     }
     free(tname);
   }
 
   status = open_file( output_basename , WRITE_FILE, BINARY_FORMAT,  &ofd );
-  if ( status != OK ) 
+  if ( status != VIO_OK ) 
     print_error_and_line_num ("filename `%s' cannot be opened.", 
                               __FILE__, __LINE__, output_basename);
   status = close_file(ofd);
@@ -281,7 +281,7 @@ int main (int argc, char *argv[] )
 
     status = open_file( reals_filename, WRITE_FILE, BINARY_FORMAT,  &reals_fp );
     
-    if (status != OK) {
+    if (status != VIO_OK) {
       print_error_and_line_num ("Temporary file to save blurred volume cannot be opened.", 
                                 __FILE__, __LINE__);
     }
@@ -297,7 +297,7 @@ int main (int argc, char *argv[] )
                         get_default_dim_names( VIO_N_DIMENSIONS ),
                         NC_UNSPECIFIED, FALSE, 0.0, 0.0, TRUE, 
                         &data, (minc_input_options *)NULL);
-  if ( status != OK )
+  if ( status != VIO_OK )
     print_error_and_line_num("problems reading `%s'.\n",__FILE__, __LINE__,infilename);
 
   get_volume_XYZV_indices( data, xyzv );
@@ -345,11 +345,11 @@ int main (int argc, char *argv[] )
 
                                 /* reopen REALS file for READ */
     status = close_file( reals_fp );
-    if (status!=OK)
+    if (status!=VIO_OK)
       print_error_and_line_num("Error closing <%s>.",__FILE__, __LINE__, reals_filename);
     
     status = open_file( reals_filename ,READ_FILE, BINARY_FORMAT,  &reals_fp );
-    if (status!=OK)
+    if (status!=VIO_OK)
       print_error_and_line_num("Error opening <%s>.",__FILE__, __LINE__, reals_filename);
       
 
@@ -361,13 +361,13 @@ int main (int argc, char *argv[] )
 
     status = gradient3D_volume(reals_fp, data, xyzv, infilename, partials_name, dimensions,
                                history, FALSE);
-    if (status!=OK)
+    if (status!=VIO_OK)
       print_error_and_line_num("Can't calculate the gradient volumes.",__FILE__, __LINE__);
 
 
                                 /* close and delete the REALS temp data file */
     status = close_file( reals_fp );
-    if (status!=OK)
+    if (status!=VIO_OK)
       print_error_and_line_num("Error closing <%s>.",__FILE__, __LINE__, reals_filename);
 
     remove_file( reals_filename );

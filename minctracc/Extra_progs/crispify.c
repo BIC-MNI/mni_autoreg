@@ -263,7 +263,7 @@ void load_volume(char *in_filename, VIO_Volume *volume)
                         FALSE, 0.0, 0.0,
                         (fuzzy_vol_index >= 1 ? FALSE: TRUE), volume, (minc_input_options *) NULL ) ;
 
-  if( status != OK )
+  if( status != VIO_OK )
     exit(EXIT_FAILURE);
 
   /* if loading the very first volume, get its sizes, number of dims and dim 
@@ -411,7 +411,7 @@ void create_empty_crisp_volume(VIO_Volume volume_example)
 @INPUT      : 
 @OUTPUT     : 
 @RETURNS    : 
-@DESCRIPTION: verifies that volume sizes are OK
+@DESCRIPTION: verifies that volume sizes are VIO_OK
 @METHOD     : 
 @GLOBALS    : 
 @CALLS      : 
@@ -546,7 +546,7 @@ void write_crisp_volume(void)
                          (minc_output_options *) NULL ) ;
 
 
-  if ( status != OK )
+  if ( status != VIO_OK )
      exit(EXIT_FAILURE);
                               
 

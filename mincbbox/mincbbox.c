@@ -123,7 +123,7 @@ int main (int argc, char *argv[] )
                             (minc_input_options *)NULL);
 
 
-  if ( status != OK )
+  if ( status != VIO_OK )
     print_error_and_line_num("problems reading `%s'.\n",__FILE__, __LINE__,infilename, 0,0,0,0);
 
   if (get_volume_n_dimensions(data)!=3) {
@@ -191,7 +191,7 @@ int main (int argc, char *argv[] )
     else
       print ("%f %f %f    %f %f %f\n",minx, miny, minz, maxx-minx+1, maxy-miny+1, maxz-minz+1);
 
-  return(OK);
+  return(VIO_OK);
 }
 
 

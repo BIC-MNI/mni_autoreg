@@ -42,7 +42,7 @@ VIO_Transform* input_linear_transform( char* filename )
 
     ALLOC( gt, 1 );
 
-    if ( input_transform_file( filename, gt ) != OK ) {
+    if ( input_transform_file( filename, gt ) != VIO_OK ) {
         fprintf( stderr, "%s: cannot read file %s\n",
                  ProgName, filename );
         return NULL;

@@ -331,7 +331,7 @@ int main(int argc, char *argv[])
     }
   }
 
-  if (input_transform_file(xfmfile, &gt)!=OK) {
+  if (input_transform_file(xfmfile, &gt)!=VIO_OK) {
     (void)fprintf(stderr, "Error reading transformation file.\n");
     exit(EXIT_FAILURE);
   }

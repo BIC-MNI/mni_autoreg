@@ -368,7 +368,7 @@ void save_volume(VIO_Volume d, char *filename)
   status = output_volume(filename,NC_UNSPECIFIED, FALSE, 0.0, 0.0, d, (char *)NULL,
                          (minc_output_options *)NULL);
 
-  if (status != OK)
+  if (status != VIO_OK)
     print_error_and_line_num("problems writing  volume `%s'.",__FILE__, __LINE__, filename);
 
 }

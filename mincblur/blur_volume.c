@@ -7,7 +7,7 @@
                      =2, do blurring in the x and y directions only,
                      =3, blur in all three directions.
 @OUTPUT     : creates and stores the blurred volume in an output file.
-@RETURNS    : status variable - OK or ERROR.
+@RETURNS    : status variable - VIO_OK or ERROR.
 @DESCRIPTION: This routine convolves each row, column and slice with a
               gaussian kernel.  The convolution is accomplished in the fourier
               domain by multiplying the fourier transformations of both the
@@ -214,7 +214,7 @@ VIO_Status blur3D_volume(VIO_Volume data, int xyzv[VIO_MAX_DIMENSIONS],
   /*             determine   size of data structures needed                      */
   
   vector_size_data = sizes[xyzv[VIO_X]]; 
-  kernel_size_data = (int)(((4*fwhmx)/ABS(steps[xyzv[VIO_X]])) + 0.5);
+  kernel_size_data = (int)(((4*fwhmx)/VIO_ABS(steps[xyzv[VIO_X]])) + 0.5);
   
   if (kernel_size_data > MAX(vector_size_data,256))
     kernel_size_data =  MAX(vector_size_data,256);
@@ -243,7 +243,7 @@ VIO_Status blur3D_volume(VIO_Volume data, int xyzv[VIO_MAX_DIMENSIONS],
   
   /*    1st calculate kern array for gaussian kernel*/
   
-  make_kernel(kern,(float)(ABS(steps[xyzv[VIO_X]])),fwhmx,array_size_pow2,kernel_type);
+  make_kernel(kern,(float)(VIO_ABS(steps[xyzv[VIO_X]])),fwhmx,array_size_pow2,kernel_type);
   fft1(kern,array_size_pow2,1);
   
   /*    calculate offset for original data to be placed in vector            */
@@ -306,7 +306,7 @@ VIO_Status blur3D_volume(VIO_Volume data, int xyzv[VIO_MAX_DIMENSIONS],
   f_ptr = fdata;
   
   vector_size_data = sizes[xyzv[VIO_Y]];
-  kernel_size_data = (int)(((4*fwhmy)/(ABS(steps[xyzv[VIO_Y]]))) + 0.5);
+  kernel_size_data = (int)(((4*fwhmy)/(VIO_ABS(steps[xyzv[VIO_Y]]))) + 0.5);
   
   if (kernel_size_data > MAX(vector_size_data,256))
     kernel_size_data =  MAX(vector_size_data,256);
@@ -326,7 +326,7 @@ VIO_Status blur3D_volume(VIO_Volume data, int xyzv[VIO_MAX_DIMENSIONS],
   
   /*    1st calculate kern array for gaussian kernel*/
   
-  make_kernel(kern,(float)(ABS(steps[xyzv[VIO_Y]])),fwhmy,array_size_pow2,kernel_type);
+  make_kernel(kern,(float)(VIO_ABS(steps[xyzv[VIO_Y]])),fwhmy,array_size_pow2,kernel_type);
   fft1(kern,array_size_pow2,1);
   
   /*    calculate offset for original data to be placed in vector            */
@@ -397,7 +397,7 @@ VIO_Status blur3D_volume(VIO_Volume data, int xyzv[VIO_MAX_DIMENSIONS],
   f_ptr = fdata;
   
   vector_size_data = sizes[xyzv[VIO_Z]];
-  kernel_size_data = (int)(((4*fwhmz)/(ABS(steps[xyzv[VIO_Z]]))) + 0.5);
+  kernel_size_data = (int)(((4*fwhmz)/(VIO_ABS(steps[xyzv[VIO_Z]]))) + 0.5);
   
   if (kernel_size_data > MAX(vector_size_data,256))
     kernel_size_data =  MAX(vector_size_data,256);
@@ -421,7 +421,7 @@ VIO_Status blur3D_volume(VIO_Volume data, int xyzv[VIO_MAX_DIMENSIONS],
     
     /*    1st calculate kern array for gaussian kernel*/
     
-    make_kernel(kern,(float)(ABS(steps[xyzv[VIO_Z]])),fwhmz,array_size_pow2,kernel_type);
+    make_kernel(kern,(float)(VIO_ABS(steps[xyzv[VIO_Z]])),fwhmz,array_size_pow2,kernel_type);
     fft1(kern,array_size_pow2,1);
     
     /*    calculate offset for original data to be placed in vector            */
@@ -495,7 +495,7 @@ VIO_Status blur3D_volume(VIO_Volume data, int xyzv[VIO_MAX_DIMENSIONS],
   
   if (reals_fp != (FILE *)NULL) {
     status = io_binary_data(reals_fp,WRITE_FILE, fdata, sizeof(float), total_voxels);
-    if (status != OK) 
+    if (status != VIO_OK) 
       print_error_and_line_num("problems writing blurred reals data...",__FILE__, __LINE__);
   }
   
@@ -527,7 +527,7 @@ VIO_Status blur3D_volume(VIO_Volume data, int xyzv[VIO_MAX_DIMENSIONS],
                                   (minc_output_options *)NULL);
 
 
-  if (status != OK)
+  if (status != VIO_OK)
     print_error_and_line_num("problems writing blurred data...",__FILE__, __LINE__);
 
   return(status);

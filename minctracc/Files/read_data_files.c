@@ -76,7 +76,7 @@ VIO_Status read_deform_data(VIO_Volume *dx,
   VIO_Status status;
   VIO_Volume tx, ty, tz;
   
-  status = OK;
+  status = VIO_OK;
   
   
   /* ------------------------------------------------------------ dx vol --*/
@@ -88,7 +88,7 @@ VIO_Status read_deform_data(VIO_Volume *dx,
   status = input_volume( fullname, 3, default_dim_names, 
                         NC_UNSPECIFIED, FALSE, 0.0, 0.0,
                         TRUE, &tx, (minc_input_options *)NULL );
-  if (status != OK)
+  if (status != VIO_OK)
     print_error_and_line_num("problems reading in dx volume, probably not enough memory!\n",__FILE__, __LINE__);
   
   *dx = tx;
@@ -104,7 +104,7 @@ VIO_Status read_deform_data(VIO_Volume *dx,
   status = input_volume( fullname, 3, default_dim_names, 
                         NC_UNSPECIFIED, FALSE, 0.0, 0.0,
                         TRUE, &ty, (minc_input_options *)NULL );
-  if (status != OK)
+  if (status != VIO_OK)
     print_error_and_line_num("problems reading in dy volume, probably not enough memory!\n",__FILE__, __LINE__);
   
   *dy = ty;
@@ -120,7 +120,7 @@ VIO_Status read_deform_data(VIO_Volume *dx,
   status = input_volume( fullname, 3, default_dim_names, 
                         NC_UNSPECIFIED, FALSE, 0.0, 0.0,
                         TRUE, &tz, (minc_input_options *)NULL );
-  if (status != OK)
+  if (status != VIO_OK)
     print_error_and_line_num("problems reading in dz volume, probably not enough memory!\n",__FILE__, __LINE__);
   
   *dz = tz;
@@ -140,10 +140,10 @@ VIO_Status read_all_data(VIO_Volume *dblur,
   VIO_Status status;
   VIO_Volume tx, ty, tz, txyz, tblur;
   
-  status = OK;
+  status = VIO_OK;
   
   status = read_deform_data(&tx, &ty, &tz, name);
-  if (status != OK) {
+  if (status != VIO_OK) {
     print_error_and_line_num("problems reading in dx,dy or dz volume.\n",__FILE__, __LINE__);
   }
   else {
@@ -160,7 +160,7 @@ VIO_Status read_all_data(VIO_Volume *dblur,
     status = input_volume( fullname, 3, default_dim_names, 
                           NC_UNSPECIFIED, FALSE, 0.0, 0.0,
                           TRUE, &txyz, (minc_input_options *)NULL );
-    if (status != OK)
+    if (status != VIO_OK)
       print_error_and_line_num("problems reading in dxyz volume, maybe not enough memory!\n",__FILE__, __LINE__);
     
 
@@ -175,7 +175,7 @@ VIO_Status read_all_data(VIO_Volume *dblur,
     status = input_volume( fullname, 3, default_dim_names, 
                           NC_UNSPECIFIED, FALSE, 0.0, 0.0,
                           TRUE, &tblur, (minc_input_options *)NULL );
-    if (status != OK)
+    if (status != VIO_OK)
       print_error_and_line_num("problems reading in dxyz volume, maybe not enough memory!\n",__FILE__, __LINE__);
     
     *dblur = tblur;
@@ -195,7 +195,7 @@ VIO_Status save_deform_data(VIO_Volume dx,
   char fullname[500];
   VIO_Status status;
   
-  status = OK;
+  status = VIO_OK;
   
   
   /* ------------------------------------------------------------ dx vol --*/
@@ -208,7 +208,7 @@ VIO_Status save_deform_data(VIO_Volume dx,
   status = output_volume(fullname, 
                          NC_UNSPECIFIED, FALSE, 0.0, 0.0,
                          dx, history, (minc_output_options *)NULL );
-  if (status != OK)
+  if (status != VIO_OK)
     print_error_and_line_num("problems saving in dx volume.\n",__FILE__, __LINE__);
     
   
@@ -222,7 +222,7 @@ VIO_Status save_deform_data(VIO_Volume dx,
   status = output_volume( fullname, 
                         NC_UNSPECIFIED, FALSE, 0.0, 0.0,
                         dy, history, (minc_output_options *)NULL );
-  if (status != OK)
+  if (status != VIO_OK)
     print_error_and_line_num("problems saving in dy volume.\n",__FILE__, __LINE__);
   
   
@@ -237,7 +237,7 @@ VIO_Status save_deform_data(VIO_Volume dx,
   status = output_volume( fullname, 
                         NC_UNSPECIFIED, FALSE, 0.0, 0.0,
                         dz, history, (minc_output_options *)NULL );
-  if (status != OK)
+  if (status != VIO_OK)
     print_error_and_line_num("problems saving in dz volume.\n",__FILE__, __LINE__);
   
   return(status);

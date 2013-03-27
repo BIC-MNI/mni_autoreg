@@ -183,17 +183,17 @@ void save_data(char *basename, int i, int j,
                                          get_default_transform_file_suffix(),
                                          WRITE_FILE, ASCII_FORMAT, &file );
   
-  if( status == OK )
+  if( status == VIO_OK )
     status = output_transform(file,
                               basename,
                               &i,
                               comments,
                               transform);
   
-  if( status == OK )
+  if( status == VIO_OK )
     status = close_file( file );
   
-  if (status!=OK)
+  if (status!=VIO_OK)
     print ("Error saving %s%d\n",basename,i);
 
   FREE(name);

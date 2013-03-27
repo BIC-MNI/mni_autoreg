@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
 
   status = input_volume(f1, 3, default_dim_names, NC_UNSPECIFIED, FALSE, 0.0,0.0,
                         TRUE, &data1, (minc_input_options *)NULL); 
-  if (status!=OK) {
+  if (status!=VIO_OK) {
     print ("Error reading %s.\n",f1);
     exit(EXIT_FAILURE);
   }
@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
   status = input_volume(f2, 3, default_dim_names, NC_UNSPECIFIED, FALSE, 0.0,0.0,
                         TRUE, &data2, (minc_input_options *)NULL); 
  
-  if (status!=OK) {
+  if (status!=VIO_OK) {
     print ("Error reading %s.\n",f2);
     exit(EXIT_FAILURE);
   }
@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
     status = input_volume(mf, 3, default_dim_names, NC_UNSPECIFIED, FALSE, 0.0,0.0,
                           TRUE, &mask, (minc_input_options *)NULL); 
     
-    if (status!=OK) {
+    if (status!=VIO_OK) {
       print ("Error reading %s.\n",mf);
       exit(EXIT_FAILURE);
     }

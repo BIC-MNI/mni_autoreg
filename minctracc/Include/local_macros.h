@@ -4,6 +4,17 @@
 
 /* a bunch of (evil) local macros */
 
+#ifdef ALLOC
+#undef ALLOC
+#endif 
+
+#ifdef REALLOC
+#undef REALLOC
+#endif 
+
+#ifdef FREE
+#undef FREE
+#endif
 
 /* from volume_io.h */
 #define  ALLOC( ptr, n_items )                                                \

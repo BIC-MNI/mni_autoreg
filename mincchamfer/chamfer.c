@@ -24,7 +24,7 @@ static void build_mask(VIO_Volume vol, VIO_Real mask_f[3][3][3], VIO_Real mask_b
                    will contains 0's where the mask was and values > 0.0
                    for all other voxels, where the value is an estimate of
                    the distance to the the nearest voxel of the mask.
-@RETURNS    : ERROR if error, OK otherwise
+@RETURNS    : ERROR if error, VIO_OK otherwise
 @DESCRIPTION: Uses an idea from georges, who got it from claire, 
               who got it from Borgefors
 @GLOBALS    : 
@@ -161,7 +161,7 @@ VIO_Status compute_chamfer(VIO_Volume chamfer, VIO_Real max_val)
    
    if (verbose) terminate_progress_report( &progress );
    
-   return (OK);
+   return (VIO_OK);
    
 }
 

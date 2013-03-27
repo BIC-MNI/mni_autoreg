@@ -67,12 +67,12 @@ int main ( int argc, char* argv[] )
                                 /* check files to be used.  */
    
    status = open_file( infilename , READ_FILE, BINARY_FORMAT, &ifd );
-   if ( status != OK ) 
+   if ( status != VIO_OK ) 
       print_error_and_line_num ("filename `%s' not found.", __FILE__, __LINE__, infilename);
    status = close_file(ifd);
    
    status = open_file( outfilename , WRITE_FILE, BINARY_FORMAT, &ofd );
-   if ( status != OK ) 
+   if ( status != VIO_OK ) 
       print_error_and_line_num ("filename `%s' cannot be opened.", __FILE__, __LINE__, outfilename);
    status = close_file(ofd);
    remove(outfilename);
@@ -86,14 +86,14 @@ int main ( int argc, char* argv[] )
                          NC_UNSPECIFIED, FALSE, 0.0, 0.0,
                          TRUE, &data, (minc_input_options *)NULL );
    
-   if ( status != OK ) 
+   if ( status != VIO_OK ) 
       print_error_and_line_num ("Problems reading `%s'.", __FILE__, __LINE__, infilename);
    
    
                                 /* call the chamfer estimation */
    
    status = compute_chamfer(data,max_dist);
-   if (status != OK)
+   if (status != VIO_OK)
       print_error_and_line_num("problems computing chamfer...",__FILE__, __LINE__);
    
                                 /* output volume data!  */
@@ -106,13 +106,13 @@ int main ( int argc, char* argv[] )
    status = output_modified_volume(outfilename, NC_UNSPECIFIED, FALSE, 0.0, 0.0, data, 
                                    infilename, history, (minc_output_options *)NULL);
    
-   if (status != OK)
+   if (status != VIO_OK)
       print_error_and_line_num("problems writing chamfer...",__FILE__, __LINE__);
    
    
    delete_volume(data);
    
 
-   return(OK);
+   return(VIO_OK);
 }
 

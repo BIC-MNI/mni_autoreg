@@ -9,7 +9,7 @@
                      =3, blur in all three directions.
 @OUTPUT     : creates and stores the partial dirivitives of the volumetric data
               stored in the file pointed to by ifd
-@RETURNS    : status variable - OK or ERROR.
+@RETURNS    : status variable - VIO_OK or ERROR.
 @DESCRIPTION: 
 @METHOD     : 
 @GLOBALS    : 
@@ -158,7 +158,7 @@ VIO_Status gradient3D_volume(FILE *ifd,
 
   set_file_position(ifd,(long)0);
   status = io_binary_data(ifd,READ_FILE, fdata, sizeof(float), total_voxels);
-  if (status != OK)
+  if (status != VIO_OK)
     print_error_and_line_num("problems reading binary data...\n",__FILE__, __LINE__);
 
 
@@ -196,7 +196,7 @@ VIO_Status gradient3D_volume(FILE *ifd,
   
   /*    1st calculate kern array for FT of 1st derivitive */
   
-  make_kernel_FT(kern,array_size_pow2, ABS(steps[xyzv[VIO_X]]));
+  make_kernel_FT(kern,array_size_pow2, VIO_ABS(steps[xyzv[VIO_X]]));
 
   if (curvature_flg)                /* 2nd derivative kernel */
     muli_vects(kern,kern,kern,array_size_pow2);
@@ -289,7 +289,7 @@ VIO_Status gradient3D_volume(FILE *ifd,
   status = output_modified_volume(full_outfilename, NC_UNSPECIFIED, FALSE, 
                                   min_val, max_val, data, infile, history, NULL);
 
-  if (status != OK)
+  if (status != VIO_OK)
     print_error_and_line_num("problems writing dx gradient data...\n",__FILE__, __LINE__);
 
 
@@ -304,7 +304,7 @@ VIO_Status gradient3D_volume(FILE *ifd,
 
   set_file_position(ifd,0);
   status = io_binary_data(ifd,READ_FILE, fdata, sizeof(float), total_voxels);
-  if (status != OK)
+  if (status != VIO_OK)
     print_error_and_line_num("problems reading binary data...\n",__FILE__, __LINE__);
 
 
@@ -329,7 +329,7 @@ VIO_Status gradient3D_volume(FILE *ifd,
   
   /*    1st calculate kern array for FT of 1st derivitive */
   
-  make_kernel_FT(kern,array_size_pow2, ABS(steps[xyzv[VIO_Y]]));
+  make_kernel_FT(kern,array_size_pow2, VIO_ABS(steps[xyzv[VIO_Y]]));
   
   if (curvature_flg)                /* 2nd derivative kernel */
     muli_vects(kern,kern,kern,array_size_pow2);
@@ -424,7 +424,7 @@ VIO_Status gradient3D_volume(FILE *ifd,
 
   status = output_modified_volume(full_outfilename, NC_UNSPECIFIED, FALSE, 
                                   min_val, max_val, data, infile, history, NULL);
-  if (status != OK)
+  if (status != VIO_OK)
     print_error_and_line_num("problems writing dy gradient data...",__FILE__, __LINE__);
   
   
@@ -438,7 +438,7 @@ VIO_Status gradient3D_volume(FILE *ifd,
 
   set_file_position(ifd,0);
   status = io_binary_data(ifd,READ_FILE, fdata, sizeof(float), total_voxels);
-  if (status != OK)
+  if (status != VIO_OK)
     print_error_and_line_num("problems reading binary data...\n",__FILE__, __LINE__);
   f_ptr = fdata;
   
@@ -460,7 +460,7 @@ VIO_Status gradient3D_volume(FILE *ifd,
     
     /*    1st calculate kern array for FT of 1st derivitive */
     
-    make_kernel_FT(kern,array_size_pow2, ABS(steps[xyzv[VIO_Z]]));
+    make_kernel_FT(kern,array_size_pow2, VIO_ABS(steps[xyzv[VIO_Z]]));
 
     if (curvature_flg)                /* 2nd derivative kernel */
       muli_vects(kern,kern,kern,array_size_pow2);
@@ -564,7 +564,7 @@ VIO_Status gradient3D_volume(FILE *ifd,
   status = output_modified_volume(full_outfilename, NC_UNSPECIFIED, FALSE, 
                                   min_val, max_val, data, infile, history, NULL);
 
-  if (status != OK)
+  if (status != VIO_OK)
     print_error_and_line_num("problems writing dz gradient data...",__FILE__, __LINE__);
 
 
