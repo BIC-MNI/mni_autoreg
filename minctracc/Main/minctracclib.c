@@ -151,13 +151,30 @@ VIO_General_transform* minctracc( VIO_Volume source, VIO_Volume target, VIO_Volu
 		args->features.thresh_data[0]     = args->threshold[0];
 		args->features.thresh_model[0]    = args->threshold[1];
 		if (args->trans_info.use_magnitude) {
-			args->features.obj_func[0]        = NONLIN_XCORR;
+	/*		switch (args->obj_function_type) {
+				case NONLIN_XCORR:
+					args->features.obj_func[0] = NONLIN_XCORR; break;
+				case NONLIN_DIFF:
+					args->features.obj_func[0] = NONLIN_DIFF; break;
+				case NONLIN_SQDIFF:
+					args->features.obj_func[0] = NONLIN_SQDIFF; break;
+				case NONLIN_LABEL:
+					args->features.obj_func[0] = NONLIN_LABEL; break;
+				case NONLIN_CHAMFER:
+					args->features.obj_func[0] = NONLIN_CHAMFER; break;
+				case NONLIN_OPTICALFLOW:
+					args->features.obj_func[0] = NONLIN_OPTICALFLOW; break;
+				case NONLIN_CORRCOEFF:
+					args->features.obj_func[0] = NONLIN_CORRCOEFF; break;
+				default:
+					args->features.obj_func[0] = NONLIN_XCORR; 
+			} */
+			args->features.obj_func[0] = args->obj_function_type;
 		} 
 		else {
 			args->features.obj_func[0]        = NONLIN_OPTICALFLOW;    
 		}
-		args->features.weight[0]          = 1.0;
-	  
+		args->features.weight[0]          = 1.0; 
 	}
 	
 	// Go!
