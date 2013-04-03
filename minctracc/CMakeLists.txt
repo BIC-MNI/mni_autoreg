@@ -39,9 +39,9 @@ SET (MINCTRACC_VOLUME
 )
 
 SET (MINCTRACC_PROGLIB
-	../ProgLib/get_history.c
-	../ProgLib/print_error.c
-	../ProgLib/print_version.c
+	../Proglib/get_history.c
+	../Proglib/print_error.c
+	../Proglib/print_version.c
 )
 
 SET (MINCTRACC_MAIN
