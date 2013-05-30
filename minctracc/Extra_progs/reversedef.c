@@ -56,7 +56,6 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #include <stdio.h>
 #include <string.h>
 #include <volume_io.h>
-#include <minc_def.h>
 #include <ParseArgv.h>
 
 /* Constants */
@@ -67,8 +66,7 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 
 void print_usage_and_exit(char *pname);
 
-void get_volume_XYZV_indices(VIO_Volume data, int xyzv[])
-{
+void get_volume_XYZV_indices(VIO_Volume data, int xyzv[]){
   
   int 
     axis, i, vol_dims;
@@ -78,24 +76,17 @@ void get_volume_XYZV_indices(VIO_Volume data, int xyzv[])
   vol_dims       = get_volume_n_dimensions(data);
   data_dim_names = get_volume_dimension_names(data);
  
-  for(i=0; i<N_DIMENSIONS+1; i++) xyzv[i] = -1;
+  for(i=0; i<VIO_N_DIMENSIONS+1; i++) xyzv[i] = -1;
   for(i=0; i<vol_dims; i++) {
     if (convert_dim_name_to_spatial_axis(data_dim_names[i], &axis )) {
       xyzv[axis] = i; 
     } 
     else {     /* not a spatial axis */
-      xyzv[Z+1] = i;
+      xyzv[VIO_Z+1] = i;
     }
   }
 
-#ifdef VOLIO_HAVE_2ARG_DELETE_DIMENSION_NAMES
   delete_dimension_names(data, data_dim_names);
-#else
-#ifndef VOLIO_HAVE_1ARG_DELETE_DIMENSION_NAMES
-#  error Help!  Do not know how to invoke delete_dimension_names.
-#endif
-  delete_dimension_names(data_dim_names);
-#endif
  
 }
 
@@ -180,7 +171,7 @@ int main(int argc, char *argv[])
 
 
    prog_name = argv[0];
-   ALLOC(target_file,1024);
+   target_file = malloc(1024);
    strcpy(target_file,"");
 
    /* Call ParseArgv to interpret all command line args (returns TRUE if error) */
@@ -197,7 +188,7 @@ int main(int argc, char *argv[])
    }
 
 
-   for(trans_count=0; trans_count<get_n_concated_transforms(&transform; trans_count++) ) {
+   for(trans_count=0; trans_count<get_n_concated_transforms(&transform); trans_count++ ) {
 
      grid_transform_ptr = get_nth_general_transform(&transform, trans_count );
      
@@ -238,16 +229,17 @@ int main(int argc, char *argv[])
          get_volume_separations (target_vol, target_steps);
          get_volume_sizes       (target_vol, target_sizes);
 
-         for(i=0; i<MAX_DIMENSIONS; i++) {
+         for(i=0; i<VIO_MAX_DIMENSIONS; i++) {
            index[i] = 0;
            voxel[i] = 0.0;
          }
          convert_voxel_to_world(target_vol, voxel, &start[VIO_X], &start[VIO_Y], &start[VIO_Z]);
 
-         if( VOXEL_DATA(volume) != (void *) NULL )
+         if( volume != (void *) NULL ){
            free_volume_data( volume );
+         }
 
-         for(i=X; i<=Z; i++) {
+         for(i=VIO_X; i<=VIO_Z; i++) {
            steps[ xyzv[i] ] = target_steps[ target_xyzv[i] ] ;
            sizes[ xyzv[i] ] = target_sizes[ target_xyzv[i] ] ;
          }
@@ -260,20 +252,23 @@ int main(int argc, char *argv[])
        get_volume_sizes(volume, sizes);
        get_volume_XYZV_indices(volume,xyzv);
 
-       for(i=0; i<MAX_DIMENSIONS; i++) index[i] = 0;
+       for(i=0; i<VIO_MAX_DIMENSIONS; i++){
+         index[i] = 0;
+       }
 
-       if (verbose)
+       if (verbose){
         initialize_progress_report(&progress, FALSE, 
                                    sizes[xyzv[VIO_X]]*sizes[xyzv[VIO_Y]]*sizes[xyzv[VIO_Z]]+1,
                                    "Inverting def field");
+       }
        prog_count = 0;
 
        for(index[xyzv[VIO_X]]=0; index[xyzv[VIO_X]]<sizes[xyzv[VIO_X]]; index[xyzv[VIO_X]]++)
          for(index[xyzv[VIO_Y]]=0; index[xyzv[VIO_Y]]<sizes[xyzv[VIO_Y]]; index[xyzv[VIO_Y]]++)
            for(index[xyzv[VIO_Z]]=0; index[xyzv[VIO_Z]]<sizes[xyzv[VIO_Z]]; index[xyzv[VIO_Z]]++) {
              
-             index[ xyzv[Z+1] ] = 0;
-             for(i=0; i<MAX_DIMENSIONS; i++) voxel[i] = (VIO_Real)index[i];
+             index[ xyzv[VIO_Z+1] ] = 0;
+             for(i=0; i<VIO_MAX_DIMENSIONS; i++) voxel[i] = (VIO_Real)index[i];
        
              convert_voxel_to_world(volume, voxel, &wx, &wy, &wz);
              
@@ -289,10 +284,10 @@ int main(int argc, char *argv[])
              def_values[VIO_Y] = inv_y - wy;
              def_values[VIO_Z] = inv_z - wz;
 
-             for(index[xyzv[Z+1]]=0; index[xyzv[Z+1]]<3; index[xyzv[Z+1]]++)
+             for(index[xyzv[VIO_Z+1]]=0; index[xyzv[VIO_Z+1]]<3; index[xyzv[VIO_Z+1]]++)
                set_volume_real_value(volume,
                                      index[0],index[1],index[2],index[3],index[4],
-                                     def_values[ index[ xyzv[Z+1] ]]);
+                                     def_values[ index[ xyzv[VIO_Z+1] ]]);
 
              prog_count++;
              if (verbose)

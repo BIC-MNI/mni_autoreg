@@ -10,6 +10,7 @@ bin_PROGRAMS = \
 	param2xfm \
 	volume_cog \
 	rand_param \
+	reversedef \
 	xcorr_vol \
 	xfm2param \
 	zscore_vol
