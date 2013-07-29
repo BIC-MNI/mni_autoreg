@@ -68,6 +68,10 @@
 static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/mincblur/gradient_volume.c,v 96.4 2009-07-23 22:34:00 claude Exp $";
 #endif
 
+#define  VIO_ROW    VIO_X
+#define  VIO_COL    VIO_Y
+#define  VIO_SLICE  VIO_Z
+
 #include <float.h>
 #include <volume_io.h>
 #include "blur_support.h"
@@ -81,7 +85,7 @@ void fft1(float *signal, int numpoints, int direction);
 
 VIO_Status gradient3D_volume(FILE *ifd, 
                                 VIO_Volume data, 
-                                int xyzv[VIO_MAX_DIMENSIONS],
+                                int rcsv[VIO_MAX_DIMENSIONS],
                                 char *infile,
                                 char *outfile, 
                                 int ndim,
@@ -145,11 +149,11 @@ VIO_Status gradient3D_volume(FILE *ifd,
   get_volume_sizes(data, sizes);          /* rows,cols,slices */
   get_volume_separations(data, steps);
   
-  slice_size = sizes[xyzv[VIO_Y]] * sizes[xyzv[VIO_X]];    /* sizeof one slice  */
-  col_size   = sizes[xyzv[VIO_Y]];               /* sizeof one column */
-  row_size   = sizes[xyzv[VIO_X]];               /* sizeof one row    */
+  slice_size = sizes[rcsv[VIO_Y]] * sizes[rcsv[VIO_X]];    /* sizeof one slice  */
+  col_size   = sizes[rcsv[VIO_Y]];               /* sizeof one column */
+  row_size   = sizes[rcsv[VIO_X]];               /* sizeof one row    */
   
-  total_voxels = sizes[xyzv[VIO_Y]]*sizes[xyzv[VIO_X]]*sizes[xyzv[VIO_Z]];
+  total_voxels = sizes[rcsv[VIO_Y]]*sizes[rcsv[VIO_X]]*sizes[rcsv[VIO_Z]];
   
   ALLOC(fdata, total_voxels);
   f_ptr = fdata;
@@ -166,7 +170,7 @@ VIO_Status gradient3D_volume(FILE *ifd,
   /*                get ready to start up the transformation.                             */
   /*--------------------------------------------------------------------------------------*/
   
-  initialize_progress_report( &progress, FALSE, sizes[xyzv[VIO_Z]] + sizes[xyzv[VIO_Y]] + sizes[xyzv[VIO_X]] + 1,
+  initialize_progress_report( &progress, FALSE, sizes[rcsv[VIO_Z]] + sizes[rcsv[VIO_Y]] + sizes[rcsv[VIO_X]] + 1,
                              "Gradient volume" );
 
 
@@ -180,7 +184,7 @@ VIO_Status gradient3D_volume(FILE *ifd,
   /*-----------------------------------------------------------------------------*/
   /*             determine   size of data structures needed                      */
   
-  vector_size_data = sizes[xyzv[VIO_X]]; 
+  vector_size_data = sizes[rcsv[VIO_X]]; 
   
   /*             array_size_pow2 will hold the size of the arrays for FFT convolution,
                  remember that ffts require arrays 2^n in length                          */
@@ -196,14 +200,14 @@ VIO_Status gradient3D_volume(FILE *ifd,
   
   /*    1st calculate kern array for FT of 1st derivitive */
   
-  make_kernel_FT(kern,array_size_pow2, VIO_ABS(steps[xyzv[VIO_X]]));
+  make_kernel_FT(kern,array_size_pow2, VIO_ABS(steps[rcsv[VIO_X]]));
 
   if (curvature_flg)                /* 2nd derivative kernel */
     muli_vects(kern,kern,kern,array_size_pow2);
 
   /*    calculate offset for original data to be placed in vector            */
   
-  data_offset = (array_size_pow2-sizes[xyzv[VIO_X]])/2;
+  data_offset = (array_size_pow2-sizes[rcsv[VIO_X]])/2;
   
   max_val = -FLT_MAX;
   min_val =  FLT_MAX;
@@ -214,19 +218,19 @@ VIO_Status gradient3D_volume(FILE *ifd,
   slice_limit = 0;
   switch (ndim) {
   case 1: slice_limit = 0; break;
-  case 2: slice_limit = sizes[xyzv[VIO_Z]]; break;
-  case 3: slice_limit = sizes[xyzv[VIO_Z]]; break;
+  case 2: slice_limit = sizes[rcsv[VIO_Z]]; break;
+  case 3: slice_limit = sizes[rcsv[VIO_Z]]; break;
   }
 
 
   for (slice = 0; slice < slice_limit; slice++) {      /* for each slice */
     
-    for (row = 0; row < sizes[xyzv[VIO_Y]]; row++) {           /* for each row   */
+    for (row = 0; row < sizes[rcsv[VIO_Y]]; row++) {           /* for each row   */
       
-      f_ptr = fdata + slice*slice_size + row*sizes[xyzv[VIO_X]];
+      f_ptr = fdata + slice*slice_size + row*sizes[rcsv[VIO_X]];
       memset(dat_vector,0,(2*array_size_pow2+1)*sizeof(float));
       
-      for (col=0; col< sizes[xyzv[VIO_X]]; col++) {        /* extract the row */
+      for (col=0; col< sizes[rcsv[VIO_X]]; col++) {        /* extract the row */
         dat_vector[1 +2*(col+data_offset)  ] = *f_ptr++;
       }
       
@@ -234,8 +238,8 @@ VIO_Status gradient3D_volume(FILE *ifd,
       muli_vects(dat_vecto2,dat_vector,kern,array_size_pow2);
       fft1(dat_vecto2,array_size_pow2,-1);
       
-      f_ptr = fdata + slice*slice_size + row*sizes[xyzv[VIO_X]];
-      for (col=0; col< sizes[xyzv[VIO_X]]; col++) {        /* put the row back */
+      f_ptr = fdata + slice*slice_size + row*sizes[rcsv[VIO_X]];
+      for (col=0; col< sizes[rcsv[VIO_X]]; col++) {        /* put the row back */
         
         vindex = 1 + 2*(col+data_offset);
        *f_ptr = dat_vecto2[vindex]/array_size_pow2;
@@ -264,12 +268,12 @@ VIO_Status gradient3D_volume(FILE *ifd,
   
   
   printf("Making byte volume dx..." );
-  for(slice=0; slice<sizes[xyzv[VIO_Z]]; slice++) {
-    pos[xyzv[VIO_Z]] = slice;
-    for(row=0; row<sizes[xyzv[VIO_Y]]; row++) {
-      pos[xyzv[VIO_Y]] = row;
-      for(col=0; col<sizes[xyzv[VIO_X]]; col++) {
-        pos[xyzv[VIO_X]] = col;
+  for(slice=0; slice<sizes[rcsv[VIO_Z]]; slice++) {
+    pos[rcsv[VIO_Z]] = slice;
+    for(row=0; row<sizes[rcsv[VIO_Y]]; row++) {
+      pos[rcsv[VIO_Y]] = row;
+      for(col=0; col<sizes[rcsv[VIO_X]]; col++) {
+        pos[rcsv[VIO_X]] = col;
         tmp = CONVERT_VALUE_TO_VOXEL(data, *f_ptr);
         SET_VOXEL_3D( data, pos[0], pos[1], pos[2], tmp);
         f_ptr++;
@@ -313,7 +317,7 @@ VIO_Status gradient3D_volume(FILE *ifd,
   
   f_ptr = fdata;
 
-  vector_size_data = sizes[xyzv[VIO_Y]];
+  vector_size_data = sizes[rcsv[VIO_Y]];
   
   /*             array_size_pow2 will hold the size of the arrays for FFT convolution,
                  remember that ffts require arrays 2^n in length                          */
@@ -329,14 +333,14 @@ VIO_Status gradient3D_volume(FILE *ifd,
   
   /*    1st calculate kern array for FT of 1st derivitive */
   
-  make_kernel_FT(kern,array_size_pow2, VIO_ABS(steps[xyzv[VIO_Y]]));
+  make_kernel_FT(kern,array_size_pow2, VIO_ABS(steps[rcsv[VIO_Y]]));
   
   if (curvature_flg)                /* 2nd derivative kernel */
     muli_vects(kern,kern,kern,array_size_pow2);
 
   /*    calculate offset for original data to be placed in vector            */
   
-  data_offset = (array_size_pow2-sizes[xyzv[VIO_Y]])/2;
+  data_offset = (array_size_pow2-sizes[rcsv[VIO_Y]])/2;
   
   /*    2nd now convolve this kernel with the rows of the dataset            */
   
@@ -345,13 +349,13 @@ VIO_Status gradient3D_volume(FILE *ifd,
 
   switch (ndim) {
   case 1: slice_limit = 0; break;
-  case 2: slice_limit = sizes[xyzv[VIO_Z]]; break;
-  case 3: slice_limit = sizes[xyzv[VIO_Z]]; break;
+  case 2: slice_limit = sizes[rcsv[VIO_Z]]; break;
+  case 3: slice_limit = sizes[rcsv[VIO_Z]]; break;
   }
 
   for (slice = 0; slice < slice_limit; slice++) {      /* for each slice */
     
-    for (col = 0; col < sizes[xyzv[VIO_X]]; col++) {           /* for each col   */
+    for (col = 0; col < sizes[rcsv[VIO_X]]; col++) {           /* for each col   */
       
       /*         f_ptr = fdata + slice*slice_size + row*sizeof(float); */
       
@@ -360,7 +364,7 @@ VIO_Status gradient3D_volume(FILE *ifd,
       
       memset(dat_vector,0,(2*array_size_pow2+1)*sizeof(float));
       
-      for (row=0; row< sizes[xyzv[VIO_Y]]; row++) {        /* extract the col */
+      for (row=0; row< sizes[rcsv[VIO_Y]]; row++) {        /* extract the col */
         dat_vector[1 +2*(row+data_offset) ] = *f_ptr;
         f_ptr += row_size;
       }
@@ -371,7 +375,7 @@ VIO_Status gradient3D_volume(FILE *ifd,
       fft1(dat_vecto2,array_size_pow2,-1);
       
       f_ptr = fdata + slice*slice_size + col;
-      for (row=0; row< sizes[xyzv[VIO_Y]]; row++) {        /* put the col back */
+      for (row=0; row< sizes[rcsv[VIO_Y]]; row++) {        /* put the col back */
         
         vindex = 1 + 2*(row+data_offset);
         
@@ -386,7 +390,7 @@ VIO_Status gradient3D_volume(FILE *ifd,
       }
       
     }
-    update_progress_report( &progress, slice+sizes[xyzv[VIO_Z]]+1 );
+    update_progress_report( &progress, slice+sizes[rcsv[VIO_Z]]+1 );
     
   }
   
@@ -400,12 +404,12 @@ VIO_Status gradient3D_volume(FILE *ifd,
 
 
   printf("Making byte volume dy..." );
-  for(slice=0; slice<sizes[xyzv[VIO_Z]]; slice++) {
-    pos[xyzv[VIO_Z]] = slice;
-    for(row=0; row<sizes[xyzv[VIO_Y]]; row++) {
-      pos[xyzv[VIO_Y]] = row;
-      for(col=0; col<sizes[xyzv[VIO_X]]; col++) {
-        pos[xyzv[VIO_X]] = col;
+  for(slice=0; slice<sizes[rcsv[VIO_Z]]; slice++) {
+    pos[rcsv[VIO_Z]] = slice;
+    for(row=0; row<sizes[rcsv[VIO_Y]]; row++) {
+      pos[rcsv[VIO_Y]] = row;
+      for(col=0; col<sizes[rcsv[VIO_X]]; col++) {
+        pos[rcsv[VIO_X]] = col;
         tmp = CONVERT_VALUE_TO_VOXEL(data, *f_ptr);
         SET_VOXEL_3D( data, pos[0], pos[1], pos[2], tmp);
         f_ptr++;
@@ -442,7 +446,7 @@ VIO_Status gradient3D_volume(FILE *ifd,
     print_error_and_line_num("problems reading binary data...\n",__FILE__, __LINE__);
   f_ptr = fdata;
   
-  vector_size_data = sizes[xyzv[VIO_Z]];
+  vector_size_data = sizes[rcsv[VIO_Z]];
 
   /*             array_size_pow2 will hold the size of the arrays for FFT convolution,
                  remember that ffts require arrays 2^n in length                          */
@@ -460,14 +464,14 @@ VIO_Status gradient3D_volume(FILE *ifd,
     
     /*    1st calculate kern array for FT of 1st derivitive */
     
-    make_kernel_FT(kern,array_size_pow2, VIO_ABS(steps[xyzv[VIO_Z]]));
+    make_kernel_FT(kern,array_size_pow2, VIO_ABS(steps[rcsv[VIO_Z]]));
 
     if (curvature_flg)                /* 2nd derivative kernel */
       muli_vects(kern,kern,kern,array_size_pow2);
     
     /*    calculate offset for original data to be placed in vector            */
     
-    data_offset = (array_size_pow2-sizes[xyzv[VIO_Z]])/2;
+    data_offset = (array_size_pow2-sizes[rcsv[VIO_Z]])/2;
     
     /*    2nd now convolve this kernel with the slices of the dataset            */
     
@@ -475,15 +479,15 @@ VIO_Status gradient3D_volume(FILE *ifd,
     min_val =  FLT_MAX;
     
     
-    for (col = 0; col < sizes[xyzv[VIO_X]]; col++) {      /* for each column */
+    for (col = 0; col < sizes[rcsv[VIO_X]]; col++) {      /* for each column */
       
-      for (row = 0; row < sizes[xyzv[VIO_Y]]; row++) {           /* for each row   */
+      for (row = 0; row < sizes[rcsv[VIO_Y]]; row++) {           /* for each row   */
         
         f_ptr = fdata + col*col_size + row;
         
         memset(dat_vector,0,(2*array_size_pow2+1)*sizeof(float));
         
-        for (slice=0; slice< sizes[xyzv[VIO_Z]]; slice++) {        /* extract the slice vector */
+        for (slice=0; slice< sizes[rcsv[VIO_Z]]; slice++) {        /* extract the slice vector */
           dat_vector[1 +2*(slice+data_offset) ] = *f_ptr;
           f_ptr += slice_size;
         }
@@ -494,7 +498,7 @@ VIO_Status gradient3D_volume(FILE *ifd,
         
         f_ptr = fdata + col*col_size + row;
         
-        for (slice=0; slice< sizes[xyzv[VIO_Z]]; slice++) {        /* put the vector back */
+        for (slice=0; slice< sizes[rcsv[VIO_Z]]; slice++) {        /* put the vector back */
           
           vindex = 1 + 2*(slice+data_offset);
           
@@ -508,7 +512,7 @@ VIO_Status gradient3D_volume(FILE *ifd,
         
         
       }
-      update_progress_report( &progress, col + 2*sizes[xyzv[VIO_Z]] + 1 );
+      update_progress_report( &progress, col + 2*sizes[rcsv[VIO_Z]] + 1 );
       
     }
     
@@ -517,8 +521,8 @@ VIO_Status gradient3D_volume(FILE *ifd,
     max_val = 0.00001;
     min_val = 0.00000;
     
-    for (col = 0; col < sizes[xyzv[VIO_X]]; col++) {      /* for each column */
-      for (row = 0; row < sizes[xyzv[VIO_Y]]; row++) {           /* for each row   */
+    for (col = 0; col < sizes[rcsv[VIO_X]]; col++) {      /* for each column */
+      for (row = 0; row < sizes[rcsv[VIO_Y]]; row++) {           /* for each row   */
         *f_ptr = 0.0;
         f_ptr++;
       }
@@ -539,12 +543,12 @@ VIO_Status gradient3D_volume(FILE *ifd,
 
 
   printf("Making byte volume dz..." );
-  for(slice=0; slice<sizes[xyzv[VIO_Z]]; slice++) {
-    pos[xyzv[VIO_Z]] = slice;
-    for(row=0; row<sizes[xyzv[VIO_Y]]; row++) {
-      pos[xyzv[VIO_Y]] = row;
-      for(col=0; col<sizes[xyzv[VIO_X]]; col++) {
-        pos[xyzv[VIO_X]] = col;
+  for(slice=0; slice<sizes[rcsv[VIO_Z]]; slice++) {
+    pos[rcsv[VIO_Z]] = slice;
+    for(row=0; row<sizes[rcsv[VIO_Y]]; row++) {
+      pos[rcsv[VIO_Y]] = row;
+      for(col=0; col<sizes[rcsv[VIO_X]]; col++) {
+        pos[rcsv[VIO_X]] = col;
         tmp = CONVERT_VALUE_TO_VOXEL(data, *f_ptr);
         SET_VOXEL_3D( data, pos[0], pos[1], pos[2], tmp);
         f_ptr++;

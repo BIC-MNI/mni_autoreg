@@ -45,7 +45,7 @@
 ---------------------------------------------------------------------------- */
 
 VIO_Status blur3D_volume(VIO_Volume data, int *xyzv,
-                            double  kernel1, double  kernel2, double  kernel3, 
+                            double  *kernel,
                             char *infile, 
                             char *outfile, 
                             FILE *reals_fp,
@@ -89,6 +89,7 @@ int debug,
   dimensions,
   do_gradient_flag,
   do_partials_flag;
+char *slice_dim = "zspace";
 
 
 ArgvInfo argTable[] = {
@@ -100,6 +101,12 @@ ArgvInfo argTable[] = {
      "Full-width-half-maximum of gaussian kernel"},
   {"-dimensions", ARGV_INT, (char *) 0, (char *) &dimensions,
      "Number of dimensions to blur (either 1,2 or 3)."},
+  {"-xslice", ARGV_CONSTANT, (char *) "xspace", (char *) &slice_dim,
+     "Use xspace as the slice dimension."},
+  {"-yslice", ARGV_CONSTANT, (char *) "yspace", (char *) &slice_dim,
+     "Use yspace as the slice dimension."},
+  {"-zslice", ARGV_CONSTANT, (char *) "zspace", (char *) &slice_dim,
+     "Use zspace as the slice dimension (defaut)."},
   
   {NULL, ARGV_HELP, NULL, NULL,
      "Program flags."},
