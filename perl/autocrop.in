@@ -1,4 +1,4 @@
-#! @PERL@
+#! /usr/bin/env perl
 
 # autocrop - a program for extracting and manipulating the bounds of a
 # MINC volume, with the capability to output parameters for mincresample
