@@ -153,29 +153,7 @@ void get_volume_XYZV_indices(VIO_Volume data, int xyzv[]) {
 
   delete_dimension_names(data, data_dim_names);
 }
-void XYZV_to_RCSV_indices(VIO_Volume data, int xyzv[], int rcsv[]) {
-  int i;
-  
-  for(i=0; i<VIO_N_DIMENSIONS+1; i++) rcsv[i] = xyzv[i];
-  if ( equal_strings(slice_dim, "xspace") ){
-    rcsv[0] = xyzv[2];
-    rcsv[1] = xyzv[1];
-    rcsv[2] = xyzv[0];
-  }
-  else if ( equal_strings(slice_dim, "yspace") ){
-    rcsv[0] = xyzv[2];
-    rcsv[1] = xyzv[0];
-    rcsv[2] = xyzv[1];
-  }
-  else if ( equal_strings(slice_dim, "zspace") ){
-    rcsv[0] = xyzv[0];
-    rcsv[1] = xyzv[1];
-    rcsv[2] = xyzv[2];
-  }
-  else{
-    print_error_and_line_num ("Could not interpret slice dimension\n", __FILE__, __LINE__);
-  }
-}
+
 
 int main (int argc, char *argv[] )
 {   
@@ -202,8 +180,7 @@ int main (int argc, char *argv[] )
     n_dimensions,
     i,
     sizes[3],
-    xyzv[VIO_MAX_DIMENSIONS], // indices of x, y, and z dimensions
-    rcsv[VIO_MAX_DIMENSIONS]; // indices of row, column, slice dimensions
+    xyzv[VIO_MAX_DIMENSIONS];
   char *history;
   char *tname;
 
@@ -323,12 +300,7 @@ int main (int argc, char *argv[] )
   if ( status != VIO_OK )
     print_error_and_line_num("problems reading `%s'.\n",__FILE__, __LINE__,infilename);
 
-
-  /* Get indices of x/y/z dimensions */
   get_volume_XYZV_indices( data, xyzv );
-
-  /* Convert to row/col/slice indicies */
-  XYZV_to_RCSV_indices( data, xyzv, rcsv );
 
   if (debug) {
     get_volume_sizes(data, sizes);
@@ -359,15 +331,13 @@ int main (int argc, char *argv[] )
 
   // Zero the kernel where we don't want to blur
   if ( dimensions == 2 )
-	  fwhm_3D[xyzv[rcsv[2]]] = 0;
+      fwhm_3D[xyzv[2]] = 0;
   else if ( dimensions == 1 )
-	  fwhm_3D[xyzv[rcsv[0]]] = fwhm_3D[xyzv[rcsv[1]]] = 0;
- 
+      fwhm_3D[xyzv[0]] = fwhm_3D[xyzv[1]] = 0;
+
                                 /* now _BLUR_ the DATA! */
-  status = blur3D_volume(data, 
-                         rcsv,
-                         xyzv,
-                         fwhm_3D,
+  status = blur3D_volume(data, xyzv,
+                         fwhm_3D[0],fwhm_3D[1],fwhm_3D[2],
                          infilename,
                          output_basename,
                          reals_fp,
@@ -395,7 +365,7 @@ int main (int argc, char *argv[] )
       partials_name = temp_basename;
 
 
-    status = gradient3D_volume(reals_fp, data, rcsv, infilename, partials_name, dimensions,
+    status = gradient3D_volume(reals_fp, data, xyzv, infilename, partials_name, dimensions,
                                history, FALSE);
     if (status!=VIO_OK)
       print_error_and_line_num("Can't calculate the gradient volumes.",__FILE__, __LINE__);
