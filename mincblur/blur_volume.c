@@ -1,11 +1,10 @@
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : blur_volume.c
 @INPUT      : data - a pointer to a volume_struct of data
-              fwhm - full-width-half-maximum of the gaussian blurring kernel
+              rcsv - indeces onto row, column and slice dimensions
+              xyzv - indeices onto x, y and z dimensions
+              fwhm - full-width-half-maximum of the gaussian blurring kernel (x,y,z)
               outfile - name of the base filename to store the <name>_blur.mnc
-              ndim - =1, do blurring in the z direction only,
-                     =2, do blurring in the x and y directions only,
-                     =3, blur in all three directions.
 @OUTPUT     : creates and stores the blurred volume in an output file.
 @RETURNS    : status variable - VIO_OK or ERROR.
 @DESCRIPTION: This routine convolves each row, column and slice with a
@@ -105,12 +104,14 @@ int ms_volume_reals_flag;
 
 void fft1(float *signal, int numpoints, int direction);
 
-VIO_Status blur3D_volume(VIO_Volume data, int rcsv[VIO_MAX_DIMENSIONS],
+VIO_Status blur3D_volume(VIO_Volume data, 
+                            int rcsv[VIO_MAX_DIMENSIONS],
+                            int xyzv[VIO_MAX_DIMENSIONS],
                             double *fwhm,
                             char *infile,
                             char *outfile, 
                             FILE *reals_fp,
-                            int ndim, int kernel_type, char *history)
+                            int kernel_type, char *history)
 { 
   float 
     *fdata,                        /* floating point storage for blurred volume */
@@ -218,7 +219,7 @@ VIO_Status blur3D_volume(VIO_Volume data, int rcsv[VIO_MAX_DIMENSIONS],
   /*             determine   size of data structures needed                      */
   
   vector_size_data = sizes[rcsv[VIO_ROW]]; 
-  kernel_size_data = (int)(((4*fwhm[rcsv[VIO_ROW]])/VIO_ABS(steps[rcsv[VIO_ROW]])) + 0.5);
+  kernel_size_data = (int)(((4*fwhm[xyzv[rcsv[VIO_ROW]]])/VIO_ABS(steps[rcsv[VIO_ROW]])) + 0.5);
   
   if (kernel_size_data > MAX(vector_size_data,256))
     kernel_size_data =  MAX(vector_size_data,256);
@@ -247,7 +248,7 @@ VIO_Status blur3D_volume(VIO_Volume data, int rcsv[VIO_MAX_DIMENSIONS],
   
   /*    1st calculate kern array for gaussian kernel*/
   
-  make_kernel(kern,(float)(VIO_ABS(steps[rcsv[VIO_ROW]])),fwhm[rcsv[VIO_ROW]],array_size_pow2,kernel_type);
+  make_kernel(kern,(float)(VIO_ABS(steps[rcsv[VIO_ROW]])),fwhm[xyzv[rcsv[VIO_ROW]]],array_size_pow2,kernel_type);
   fft1(kern,array_size_pow2,1);
   
   /*    calculate offset for original data to be placed in vector            */
@@ -256,12 +257,7 @@ VIO_Status blur3D_volume(VIO_Volume data, int rcsv[VIO_MAX_DIMENSIONS],
   
   /*    2nd now convolve this kernel with the rows of the dataset            */
   
-  slice_limit = 0;
-  switch (ndim) {
-  case 1: slice_limit = 0; break;
-  case 2: slice_limit = sizes[rcsv[VIO_SLICE]]; break;
-  case 3: slice_limit = sizes[rcsv[VIO_SLICE]]; break;
-  }
+  slice_limit = fwhm[xyzv[rcsv[VIO_ROW]]] > 0 ? sizes[rcsv[VIO_SLICE]] : 0;
 
   for (slice = 0; slice < slice_limit; slice++) {      /* for each slice */
     
@@ -310,7 +306,7 @@ VIO_Status blur3D_volume(VIO_Volume data, int rcsv[VIO_MAX_DIMENSIONS],
   f_ptr = fdata;
   
   vector_size_data = sizes[rcsv[VIO_COL]];
-  kernel_size_data = (int)(((4*fwhm[rcsv[VIO_COL]])/(VIO_ABS(steps[rcsv[VIO_COL]]))) + 0.5);
+  kernel_size_data = (int)(((4*fwhm[xyzv[rcsv[VIO_COL]]])/(VIO_ABS(steps[rcsv[VIO_COL]]))) + 0.5);
   
   if (kernel_size_data > MAX(vector_size_data,256))
     kernel_size_data =  MAX(vector_size_data,256);
@@ -330,7 +326,7 @@ VIO_Status blur3D_volume(VIO_Volume data, int rcsv[VIO_MAX_DIMENSIONS],
   
   /*    1st calculate kern array for gaussian kernel*/
   
-  make_kernel(kern,(float)(VIO_ABS(steps[rcsv[VIO_COL]])),fwhm[rcsv[VIO_COL]],array_size_pow2,kernel_type);
+  make_kernel(kern,(float)(VIO_ABS(steps[rcsv[VIO_COL]])),fwhm[xyzv[rcsv[VIO_COL]]],array_size_pow2,kernel_type);
   fft1(kern,array_size_pow2,1);
   
   /*    calculate offset for original data to be placed in vector            */
@@ -339,12 +335,7 @@ VIO_Status blur3D_volume(VIO_Volume data, int rcsv[VIO_MAX_DIMENSIONS],
   
   /*    2nd now convolve this kernel with the rows of the dataset            */
   
-  switch (ndim) {
-  case 1: slice_limit = 0; break;
-  case 2: slice_limit = sizes[rcsv[VIO_SLICE]]; break;
-  case 3: slice_limit = sizes[rcsv[VIO_SLICE]]; break;
-  }
-
+  slice_limit = fwhm[xyzv[rcsv[VIO_COL]]] > 0 ? sizes[rcsv[VIO_SLICE]] : 0;
 
   for (slice = 0; slice < slice_limit; slice++) {      /* for each slice */
     
@@ -401,7 +392,7 @@ VIO_Status blur3D_volume(VIO_Volume data, int rcsv[VIO_MAX_DIMENSIONS],
   f_ptr = fdata;
   
   vector_size_data = sizes[rcsv[VIO_SLICE]];
-  kernel_size_data = (int)(((4*fwhm[rcsv[VIO_SLICE]])/(VIO_ABS(steps[rcsv[VIO_SLICE]]))) + 0.5);
+  kernel_size_data = (int)(((4*fwhm[xyzv[rcsv[VIO_SLICE]]])/(VIO_ABS(steps[rcsv[VIO_SLICE]]))) + 0.5);
   
   if (kernel_size_data > MAX(vector_size_data,256))
     kernel_size_data =  MAX(vector_size_data,256);
@@ -421,11 +412,11 @@ VIO_Status blur3D_volume(VIO_Volume data, int rcsv[VIO_MAX_DIMENSIONS],
   max_val = -FLT_MAX;
   min_val = FLT_MAX;
     
-  if (ndim==1 || ndim==3) {
+  if ( fwhm[xyzv[rcsv[VIO_SLICE]]] > 0 ){
     
     /*    1st calculate kern array for gaussian kernel*/
     
-    make_kernel(kern,(float)(VIO_ABS(steps[rcsv[VIO_SLICE]])),fwhm[rcsv[VIO_SLICE]],array_size_pow2,kernel_type);
+    make_kernel(kern,(float)(VIO_ABS(steps[rcsv[VIO_SLICE]])),fwhm[xyzv[rcsv[VIO_SLICE]]],array_size_pow2,kernel_type);
     fft1(kern,array_size_pow2,1);
     
     /*    calculate offset for original data to be placed in vector            */
@@ -476,7 +467,7 @@ VIO_Status blur3D_volume(VIO_Volume data, int rcsv[VIO_MAX_DIMENSIONS],
   }  /* if ndim */
   else {
 
-    for (slice = 0; slice < slice_limit; slice++) {      /* for each slice */
+    for (slice = 0; slice < sizes[rcsv[VIO_SLICE]]; slice++) {      /* for each slice */
       for (col = 0; col < sizes[rcsv[VIO_ROW]]; col++) {             /* for each column */
         for (row = 0; row < sizes[rcsv[VIO_COL]]; row++) {           /* for each row   */
           if (max_val<*f_ptr) max_val = *f_ptr;

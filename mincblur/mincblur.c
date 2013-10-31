@@ -356,14 +356,22 @@ int main (int argc, char *argv[] )
                       fwhm_3D[0], fwhm_3D[0], fwhm_3D[1], fwhm_3D[1], fwhm_3D[2], fwhm_3D[2] );
     apodize_data(data, xyzv, fwhm_3D[0], fwhm_3D[0], fwhm_3D[1], fwhm_3D[1], fwhm_3D[2], fwhm_3D[2] );
   }
+
+  // Zero the kernel where we don't want to blur
+  if ( dimensions == 2 )
+	  fwhm_3D[xyzv[rcsv[2]]] = 0;
+  else if ( dimensions == 1 )
+	  fwhm_3D[xyzv[rcsv[0]]] = fwhm_3D[xyzv[rcsv[1]]] = 0;
  
                                 /* now _BLUR_ the DATA! */
-  status = blur3D_volume(data, rcsv,
+  status = blur3D_volume(data, 
+                         rcsv,
+                         xyzv,
                          fwhm_3D,
                          infilename,
                          output_basename,
                          reals_fp,
-                         dimensions,kernel_type,history);
+                         kernel_type,history);
 
   /******************************************************************************/
   /*             calculate d/dx,  d/dy and d/dz volumes                         */
