@@ -35,7 +35,7 @@
 @MODIFIED   :     * Still working on fixing up perl subdirectory - removing mni_perllib
 @MODIFIED   :
 @MODIFIED   : Revision 96.10  2004/02/12 06:08:21  rotor
-@MODIFIED   :  * removed public/private defs
+@MODIFIED   :  * removed /static defs
 @MODIFIED   :
 @MODIFIED   : Revision 96.9  2004/02/04 20:44:13  lenezet
 @MODIFIED   : *** empty log message ***
@@ -101,7 +101,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/super_sample_def.c,v 96.13 2006-11-30 09:07:33 rotor Exp $";
+static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/minctracc/Optimize/super_sample_def.c,v 96.13 2006-11-30 09:07:33 rotor Exp $";
 #endif
 
 #include <config.h>
@@ -174,6 +174,7 @@ void create_super_sampled_data_volumes(VIO_General_transform *orig_deformation,
 
                                 /* copy the transform definition */
   *super_sampled = *orig_deformation; 
+	super_sampled->displacement_volume_file=NULL;
 
                                 /* copy the GRID_TRANSFORM definition */
   super_sampled->displacement_volume = 
@@ -362,6 +363,8 @@ void create_super_sampled_data_volumes_by2(VIO_General_transform *orig_deformati
     copy_volume_definition_no_alloc(orig_deformation->displacement_volume,
                                     NC_UNSPECIFIED, FALSE, 0.0, 0.0);
 
+  super_sampled->displacement_volume_file = NULL;
+
                                 /* prepare to modify the GRID_TRANSFORM */
 
   get_volume_XYZV_indices(orig_deformation->displacement_volume, xyzv);
@@ -401,9 +404,6 @@ void create_super_sampled_data_volumes_by2(VIO_General_transform *orig_deformati
   set_volume_separations( super_sampled->displacement_volume, new_steps);
   set_volume_translation( super_sampled->displacement_volume, voxel, start);
   alloc_volume_data(      super_sampled->displacement_volume );
-    
-
-
 
 }
 

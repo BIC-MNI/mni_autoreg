@@ -41,7 +41,7 @@
 @MODIFIED   :     * Still working on fixing up perl subdirectory - removing mni_perllib
 @MODIFIED   :
 @MODIFIED   : Revision 96.10  2004/02/12 06:08:19  rotor
-@MODIFIED   :  * removed public/private defs
+@MODIFIED   :  * removed /static defs
 @MODIFIED   :
 @MODIFIED   : Revision 96.9  2004/02/04 20:44:11  lenezet
 @MODIFIED   : *** empty log message ***
@@ -222,7 +222,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 96.15 2009-04-03 18:36:59 louis Exp $";
+static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/minctracc/Optimize/deform_support.c,v 96.15 2009-04-03 18:36:59 louis Exp $";
 #endif
 
 #include <config.h>

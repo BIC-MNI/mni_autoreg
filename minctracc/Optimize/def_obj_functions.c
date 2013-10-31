@@ -23,7 +23,7 @@
 @MODIFIED   :  * added masking for feature volumes (irina and patricia)
 @MODIFIED   :
 @MODIFIED   : Revision 1.10  2004/02/12 06:08:19  rotor
-@MODIFIED   :  * removed public/private defs
+@MODIFIED   :  * removed /static defs
 @MODIFIED   :
 @MODIFIED   : Revision 1.9  2004/02/04 20:44:11  lenezet
 @MODIFIED   : *** empty log message ***

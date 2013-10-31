@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
 
   status = input_volume(f1, 3, default_dim_names, NC_UNSPECIFIED, FALSE, 0.0,0.0,
                         TRUE, &data1, (minc_input_options *)NULL); 
-  if (status!=OK) {
+  if (status!=VIO_OK) {
     print ("Error reading %s.\n",f1);
     exit(EXIT_FAILURE);
   }
@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
   status = input_volume(f2, 3, default_dim_names, NC_UNSPECIFIED, FALSE, 0.0,0.0,
                         TRUE, &data2, (minc_input_options *)NULL); 
  
-  if (status!=OK) {
+  if (status!=VIO_OK) {
     print ("Error reading %s.\n",f2);
     exit(EXIT_FAILURE);
   }
@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
     status = input_volume(mf, 3, default_dim_names, NC_UNSPECIFIED, FALSE, 0.0,0.0,
                           TRUE, &mask, (minc_input_options *)NULL); 
     
-    if (status!=OK) {
+    if (status!=VIO_OK) {
       print ("Error reading %s.\n",mf);
       exit(EXIT_FAILURE);
     }
@@ -102,9 +102,9 @@ int main(int argc, char *argv[])
         if (mask != NULL) {
           convert_3D_voxel_to_world(data1, i,j,k, &x, &y, &z);
           convert_3D_world_to_voxel(mask,  x,y,z, &u, &v, &w);
-          p = ROUND(u);
-          r = ROUND(v);
-          s = ROUND(w);
+          p = VIO_ROUND(u);
+          r = VIO_ROUND(v);
+          s = VIO_ROUND(w);
           if (p>=0 &&  p<sizes3[0] &&
               r>=0 &&  r<sizes3[1] &&
               s>=0 &&  s<sizes3[2]) {

@@ -37,7 +37,7 @@
 @MODIFIED   :   * Fixed -dircos problem in test cases
 @MODIFIED   :
 @MODIFIED   :  Revision 96.8  2004/02/12 05:54:27  rotor
-@MODIFIED   :   * removed public/private defs
+@MODIFIED   :   * removed /static defs
 @MODIFIED   :
 @MODIFIED   :  Revision 96.7  2004/01/27 00:28:03  lenezet
 @MODIFIED   :  change init_params to correct the COG bug when there is not input transform.
@@ -124,7 +124,7 @@ for(=; <; ++)
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 96.12 2006-11-30 09:07:32 rotor Exp $";
+static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/minctracc/Numerical/init_params.c,v 96.12 2006-11-30 09:07:32 rotor Exp $";
 #endif
 
 
@@ -567,14 +567,14 @@ static  VIO_BOOL init_transformation(
   nr_identf(trans,1,4,1,4);        /* start with identity                       */
   nr_identf(rots, 1,4,1,4);
   
-  ALLOC2D(cov1       ,4,4);
-  ALLOC2D(cov2       ,4,4);
-  ALLOC2D(prin_axes1 ,4,4);
-  ALLOC2D(prin_axes2 ,4,4);
-  ALLOC2D(R1         ,4,4);
-  ALLOC2D(R2         ,4,4);
-  ALLOC2D(R          ,4,4);
-  ALLOC2D(Rinv       ,4,4);
+  VIO_ALLOC2D(cov1       ,4,4);
+  VIO_ALLOC2D(cov2       ,4,4);
+  VIO_ALLOC2D(prin_axes1 ,4,4);
+  VIO_ALLOC2D(prin_axes2 ,4,4);
+  VIO_ALLOC2D(R1         ,4,4);
+  VIO_ALLOC2D(R2         ,4,4);
+  VIO_ALLOC2D(R          ,4,4);
+  VIO_ALLOC2D(Rinv       ,4,4);
   ALLOC(angles     ,4);
   
 
@@ -766,7 +766,7 @@ static  VIO_BOOL init_transformation(
       (void) print("\n\n");
       (void) print("Principal axes\n");
       for (i=1; i<=ndim; i++) {
-        (void) print("Vector %d :",i);
+        (void) print("VIO_Vector %d :",i);
         for (j=1; j<=ndim; j++) {
           (void) print("  %f",prin_axes1[j][i]);
         }
@@ -781,7 +781,7 @@ static  VIO_BOOL init_transformation(
       (void) print("\n\n");
       (void) print("Principal axes\n");
       for (i=1; i<=ndim; i++) {
-        (void) print("Vector %d :",i);
+        (void) print("VIO_Vector %d :",i);
         for (j=1; j<=ndim; j++) {
           (void) print("  %f",prin_axes2[j][i]);
         }
@@ -809,14 +809,14 @@ static  VIO_BOOL init_transformation(
     ang[3] = 0.0;
   }
 
-  FREE2D(cov1);
-  FREE2D(cov2);
-  FREE2D(prin_axes1);
-  FREE2D(prin_axes2);
-  FREE2D(R1);
-  FREE2D(R2);
-  FREE2D(R);
-  FREE2D(Rinv);
+  VIO_FREE2D(cov1);
+  VIO_FREE2D(cov2);
+  VIO_FREE2D(prin_axes1);
+  VIO_FREE2D(prin_axes2);
+  VIO_FREE2D(R1);
+  VIO_FREE2D(R2);
+  VIO_FREE2D(R);
+  VIO_FREE2D(Rinv);
   FREE(angles);
   
   return(TRUE);
@@ -876,14 +876,14 @@ static  VIO_BOOL init_transformation_quater(
 
   
   
-  ALLOC2D(cov1       ,4,4);
-  ALLOC2D(cov2       ,4,4);
-  ALLOC2D(prin_axes1 ,4,4);
-  ALLOC2D(prin_axes2 ,4,4);
-  ALLOC2D(R1         ,4,4);
-  ALLOC2D(R2         ,4,4);
-  ALLOC2D(R          ,4,4);
-  ALLOC2D(Rinv       ,4,4);
+  VIO_ALLOC2D(cov1       ,4,4);
+  VIO_ALLOC2D(cov2       ,4,4);
+  VIO_ALLOC2D(prin_axes1 ,4,4);
+  VIO_ALLOC2D(prin_axes2 ,4,4);
+  VIO_ALLOC2D(R1         ,4,4);
+  VIO_ALLOC2D(R2         ,4,4);
+  VIO_ALLOC2D(R          ,4,4);
+  VIO_ALLOC2D(Rinv       ,4,4);
   ALLOC(qt,4);
   
   nr_identf(trans,1,4,1,4);        /* start with identity                       */
@@ -1062,7 +1062,7 @@ static  VIO_BOOL init_transformation_quater(
       (void) print("\n\n");
       (void) print("Principal axes\n");
       for (i=1; i<=ndim; i++) {
-        (void) print("Vector %d :",i);
+        (void) print("VIO_Vector %d :",i);
         for (j=1; j<=ndim; j++) {
           (void) print("  %f",prin_axes1[j][i]);
         }
@@ -1077,7 +1077,7 @@ static  VIO_BOOL init_transformation_quater(
       (void) print("\n\n");
       (void) print("Principal axes\n");
       for (i=1; i<=ndim; i++) {
-        (void) print("Vector %d :",i);
+        (void) print("VIO_Vector %d :",i);
         for (j=1; j<=ndim; j++) {
           (void) print("  %f",prin_axes2[j][i]);
         }
@@ -1110,14 +1110,14 @@ static  VIO_BOOL init_transformation_quater(
   
   for(i=0; i<3; i++) quats[i]=qt[i];
 
-  FREE2D(cov1);
-  FREE2D(cov2);
-  FREE2D(prin_axes1);
-  FREE2D(prin_axes2);
-  FREE2D(R1);
-  FREE2D(R2);
-  FREE2D(R);
-  FREE2D(Rinv);
+  VIO_FREE2D(cov1);
+  VIO_FREE2D(cov2);
+  VIO_FREE2D(prin_axes1);
+  VIO_FREE2D(prin_axes2);
+  VIO_FREE2D(R1);
+  VIO_FREE2D(R2);
+  VIO_FREE2D(R);
+  VIO_FREE2D(Rinv);
   FREE(qt);
   
   return(TRUE);
@@ -1248,8 +1248,8 @@ VIO_BOOL init_params(VIO_Volume d1,
       
       /* -est_* flags are now set, continue with the PAT */
       
-      ALLOC2D(trans,5,5);
-      ALLOC2D(rots,5,5);
+      VIO_ALLOC2D(trans,5,5);
+      VIO_ALLOC2D(rots,5,5);
       ALLOC(ang ,4);
       ALLOC(quats ,4);
       ALLOC(c1 ,4);
@@ -1306,8 +1306,8 @@ VIO_BOOL init_params(VIO_Volume d1,
       if (globals->trans_flags.estimate_quats)
         quats3=sqrt(1-SQR(main_args.trans_info.quaternions[0])-SQR(main_args.trans_info.quaternions[1])-SQR(main_args.trans_info.quaternions[2]));
     
-      FREE2D(trans);
-      FREE2D(rots);
+      VIO_FREE2D(trans);
+      VIO_FREE2D(rots);
       FREE(quats);
       FREE(ang);
       FREE(c1);
@@ -1386,7 +1386,7 @@ VIO_BOOL init_params(VIO_Volume d1,
         {  
 
 
-          ALLOC2D(cov1 ,4,4);
+          VIO_ALLOC2D(cov1 ,4,4);
           ALLOC(c1   ,4);
           
           if (! vol_cog(d1, m1,  c1, globals->step ) ) 
@@ -1401,7 +1401,7 @@ VIO_BOOL init_params(VIO_Volume d1,
           if (globals->flags.debug) 
             print ("   User-requested COG estimate: %f %f %f\n",c1[1],c1[2],c1[3]);
           
-          FREE2D(cov1);
+          VIO_FREE2D(cov1);
           FREE(c1);
         }
                                                /* get the parameters from the input matrix: */
@@ -1444,8 +1444,8 @@ VIO_BOOL init_params(VIO_Volume d1,
           print ("\n");
         }
         
-        ALLOC2D(trans,5,5);
-        ALLOC2D(rots,5,5);
+        VIO_ALLOC2D(trans,5,5);
+        VIO_ALLOC2D(rots,5,5);
         ALLOC(quats ,4);
         ALLOC(ang ,4);
         ALLOC(c1 ,4);
@@ -1488,8 +1488,8 @@ VIO_BOOL init_params(VIO_Volume d1,
           }
    
       
-        FREE2D(trans);
-        FREE2D(rots);
+        VIO_FREE2D(trans);
+        VIO_FREE2D(rots);
         FREE(quats);
         FREE(ang);
         FREE(c1);

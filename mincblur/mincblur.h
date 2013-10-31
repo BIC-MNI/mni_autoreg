@@ -49,7 +49,7 @@ VIO_Status blur3D_volume(VIO_Volume data, int *xyzv,
                             char *infile, 
                             char *outfile, 
                             FILE *reals_fp,
-                            int ndim, int kernel_type, char *history);
+                            int kernel_type, char *history);
 
 VIO_Status gradient3D_volume(FILE *ifd, 
                                 VIO_Volume data, 

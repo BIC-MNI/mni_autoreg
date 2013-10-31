@@ -48,7 +48,7 @@
 
 
     status = open_file(  main_args.filenames.measure_file, WRITE_FILE, BINARY_FORMAT,  &ofd );
-    if ( status != OK ) 
+    if ( status != VIO_OK ) 
       print_error_and_line_num ("filename `%s' cannot be opened.", 
                    __FILE__, __LINE__, main_args.filenames.measure_file);
 
@@ -107,7 +107,7 @@
 
 
     status = close_file(ofd);
-    if ( status != OK ) 
+    if ( status != VIO_OK ) 
       print_error_and_line_num ("filename `%s' cannot be closed.", 
                    __FILE__, __LINE__, main_args.filenames.measure_file);
 

@@ -5,7 +5,7 @@
 @OUTPUT     : pr_axes - principal axes (matrix in zero offset form).
                         Note that indices of vectors vary fastest, ie.
                         first vector is pr_axes[1][i], where i is the vector 
-                        index ranging from 1 to ndim. Vector length is equal
+                        index ranging from 1 to ndim. VIO_Vector length is equal
                         to the standard deviation along the axis. The axes
                         are sorted into descending order of length.
 @RETURNS    : nothing
@@ -44,7 +44,7 @@
 @MODIFIED   :     * Still working on fixing up perl subdirectory - removing mni_perllib
 @MODIFIED   :
 @MODIFIED   : Revision 96.4  2004/02/12 05:54:27  rotor
-@MODIFIED   :  * removed public/private defs
+@MODIFIED   :  * removed /static defs
 @MODIFIED   :
 @MODIFIED   : Revision 96.3  2002/03/26 14:15:39  stever
 @MODIFIED   : Update includes to <volume_io/foo.h> style.
@@ -82,7 +82,7 @@
 
 ---------------------------------------------------------------------------- */
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/cov_to_praxes.c,v 96.7 2006-11-30 09:07:32 rotor Exp $";
+static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/minctracc/Numerical/cov_to_praxes.c,v 96.7 2006-11-30 09:07:32 rotor Exp $";
 #endif
 
 #include <volume_io.h>
@@ -97,8 +97,8 @@ void cov_to_praxes(int ndim, float **covar, float **pr_axes)
   double **amat,*eigval,**eigvec;
   int nrot,i,j;
   
-  ALLOC2D(amat,ndim+1,ndim+1);
-  ALLOC2D(eigvec,ndim+1,ndim+1);
+  VIO_ALLOC2D(amat,ndim+1,ndim+1);
+  VIO_ALLOC2D(eigvec,ndim+1,ndim+1);
   ALLOC(eigval,ndim+1);
 
   /* copy the input matrix and transpose it, since eigen() modifies
@@ -126,8 +126,8 @@ void cov_to_praxes(int ndim, float **covar, float **pr_axes)
   }
   
   /* Free up the matrices */
-  FREE2D(amat);
-  FREE2D(eigvec);
+  VIO_FREE2D(amat);
+  VIO_FREE2D(eigvec);
   FREE(eigval);
   
 }
@@ -270,8 +270,8 @@ VIO_BOOL eigen(double **inputMat,
   double sum,**copy_of_input,**eigvec,*eigval;
   int eig_flag, i,j;
 
-  ALLOC2D(copy_of_input,ndim+1,ndim+1);
-  ALLOC2D(eigvec,ndim+1,ndim+1);
+  VIO_ALLOC2D(copy_of_input,ndim+1,ndim+1);
+  VIO_ALLOC2D(eigvec,ndim+1,ndim+1);
   ALLOC(eigval,ndim+1);
 
   for(i=0; i<ndim; i++) {
@@ -322,8 +322,8 @@ VIO_BOOL eigen(double **inputMat,
 
   }
   
-  FREE2D(copy_of_input);
-  FREE2D(eigvec);
+  VIO_FREE2D(copy_of_input);
+  VIO_FREE2D(eigvec);
   FREE(eigval);
 
   return(eig_flag);

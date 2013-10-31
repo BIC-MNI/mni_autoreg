@@ -6,7 +6,7 @@
    
    @OUTPUT     : volume data containing either a voxelated ellipse or rectangle.
 
-   @RETURNS    : TRUE if ok, ERROR if error.
+   @RETURNS    : TRUE if ok, VIO_ERROR if error.
 
    @COPYRIGHT  :
               Copyright 1993 Louis Collins, McConnell Brain Imaging Centre, 
@@ -35,7 +35,7 @@
    @MODIFIED   :     * Still working on fixing up perl subdirectory - removing mni_perllib
    @MODIFIED   :
    @MODIFIED   : Revision 1.5  2004/02/12 05:53:40  rotor
-   @MODIFIED   :  * removed public/private defs
+   @MODIFIED   :  * removed /static defs
    @MODIFIED   :
    @MODIFIED   : Revision 1.4  2000/02/20 04:00:58  stever
    @MODIFIED   : * use new history_string() function to generate history strings
@@ -72,8 +72,9 @@ static char *default_dim_names[VIO_N_DIMENSIONS] = { MIxspace, MIyspace, MIzspac
 
 #define SUBSTEPS  9
 
+#ifndef ROUND
 #define  ROUND( x )     (int)floor( (double) (x) + 0.5 )
-
+#endif
 
 void  set_min_max(VIO_Real *voxel, 
                           int *minx, int *maxx, 
@@ -84,9 +85,9 @@ void  set_min_max(VIO_Real *voxel,
 
   /* If voxel[VIO_X] = 0.6, then *minx will be set to 1.
      Is that correct, or do we want *minx = 0 ? */
-  x = ROUND(voxel[VIO_X]);
-  y = ROUND(voxel[VIO_Y]);
-  z = ROUND(voxel[VIO_Z]);
+  x = VIO_ROUND(voxel[VIO_X]);
+  y = VIO_ROUND(voxel[VIO_Y]);
+  z = VIO_ROUND(voxel[VIO_Z]);
   
   if (x > *maxx) *maxx = x;
   if (x < *minx) *minx = x;
@@ -237,14 +238,14 @@ int main (int argc, char *argv[] )
   if (!clobber_flag && file_exists(outfilename)) {
     print ("File %s exists.\n",outfilename);
     print ("Use -clobber to overwrite.\n");
-    return ERROR;
+    return VIO_ERROR;
   }
 
   /* check to see if the output file can be written */
   status = open_file( outfilename , WRITE_FILE, BINARY_FORMAT,  &ofd );
-  if ( status != OK ) {
+  if ( status != VIO_OK ) {
     print ("filename `%s' cannot be opened.", outfilename);
-    return ERROR;
+    return VIO_ERROR;
   }
   status = close_file(ofd);
   (void)remove(outfilename);   
@@ -378,7 +379,7 @@ int main (int argc, char *argv[] )
   if ( maxx < 0  || maxy < 0 || maxz < 0 ||
        minx > count[VIO_X] || miny > count[VIO_Y] || minz > count[VIO_Z]) {
     print ("There is no voxel overlap between object and volume as defined.\n");
-    return ERROR;
+    return VIO_ERROR;
   }
 
   /* add one voxel all around, for partial volume calculations. */
@@ -454,7 +455,7 @@ int main (int argc, char *argv[] )
   
   status = output_volume(outfilename, NC_UNSPECIFIED, FALSE, 0.0, 0.0, data, 
                          history, (minc_output_options *)NULL);  
-  if (status != OK)
+  if (status != VIO_OK)
     print("problems writing volume data for %s.", outfilename);
   
   

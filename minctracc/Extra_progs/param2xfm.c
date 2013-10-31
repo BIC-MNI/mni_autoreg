@@ -165,7 +165,7 @@ int main(int argc, char *argv[])
    
 
    /* Write out the transform */
-   if (output_transform_file(argv[1], history, &new_transform) != OK) {
+   if (output_transform_file(argv[1], history, &new_transform) != VIO_OK) {
       (void) fprintf(stderr, "%s: Error writing transform file %s\n",
                      argv[0], argv[1]);
       exit(EXIT_FAILURE);

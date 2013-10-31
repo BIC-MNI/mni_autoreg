@@ -9,7 +9,7 @@ int  two_lines    = FALSE;
 
 static ArgvInfo argTable[] = {
   {"-threshold", ARGV_FLOAT, (char *) FALSE, (char *) &threshold,
-     "Real value threshold for bounding box."},
+     "VIO_Real value threshold for bounding box."},
   {"-one_line", ARGV_CONSTANT, (char *) FALSE, (char *) &two_lines,
      "Output on one line (default): start_x y z width_x y z"},
   {"-two_lines", ARGV_CONSTANT, (char *) TRUE, (char *) &two_lines,

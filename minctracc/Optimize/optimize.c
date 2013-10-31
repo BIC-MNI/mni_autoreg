@@ -35,7 +35,7 @@
 @MODIFIED   :     * Still working on fixing up perl subdirectory - removing mni_perllib
 @MODIFIED   :
 @MODIFIED   : Revision 96.12  2004/02/12 06:08:21  rotor
-@MODIFIED   :  * removed public/private defs
+@MODIFIED   :  * removed /static defs
 @MODIFIED   :
 @MODIFIED   : Revision 96.11  2004/02/04 20:44:13  lenezet
 @MODIFIED   : *** empty log message ***
@@ -163,10 +163,9 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 96.17 2009-04-03 18:36:59 louis Exp $";
+static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 96.17 2009-04-03 18:36:59 louis Exp $";
 #endif
 
-#include <config.h>
 #include <volume_io.h>
 #include <Proglib.h>
 #include <amoeba.h>
@@ -1105,8 +1104,8 @@ VIO_BOOL optimize_linear_transformation(VIO_Volume d1,
       }
 
       data_type = get_volume_data_type (d1);
-      if (data_type != UNSIGNED_BYTE) {
-        print ("WARNING: source volume not UNSIGNED_BYTE, will do conversion now.\n");
+      if (data_type != VIO_UNSIGNED_BYTE) {
+        print ("WARNING: source volume not UNSIGNED BYTE, will do conversion now.\n");
         if (!replace_volume_data_with_ubyte(d1)) {
           print_error_and_line_num("Can't replace volume data with unsigned bytes\n",
                              __FILE__, __LINE__);
@@ -1114,8 +1113,8 @@ VIO_BOOL optimize_linear_transformation(VIO_Volume d1,
       }
 
       data_type = get_volume_data_type (d2);
-      if (data_type != UNSIGNED_BYTE) {
-        print ("WARNING: target volume not UNSIGNED_BYTE, will do conversion now.\n");
+      if (data_type != VIO_UNSIGNED_BYTE) {
+        print ("WARNING: target volume not UNSIGNED BYTE, will do conversion now.\n");
         if (!replace_volume_data_with_ubyte(d2)) {
           print_error_and_line_num("Can't replace volume data with unsigned bytes\n",
                              __FILE__, __LINE__);
@@ -1124,7 +1123,7 @@ VIO_BOOL optimize_linear_transformation(VIO_Volume d1,
 
       ALLOC(   prob_fn1,   globals->groups);
       ALLOC(   prob_fn2,   globals->groups);
-      ALLOC2D( prob_hash_table, globals->groups, globals->groups);
+      VIO_ALLOC2D( prob_hash_table, globals->groups, globals->groups);
 
     } else
   if (globals->obj_function == xcorr_objective) {
@@ -1270,7 +1269,7 @@ VIO_BOOL optimize_linear_transformation(VIO_Volume d1,
     {
       FREE(   prob_fn1 );
       FREE(   prob_fn2 );
-      FREE2D( prob_hash_table);
+      VIO_FREE2D( prob_hash_table);
     }
 
 
@@ -1397,8 +1396,8 @@ VIO_BOOL optimize_linear_transformation_quater(VIO_Volume d1,
       }
 
       data_type = get_volume_data_type (d1);
-      if (data_type != UNSIGNED_BYTE) {
-        print ("WARNING: source volume not UNSIGNED_BYTE, will do conversion now.\n");
+      if (data_type != VIO_UNSIGNED_BYTE) {
+        print ("WARNING: source volume not UNSIGNED BYTE, will do conversion now.\n");
         if (!replace_volume_data_with_ubyte(d1)) {
           print_error_and_line_num("Can't replace volume data with unsigned bytes\n",
                              __FILE__, __LINE__);
@@ -1406,8 +1405,8 @@ VIO_BOOL optimize_linear_transformation_quater(VIO_Volume d1,
       }
 
       data_type = get_volume_data_type (d2);
-      if (data_type != UNSIGNED_BYTE) {
-        print ("WARNING: target volume not UNSIGNED_BYTE, will do conversion now.\n");
+      if (data_type != VIO_UNSIGNED_BYTE) {
+        print ("WARNING: target volume not UNSIGNED BYTE, will do conversion now.\n");
         if (!replace_volume_data_with_ubyte(d2)) {
           print_error_and_line_num("Can't replace volume data with unsigned bytes\n",
                              __FILE__, __LINE__);
@@ -1416,7 +1415,7 @@ VIO_BOOL optimize_linear_transformation_quater(VIO_Volume d1,
 
       ALLOC(   prob_fn1,   globals->groups);
       ALLOC(   prob_fn2,   globals->groups);
-      ALLOC2D( prob_hash_table, globals->groups, globals->groups);
+      VIO_ALLOC2D( prob_hash_table, globals->groups, globals->groups);
 
     } else
   if (globals->obj_function == xcorr_objective) {
@@ -1567,7 +1566,7 @@ VIO_BOOL optimize_linear_transformation_quater(VIO_Volume d1,
     {
       FREE(   prob_fn1 );
       FREE(   prob_fn2 );
-      FREE2D( prob_hash_table);
+      VIO_FREE2D( prob_hash_table);
     }
 
 
@@ -1664,8 +1663,8 @@ float measure_fit(VIO_Volume d1,
       }
 
       data_type = get_volume_data_type (d1);
-      if (data_type != UNSIGNED_BYTE) {
-        print ("WARNING: source volume not UNSIGNED_BYTE, will do conversion now.\n");
+      if (data_type != VIO_UNSIGNED_BYTE) {
+        print ("WARNING: source volume not UNSIGNED BYTE, will do conversion now.\n");
         if (!replace_volume_data_with_ubyte(d1)) {
           print_error_and_line_num("Can't replace volume data with unsigned bytes\n",
                              __FILE__, __LINE__);
@@ -1673,8 +1672,8 @@ float measure_fit(VIO_Volume d1,
       }
 
       data_type = get_volume_data_type (d2);
-      if (data_type != UNSIGNED_BYTE) {
-        print ("WARNING: target volume not UNSIGNED_BYTE, will do conversion now.\n");
+      if (data_type != VIO_UNSIGNED_BYTE) {
+        print ("WARNING: target volume not UNSIGNED BYTE, will do conversion now.\n");
         if (!replace_volume_data_with_ubyte(d2)) {
           print_error_and_line_num("Can't replace volume data with unsigned bytes\n",
                              __FILE__, __LINE__);
@@ -1683,7 +1682,7 @@ float measure_fit(VIO_Volume d1,
 
       ALLOC(   prob_fn1,   globals->groups);
       ALLOC(   prob_fn2,   globals->groups);
-      ALLOC2D( prob_hash_table, globals->groups, globals->groups);
+      VIO_ALLOC2D( prob_hash_table, globals->groups, globals->groups);
 
     } 
           /* ---------------- prepare the weighting array for obj func evaluation  ---------*/
@@ -1766,7 +1765,7 @@ if(globals->trans_info.rotation_type == TRANS_ROT)
       Ginverse_mapping_flag = TRUE;
     }
 
-    ALLOC2D(p,ndim+1+1,ndim+1); /* simplex */
+    VIO_ALLOC2D(p,ndim+1+1,ndim+1); /* simplex */
     
     parameters_to_vector(globals->trans_info.translations,
                          globals->trans_info.rotations,
@@ -1777,7 +1776,7 @@ if(globals->trans_info.rotation_type == TRANS_ROT)
 
     y = fit_function(p[1]);        /* evaluate the objective  function */
 
-    FREE2D(p); /* simplex */
+    VIO_FREE2D(p); /* simplex */
 
   }
     }
@@ -1860,7 +1859,7 @@ if(globals->trans_info.rotation_type == TRANS_ROT)
       Ginverse_mapping_flag = TRUE;
     }
 
-    ALLOC2D(p,ndim+1+1,ndim+1); /* simplex */
+    VIO_ALLOC2D(p,ndim+1+1,ndim+1); /* simplex */
     
     parameters_to_vector_quater(globals->trans_info.translations,
                                 globals->trans_info.quaternions,
@@ -1871,7 +1870,7 @@ if(globals->trans_info.rotation_type == TRANS_ROT)
 
     y = fit_function_quater(p[1]);        /* evaluate the objective  function */
 
-    FREE2D(p); /* simplex */
+    VIO_FREE2D(p); /* simplex */
   }
   }
   
@@ -1888,7 +1887,7 @@ if(globals->trans_info.rotation_type == TRANS_ROT)
     {
       FREE(   prob_fn1 );
       FREE(   prob_fn2 );
-      FREE2D( prob_hash_table);
+      VIO_FREE2D( prob_hash_table);
     }
 
 
@@ -2021,7 +2020,7 @@ VIO_BOOL optimize_non_linear_transformation(Arg_Data *globals)
            /* ---------------- call requested optimization strategy ---------*/
 
 
-  stat = ( do_non_linear_optimization(globals)==OK );
+  stat = ( do_non_linear_optimization(globals)==VIO_OK );
  
   
           /* ----------------finish up parameter/matrix manipulations ------*/

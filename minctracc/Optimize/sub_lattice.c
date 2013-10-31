@@ -40,7 +40,7 @@
 @MODIFIED   :  * added masking for feature volumes (irina and patricia)
 @MODIFIED   :
 @MODIFIED   : Revision 1.10  2004/02/12 06:08:21  rotor
-@MODIFIED   :  * removed public/private defs
+@MODIFIED   :  * removed /static defs
 @MODIFIED   :
 @MODIFIED   : Revision 1.9  2003/02/26 00:56:38  lenezet
 @MODIFIED   : for 2D : now computes all 3 coordinates for the "start" (to take into account the slice position).

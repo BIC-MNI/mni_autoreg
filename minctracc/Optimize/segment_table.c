@@ -8,7 +8,7 @@ VIO_BOOL build_segment_table(Segment_Table **s_table, VIO_Volume d1, int groups)
 
   float
     frac;
-  Data_types
+  VIO_Data_types
     data_type;
   int
     i,min,max;
@@ -18,16 +18,16 @@ VIO_BOOL build_segment_table(Segment_Table **s_table, VIO_Volume d1, int groups)
 
   data_type = get_volume_data_type (d1);
   switch (data_type) {
-  case   UNSIGNED_BYTE:
+  case   VIO_UNSIGNED_BYTE:
     min = 0; max = (1<<8)-1;
     break;
-  case  SIGNED_BYTE:
+  case  VIO_SIGNED_BYTE:
     min = -(1<<7); max = (1<<7)-1;
     break;
-  case  UNSIGNED_SHORT:
+  case  VIO_UNSIGNED_SHORT:
     min = 0; max = (1<<16)-1;
     break;
-  case  SIGNED_SHORT:
+  case  VIO_SIGNED_SHORT:
     min = -(1<<15); max = (1<<15)-1;
     break;
   default:
@@ -53,7 +53,7 @@ VIO_BOOL build_segment_table(Segment_Table **s_table, VIO_Volume d1, int groups)
     
     for(i=min; i<=max; i++) {                /* build the look up table */
       frac = 0.5 + ((float)(groups)-0.00001 )* (float)(i-min)/(float)(max-min);
-      (*s_table)->table[i] = ROUND( frac );
+      (*s_table)->table[i] = VIO_ROUND( frac );
     }
     
     return(TRUE);

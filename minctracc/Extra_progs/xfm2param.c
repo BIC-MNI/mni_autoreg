@@ -230,7 +230,7 @@ VIO_BOOL get_cog(char *file, double *c1)
 double cent[3];
 
 
-void process_linear_transform( Transform* mat )
+void process_linear_transform( VIO_Transform* mat )
 {
   int i;
   double 
@@ -257,9 +257,9 @@ void process_linear_transform( Transform* mat )
 }
 
 
-void process_general_transform( General_transform* t);
+void process_general_transform( VIO_General_transform* t);
 
-void process_concatenated_transform( General_transform* t )
+void process_concatenated_transform( VIO_General_transform* t )
 {
     int n = get_n_concated_transforms( t );
     int i;
@@ -273,7 +273,7 @@ void process_concatenated_transform( General_transform* t )
 }
             
 
-void process_general_transform( General_transform* t )
+void process_general_transform( VIO_General_transform* t )
 {
     switch (t->type) {
     case LINEAR:
@@ -331,7 +331,7 @@ int main(int argc, char *argv[])
     }
   }
 
-  if (input_transform_file(xfmfile, &gt)!=OK) {
+  if (input_transform_file(xfmfile, &gt)!=VIO_OK) {
     (void)fprintf(stderr, "Error reading transformation file.\n");
     exit(EXIT_FAILURE);
   }

@@ -15,6 +15,7 @@
 #@VERSION    : $Id: vox_space.c,v 1.10 2006-11-30 09:07:33 rotor Exp $
 #----------------------------------------------------------------------------- */
 
+#include <config.h>
 #include <volume_io.h>
 #include "constants.h"
 #include "arg_data.h"

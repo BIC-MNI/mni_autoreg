@@ -28,7 +28,7 @@
 @MODIFIED   :      * Still working on fixing up perl subdirectory - removing mni_perllib
 @MODIFIED   :
 @MODIFIED   :  Revision 96.4  2004/02/12 06:04:53  rotor
-@MODIFIED   :   * removed public/private defs
+@MODIFIED   :   * removed /static defs
 @MODIFIED   :
 @MODIFIED   :  Revision 96.3  2002/03/26 14:15:47  stever
 @MODIFIED   :  Update includes to <volume_io/foo.h> style.
@@ -67,7 +67,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/interpolation.c,v 96.7 2006-11-30 09:07:33 rotor Exp $";
+static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/minctracc/Volume/interpolation.c,v 96.7 2006-11-30 09:07:33 rotor Exp $";
 #endif
 
 #include <volume_io.h>

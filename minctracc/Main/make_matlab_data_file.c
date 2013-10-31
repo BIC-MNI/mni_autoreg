@@ -41,7 +41,7 @@
 @MODIFIED   :     * Still working on fixing up perl subdirectory - removing mni_perllib
 @MODIFIED   :
 @MODIFIED   : Revision 96.5  2004/02/12 05:54:21  rotor
-@MODIFIED   :  * removed public/private defs
+@MODIFIED   :  * removed /static defs
 @MODIFIED   :
 @MODIFIED   : Revision 96.4  2002/08/14 19:54:42  lenezet
 @MODIFIED   :  quaternion option added for the rotation
@@ -89,7 +89,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Main/make_matlab_data_file.c,v 96.10 2010-04-01 04:49:16 rotor Exp $";
+static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/minctracc/Main/make_matlab_data_file.c,v 96.10 2010-04-01 04:49:16 rotor Exp $";
 #endif
 
 
@@ -212,8 +212,8 @@ void make_matlab_data_file(VIO_Volume d1,
       }
 
       data_type = get_volume_data_type (d1);
-      if (data_type != UNSIGNED_BYTE) {
-        print ("WARNING: source volume not UNSIGNED_BYTE, will do conversion now.\n");
+      if (data_type != VIO_UNSIGNED_BYTE) {
+        print ("WARNING: source volume not UNSIGNED BYTE, will do conversion now.\n");
         if (!replace_volume_data_with_ubyte(d1)) {
           print_error_and_line_num("Can't replace volume data with unsigned bytes\n",
                              __FILE__, __LINE__);
@@ -221,8 +221,8 @@ void make_matlab_data_file(VIO_Volume d1,
       }
 
       data_type = get_volume_data_type (d2);
-      if (data_type != UNSIGNED_BYTE) {
-        print ("WARNING: target volume not UNSIGNED_BYTE, will do conversion now.\n");
+      if (data_type != VIO_UNSIGNED_BYTE) {
+        print ("WARNING: target volume not UNSIGNED BYTE, will do conversion now.\n");
         if (!replace_volume_data_with_ubyte(d2)) {
           print_error_and_line_num("Can't replace volume data with unsigned bytes\n",
                              __FILE__, __LINE__);
@@ -231,7 +231,7 @@ void make_matlab_data_file(VIO_Volume d1,
 
       ALLOC(   prob_fn1,   globals->groups);
       ALLOC(   prob_fn2,   globals->groups);
-      ALLOC2D( prob_hash_table, globals->groups, globals->groups);
+      VIO_ALLOC2D( prob_hash_table, globals->groups, globals->groups);
 
     } 
 
@@ -328,7 +328,7 @@ print ("scale: %10.5f %10.5f %10.5f \n",
     
     
     status = open_file(  globals->filenames.matlab_file, WRITE_FILE, BINARY_FORMAT,  &ofd );
-    if ( status != OK ) 
+    if ( status != VIO_OK ) 
       print_error_and_line_num ("filename `%s' cannot be opened.", 
                    __FILE__, __LINE__, globals->filenames.matlab_file);
     
@@ -394,7 +394,7 @@ print ("scale: %10.5f %10.5f %10.5f \n",
     }
     
     status = close_file(ofd);
-    if ( status != OK ) 
+    if ( status != VIO_OK ) 
       print_error_and_line_num ("filename `%s' cannot be closed.", 
                    __FILE__, __LINE__, globals->filenames.matlab_file);
     
@@ -498,7 +498,7 @@ print ("scale: %10.5f %10.5f %10.5f \n",
     
     
     status = open_file(  globals->filenames.matlab_file, WRITE_FILE, BINARY_FORMAT,  &ofd );
-    if ( status != OK ) 
+    if ( status != VIO_OK ) 
       print_error_and_line_num ("filename `%s' cannot be opened.", 
                    __FILE__, __LINE__, globals->filenames.matlab_file);
     
@@ -567,7 +567,7 @@ print ("scale: %10.5f %10.5f %10.5f \n",
     }
     
     status = close_file(ofd);
-    if ( status != OK ) 
+    if ( status != VIO_OK ) 
       print_error_and_line_num ("filename `%s' cannot be closed.", 
                    __FILE__, __LINE__, globals->filenames.matlab_file);
     
@@ -586,7 +586,7 @@ print ("scale: %10.5f %10.5f %10.5f \n",
     {
       FREE(   prob_fn1 );
       FREE(   prob_fn2 );
-      FREE2D( prob_hash_table);
+      VIO_FREE2D( prob_hash_table);
     }
 
 

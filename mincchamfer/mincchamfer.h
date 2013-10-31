@@ -18,7 +18,7 @@ int
   first,
   debug,
   verbose;
-Real
+VIO_Real
   max_dist;
 
 static ArgvInfo argTable[] = {
