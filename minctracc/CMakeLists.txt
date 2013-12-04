@@ -54,15 +54,56 @@ TARGET_LINK_LIBRARIES(minctracc
  minctracc_volume
  Proglib)
 
-
 ADD_EXECUTABLE(check_scale  Extra_progs/check_scale.c)
-ADD_EXECUTABLE(crispify     Extra_progs/crispify.c)
+TARGET_LINK_LIBRARIES(check_scale
+ minctracc_files 
+ minctracc_optimize 
+ minctracc_numerical
+ minctracc_volume
+ Proglib)
+
 ADD_EXECUTABLE(param2xfm    Extra_progs/param2xfm.c)
+TARGET_LINK_LIBRARIES(param2xfm
+ minctracc_files 
+ minctracc_optimize 
+ minctracc_numerical
+ minctracc_volume
+ Proglib)
+
+ADD_EXECUTABLE(rand_param    Extra_progs/rand_param.c)
+TARGET_LINK_LIBRARIES(rand_param
+ minctracc_files 
+ minctracc_optimize 
+ minctracc_numerical
+ minctracc_volume
+ Proglib)
+
 ADD_EXECUTABLE(volume_cog   Extra_progs/volume_cog.c)
-ADD_EXECUTABLE(rand_param   Extra_progs/rand_param.c)
-ADD_EXECUTABLE(xcorr_vol    Extra_progs/xcorr_vol.c)
+TARGET_LINK_LIBRARIES(volume_cog
+ minctracc_files 
+ minctracc_optimize 
+ minctracc_numerical
+ minctracc_volume
+ Proglib)
+
 ADD_EXECUTABLE(xfm2param    Extra_progs/xfm2param.c)
-ADD_EXECUTABLE(zscore_vol   Extra_progs/zscore_vol.c)
+TARGET_LINK_LIBRARIES(xfm2param
+ minctracc_files 
+ minctracc_optimize 
+ minctracc_numerical
+ minctracc_volume
+ Proglib)
+
+ADD_EXECUTABLE(zscore_vol    Extra_progs/zscore_vol.c)
+TARGET_LINK_LIBRARIES(zscore_vol
+ minctracc_files 
+ minctracc_optimize 
+ minctracc_numerical
+ minctracc_volume
+ Proglib)
+
+ADD_EXECUTABLE(crispify     Extra_progs/crispify.c)
+ADD_EXECUTABLE(xcorr_vol    Extra_progs/xcorr_vol.c)
 ADD_EXECUTABLE(cmpxfm       Extra_progs/cmpxfm.c)
 ADD_EXECUTABLE(make_lvv_vol Extra_progs/make_lvv_vol.c)
 
