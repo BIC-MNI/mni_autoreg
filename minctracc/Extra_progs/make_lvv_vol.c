@@ -57,6 +57,11 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #include <volume_io.h>
 #include <Proglib.h>
 #include <config.h>
+#include <float.h>
+
+#include <ParseArgv.h>
+
+/*#include <globals.h>*/
 
 /* Constants */
 #ifndef TRUE
@@ -77,12 +82,12 @@ typedef struct {
 static char *default_dim_names[VIO_N_DIMENSIONS] = { MIxspace, MIyspace, MIzspace };
 
 
-VIO_Real return_Lvv(VIO_Real r[3][3][3],
+static VIO_Real return_Lvv(VIO_Real r[3][3][3],
                        VIO_Real eps);
 
-void init_the_volume_to_zero(VIO_Volume volume);
+static void init_the_volume_to_zero(VIO_Volume volume);
 
-void get_volume_XYZV_indices(VIO_Volume data, int xyzv[]);
+static void get_volume_XYZV_indices(VIO_Volume data, int xyzv[]);
 
 char *prog_name;
 int stat_quad_total;
@@ -91,6 +96,20 @@ int stat_quad_two;
 int stat_quad_plus;
 int stat_quad_minus;
 int stat_quad_semi;
+
+double  ftol                     = 0.005;
+double  simplex_size             = 20.0;
+int     iteration_limit          = 4;
+double  iteration_weight         = 0.6;
+double  smoothing_weight         = 0.5;
+double  similarity_cost_ratio    = 0.5;
+int     number_dimensions        = 3;
+int     Matlab_num_steps         = 15;
+int     Diameter_of_local_lattice= 5;
+
+int     invert_mapping_flag      = FALSE;
+int     clobber_flag             = FALSE;
+
 
 
 int main(int argc, char *argv[])
@@ -134,7 +153,7 @@ int main(int argc, char *argv[])
   stat = input_volume(argv[1],3,default_dim_names, NC_UNSPECIFIED, FALSE, 
                       0.0,0.0,TRUE, &data, (minc_input_options *)NULL);
 
-  if (stat != OK) {
+  if (stat != VIO_OK) {
     print ("Error: cannot read %s.\n",argv[1]);
     exit(EXIT_FAILURE);
   }
@@ -148,7 +167,7 @@ int main(int argc, char *argv[])
   max_val = -DBL_MAX;
   min_val =  DBL_MAX;
   
-  ALLOC3D(float_vol  , sizes[0], sizes[1], sizes[2]);
+  VIO_ALLOC3D(float_vol  , sizes[0], sizes[1], sizes[2]);
   
   for(i=0; i<sizes[0]; i++)
     for(j=0; j<sizes[1]; j++)
@@ -222,7 +241,7 @@ int main(int argc, char *argv[])
         set_volume_real_value(lvv  , i,j,k, 0, 0, Lvv);
       }
 
-  FREE3D(float_vol);
+  VIO_FREE3D(float_vol);
 
   print ("Saving data (%f,%f)...\n",max_val, min_val);
   
@@ -230,7 +249,7 @@ int main(int argc, char *argv[])
   sprintf(output_filename,"%s_Lvv.mnc",argv[2]);
   stat = output_modified_volume(output_filename, NC_UNSPECIFIED, FALSE, 
                                 0.0, 0.0,  lvv, argv[1], history, NULL);
-  if (stat != OK) {
+  if (stat != VIO_OK) {
     print ("Error: cannot write Lvv %s.\n",output_filename);
     exit(EXIT_FAILURE);
   }
@@ -242,7 +261,7 @@ int main(int argc, char *argv[])
 
 
 
-void init_the_volume_to_zero(VIO_Volume volume)
+static void init_the_volume_to_zero(VIO_Volume volume)
 {
     int             v0, v1, v2, v3, v4;
     VIO_Real            zero;
@@ -257,7 +276,7 @@ void init_the_volume_to_zero(VIO_Volume volume)
 
 }
 
-void get_volume_XYZV_indices(VIO_Volume data, int xyzv[])
+static void get_volume_XYZV_indices(VIO_Volume data, int xyzv[])
 {
   
   int 
@@ -268,13 +287,13 @@ void get_volume_XYZV_indices(VIO_Volume data, int xyzv[])
   vol_dims       = get_volume_n_dimensions(data);
   data_dim_names = get_volume_dimension_names(data);
   
-  for(i=0; i<N_DIMENSIONS+1; i++) xyzv[i] = -1;
+  for(i=0; i<VIO_N_DIMENSIONS+1; i++) xyzv[i] = -1;
   for(i=0; i<vol_dims; i++) {
     if (convert_dim_name_to_spatial_axis(data_dim_names[i], &axis )) {
       xyzv[axis] = i; 
     } 
     else {     /* not a spatial axis */
-      xyzv[Z+1] = i;
+      xyzv[VIO_Z+1] = i;
     }
   }
   delete_dimension_names(data,data_dim_names);
@@ -282,7 +301,7 @@ void get_volume_XYZV_indices(VIO_Volume data, int xyzv[])
 }
 
 
-void estimate_3D_derivatives(VIO_Real r[3][3][3], 
+static void estimate_3D_derivatives(VIO_Real r[3][3][3], 
                                     deriv_3D_struct *d) 
 
 {
@@ -375,7 +394,7 @@ void estimate_3D_derivatives(VIO_Real r[3][3][3],
 
 
 
-VIO_Real return_Lvv(VIO_Real r[3][3][3],
+static VIO_Real return_Lvv(VIO_Real r[3][3][3],
                        VIO_Real eps)
      
 {

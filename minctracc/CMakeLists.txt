@@ -35,28 +35,40 @@ ADD_LIBRARY(minctracc_volume  STATIC
 	Volume/interpolation.c 
 	Volume/volume_functions.c)
 
-
-LINK_LIBRARIES(
- minctracc_files 
- minctracc_optimize 
- minctracc_numerical
- minctracc_volume
- Proglib
-)
+# LINK_LIBRARIES(
+#  minctracc_files 
+#  minctracc_optimize 
+#  minctracc_numerical
+#  minctracc_volume
+#  Proglib
+# )
 
 ADD_EXECUTABLE(minctracc 
   Main/make_matlab_data_file.c 
 	Main/minctracc.c )
 
-ADD_EXECUTABLE(check_scale Extra_progs/check_scale.c)
-ADD_EXECUTABLE(crispify    Extra_progs/crispify.c)
-ADD_EXECUTABLE(param2xfm   Extra_progs/param2xfm.c)
-ADD_EXECUTABLE(volume_cog  Extra_progs/volume_cog.c)
-ADD_EXECUTABLE(rand_param  Extra_progs/rand_param.c)
-ADD_EXECUTABLE(xcorr_vol   Extra_progs/xcorr_vol.c)
-ADD_EXECUTABLE(xfm2param   Extra_progs/xfm2param.c)
-ADD_EXECUTABLE(zscore_vol  Extra_progs/zscore_vol.c)
-ADD_EXECUTABLE(cmpxfm      Extra_progs/cmpxfm.c)
+TARGET_LINK_LIBRARIES(minctracc
+ minctracc_files 
+ minctracc_optimize 
+ minctracc_numerical
+ minctracc_volume
+ Proglib)
+
+
+ADD_EXECUTABLE(check_scale  Extra_progs/check_scale.c)
+ADD_EXECUTABLE(crispify     Extra_progs/crispify.c)
+ADD_EXECUTABLE(param2xfm    Extra_progs/param2xfm.c)
+ADD_EXECUTABLE(volume_cog   Extra_progs/volume_cog.c)
+ADD_EXECUTABLE(rand_param   Extra_progs/rand_param.c)
+ADD_EXECUTABLE(xcorr_vol    Extra_progs/xcorr_vol.c)
+ADD_EXECUTABLE(xfm2param    Extra_progs/xfm2param.c)
+ADD_EXECUTABLE(zscore_vol   Extra_progs/zscore_vol.c)
+ADD_EXECUTABLE(cmpxfm       Extra_progs/cmpxfm.c)
+ADD_EXECUTABLE(make_lvv_vol Extra_progs/make_lvv_vol.c)
+
+TARGET_LINK_LIBRARIES(make_lvv_vol
+ Proglib
+ )
 
 
 INSTALL(TARGETS 
@@ -70,4 +82,5 @@ INSTALL(TARGETS
  xfm2param 
  zscore_vol
  cmpxfm
+ make_lvv_vol
  RUNTIME DESTINATION bin)
