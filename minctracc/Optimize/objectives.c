@@ -131,6 +131,22 @@ int voxel_point_not_masked(VIO_Volume volume,
 
 
 
+void dump_iteration_information(int count1,int count2,float result,VIO_Transform  *transform)
+{
+  int i,j;
+  
+  print ("%7d %7d -> %10.8f\n",count1,count2,result);
+  
+  /* For heavy debugging
+  for(i=0;i<4;i++)
+  {
+    print("\t");
+    for(j=0;j<4;j++)
+      print ("%10.12f\t",Transform_elem(*transform,i,j));
+    print("\n");
+  }*/
+}
+
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : xcorr_objective
 @INPUT      : volumetric data, for use in correlation.  
@@ -313,7 +329,7 @@ float xcorr_objective(VIO_Volume d1,
   
   result = 1.0 - s1 / (sqrt((double)s2)*sqrt((double)s3));
   
-  if (globals->flags.debug) (void)print ("%7d %7d -> %10.8f\n",count1,count2,result);
+  if (globals->flags.debug) dump_iteration_information(count1,count2,result,trans);/*(void)print ("%7d %7d -> %10.8f\n",count1,count2,result);*/
 
   delete_voxel_space_struct(vox_space);
 
