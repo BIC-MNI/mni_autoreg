@@ -4,7 +4,6 @@ ADD_LIBRARY(minctracc_files STATIC
    Files/read_data_files.c)
 
 
-
 ADD_LIBRARY(minctracc_optimize STATIC
   Optimize/def_obj_functions.c 
   Optimize/extras.c 
@@ -22,7 +21,10 @@ ADD_LIBRARY(minctracc_optimize STATIC
 )
 
 # this file produces different results when compiled with optimization
-SET_SOURCE_FILES_PROPERTIES(Numerical/matrix_basics.c PROPERTIES COMPILE_FLAGS -O0)
+SET_SOURCE_FILES_PROPERTIES(
+Numerical/matrix_basics.c 
+Numerical/rotmat_to_ang.c 
+PROPERTIES COMPILE_FLAGS -O0)
 
 
 ADD_LIBRARY(minctracc_numerical STATIC
