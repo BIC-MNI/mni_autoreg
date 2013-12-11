@@ -9,11 +9,11 @@ typedef  struct
 {
     int               n_parameters;
     float             **parameters;
-    VIO_Real              *values;
+    VIO_Real          *values;
     amoeba_function   function;
     void              *function_data;
-    VIO_Real              tolerance;
-    VIO_Real              *sum;
+    VIO_Real          tolerance;
+    VIO_Real          *sum;
     int               n_steps_no_improvement;
 } amoeba_struct;
 

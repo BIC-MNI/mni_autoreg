@@ -348,9 +348,9 @@ static  VIO_Real  get_function_value(
 ---------------------------------------------------------------------------- */
 static  VIO_Real  try_amoeba(
     amoeba_struct  *amoeba,
-    VIO_Real           sum[],
+    VIO_Real       sum[],
     int            high,
-    VIO_Real           fac )
+    VIO_Real       fac )
 {
     int    j;
     VIO_Real   y_try, fac1, fac2;

@@ -194,10 +194,10 @@ int voxel_point_not_masked(VIO_Volume volume,
                  the new version takes only     38/73 = 52%  of the time of the previous!
 ---------------------------------------------------------------------------- */
 float xcorr_objective(VIO_Volume d1,
-                             VIO_Volume d2,
-                             VIO_Volume m1,
-                             VIO_Volume m2, 
-                             Arg_Data *globals)
+                      VIO_Volume d2,
+                      VIO_Volume m1,
+                      VIO_Volume m2, 
+                      Arg_Data *globals)
 {
 
   VectorR
@@ -323,10 +323,10 @@ float xcorr_objective(VIO_Volume d1,
 
 
 float ssc_objective(VIO_Volume d1,
-                           VIO_Volume d2,
-                           VIO_Volume m1,
-                           VIO_Volume m2, 
-                           Arg_Data *globals)
+                    VIO_Volume d2,
+                    VIO_Volume m1,
+                    VIO_Volume m2, 
+                    Arg_Data *globals)
 {
   VectorR
     vector_step;

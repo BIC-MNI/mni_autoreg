@@ -55,8 +55,8 @@ static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/mincbbox/
 #include <ParseArgv.h>
 #include "mincbbox.h"
 
-#define  VIO_FLOOR( x )     ((int) floor(x))
-#define  VIO_ROUND( x )     VIO_FLOOR( (double) (x) + 0.5 )
+/*#define  VIO_FLOOR( x )     ((int) floor(x))
+#define  VIO_ROUND( x )     VIO_FLOOR( (double) (x) + 0.5 )*/
 
 static char *default_dim_names[VIO_N_DIMENSIONS] = { MIxspace, MIyspace, MIzspace };
 static char *My_File_order_dimension_names[VIO_MAX_DIMENSIONS] = { "", "", "", "", "" };
