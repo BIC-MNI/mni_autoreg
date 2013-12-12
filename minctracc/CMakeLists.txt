@@ -24,6 +24,14 @@ ADD_LIBRARY(minctracc_optimize STATIC
 SET_SOURCE_FILES_PROPERTIES(
 Numerical/matrix_basics.c 
 Numerical/rotmat_to_ang.c 
+
+Numerical/cov_to_praxes.c 
+Numerical/init_params.c 
+Numerical/quaternion.c
+Numerical/make_rots.c 
+Numerical/default_def.c 
+Numerical/quad_max_fit.c 
+Numerical/stats.c
 PROPERTIES COMPILE_FLAGS -O0)
 
 
