@@ -980,6 +980,8 @@ VIO_BOOL replace_volume_data_with_ubyte(VIO_Volume data)
   
   set_volume_type(data, NC_BYTE, FALSE, 0.0, 0.0);
 
+  set_volume_real_range(data, min, max);
+
   VOXEL_DATA (tmp_vol) = NULL;  /* is this really necessary?!?!? */
 
 
