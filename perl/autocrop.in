@@ -133,7 +133,7 @@ elsif ($Action eq "reshape")
 {
    my $dim_order = (&get_dimension_order ($InputVolume))[0];
    my @params = &compute_reshape_args ($dim_order, \@oldstart, \@oldstep,
-    \@start, \@extent, \@step);
+    \@start, \@extent, \@Step);
    # In case the volume has more than 3 dimensions, we need to fix the
    # mincreshape args otherwise the dimension bounds will get
    # mangled. This should really be fixed by generalizing the
