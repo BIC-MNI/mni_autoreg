@@ -16,7 +16,7 @@
 @CREATED    : Wed May 26 13:05:44 EST 1993 LC using routines from NEELIN's
               mincresample.
 @MODIFIED   :  $Log: interpolation.c,v $
-@MODIFIED   :  Revision 96.7  2006-11-30 09:07:33  rotor
+@MODIFIED   :  Revision 96.7  2006/11/30 09:07:33  rotor
 @MODIFIED   :   * many more changes for clean minc 2.0 build
 @MODIFIED   :
 @MODIFIED   :  Revision 96.5  2005/07/20 20:45:52  rotor
@@ -67,7 +67,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/interpolation.c,v 96.7 2006-11-30 09:07:33 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Volume/interpolation.c,v 96.7 2006/11/30 09:07:33 rotor Exp $";
 #endif
 
 #include <volume_io.h>
@@ -116,9 +116,9 @@ int nearest_neighbour_interpolant(VIO_Volume volume,
    }
 
    /* Get the whole part of the coordinate */
-   ind0 = (long) (Point_x( *coord ) + 0.5);
-   ind1 = (long) (Point_y( *coord ) + 0.5);
-   ind2 = (long) (Point_z( *coord ) + 0.5);
+   ind0 = (long) floor(Point_x( *coord ) + 0.5);
+   ind1 = (long) floor(Point_y( *coord ) + 0.5);
+   ind2 = (long) floor(Point_z( *coord ) + 0.5);
 
    /* Get the value */
    GET_VALUE_3D( *result ,  volume, ind0  , ind1  , ind2  );
@@ -171,9 +171,9 @@ int trilinear_interpolant(VIO_Volume volume,
   }
     
   /* Get the whole part of the coordinate */ 
-  ind0 = (long) Point_x( *coord );
-  ind1 = (long) Point_y( *coord );
-  ind2 = (long) Point_z( *coord );
+  ind0 = (long) floor(Point_x( *coord ));
+  ind1 = (long) floor(Point_y( *coord ));
+  ind2 = (long) floor(Point_z( *coord ));
   if (ind0 >= max[0]-1) ind0 = max[0]-1;
   if (ind1 >= max[1]-1) ind1 = max[1]-1;
   if (ind2 >= max[2]-1) ind2 = max[2]-1;
@@ -238,8 +238,8 @@ int trilinear_interpolant(VIO_Volume volume,
                mod to use david's volume_struct
 ---------------------------------------------------------------------------- */
 void do_Ncubic_interpolation(VIO_Volume volume, 
-                                    long index[], int cur_dim, 
-                                    double frac[], double *result)
+                             long index[], int cur_dim, 
+                             double frac[], double *result)
 {
    long base_index;
    double v0, v1, v2, v3, u;
@@ -342,9 +342,9 @@ int tricubic_interpolant(VIO_Volume volume,
 
 
    /* Get the whole and fractional part of the coordinate */
-   ind0 = (long) Point_x( *coord );
-   ind1 = (long) Point_y( *coord );
-   ind2 = (long) Point_z( *coord );
+   ind0 = (long) floor(Point_x( *coord ));
+   ind1 = (long) floor(Point_y( *coord ));
+   ind2 = (long) floor(Point_z( *coord ));
    frac[0] = Point_x( *coord ) - ind0;
    frac[1] = Point_y( *coord ) - ind1;
    frac[2] = Point_z( *coord ) - ind2;

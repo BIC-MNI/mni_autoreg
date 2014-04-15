@@ -354,7 +354,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.31 2011-02-24 20:02:35 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.30 2009/05/26 18:03:07 claude Exp $";
 #endif
 
 #include <config.h>                /* MAXtype and MIN defs                      */
@@ -1158,11 +1158,11 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
 
          }  
 
-       print("Initializing deformation grid to 0...\n");
        init_the_volume_to_zero(estimated_flag_vol);
 
-       print("Iteration %2d of %2d\n",iters+1, iteration_limit);
-
+       if (globals->flags.debug){ 
+        print("Iteration %2d of %2d\n",iters+1, iteration_limit);
+       }
 
        /* for various stats on this iteration*/
        stat_quad_total = 0;

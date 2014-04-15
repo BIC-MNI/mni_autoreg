@@ -14,7 +14,7 @@
               express or implied warranty.
 
 @MODIFIED   : $Log: optimize.c,v $
-@MODIFIED   : Revision 96.17  2009-04-03 18:36:59  louis
+@MODIFIED   : Revision 96.17  2009/04/03 18:36:59  louis
 @MODIFIED   : made changes to use only DOUBLES for input source and model volumes, and for all estimation of deformation fields
 @MODIFIED   :
 @MODIFIED   : Revision 96.16  2008/10/08 15:17:49  louis
@@ -163,10 +163,9 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 96.17 2009-04-03 18:36:59 louis Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 96.17 2009/04/03 18:36:59 louis Exp $";
 #endif
 
-#include <config.h>
 #include <volume_io.h>
 #include <Proglib.h>
 #include <amoeba.h>

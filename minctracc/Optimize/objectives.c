@@ -16,7 +16,7 @@
 
 @CREATED    : Wed Jun  9 12:56:08 EST 1993 LC
 @MODIFIED   :  $Log: objectives.c,v $
-@MODIFIED   :  Revision 96.11  2006-11-30 09:07:32  rotor
+@MODIFIED   :  Revision 96.11  2006/11/30 09:07:32  rotor
 @MODIFIED   :   * many more changes for clean minc 2.0 build
 @MODIFIED   :
 @MODIFIED   :  Revision 96.10  2006/11/29 09:09:34  rotor
@@ -106,7 +106,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/objectives.c,v 96.11 2006-11-30 09:07:32 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/objectives.c,v 96.11 2006/11/30 09:07:32 rotor Exp $";
 #endif
 
 #include <volume_io.h>
@@ -130,6 +130,22 @@ int voxel_point_not_masked(VIO_Volume volume,
                                   VIO_Real vx, VIO_Real vy, VIO_Real vz);
 
 
+
+void dump_iteration_information(int count1,int count2,float result,VIO_Transform  *transform)
+{
+  int i,j;
+  
+  print ("%7d %7d -> %10.8f\n",count1,count2,result);
+  
+  /* For heavy debugging
+  for(i=0;i<4;i++)
+  {
+    print("\t");
+    for(j=0;j<4;j++)
+      print ("%10.12f\t",Transform_elem(*transform,i,j));
+    print("\n");
+  }*/
+}
 
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : xcorr_objective
@@ -194,10 +210,10 @@ int voxel_point_not_masked(VIO_Volume volume,
                  the new version takes only     38/73 = 52%  of the time of the previous!
 ---------------------------------------------------------------------------- */
 float xcorr_objective(VIO_Volume d1,
-                             VIO_Volume d2,
-                             VIO_Volume m1,
-                             VIO_Volume m2, 
-                             Arg_Data *globals)
+                      VIO_Volume d2,
+                      VIO_Volume m1,
+                      VIO_Volume m2, 
+                      Arg_Data *globals)
 {
 
   VectorR
@@ -313,7 +329,7 @@ float xcorr_objective(VIO_Volume d1,
   
   result = 1.0 - s1 / (sqrt((double)s2)*sqrt((double)s3));
   
-  if (globals->flags.debug) (void)print ("%7d %7d -> %10.8f\n",count1,count2,result);
+  if (globals->flags.debug) dump_iteration_information(count1,count2,result,trans);/*(void)print ("%7d %7d -> %10.8f\n",count1,count2,result);*/
 
   delete_voxel_space_struct(vox_space);
 
@@ -323,10 +339,10 @@ float xcorr_objective(VIO_Volume d1,
 
 
 float ssc_objective(VIO_Volume d1,
-                           VIO_Volume d2,
-                           VIO_Volume m1,
-                           VIO_Volume m2, 
-                           Arg_Data *globals)
+                    VIO_Volume d2,
+                    VIO_Volume m1,
+                    VIO_Volume m2, 
+                    Arg_Data *globals)
 {
   VectorR
     vector_step;

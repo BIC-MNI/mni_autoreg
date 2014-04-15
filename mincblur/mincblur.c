@@ -54,7 +54,7 @@
               express or implied warranty.
    @CREATED    : January 25, 1992 louis collins (Original using .iff files)
    @MODIFIED   : $Log: mincblur.c,v $
-   @MODIFIED   : Revision 96.7  2009-07-23 22:34:00  claude
+   @MODIFIED   : Revision 96.7  2009/07/23 22:34:00  claude
    @MODIFIED   : cleanup in mincblur for VIO_X, VIO_Y, VIO_Z
    @MODIFIED   :
    @MODIFIED   : Revision 96.6  2009/06/05 20:49:52  claude
@@ -121,7 +121,7 @@
         rewrite using mnc files and David Macdonald's libmni.a
    ---------------------------------------------------------------------------- */
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/mincblur.c,v 96.7 2009-07-23 22:34:00 claude Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/mincblur.c,v 96.7 2009/07/23 22:34:00 claude Exp $";
 #endif
 
 #include <config.h>
@@ -328,14 +328,21 @@ int main (int argc, char *argv[] )
                       fwhm_3D[0], fwhm_3D[0], fwhm_3D[1], fwhm_3D[1], fwhm_3D[2], fwhm_3D[2] );
     apodize_data(data, xyzv, fwhm_3D[0], fwhm_3D[0], fwhm_3D[1], fwhm_3D[1], fwhm_3D[2], fwhm_3D[2] );
   }
- 
+
+  // Zero the kernel where we don't want to blur
+  if ( dimensions == 2 ) {
+      fwhm_3D[VIO_Z] = 0;          // blur in x,y (not z)
+  } else if ( dimensions == 1 ) {
+      fwhm_3D[VIO_X] = fwhm_3D[VIO_Y] = 0;   // blur in z (not x,y)
+  }
+
                                 /* now _BLUR_ the DATA! */
   status = blur3D_volume(data, xyzv,
                          fwhm_3D[0],fwhm_3D[1],fwhm_3D[2],
                          infilename,
                          output_basename,
                          reals_fp,
-                         dimensions,kernel_type,history);
+                         kernel_type,history);
 
   /******************************************************************************/
   /*             calculate d/dx,  d/dy and d/dz volumes                         */

@@ -1,6 +1,8 @@
-Release 
+Release 0.99.7
 --------------
-
+* Some changes imported from github in April 2014, including a change
+  by Alex Z. for symmetric non-linear transforms when the source and 
+  target are symmetric
 
 Release 0.99.6
 --------------

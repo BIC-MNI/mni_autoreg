@@ -17,7 +17,7 @@
 
 @CREATED    : 
 @MODIFIED   : $Log: amoeba.c,v $
-@MODIFIED   : Revision 96.10  2006-11-30 09:07:32  rotor
+@MODIFIED   : Revision 96.10  2006/11/30 09:07:32  rotor
 @MODIFIED   :  * many more changes for clean minc 2.0 build
 @MODIFIED   :
 @MODIFIED   : Revision 96.9  2006/11/29 09:09:33  rotor
@@ -141,7 +141,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/amoeba.c,v 96.10 2006-11-30 09:07:32 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/amoeba.c,v 96.10 2006/11/30 09:07:32 rotor Exp $";
 #endif
 
 
@@ -247,6 +247,11 @@ static  VIO_Real  get_function_value(
     VIO_Real              tolerance )
 {
     int    i, j;
+    float *parameter_fwd;
+    float *parameter_bwd;
+    VIO_Real cost_fwd;
+    VIO_Real cost_bwd;
+
 
     amoeba->n_parameters = n_parameters;
     amoeba->function = function;
@@ -257,6 +262,9 @@ static  VIO_Real  get_function_value(
     ALLOC( amoeba->values, n_parameters+1 );
 
     ALLOC( amoeba->sum, n_parameters );
+    ALLOC( parameter_fwd, n_parameters);
+    ALLOC( parameter_bwd, n_parameters);
+
 
     for(j=0; j<n_parameters; j++)
         amoeba->sum[j] = 0.0;
@@ -265,14 +273,31 @@ static  VIO_Real  get_function_value(
     {
         for(j=0; j<n_parameters; j++)
         {
-            amoeba->parameters[i][j] = (float) initial_parameters[j];
+            parameter_fwd[j] = (float) initial_parameters[j];
+            parameter_bwd[j] = (float) initial_parameters[j];
             if( i > 0 && j == i - 1 )
-                amoeba->parameters[i][j] += parameter_delta;
-            amoeba->sum[j] += amoeba->parameters[i][j];
+            {
+              parameter_fwd[j] += parameter_delta;
+              parameter_bwd[j] -= parameter_delta;
+            }
         }
+      
+      // Test the parameters 
+      cost_fwd = get_function_value( amoeba, parameter_fwd);
+      cost_bwd = get_function_value( amoeba, parameter_bwd);
 
-        amoeba->values[i] = get_function_value( amoeba, amoeba->parameters[i] );
+      // Use the one with the lowest value
+      for(j=0; j<n_parameters; j++)
+      {
+          amoeba->parameters[i][j] = ( cost_fwd < cost_bwd ) ? parameter_fwd[j] : parameter_bwd[j];
+          amoeba->sum[j] += amoeba->parameters[i][j];
+      }
+      amoeba->values[i] = ( cost_fwd < cost_bwd ) ? cost_fwd : cost_bwd;
+
     }
+
+    FREE( parameter_fwd );
+    FREE( parameter_bwd );
 }
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -348,9 +373,9 @@ static  VIO_Real  get_function_value(
 ---------------------------------------------------------------------------- */
 static  VIO_Real  try_amoeba(
     amoeba_struct  *amoeba,
-    VIO_Real           sum[],
+    VIO_Real       sum[],
     int            high,
-    VIO_Real           fac )
+    VIO_Real       fac )
 {
     int    j;
     VIO_Real   y_try, fac1, fac2;

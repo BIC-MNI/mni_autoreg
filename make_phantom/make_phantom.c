@@ -72,8 +72,9 @@ static char *default_dim_names[VIO_N_DIMENSIONS] = { MIxspace, MIyspace, MIzspac
 
 #define SUBSTEPS  9
 
+#ifndef ROUND
 #define  ROUND( x )     (int)floor( (double) (x) + 0.5 )
-
+#endif
 
 void  set_min_max(VIO_Real *voxel, 
                           int *minx, int *maxx, 

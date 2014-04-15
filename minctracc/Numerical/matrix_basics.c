@@ -24,7 +24,7 @@
 
 @CREATED    : January 31, 1992 (Peter Neelin)
 @MODIFIED   :  $Log: matrix_basics.c,v $
-@MODIFIED   :  Revision 96.6  2006-11-29 09:09:33  rotor
+@MODIFIED   :  Revision 96.6  2006/11/29 09:09:33  rotor
 @MODIFIED   :   * first bunch of changes for minc 2.0 compliance
 @MODIFIED   :
 @MODIFIED   :  Revision 96.5  2005/07/20 20:45:49  rotor
@@ -94,7 +94,7 @@ Fri Jun  4 14:10:34 EST 1993 LC
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/matrix_basics.c,v 96.6 2006-11-29 09:09:33 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Numerical/matrix_basics.c,v 96.6 2006/11/29 09:09:33 rotor Exp $";
 #endif
 
 #include <volume_io.h>
@@ -164,8 +164,6 @@ void rotation_to_homogeneous(int ndim, float **rotation,
 
 
 
-
-
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : printmatrix
 @INPUT      : rows   - number of rows in matrix
@@ -198,7 +196,6 @@ void printmatrix(int rows, int cols, float **the_matrix)
    }
 }
 
-
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : calc_centroid
 @INPUT      : npoints - number of points
@@ -234,7 +231,6 @@ void calc_centroid(int npoints, int ndim, float **points,
    }
 }
 
-
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : translate
 @INPUT      : npoints - number of points
@@ -268,7 +264,6 @@ void translate(int npoints, int ndim, float **points,
    }
 }
 
-
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : transpose
 @INPUT      : rows    - number of rows
@@ -427,8 +422,6 @@ void invertmatrix(int ndim, float **mat, float **mat_invert)
   }
 }
 
-
-
 /* ----------------------------- mni Header -----------------------------------
 @NAME       : raw_matrix_multiply
 @INPUT      : ldim, mdim, ndim - dimensions of matrices. Matrix Amat has
@@ -468,7 +461,7 @@ void raw_matrix_multiply(int ldim, int mdim, int ndim,
          for (k=1; k <=mdim; ++k)
             Cmat[i][j] += (Amat[i][k] * Bmat[k][j]);
 }
-
+
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : matrix_multiply
 @INPUT      : ldim, mdim, ndim - dimensions of matrices. Matrix Amat has
@@ -513,7 +506,7 @@ void matrix_multiply(int ldim, int mdim, int ndim,
    FREE2D(Ctemp);
 }
                   
-
+
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : trace
 @INPUT      : size   - size of the_matrix (the_matrix should be square)
@@ -543,7 +536,7 @@ float trace(int size, float **the_matrix)
    return(sum);
 }
 
-
+
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : matrix_scalar_multiply
 @INPUT      : rows    - number of rows of the_matrix.
@@ -826,9 +819,6 @@ void nr_multf(float **A, int mA1, int mA2, int nA1, int nA2,
 }
 
 
-
-
-
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : transformations_to_homogeneous
 @INPUT      : ndim    - number of dimensions
@@ -923,7 +913,6 @@ void transformations_to_homogeneous(int ndim,
 
 }
 
-
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : translation_to_homogeneous
 @INPUT      : ndim    - number of dimensions
@@ -975,7 +964,6 @@ void translation_to_homogeneous(int ndim, float *translation,
 
 }
 
-
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : rotation_to_homogeneous
 @INPUT      : ndim    - number of dimensions
@@ -1027,7 +1015,6 @@ void rotation_to_homogeneous(int ndim, float **rotation,
 }
 
 
-
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : angles_to_homogeneous
 @INPUT      : ndim    - number of dimensions
@@ -1098,5 +1085,3 @@ void angles_to_homogeneous(int ndim, float *angles,
 
 
 }
-
-

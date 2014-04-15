@@ -20,7 +20,7 @@
 
 @CREATED    : 
 @MODIFIED   : $Log: super_sample_def.c,v $
-@MODIFIED   : Revision 96.13  2006-11-30 09:07:33  rotor
+@MODIFIED   : Revision 96.13  2006/11/30 09:07:33  rotor
 @MODIFIED   :  * many more changes for clean minc 2.0 build
 @MODIFIED   :
 @MODIFIED   : Revision 96.12  2006/11/29 09:09:34  rotor
@@ -101,7 +101,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/super_sample_def.c,v 96.13 2006-11-30 09:07:33 rotor Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctracc/Optimize/super_sample_def.c,v 96.13 2006/11/30 09:07:33 rotor Exp $";
 #endif
 
 #include <config.h>
@@ -401,9 +401,6 @@ void create_super_sampled_data_volumes_by2(VIO_General_transform *orig_deformati
   set_volume_separations( super_sampled->displacement_volume, new_steps);
   set_volume_translation( super_sampled->displacement_volume, voxel, start);
   alloc_volume_data(      super_sampled->displacement_volume );
-    
-
-
 
 }
 

@@ -15,7 +15,7 @@
 
 @CREATED    : Mon May 22 14:14:50 MET DST 1995
 @MODIFIED   : $Log: quad_max_fit.c,v $
-@MODIFIED   : Revision 96.7  2006-11-30 09:07:32  rotor
+@MODIFIED   : Revision 96.7  2006/11/30 09:07:32  rotor
 @MODIFIED   :  * many more changes for clean minc 2.0 build
 @MODIFIED   :
 @MODIFIED   : Revision 96.6  2006/11/29 09:09:33  rotor
@@ -951,15 +951,15 @@ VIO_BOOL return_principal_directions(VIO_Real r[3][3][3],
                 +z*z*x*yy - z*z*x*xx
                 );
     
-    for(i=X; i<=Z; i++)
+    for(i=VIO_X; i<=VIO_Z; i++)
       alpha[i] = alpha[i] / (2 * sqrt(sq_mag_grad*sq_mag_grad*sq_mag_grad));
     
     /* t_i = alpha +/- sqrt(det)*beta */
     
-    for(i=X; i<=Z; i++)
+    for(i=VIO_X; i<=VIO_Z; i++)
       dir_1[i] = alpha[i] + sq_det*beta[i];
     
-    for(i=X; i<=Z; i++)
+    for(i=VIO_X; i<=VIO_Z; i++)
       dir_2[i] = alpha[i] - sq_det*beta[i];
     
 
@@ -969,11 +969,11 @@ VIO_BOOL return_principal_directions(VIO_Real r[3][3][3],
     print ("beta: %12.8f %12.8f %12.8f\n", beta[0],beta[1],beta[2]);
     
     len1 = sqrt(dir_1[VIO_X]*dir_1[VIO_X] + dir_1[VIO_Y]*dir_1[VIO_Y] + dir_1[VIO_Z]*dir_1[VIO_Z]);
-    for(i=X; i<=Z; i++)
+    for(i=VIO_X; i<=VIO_Z; i++)
       dir_1[i] /= len1;
     
     len2 = sqrt(dir_2[VIO_X]*dir_2[VIO_X] + dir_2[VIO_Y]*dir_2[VIO_Y] + dir_2[VIO_Z]*dir_2[VIO_Z]);
-    for(i=X; i<=Z; i++)
+    for(i=VIO_X; i<=VIO_Z; i++)
       dir_2[i] /= len2;
   }
 

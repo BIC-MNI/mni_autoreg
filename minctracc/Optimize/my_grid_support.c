@@ -5,7 +5,7 @@
 void get_volume_XYZV_indices(VIO_Volume data, int xyzv[]);
 
 void interpolate_deformation_slice(VIO_Volume volume, 
-                                          VIO_Real wx,Real wy,Real wz,
+                                          VIO_Real wx,VIO_Real wy,VIO_Real wz,
                                           VIO_Real def[]);
 
  void  grid_transform_point_in_trans_plane(
@@ -325,7 +325,7 @@ static void transform_or_inverse_point_in_trans_plane(VIO_General_transform *tra
 }
 
 void interpolate_deformation_slice(VIO_Volume volume, 
-                                          VIO_Real wx,Real wy,Real wz,
+                                          VIO_Real wx,VIO_Real wy,VIO_Real wz,
                                           VIO_Real def[])
 {
   VIO_Real

@@ -29,7 +29,7 @@
               express or implied warranty.
 
 @MODIFIED   : $Log: blur_volume.c,v $
-@MODIFIED   : Revision 96.5  2009-07-23 22:34:00  claude
+@MODIFIED   : Revision 96.5  2009/07/23 22:34:00  claude
 @MODIFIED   : cleanup in mincblur for VIO_X, VIO_Y, VIO_Z
 @MODIFIED   :
 @MODIFIED   : Revision 96.4  2006/11/28 09:12:21  rotor
@@ -85,7 +85,7 @@
 ---------------------------------------------------------------------------- */
 
 #ifndef lint
-static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/blur_volume.c,v 96.5 2009-07-23 22:34:00 claude Exp $";
+static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/mincblur/blur_volume.c,v 96.5 2009/07/23 22:34:00 claude Exp $";
 #endif
 
 #include <float.h>
@@ -105,7 +105,7 @@ VIO_Status blur3D_volume(VIO_Volume data, int xyzv[VIO_MAX_DIMENSIONS],
                             char *infile,
                             char *outfile, 
                             FILE *reals_fp,
-                            int ndim, int kernel_type, char *history)
+                            int kernel_type, char *history)
 { 
   float 
     *fdata,                        /* floating point storage for blurred volume */
@@ -252,12 +252,7 @@ VIO_Status blur3D_volume(VIO_Volume data, int xyzv[VIO_MAX_DIMENSIONS],
   
   /*    2nd now convolve this kernel with the rows of the dataset            */
   
-  slice_limit = 0;
-  switch (ndim) {
-  case 1: slice_limit = 0; break;
-  case 2: slice_limit = sizes[xyzv[VIO_Z]]; break;
-  case 3: slice_limit = sizes[xyzv[VIO_Z]]; break;
-  }
+  slice_limit = fwhmx > 0 ? sizes[xyzv[VIO_Z]] : 0;
 
   for (slice = 0; slice < slice_limit; slice++) {      /* for each slice */
     
@@ -335,11 +330,7 @@ VIO_Status blur3D_volume(VIO_Volume data, int xyzv[VIO_MAX_DIMENSIONS],
   
   /*    2nd now convolve this kernel with the rows of the dataset            */
   
-  switch (ndim) {
-  case 1: slice_limit = 0; break;
-  case 2: slice_limit = sizes[xyzv[VIO_Z]]; break;
-  case 3: slice_limit = sizes[xyzv[VIO_Z]]; break;
-  }
+  slice_limit = fwhmy > 0 ? sizes[xyzv[VIO_Z]] : 0;
 
 
   for (slice = 0; slice < slice_limit; slice++) {      /* for each slice */
@@ -417,7 +408,7 @@ VIO_Status blur3D_volume(VIO_Volume data, int xyzv[VIO_MAX_DIMENSIONS],
   max_val = -FLT_MAX;
   min_val = FLT_MAX;
     
-  if (ndim==1 || ndim==3) {
+  if ( fwhmz > 0 ){
     
     /*    1st calculate kern array for gaussian kernel*/
     
@@ -472,7 +463,7 @@ VIO_Status blur3D_volume(VIO_Volume data, int xyzv[VIO_MAX_DIMENSIONS],
   }  /* if ndim */
   else {
 
-    for (slice = 0; slice < slice_limit; slice++) {      /* for each slice */
+    for (slice = 0; slice < sizes[xyzv[VIO_Z]]; slice++) {      /* for each slice */
       for (col = 0; col < sizes[xyzv[VIO_X]]; col++) {             /* for each column */
         for (row = 0; row < sizes[xyzv[VIO_Y]]; row++) {           /* for each row   */
           if (max_val<*f_ptr) max_val = *f_ptr;
