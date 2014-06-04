@@ -83,6 +83,12 @@ ADD_SUBDIRECTORY(mincchamfer )
 ADD_SUBDIRECTORY(minctracc )
 ADD_SUBDIRECTORY(perl )
 
+add_custom_target (mni_autoreg ALL
+ DEPENDS
+ minctracc mincblur make_phantom mincchamfer mincbbox
+ )
+
+
 # testing
 IF(BUILD_TESTING)
 	ADD_SUBDIRECTORY(Testing)
