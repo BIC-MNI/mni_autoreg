@@ -179,6 +179,8 @@ static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/minctracc
 
 #include "local_macros.h"
 
+#include "extras.h"
+
 extern Arg_Data main_args;
 
 VIO_Volume   Gdata1, Gdata2, Gmask1, Gmask2;

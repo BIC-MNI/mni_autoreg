@@ -32,21 +32,43 @@ void
                                   float *scale_x,float *scale_y,float *scale_z);
 
 
+void build_transformation_matrix(VIO_Transform *trans,
+                                  double *center,
+                                  double *translations,
+                                  double *scales,
+                                  double *shears,
+                                  double *rotations);
+
+void build_inverse_transformation_matrix(VIO_Transform *trans,
+                                  double *center,
+                                  double *translations,
+                                  double *scales,
+                                  double *shears,
+                                  double *rotations);
+
 
 void build_transformation_matrix_quater(VIO_Transform *trans,
-                                               double *center,
-                                               double *translations,
-                                               double *scales,
-                                               double *shears,
-                                               double *quaternions);
+                                 double *center,
+                                 double *translations,
+                                 double *scales,
+                                 double *shears,
+                                 double *quaternions);
 
 
 void build_inverse_transformation_matrix_quater(VIO_Transform *trans,
-                                                       double *center,
-                                                       double *translations,
-                                                       double *scales,
-                                                       double *shears,
-                                                       double *quaternions);
+                                 double *center,
+                                 double *translations,
+                                 double *scales,
+                                 double *shears,
+                                 double *quaternions);
+
+
+VIO_BOOL extract2_parameters_from_matrix(VIO_Transform *trans,
+                                double *center,
+                                double *translations,
+                                double *scales,
+                                double *shears,
+                                double *rotations);
 
 
 VIO_BOOL extract2_parameters_from_matrix_quater(VIO_Transform *trans,

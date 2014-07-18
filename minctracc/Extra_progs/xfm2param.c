@@ -14,7 +14,6 @@
 #include "interpolation.h"
 
 
-
 #define DO_TRANSFORM(result, transformation, coord) \
    general_transform_point(transformation, \
       Point_x(coord), Point_y(coord), Point_z(coord), \
