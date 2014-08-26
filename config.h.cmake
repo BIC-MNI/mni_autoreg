@@ -39,6 +39,9 @@
 /* Define to 1 if you have the <unistd.h> header file. */
 #cmakedefine HAVE_UNISTD_H 1
 
+/*Old behaviour, to be compatible with old releases, affects output of optimization*/
+#cmakedefine MNI_AUTOREG_OLD_AMOEBA_INIT 1
+
 /* Configure DateTime */
 #define MNI_AUTOREG_COMPILE_DATETIME "@MNI_AUTOREG_COMPILE_DATETIME@"
 

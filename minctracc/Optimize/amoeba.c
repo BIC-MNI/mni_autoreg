@@ -144,6 +144,10 @@
 static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/minctracc/Optimize/amoeba.c,v 96.10 2006-11-30 09:07:32 rotor Exp $";
 #endif
 
+#ifdef HAVE_CONFOG_H
+#include "config.h"
+#endif //HAVE_CONFOG_H
+
 
 #include <volume_io.h>
 #include <amoeba.h>
@@ -247,11 +251,13 @@ static  VIO_Real  get_function_value(
     VIO_Real              tolerance )
 {
     int    i, j;
+    
+#ifndef MNI_AUTOREG_OLD_AMOEBA_INIT
     float *parameter_fwd;
     float *parameter_bwd;
     VIO_Real cost_fwd;
     VIO_Real cost_bwd;
-
+#endif 
 
     amoeba->n_parameters = n_parameters;
     amoeba->function = function;
@@ -262,9 +268,11 @@ static  VIO_Real  get_function_value(
     ALLOC( amoeba->values, n_parameters+1 );
 
     ALLOC( amoeba->sum, n_parameters );
+    
+#ifndef MNI_AUTOREG_OLD_AMOEBA_INIT
     ALLOC( parameter_fwd, n_parameters);
     ALLOC( parameter_bwd, n_parameters);
-
+#endif
 
     for(j=0; j<n_parameters; j++)
         amoeba->sum[j] = 0.0;
@@ -273,15 +281,27 @@ static  VIO_Real  get_function_value(
     {
         for(j=0; j<n_parameters; j++)
         {
+#ifdef MNI_AUTOREG_OLD_AMOEBA_INIT
+            amoeba->parameters[i][j] = (float) initial_parameters[j];
+#else
             parameter_fwd[j] = (float) initial_parameters[j];
             parameter_bwd[j] = (float) initial_parameters[j];
+#endif
             if( i > 0 && j == i - 1 )
+#ifdef MNI_AUTOREG_OLD_AMOEBA_INIT
+                amoeba->parameters[i][j] += parameter_delta;
+            amoeba->sum[j] += amoeba->parameters[i][j];
+#else
             {
               parameter_fwd[j] += parameter_delta;
               parameter_bwd[j] -= parameter_delta;
             }
+#endif
         }
-      
+
+#ifdef MNI_AUTOREG_OLD_AMOEBA_INIT
+      amoeba->values[i] = get_function_value( amoeba, amoeba->parameters[i] );
+#else
       // Test the parameters 
       cost_fwd = get_function_value( amoeba, parameter_fwd);
       cost_bwd = get_function_value( amoeba, parameter_bwd);
@@ -293,11 +313,13 @@ static  VIO_Real  get_function_value(
           amoeba->sum[j] += amoeba->parameters[i][j];
       }
       amoeba->values[i] = ( cost_fwd < cost_bwd ) ? cost_fwd : cost_bwd;
-
+#endif
     }
-
+    
+#ifndef MNI_AUTOREG_OLD_AMOEBA_INIT
     FREE( parameter_fwd );
     FREE( parameter_bwd );
+#endif    
 }
 
 /* ----------------------------- MNI Header -----------------------------------
