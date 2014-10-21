@@ -125,7 +125,7 @@ VIO_Status gradient3D_volume(FILE *ifd,
                 
 
   char
-    full_outfilename[256];        /* name of output file */
+    full_outfilename[1024];        /* name of output file */
 
   VIO_progress_struct 
     progress;                        /* used to monitor progress of calculations         */
@@ -283,9 +283,9 @@ VIO_Status gradient3D_volume(FILE *ifd,
 
 
   if (!curvature_flg)
-    sprintf(full_outfilename,"%s_dx.mnc",outfile);
+    snprintf(full_outfilename,sizeof(full_outfilename),"%s_dx.mnc",outfile);
   else
-    sprintf(full_outfilename,"%s_dxx.mnc",outfile);
+    snprintf(full_outfilename,sizeof(full_outfilename),"%s_dxx.mnc",outfile);
 
   if (debug)
     print ("dx: min = %f, max = %f\n",min_val, max_val);
@@ -418,9 +418,9 @@ VIO_Status gradient3D_volume(FILE *ifd,
   }
 
   if (!curvature_flg)
-    sprintf(full_outfilename,"%s_dy.mnc",outfile);
+    snprintf(full_outfilename,sizeof(full_outfilename),"%s_dy.mnc",outfile);
   else
-    sprintf(full_outfilename,"%s_dyy.mnc",outfile);
+    snprintf(full_outfilename,sizeof(full_outfilename),"%s_dyy.mnc",outfile);
 
 
   if (debug)
@@ -557,9 +557,9 @@ VIO_Status gradient3D_volume(FILE *ifd,
   }
 
   if (!curvature_flg)
-    sprintf(full_outfilename,"%s_dz.mnc",outfile);
+    snprintf(full_outfilename,sizeof(full_outfilename),"%s_dz.mnc",outfile);
   else
-    sprintf(full_outfilename,"%s_dzz.mnc",outfile);
+    snprintf(full_outfilename,sizeof(full_outfilename),"%s_dzz.mnc",outfile);
 
 
   if (debug)

@@ -143,7 +143,7 @@ VIO_Status blur3D_volume(VIO_Volume data, int xyzv[VIO_MAX_DIMENSIONS],
     row_size, col_size;
                 
   char
-    full_outfilename[256];        /* name of output file */
+    full_outfilename[1024];        /* name of output file */
 
   VIO_progress_struct 
     progress;                        /* used to monitor progress of calculations         */
@@ -511,7 +511,8 @@ VIO_Status blur3D_volume(VIO_Volume data, int xyzv[VIO_MAX_DIMENSIONS],
   }
 
   FREE(fdata);
-  sprintf(full_outfilename,"%s_blur.mnc",outfile);
+  
+  snprintf(full_outfilename, sizeof(full_outfilename), "%s_blur.mnc",outfile);
 
   status = output_modified_volume(full_outfilename, NC_UNSPECIFIED, FALSE, 
                                   min_val, max_val, data, infile, history, 
