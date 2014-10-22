@@ -44,7 +44,7 @@ static char *default_dim_names[VIO_N_DIMENSIONS] =
 
 
 
-VIO_General_transform* minctracc( VIO_Volume source, VIO_Volume target, VIO_Volume sourceMask, VIO_Volume targetMask, VIO_General_transform *initialXFM, int iterations, float weight, float stiffness, float similarity, float sub_lattice, Arg_Data *args) {
+VIO_General_transform* minctracc( VIO_Volume source, VIO_Volume target, VIO_Volume sourceMask, VIO_Volume targetMask, VIO_General_transform *initialXFM, int iterations, float weight, float simplexSize, float stiffness, float similarity, float sub_lattice, Arg_Data *args) {
 
 	VIO_Transform identityTransform;
 	VIO_General_transform *origTransform = NULL;
@@ -61,6 +61,7 @@ VIO_General_transform* minctracc( VIO_Volume source, VIO_Volume target, VIO_Volu
 	main_args = args;
 	iteration_limit = iterations;
 	iteration_weight = weight;
+	simplex_size = simplexSize;
 	smoothing_weight = stiffness;
 	similarity_cost_ratio = similarity;
 	Diameter_of_local_lattice = sub_lattice;
