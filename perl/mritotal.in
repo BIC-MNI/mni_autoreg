@@ -451,8 +451,8 @@ sub ReadConfigFile
                                         # init function... ;-)
    my ($path, $file) = @_;
    my ($dir, $args, @args);
-   require "shellwords.pl";
-
+   require Text::ParseWords;
+   
    $dir = &search_directories ($file, \@$path)
       || die "Couldn't find configuration file $file anywhere in " .
 		 join (":", @$path);
@@ -463,7 +463,7 @@ sub ReadConfigFile
    {
       s/\#.*$//;		# strip comments
       next if /^\s*$/;		# skip blank lines
-      push (@args, &shellwords ($_));
+      push (@args, &Text::ParseWords::old_shellwords ($_));
    }
    close (FILE);
    ($file, @args);
