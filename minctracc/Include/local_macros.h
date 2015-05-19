@@ -43,14 +43,14 @@
       &(Point_x(result)), &(Point_y(result)), &(Point_z(result)) )
 
 #define INTERPOLATE_TRUE_VALUE(volume, coord, result) \
-   (*(main_args.interpolant)) (volume, coord, result)
+   (*(main_args->interpolant)) (volume, coord, result)
 
 #ifndef DEBUG_PRINT
-#   define DEBUG_PRINT(str) if (main_args.flags.debug) (void) fprintf (stderr,  str  );
-#   define DEBUG_PRINT1(str,a1) if (main_args.flags.debug) (void) fprintf (stderr,  str ,a1 );
-#   define DEBUG_PRINT2(str,a1,a2) if (main_args.flags.debug) (void) fprintf (stderr,  str ,a1,a2 );
-#   define DEBUG_PRINT3(str,a1,a2,a3) if (main_args.flags.debug) (void) fprintf (stderr,  str ,a1,a2,a3 );
-#   define DEBUG_PRINT4(str,a1,a2,a3,a4) if (main_args.flags.debug) (void) fprintf (stderr,  str ,a1,a2,a3,a4 );
+#   define DEBUG_PRINT(str) if (main_args->flags.debug) (void) fprintf (stderr,  str  );
+#   define DEBUG_PRINT1(str,a1) if (main_args->flags.debug) (void) fprintf (stderr,  str ,a1 );
+#   define DEBUG_PRINT2(str,a1,a2) if (main_args->flags.debug) (void) fprintf (stderr,  str ,a1,a2 );
+#   define DEBUG_PRINT3(str,a1,a2,a3) if (main_args->flags.debug) (void) fprintf (stderr,  str ,a1,a2,a3 );
+#   define DEBUG_PRINT4(str,a1,a2,a3,a4) if (main_args->flags.debug) (void) fprintf (stderr,  str ,a1,a2,a3,a4 );
 #endif
 
 

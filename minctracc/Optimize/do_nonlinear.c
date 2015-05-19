@@ -357,6 +357,8 @@
 static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/minctracc/Optimize/do_nonlinear.c,v 96.31 2011-02-24 20:02:35 louis Exp $";
 #endif
 
+#include "globals.h"
+
 #include <config.h>                /* MAXtype and MIN defs                      */
 #include <float.h>
 #include <volume_io.h>        /* structs & tools to deal with volumes data */
@@ -380,6 +382,8 @@ time_t time(time_t *tloc);
 #include <sub_lattice.h>        /* prototypes for sub_lattice manipulation   */
 #include <extras.h>             /* prototypes for extra convienience routines*/
 #include <quad_max_fit.h>       /* prototypes for quadratic fitting routines */
+
+
 
 int stat_quad_total=0;            /* these are used as globals to tally stats  */
 int stat_quad_zero=0;             /* in Numerical/quad_max_stats.c             */
@@ -890,7 +894,7 @@ VIO_Status do_non_linear_optimization(Arg_Data *globals)
 
       Gsimplex_size= fabs(steps[xyzv[VIO_X]]) / MAX3(step_magnitude[0],step_magnitude[1],step_magnitude[2]);  
 
-      if (fabs(Gsimplex_size) < fabs(steps_data[0])) {
+      if (fabs(Gsimplex_size) < fabs(steps_data[0]) && globals->flags.verbose>0) {
          print ("*** WARNING ***\n");
          print ("Simplex size will be smaller than data voxel size (%f < %f)\n",
                 Gsimplex_size,steps_data[0]);
@@ -999,8 +1003,6 @@ VIO_Status do_non_linear_optimization(Arg_Data *globals)
 
   Gcost_radius = 8*Gsimplex_size*Gsimplex_size*Gsimplex_size;
 
-
-print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],globals->threshold[1]);
 
  /*   set_feature_value_threshold(Gglobals->features.data[0],  */
 /*                               Gglobals->features.model[0], */
@@ -1158,11 +1160,13 @@ print ("inside do_nonlinear: thresh: %10.4f %10.4f\n",globals->threshold[0],glob
 
          }  
 
+	   if (globals->flags.verbose>1) print("Initializing deformation grid to 0...\n");
        init_the_volume_to_zero(estimated_flag_vol);
 
        if (globals->flags.debug){ 
         print("Iteration %2d of %2d\n",iters+1, iteration_limit);
        }
+       if (globals->flags.verbose>1) print("Iteration %2d of %2d\n",iters+1, iteration_limit);
 
        /* for various stats on this iteration*/
        stat_quad_total = 0;

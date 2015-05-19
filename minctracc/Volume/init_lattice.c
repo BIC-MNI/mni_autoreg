@@ -127,7 +127,7 @@ static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/minctracc
 
 #include <Proglib.h>
 
-extern Arg_Data main_args;
+extern Arg_Data *main_args;
 
         /* prototype from interpolation.c */
 int point_not_masked(VIO_Volume volume, 
@@ -211,8 +211,8 @@ void set_up_lattice(VIO_Volume data,       /* in: volume  */
   VIO_BOOL 
     debug; 
 
-  debug  = main_args.flags.debug;
-  verbose= main_args.flags.verbose;
+  debug  = main_args->flags.debug;
+  verbose= main_args->flags.verbose;
   
   for(i=0; i<VIO_MAX_DIMENSIONS; i++)
     {
@@ -545,11 +545,13 @@ void init_lattice(VIO_Volume d1,
     print ("row lim   %d %d\n",min1_row, max1_row);
     print ("col lim   %d %d\n",min1_col, max1_col);
     print ("thresh = %10.5f %10.5f\n", globals->threshold[0],globals->threshold[1]);
+
     if (!voxels_found) {
        print ("No voxels were found in volume 1 with value above threshold (%f).\n",
               globals->threshold[0]);
        print_error_and_line_num("%s", __FILE__, __LINE__,"Cannot calculate size of volume 1\n.");
     }
+
   }
 
 
@@ -557,14 +559,12 @@ void init_lattice(VIO_Volume d1,
                                 /* build default sampling lattice info
                                    on second data set (d2)               */
 
-  
   set_up_lattice(d2, globals->step,
                  start2, wstart2, count2, step2, directions2);
- 
+
   for(i=0; i<3; i++) {
     SCALE_VECTOR( scaled_directions2[i], directions2[i], step2[i]);
   }
-
 
   if (globals->flags.debug && globals->flags.verbose>1) {
     print ("in init_lattice: for the target data set\n");
@@ -580,7 +580,6 @@ void init_lattice(VIO_Volume d1,
              Point_z(directions2[i]));
 
   }
-
 
   fill_Point( starting_position2, wstart2[0], wstart2[1], wstart2[2]);
   
@@ -649,7 +648,6 @@ void init_lattice(VIO_Volume d1,
          (max2_col - min2_col + 1) *
          (max2_slice - min2_slice + 1);
 
-
   if (globals->flags.debug && globals->flags.verbose>1) 
     print ("volume =  %d\n",vol2);
 
@@ -659,8 +657,8 @@ void init_lattice(VIO_Volume d1,
                                    otherwise,
                                     the lattice should be set up on the target*/
   if ( !(globals->trans_info.transform_type==TRANS_NONLIN) && 
-      ((vol1<=vol2)  || (main_args.force_lattice==1)) && 
-      !(main_args.force_lattice==2) ) {
+      ((vol1<=vol2)  || (globals->force_lattice==1)) && 
+      !(globals->force_lattice==2) ) {
     globals->smallest_vol = 1;
 
     globals->count[VIO_X] = max1_col - min1_col + 1;

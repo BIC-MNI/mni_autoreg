@@ -92,7 +92,7 @@ void set_up_lattice(VIO_Volume data,
  int tricubic_interpolant(VIO_Volume volume, 
                                 PointR *coord, double *result);
 
-extern Arg_Data main_args;
+extern Arg_Data *main_args;
 
 
  VIO_General_transform *get_linear_part_of_transformation(VIO_General_transform *trans)

@@ -140,7 +140,7 @@ static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/minctracc
 #include "make_rots.h"
 #include "quaternion.h"
 
-extern Arg_Data main_args;
+extern Arg_Data *main_args;
 
 #include "local_macros.h"
 #include <Proglib.h>
@@ -465,7 +465,7 @@ VIO_BOOL vol_to_cov(VIO_Volume d1, VIO_Volume m1, float *centroid, float **covar
   VectorR
     directions[VIO_MAX_DIMENSIONS];  
 
-  if (main_args.flags.debug) {
+  if (main_args->flags.debug) {
 
     set_up_lattice(d1, step,
                    start, wstart, count, local_step, directions);
@@ -1182,12 +1182,12 @@ VIO_BOOL init_params(VIO_Volume d1,
                                 /* set a flag to see if the center was
                                    set on the command line */
 
+
   center_forced = (globals->trans_info.center[0] != -DBL_MAX || 
                    globals->trans_info.center[1] != -DBL_MAX || 
                    globals->trans_info.center[2] != -DBL_MAX);
   
-
-  if (main_args.flags.debug && center_forced) {
+  if (globals->flags.debug && center_forced) {
     print ("Center of rot/scale forced: %f %f %f\n",
            globals->trans_info.center[0],
            globals->trans_info.center[1],
@@ -1212,14 +1212,12 @@ VIO_BOOL init_params(VIO_Volume d1,
                                        leave the -est_* as set on the command line,
                                        and store only the ones requested. */
 
-   
       if ((globals->trans_info.transform_type==TRANS_PAT) || 
           !(strlen(globals->filenames.measure_file)!=0 ||
             globals->trans_flags.estimate_center ||
             globals->trans_flags.estimate_scale  ||
             globals->trans_flags.estimate_rots   ||
             globals->trans_flags.estimate_trans)) {
-        
         globals->trans_flags.estimate_center = TRUE;
         globals->trans_flags.estimate_scale = TRUE; 
         if(globals->trans_info.rotation_type == TRANS_ROT)
@@ -1304,7 +1302,7 @@ VIO_BOOL init_params(VIO_Volume d1,
       }
 
       if (globals->trans_flags.estimate_quats)
-        quats3=sqrt(1-SQR(main_args.trans_info.quaternions[0])-SQR(main_args.trans_info.quaternions[1])-SQR(main_args.trans_info.quaternions[2]));
+        quats3=sqrt(1-SQR(globals->trans_info.quaternions[0])-SQR(globals->trans_info.quaternions[1])-SQR(globals->trans_info.quaternions[2]));
     
       VIO_FREE2D(trans);
       VIO_FREE2D(rots);
@@ -1315,49 +1313,47 @@ VIO_BOOL init_params(VIO_Volume d1,
       FREE(sc);
   
    
-  if (main_args.flags.debug) {
+	  if (globals->flags.debug) {
     
-    print ( "Transform center   = %8.3f %8.3f %8.3f\n", 
-            main_args.trans_info.center[0],
-            main_args.trans_info.center[1],
-            main_args.trans_info.center[2] );
-    if(globals->trans_info.rotation_type == TRANS_ROT)
-      print ( "Transform rots    = %8.3f %8.3f %8.3f\n", 
-              main_args.trans_info.rotations[0],
-              main_args.trans_info.rotations[1],
-              main_args.trans_info.rotations[2] );
-    else
-      print ( "Transform quaternion   = %8.3f %8.3f %8.3f %8.3f \n\n", 
-              main_args.trans_info.quaternions[0],
-              main_args.trans_info.quaternions[1],
-              main_args.trans_info.quaternions[2],
-              quats3 );
+	    print ( "Transform center   = %8.3f %8.3f %8.3f\n", 
+	            globals->trans_info.center[0],
+	            globals->trans_info.center[1],
+	            globals->trans_info.center[2] );
+	    if(globals->trans_info.rotation_type == TRANS_ROT)
+	      print ( "Transform rots    = %8.3f %8.3f %8.3f\n", 
+	              globals->trans_info.rotations[0],
+	              globals->trans_info.rotations[1],
+	              globals->trans_info.rotations[2] );
+	    else
+	      print ( "Transform quaternion   = %8.3f %8.3f %8.3f %8.3f \n\n", 
+	              globals->trans_info.quaternions[0],
+	              globals->trans_info.quaternions[1],
+	              globals->trans_info.quaternions[2],
+	              quats3 );
     
-    print ( "Transform trans    = %8.3f %8.3f %8.3f\n", 
-            main_args.trans_info.translations[0],
-            main_args.trans_info.translations[1],
-            main_args.trans_info.translations[2] );
-    print ( "Transform scale    = %8.3f %8.3f %8.3f\n\n", 
-            main_args.trans_info.scales[0],
-            main_args.trans_info.scales[1],
-            main_args.trans_info.scales[2] );
-  }
-
-
-
-
+	    print ( "Transform trans    = %8.3f %8.3f %8.3f\n", 
+	            globals->trans_info.translations[0],
+	            globals->trans_info.translations[1],
+	            globals->trans_info.translations[2] );
+	    print ( "Transform scale    = %8.3f %8.3f %8.3f\n\n", 
+	            globals->trans_info.scales[0],
+	            globals->trans_info.scales[1],
+	            globals->trans_info.scales[2] );
+	  }
+	
   }
   
 
   else 
     { /*  we have an input matrix, we now have to extract the proper parameters from it */
       if (globals->flags.debug) print ("  using input transformation to get initial parameters:\n");
-      
+      	
       if (get_transform_type(globals->trans_info.transformation) == CONCATENATED_TRANSFORM) {
         lt = get_linear_transform_ptr(get_nth_general_transform(globals->trans_info.transformation,0));
       }
       else
         lt = get_linear_transform_ptr(globals->trans_info.transformation);
+
       
       /* get cog of data1 before extracting parameters
          from matrix, if estimate requested on command line */
@@ -1372,7 +1368,7 @@ VIO_BOOL init_params(VIO_Volume d1,
         {
           for(i=0; i<3; i++) globals->trans_info.center[i] = 0.0;
           
-          if (main_args.flags.debug) 
+          if (globals->flags.debug) 
             {
               print ("   Center of rot/scale not forced, will be set to : %f %f %f\n",
                      globals->trans_info.center[0],
@@ -1503,9 +1499,10 @@ VIO_BOOL init_params(VIO_Volume d1,
   if (get_transform_type(globals->trans_info.transformation) == CONCATENATED_TRANSFORM) {
     lt = get_linear_transform_ptr(get_nth_general_transform(globals->trans_info.transformation,0));
   }
-  else
+  else {
     lt = get_linear_transform_ptr(globals->trans_info.transformation);
- 
+}
+
   if( globals->trans_info.rotation_type == TRANS_ROT)
     build_transformation_matrix(lt,
                                 globals->trans_info.center,

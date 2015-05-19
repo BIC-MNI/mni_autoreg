@@ -235,7 +235,7 @@ static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/minctracc
 #include "constants.h"
 #include "interpolation.h"
 
-extern Arg_Data main_args;
+extern Arg_Data *main_args;
 
 #define DERIV_FRAC      0.6
 #define FRAC1           0.5

@@ -55,6 +55,7 @@
 #define NONLIN_SQDIFF         6
 
 #define OPT_SIMPLEX       0
+#define OPT_BFGS		1
 
 #define SLICE_IND 0
 #define ROW_IND   1

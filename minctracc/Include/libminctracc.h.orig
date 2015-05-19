@@ -1,0 +1,12 @@
+<<<<<<< HEAD
+#include <volume_io.h>
+#include "arg_data.h"
+
+void initializeArgs(Arg_Data *args);
+VIO_General_transform* minctracc( VIO_Volume source, VIO_Volume target, VIO_Volume sourceMask, VIO_Volume targetMask, VIO_General_transform *initialXFM, Arg_Data *args);
+=======
+
+
+int minctracc ( VIO_Volume source, VIO_Volume target, VIO_Volume sourceMask, VIO_Volume targetMask, VIO_General_transform *initialXFM, VIO_General_transform *outputXFM, int argc, char* argv[] );
+>>>>>>> 248eefb60b3edf2325f4cc15806d46eba4415a34
+

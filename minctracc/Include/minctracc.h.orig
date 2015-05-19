@@ -241,7 +241,11 @@ void add_a_feature_for_matching(Feature_volumes *features,
 
 /*  ------------------------ Global data structure for program  ------------------------ */
 
+<<<<<<< HEAD
 extern Arg_Data *main_args;
+=======
+extern Arg_Data main_args;
+>>>>>>> 248eefb60b3edf2325f4cc15806d46eba4415a34
 
  
 #endif

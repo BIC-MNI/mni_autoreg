@@ -262,6 +262,7 @@ static  VIO_Real  get_function_value(
     amoeba->n_parameters = n_parameters;
     amoeba->function = function;
     amoeba->function_data = function_data;
+
     amoeba->tolerance = tolerance;
     amoeba->n_steps_no_improvement = 0;
     VIO_ALLOC2D( amoeba->parameters, n_parameters+1, n_parameters );

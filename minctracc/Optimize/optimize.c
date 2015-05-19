@@ -179,9 +179,11 @@ static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/minctracc
 
 #include "local_macros.h"
 
-#include "extras.h"
+#include <lbfgs.h>
 
-extern Arg_Data main_args;
+#define BFGSEPSILON 0.00005
+
+extern Arg_Data *main_args;
 
 VIO_Volume   Gdata1, Gdata2, Gmask1, Gmask2;
 int      Ginverse_mapping_flag, Gndim;
@@ -378,7 +380,7 @@ inline static VIO_BOOL in_limits(double x,double lower,double upper)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-float fit_function(float *params) 
+float fit_function(Arg_Data *args,float *params) 
 {
 
   VIO_Transform *mat;
@@ -394,22 +396,22 @@ float fit_function(float *params)
 
 
   for(i=0; i<3; i++) {                /* set default values from GLOBAL MAIN_ARGS */
-    shear[i] = main_args.trans_info.shears[i];
-    scale[i] = main_args.trans_info.scales[i];
-    trans[i] = main_args.trans_info.translations[i];
-    rots[i]  = main_args.trans_info.rotations[i];
-    cent[i]  = main_args.trans_info.center[i];
+    shear[i] = main_args->trans_info.shears[i];
+    scale[i] = main_args->trans_info.scales[i];
+    trans[i] = main_args->trans_info.translations[i];
+    rots[i]  = main_args->trans_info.rotations[i];
+    cent[i]  = main_args->trans_info.center[i];
   }
 
-
                                 /* modify the parameters to be optimized */
-  vector_to_parameters(trans, rots, scale, shear, params, main_args.trans_info.weights);
+  vector_to_parameters(trans, rots, scale, shear, params, main_args->trans_info.weights);
   
-  if (main_args.trans_info.transform_type==TRANS_LSQ7) { /* adjust scaley and scalez only */
+  if (main_args->trans_info.transform_type==TRANS_LSQ7) { /* adjust scaley and scalez only */
                                                          /* if 7 parameter fit.  */
     scale[1] = scale[0];
     scale[2] = scale[0];
   }
+
 
   if (!in_limits(rots[0], (double)-3.1415927/2.0, (double)3.1415927/2.0) ||
       !in_limits(rots[1], (double)-3.1415927/2.0, (double)3.1415927/2.0) ||
@@ -439,12 +441,12 @@ float fit_function(float *params)
   else {
                                 /* get the linear transformation ptr */
 
-    if (get_transform_type(main_args.trans_info.transformation) == CONCATENATED_TRANSFORM) {
+    if (get_transform_type(main_args->trans_info.transformation) == CONCATENATED_TRANSFORM) {
       mat = get_linear_transform_ptr(
-             get_nth_general_transform(main_args.trans_info.transformation,0));
+             get_nth_general_transform(main_args->trans_info.transformation,0));
     }
     else
-      mat = get_linear_transform_ptr(main_args.trans_info.transformation);
+      mat = get_linear_transform_ptr(main_args->trans_info.transformation);
     
     if (Ginverse_mapping_flag)
       build_inverse_transformation_matrix(mat, cent, trans, scale, shear, rots);
@@ -453,14 +455,14 @@ float fit_function(float *params)
     
     /* call the needed objective function */
     
-    r = (main_args.obj_function)(Gdata1,Gdata2,Gmask1,Gmask2,&main_args);
+    r = (main_args->obj_function)(Gdata1,Gdata2,Gmask1,Gmask2,args);
   }
 
   return(r);
 }
 
 
-VIO_Real amoeba_obj_function(void *dummy, float d[])
+VIO_Real amoeba_obj_function(void *function_data, float d[])
 {
   int i;
   float p[13];
@@ -468,8 +470,45 @@ VIO_Real amoeba_obj_function(void *dummy, float d[])
   for(i=0; i<Gndim; i++)
     p[i+1] = d[i];
   
-  return ( (VIO_Real)fit_function(p) );
+  return ( (VIO_Real)fit_function((Arg_Data *)function_data,p) );
 }
+
+
+// Objective function for BFGS optimizer
+lbfgsfloatval_t bfgs_obj_function(void *function_data, const lbfgsfloatval_t *x, lbfgsfloatval_t *g, const int n, const lbfgsfloatval_t step) {
+	int i;
+	float p[13];
+	lbfgsfloatval_t fx,fx2;
+	
+//	fprintf(stderr,"ROBB: in BFGS objective function!\n");
+//	fprintf(stderr,"ROBB: Gndim: %d\n",Gndim);
+	
+	for(i=0; i<Gndim; i++)
+		p[i+1] = x[i];
+  
+	fx = (lbfgsfloatval_t) fit_function((Arg_Data *)function_data,p);
+	
+	for (i=0; i<Gndim; i++) {
+		p[i+1] += BFGSEPSILON;
+		fx2 = (lbfgsfloatval_t) fit_function((Arg_Data *)function_data,p);
+		p[i+1] -= BFGSEPSILON;
+		g[i] = (lbfgsfloatval_t) (fx2-fx) / BFGSEPSILON;
+//		fprintf(stderr,"ROBB In objective function.  Param %d. Fx is %f.  Fx2 is %f.  Grad is %f\n",i,fx,fx2,g[i]);
+	}
+	return fx;
+}
+
+
+int bfgs_progress(void *instance, const lbfgsfloatval_t *x, const lbfgsfloatval_t *g,
+    						const lbfgsfloatval_t fx, const lbfgsfloatval_t xnorm, 
+							const lbfgsfloatval_t gnorm, const lbfgsfloatval_t step,
+							int n, int k, int ls) {
+
+	fprintf(stderr,"BFGS progress iteration %d - fx: %f xnorm %f gnorm %f step %f\n",k,fx,xnorm,gnorm,step);
+	return 0;			
+}
+
+
 
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : fit_function_quater
@@ -485,7 +524,7 @@ VIO_Real amoeba_obj_function(void *dummy, float d[])
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-float fit_function_quater(float *params) 
+float fit_function_quater(Arg_Data *args,float *params) 
 {
 
   VIO_Transform *mat;
@@ -501,18 +540,18 @@ float fit_function_quater(float *params)
 
 
   for(i=0; i<3; i++) {                /* set default values from GLOBAL MAIN_ARGS */
-    shear[i] = main_args.trans_info.shears[i];
-    scale[i] = main_args.trans_info.scales[i];
-    trans[i] = main_args.trans_info.translations[i];
-    cent[i]  = main_args.trans_info.center[i];
-    quats[i] = main_args.trans_info.quaternions[i];
+    shear[i] = args->trans_info.shears[i];
+    scale[i] = args->trans_info.scales[i];
+    trans[i] = args->trans_info.translations[i];
+    cent[i]  = args->trans_info.center[i];
+    quats[i] = args->trans_info.quaternions[i];
   }
 
 
                                 /* modify the parameters to be optimized */
-  vector_to_parameters_quater(trans, quats, scale, shear, params, main_args.trans_info.weights);
+  vector_to_parameters_quater(trans, quats, scale, shear, params, args->trans_info.weights);
   
-  if (main_args.trans_info.transform_type==TRANS_LSQ7) { /* adjust scaley and scalez only */
+  if (args->trans_info.transform_type==TRANS_LSQ7) { /* adjust scaley and scalez only */
                                                          /* if 7 parameter fit.  */
     scale[1] = scale[0];
     scale[2] = scale[0];
@@ -548,12 +587,12 @@ float fit_function_quater(float *params)
 
                                 /* get the linear transformation ptr */
 
-    if (get_transform_type(main_args.trans_info.transformation) == CONCATENATED_TRANSFORM) {
+    if (get_transform_type(args->trans_info.transformation) == CONCATENATED_TRANSFORM) {
       mat = get_linear_transform_ptr(
-             get_nth_general_transform(main_args.trans_info.transformation,0));
+             get_nth_general_transform(args->trans_info.transformation,0));
     }
     else
-      mat = get_linear_transform_ptr(main_args.trans_info.transformation);
+      mat = get_linear_transform_ptr(args->trans_info.transformation);
     
     if (Ginverse_mapping_flag)
       build_inverse_transformation_matrix_quater(mat, cent, trans, scale, shear, quats);
@@ -562,14 +601,14 @@ float fit_function_quater(float *params)
     
     /* call the needed objective function */
     
-    r = (main_args.obj_function)(Gdata1,Gdata2,Gmask1,Gmask2,&main_args);
+    r = (args->obj_function)(Gdata1,Gdata2,Gmask1,Gmask2,args);
   }
 
   return(r);
 }
 
 
-VIO_Real amoeba_obj_function_quater(void *dummy, float d[])
+VIO_Real amoeba_obj_function_quater(void *function_data, float d[])
 {
   int i;
   float p[13];
@@ -577,7 +616,7 @@ VIO_Real amoeba_obj_function_quater(void *dummy, float d[])
   for(i=0; i<Gndim; i++)
     p[i+1] = d[i];
   
-  return ( (VIO_Real)fit_function_quater(p) );
+  return ( (VIO_Real)fit_function_quater(function_data,p) );
 }
 
 
@@ -667,7 +706,7 @@ VIO_BOOL optimize_simplex(VIO_Volume d1,
 
     initialize_amoeba(&the_amoeba, ndim, parameters, 
                       simplex_size, amoeba_obj_function, 
-                      NULL, (VIO_Real)local_ftol);
+                      globals, (VIO_Real)local_ftol);
 
     max_iters = 400;
     iteration_number = 0;
@@ -842,7 +881,7 @@ VIO_BOOL optimize_simplex_quater(VIO_Volume d1,
 
     initialize_amoeba(&the_amoeba, ndim, parameters, 
                       simplex_size, amoeba_obj_function_quater, 
-                      NULL, (VIO_Real)local_ftol);
+                      globals, (VIO_Real)local_ftol);
 
     max_iters = 400;
     iteration_number = 0;
@@ -923,6 +962,144 @@ VIO_BOOL optimize_simplex_quater(VIO_Volume d1,
 
   return( stat );
 }
+
+
+
+
+/* ----------------------------- MNI Header -----------------------------------
+@NAME       : optimize_BFGS
+                get the parameters necessary to map volume 1 to volume 2
+                using the BFGS algorithm and a user specified
+                objective function.
+@INPUT      : d1,d2:
+                two volumes of data (already in memory).
+              m1,m2:
+                two mask volumes for data (already in memory).
+              globals:
+                a global data structure containing info from the command line,
+                including the input parameters to be optimized, the input matrix,
+                and a plethora of flags!
+@OUTPUT     : 
+@RETURNS    : TRUE if ok, FALSE if error.
+@DESCRIPTION: 
+@METHOD     : uses the LBFGS optimizer from libLBFGS
+@GLOBALS    : 
+@CALLS      : 
+@CREATED    : February 19, 2013
+@MODIFIED   : 
+---------------------------------------------------------------------------- */
+VIO_BOOL optimize_BFGS(VIO_Volume d1,
+                                VIO_Volume d2,
+                                VIO_Volume m1,
+                                VIO_Volume m2, 
+                                Arg_Data *globals)
+{
+	VIO_BOOL stat;
+	float local_ftol, *p;
+	int max_iters, i,j, ndim;
+	
+	VIO_Transform *mat;
+	
+	lbfgsfloatval_t *parameters;
+	
+	double trans[3];
+	double cent[3];
+	double rots[3];
+	double scale[3];
+	double shear[6];
+	
+	stat = TRUE;
+	local_ftol = ftol;
+	
+//	fprintf(stderr,"ROBB: USING BFGS Optimizer *** !\n");
+                                /* find number of dimensions for optimization */
+	ndim = 0;
+	for(i=0; i<12; i++)
+		if (globals->trans_info.weights[i] != 0.0) ndim++;
+		
+	Gndim = ndim;
+	
+	ALLOC(p,ndim+1+1);                // Louis parameters (1 based arrays)
+	
+    parameters = lbfgs_malloc(ndim+1);        // For the rest of us... 0 based
+    
+                                /* build the parameter vector from the 
+                                   initial transformation parameters   */
+	parameters_to_vector(	globals->trans_info.translations,
+							globals->trans_info.rotations,
+							globals->trans_info.scales,
+							globals->trans_info.shears,
+							p,
+							globals->trans_info.weights);
+	
+	for(i=0; i<ndim+1; i++)                /* copy initial guess into parameter list */
+		parameters[i] = (VIO_Real)p[i+1];
+	
+	lbfgs_parameter_t param;
+	lbfgs_parameter_init(&param);
+	if (globals->flags.debug)
+		stat = lbfgs(ndim,parameters,NULL,bfgs_obj_function,bfgs_progress,globals,&param);
+	else
+		stat = lbfgs(ndim,parameters,NULL,bfgs_obj_function,NULL,globals,&param);
+	if (stat) {
+		fprintf(stderr,"BFGS Status: %d\n",stat);	
+		fprintf(stderr,"LBFGS_SUCCESS %d\n",LBFGS_SUCCESS);
+		fprintf(stderr,"LBFGS_STOP %d\n",LBFGS_STOP);
+		fprintf(stderr,"LBFGS_ALREADY_MINIMIZED %d\n",LBFGS_ALREADY_MINIMIZED);
+	}
+	
+                                // copy result into main data structure
+    for(i=0; i<ndim+1; i++)                
+      p[i+1] = (float)parameters[i];
+    
+    vector_to_parameters(globals->trans_info.translations,
+                         globals->trans_info.rotations,
+                         globals->trans_info.scales,
+                         globals->trans_info.shears,
+                         p,
+                         globals->trans_info.weights);
+	
+    if (globals->trans_info.transform_type==TRANS_LSQ7) { // adjust scaley and scalez only
+		// if 7 parameter fit.
+		globals->trans_info.scales[1] = globals->trans_info.scales[0];
+		globals->trans_info.scales[2] = globals->trans_info.scales[0];
+    }
+    
+    for(i=0; i<3; i++) {                // set translations 
+		trans[i] = globals->trans_info.translations[i]; 
+		rots[i]  = globals->trans_info.rotations[i];
+		scale[i] = globals->trans_info.scales[i];
+		cent[i]  = globals->trans_info.center[i];
+		shear[i] = globals->trans_info.shears[i];
+	}
+	
+	
+    if (globals->flags.debug) {
+		print("after parameter optimization\n");
+		print("-center      %10.5f %10.5f %10.5f\n", cent[0], cent[1], cent[2]);
+		print("-translation %10.5f %10.5f %10.5f\n", trans[0], trans[1], trans[2]);
+		print("-rotation    %10.5f %10.5f %10.5f\n", 
+			rots[0]*180.0/3.1415927, rots[1]*180.0/3.1415927, rots[2]*180.0/3.1415927);
+		print("-scale       %10.5f %10.5f %10.5f\n", scale[0], scale[1], scale[2]);
+		print("-shear       %10.5f %10.5f %10.5f\n", shear[0], shear[1], shear[2]);
+	}
+  
+    if (get_transform_type(globals->trans_info.transformation) == CONCATENATED_TRANSFORM) {
+		mat = get_linear_transform_ptr(
+			get_nth_general_transform(globals->trans_info.transformation,0));
+	}
+    else
+		mat = get_linear_transform_ptr(globals->trans_info.transformation);
+    
+	build_transformation_matrix(mat, cent, trans, scale, shear, rots);
+	
+    FREE(p);
+    lbfgs_free(parameters);
+
+	return( 1+stat );
+}
+
+
 
 
 VIO_BOOL replace_volume_data_with_ubyte(VIO_Volume data)
@@ -1044,7 +1221,7 @@ VIO_BOOL optimize_linear_transformation(VIO_Volume d1,
 
           /* --------------------------------------------------------------*/
           /*----------------- prepare data for optimization -------------- */
-  
+
   if (globals->obj_function == zscore_objective) 
                                 /* normalize volumes before correlation */
     { 
@@ -1216,14 +1393,20 @@ VIO_BOOL optimize_linear_transformation(VIO_Volume d1,
                        p,
                        globals->trans_info.weights);
 
-  initial_corr = fit_function(p);
+
+
+  initial_corr = fit_function(globals,p);
 
            /* ---------------- call requested optimization strategy ---------*/
 
+//fprintf(stderr,"ROBB: Optimizer: %d\n",globals->optimize_type);
   switch (globals->optimize_type) {
   case OPT_SIMPLEX:
     stat = optimize_simplex(d1, d2, m1, m2, globals);
     break;
+  case OPT_BFGS:
+	stat = optimize_BFGS(d1,d2,m1,m2,globals);
+	break;
   default:
     (void)fprintf(stderr, "Unknown type of optimization requested (%d)\n",
                   globals->optimize_type);
@@ -1238,7 +1421,7 @@ VIO_BOOL optimize_linear_transformation(VIO_Volume d1,
                        p,
                        globals->trans_info.weights);
 
-  final_corr = fit_function(p);
+  final_corr = fit_function(globals,p);
 
   FREE(p);
 
@@ -1512,7 +1695,7 @@ VIO_BOOL optimize_linear_transformation_quater(VIO_Volume d1,
                               p,
                               globals->trans_info.weights);
 
-  initial_corr = fit_function_quater(p);
+  initial_corr = fit_function_quater(globals,p);
 
            /* ---------------- call requested optimization strategy ---------*/
 
@@ -1534,7 +1717,7 @@ VIO_BOOL optimize_linear_transformation_quater(VIO_Volume d1,
                               p,
                               globals->trans_info.weights);
 
-  final_corr = fit_function_quater(p);
+  final_corr = fit_function_quater(globals,p);
 
   FREE(p);
 
@@ -1778,7 +1961,7 @@ if(globals->trans_info.rotation_type == TRANS_ROT)
                          p[1],
                          globals->trans_info.weights);
 
-    y = fit_function(p[1]);        /* evaluate the objective  function */
+    y = fit_function(globals,p[1]);        /* evaluate the objective  function */
 
     VIO_FREE2D(p); /* simplex */
 
@@ -1872,7 +2055,7 @@ if(globals->trans_info.rotation_type == TRANS_ROT)
                                 p[1],
                                 globals->trans_info.weights);
 
-    y = fit_function_quater(p[1]);        /* evaluate the objective  function */
+    y = fit_function_quater(globals,p[1]);        /* evaluate the objective  function */
 
     VIO_FREE2D(p); /* simplex */
   }

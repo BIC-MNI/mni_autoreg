@@ -119,7 +119,7 @@ static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/minctracc
 #include "vox_space.h"
 #include "interpolation.h"
 
-extern Arg_Data main_args;
+extern Arg_Data *main_args;
 
 extern Segment_Table *segment_table;
 
@@ -253,6 +253,7 @@ float xcorr_objective(VIO_Volume d1,
                                    space transformation (instead of the
                                    general but inefficient world-world
                                    computations. */
+
 
   vox_space = new_voxel_space_struct();
 

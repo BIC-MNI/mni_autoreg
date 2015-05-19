@@ -1,4 +1,4 @@
-INCLUDE_DIRECTORIES(Include ${LBFGS_INCLUDE_DIR})
+INCLUDE_DIRECTORIES(Include ${LIBLBFGS_INCLUDE_DIR})
 
 SET ( MINCTRACC_FILES
 	Files/read_data_files.c
@@ -39,9 +39,9 @@ SET (MINCTRACC_VOLUME
 )
 
 SET (MINCTRACC_PROGLIB
-	../Proglib/get_history.c
-	../Proglib/print_error.c
-	../Proglib/print_version.c
+	../ProgLib/get_history.c
+	../ProgLib/print_error.c
+	../ProgLib/print_version.c
 )
 
 SET (MINCTRACC_MAIN
@@ -86,7 +86,7 @@ ADD_LIBRARY(minctracc_numerical STATIC ${MINCTRACC_NUMERICAL})
 
 ADD_LIBRARY(minctracc_volume  STATIC ${MINCTRACC_VOLUME})
 
-ADD_LIBRARY(libminctracc ${LIBRARY_TYPE} 
+ADD_LIBRARY(minctracc ${LIBRARY_TYPE} 
 	${MINCTRACC_HEADERS} 
 	${MINCTRACC_FILES} 
 	${MINCTRACC_OPTIMIZE} 
@@ -96,100 +96,48 @@ ADD_LIBRARY(libminctracc ${LIBRARY_TYPE}
 	${MINCTRACC_MAIN}
 )
 
-ADD_EXECUTABLE(check_scale  Extra_progs/check_scale.c)
 
-TARGET_LINK_LIBRARIES(check_scale
+LINK_LIBRARIES(
  minctracc_files 
  minctracc_optimize 
  minctracc_numerical
  minctracc_volume
  Proglib
 )
-
-ADD_EXECUTABLE(minctracc 
-  Main/make_matlab_data_file.c 
-	Main/minctracc.c )
 
 TARGET_LINK_LIBRARIES(
 	minctracc
-	libminctracc
 	${VOLUME_IO_LIBRARIES}
 	${LIBMINC_LIBRARIES}
-	${LBFGS_LIBRARY}
+	${LIBLBFGS_LIBRARIES}
 )
 
-ADD_EXECUTABLE(param2xfm    Extra_progs/param2xfm.c)
+#ADD_EXECUTABLE(minctracc-e 
+ # Main/make_matlab_data_file.c 
+#	Main/minctracc.c )
 
-TARGET_LINK_LIBRARIES(param2xfm
- minctracc_files 
- minctracc_optimize 
- minctracc_numerical
- minctracc_volume
- Proglib
-)
+ADD_EXECUTABLE(check_scale Extra_progs/check_scale.c)
+ADD_EXECUTABLE(crispify    Extra_progs/crispify.c)
+ADD_EXECUTABLE(param2xfm   Extra_progs/param2xfm.c)
+ADD_EXECUTABLE(volume_cog  Extra_progs/volume_cog.c)
+ADD_EXECUTABLE(rand_param  Extra_progs/rand_param.c)
+ADD_EXECUTABLE(xcorr_vol   Extra_progs/xcorr_vol.c)
+ADD_EXECUTABLE(xfm2param   Extra_progs/xfm2param.c)
+ADD_EXECUTABLE(zscore_vol  Extra_progs/zscore_vol.c)
+ADD_EXECUTABLE(cmpxfm      Extra_progs/cmpxfm.c)
 
-
-# ADD_EXECUTABLE(rand_param    Extra_progs/rand_param.c)
-# 
-# TARGET_LINK_LIBRARIES(rand_param
-#  minctracc_files 
-#  minctracc_optimize 
-#  minctracc_numerical
-#  minctracc_volume
-#  Proglib
-# )
-# 
-# ADD_EXECUTABLE(volume_cog   Extra_progs/volume_cog.c)
-# 
-# TARGET_LINK_LIBRARIES(volume_cog
-#  minctracc_files 
-#  minctracc_optimize 
-#  minctracc_numerical
-#  minctracc_volume
-#  Proglib)
-# 
-ADD_EXECUTABLE(xfm2param    Extra_progs/xfm2param.c)
- 
- TARGET_LINK_LIBRARIES(xfm2param
-  minctracc_files 
-  minctracc_optimize 
-  minctracc_numerical
-  minctracc_volume
-  Proglib)
- 
-# ADD_EXECUTABLE(zscore_vol    Extra_progs/zscore_vol.c)
-# 
-# TARGET_LINK_LIBRARIES(zscore_vol
-#  minctracc_files 
-#  minctracc_optimize 
-#  minctracc_numerical
-#  minctracc_volume
-#  Proglib)
-# 
-ADD_EXECUTABLE(crispify     Extra_progs/crispify.c)
-ADD_EXECUTABLE(xcorr_vol    Extra_progs/xcorr_vol.c)
-ADD_EXECUTABLE(cmpxfm       Extra_progs/cmpxfm.c)
-
-# ADD_EXECUTABLE(make_lvv_vol Extra_progs/make_lvv_vol.c)
-# 
-# TARGET_LINK_LIBRARIES(make_lvv_vol
-#  Proglib
-#  )
-
-INSTALL(TARGETS libminctracc ${LIBRARY_INSTALL} DESTINATION lib)
+INSTALL(TARGETS minctracc ${LIBRARY_INSTALL} DESTINATION lib)
 INSTALL(FILES ${MINCTRACC_HEADERS} DESTINATION include)
-INSTALL(TARGETS minctracc RUNTIME DESTINATION bin) # TODO: rename
 
 INSTALL(TARGETS 
 # minctracc-e 
  check_scale 
  crispify 
  param2xfm 
-#  volume_cog 
-#  rand_param 
+ volume_cog 
+ rand_param 
  xcorr_vol 
  xfm2param 
-#  zscore_vol
-  cmpxfm
-#  make_lvv_vol
+ zscore_vol
+ cmpxfm
  RUNTIME DESTINATION bin)
