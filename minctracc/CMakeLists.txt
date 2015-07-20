@@ -110,12 +110,18 @@ ADD_EXECUTABLE(minctracc
   Main/make_matlab_data_file.c 
 	Main/minctracc.c )
 
+
 TARGET_LINK_LIBRARIES(
-	minctracc
 	libminctracc
 	${VOLUME_IO_LIBRARIES}
 	${LIBMINC_LIBRARIES}
 	${LBFGS_LIBRARY}
+)
+
+
+TARGET_LINK_LIBRARIES(
+	minctracc
+	libminctracc
 )
 
 ADD_EXECUTABLE(param2xfm    Extra_progs/param2xfm.c)
