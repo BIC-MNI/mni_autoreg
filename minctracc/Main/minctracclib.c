@@ -242,6 +242,7 @@ void initializeArgs(Arg_Data *args) {
 	args->trans_info.use_magnitude = TRUE;
 	args->trans_info.max_def_magnitude = 50.0;
 	args->trans_info.use_simplex = TRUE;
+  args->trans_info.use_bfgs = FALSE;
 	args->trans_info.use_super = 2;
 	args->trans_info.use_local_smoothing = FALSE;
 	args->trans_info.use_local_isotropic = TRUE;
@@ -1102,6 +1103,9 @@ int minctraccOldFashioned ( int argc, char* argv[] )
     (void) fprintf(stderr, "Error determining objective function type\n");
     exit(EXIT_FAILURE);
   }
+  
+  if(main_args->trans_info.use_bfgs)
+    main_args->optimize_type=OPT_BFGS;
 
   if (parse_flag || 
       (measure_matlab_flag && argc!=3) ||

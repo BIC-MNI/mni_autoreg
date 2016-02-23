@@ -166,6 +166,10 @@
 static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/minctracc/Optimize/optimize.c,v 96.17 2009-04-03 18:36:59 louis Exp $";
 #endif
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif /*HAVE_CONFIG_H*/
+
 #include <volume_io.h>
 #include <Proglib.h>
 #include <amoeba.h>
@@ -179,9 +183,10 @@ static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/minctracc
 
 #include "local_macros.h"
 
+#ifdef HAVE_LIBLBFGS
 #include <lbfgs.h>
-
 #define BFGSEPSILON 0.00005
+#endif /*HAVE_LIBLBFGS*/
 
 extern Arg_Data *main_args;
 
@@ -473,6 +478,7 @@ VIO_Real amoeba_obj_function(void *function_data, float d[])
   return ( (VIO_Real)fit_function((Arg_Data *)function_data,p) );
 }
 
+#ifdef HAVE_LIBLBFGS
 
 // Objective function for BFGS optimizer
 lbfgsfloatval_t bfgs_obj_function(void *function_data, const lbfgsfloatval_t *x, lbfgsfloatval_t *g, const int n, const lbfgsfloatval_t step) {
@@ -508,7 +514,7 @@ int bfgs_progress(void *instance, const lbfgsfloatval_t *x, const lbfgsfloatval_
 	return 0;			
 }
 
-
+#endif /*HAVE_LIBLBFGS*/
 
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : fit_function_quater
@@ -965,6 +971,7 @@ VIO_BOOL optimize_simplex_quater(VIO_Volume d1,
 
 
 
+#ifdef HAVE_LIBLBFGS
 
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : optimize_BFGS
@@ -1099,7 +1106,7 @@ VIO_BOOL optimize_BFGS(VIO_Volume d1,
 	return( 1+stat );
 }
 
-
+#endif /*HAVE_LIBLBFGS*/
 
 
 VIO_BOOL replace_volume_data_with_ubyte(VIO_Volume data)
@@ -1404,9 +1411,17 @@ VIO_BOOL optimize_linear_transformation(VIO_Volume d1,
   case OPT_SIMPLEX:
     stat = optimize_simplex(d1, d2, m1, m2, globals);
     break;
+#ifdef HAVE_LIBLBFGS
   case OPT_BFGS:
-	stat = optimize_BFGS(d1,d2,m1,m2,globals);
-	break;
+    stat = optimize_BFGS(d1,d2,m1,m2,globals);
+    break;
+#else
+  case OPT_BFGS:
+    (void)fprintf(stderr, "BFGS optimizer is not compiled it\n");
+    (void)fprintf(stderr, "Error in line %d, file %s\n",__LINE__, __FILE__);
+    stat = FALSE;
+    break;
+#endif /*HAVE_LIBLBFGS*/
   default:
     (void)fprintf(stderr, "Unknown type of optimization requested (%d)\n",
                   globals->optimize_type);

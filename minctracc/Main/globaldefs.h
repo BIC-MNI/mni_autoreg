@@ -236,6 +236,8 @@ ArgvInfo argTable[] = {
      "use optical flow to compute deformation."},
   {"-use_simplex", ARGV_CONSTANT, (char *) TRUE, (char *) &main_argsX.trans_info.use_simplex,
      "use 3D simplex optimization for local deformation (default)."},
+  {"-use_bfgs", ARGV_CONSTANT, (char *) FALSE, (char *) &main_argsX.trans_info.use_bfgs,
+     "use BFGS simplex optimization for local deformation "},
   {"-quadratic", ARGV_CONSTANT, (char *) FALSE, (char *) &main_argsX.trans_info.use_simplex,
      "use quadratic fit for local deformation."},
   {"-use_local", ARGV_CONSTANT, (char *) TRUE, (char *) &main_argsX.trans_info.use_local_smoothing,
@@ -284,6 +286,7 @@ Arg_Data main_argsX = {
     TRUE,                        /*   use_mag=TRUE; do not use projections by default */
     50.0,
     TRUE,                        /*   use_simplex=TRUE ie use 3d simplex by default */
+    FALSE,                       /*   use_bfgs=FALSE i.e don't use BFGS*/
     2,                                /*   use super sampling of deformation field  */
     FALSE,                        /* use local smoothing       */
     TRUE,                        /* use isotropic smoothing */

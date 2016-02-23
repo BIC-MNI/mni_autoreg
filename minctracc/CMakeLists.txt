@@ -1,7 +1,13 @@
-INCLUDE_DIRECTORIES(Include ${LBFGS_INCLUDE_DIR})
+
+INCLUDE_DIRECTORIES(Include)
+
+IF(LIBLBFGS_FOUND)
+  INCLUDE_DIRECTORIES(Include ${LIBLBFGS_INCLUDE_DIR})
+  LINK_DIRECTORIES(${LIBLBFGS_LIBRARY_DIR})
+ENDIF(LIBLBFGS_FOUND)
 
 SET ( MINCTRACC_FILES
-	Files/read_data_files.c
+  Files/read_data_files.c
 )
 
 SET ( MINCTRACC_OPTIMIZE
@@ -39,44 +45,43 @@ SET (MINCTRACC_VOLUME
 )
 
 SET (MINCTRACC_PROGLIB
-	../Proglib/get_history.c
-	../Proglib/print_error.c
-	../Proglib/print_version.c
+  ../Proglib/get_history.c
+  ../Proglib/print_error.c
+  ../Proglib/print_version.c
 )
 
 SET (MINCTRACC_MAIN
-	Main/minctracclib.c
-	Main/make_matlab_data_file.c
+  Main/minctracclib.c
+  Main/make_matlab_data_file.c
 )
 
 SET ( MINCTRACC_HEADERS
-	Include/libminctracc.h
-	Include/amoeba.h
-	Include/arg_data.h
-	Include/constants.h
-	Include/cov_to_praxes.h
-	Include/deform_support.h
-	Include/extras.h
-	Include/globals.h
-	Include/init_lattice.h
-	Include/interpolation.h
-	Include/local_macros.h
-	Include/make_rots.h
-	Include/matrix_basics.h
-	Include/minctracc.h
-	Include/objectives.h
-	Include/point_vector.h
-	Include/quad_max_fit.h
-	Include/quaternion.h
-	Include/rotmat_to_ang.h
-	Include/segment_table.h
-	Include/stats.h
-	Include/sub_lattice.h
-	Include/super_sample_def.h
-	Include/vox_space.h
-	../Proglib/Proglib.h
+  Include/libminctracc.h
+  Include/amoeba.h
+  Include/arg_data.h
+  Include/constants.h
+  Include/cov_to_praxes.h
+  Include/deform_support.h
+  Include/extras.h
+  Include/globals.h
+  Include/init_lattice.h
+  Include/interpolation.h
+  Include/local_macros.h
+  Include/make_rots.h
+  Include/matrix_basics.h
+  Include/minctracc.h
+  Include/objectives.h
+  Include/point_vector.h
+  Include/quad_max_fit.h
+  Include/quaternion.h
+  Include/rotmat_to_ang.h
+  Include/segment_table.h
+  Include/stats.h
+  Include/sub_lattice.h
+  Include/super_sample_def.h
+  Include/vox_space.h
+  ../Proglib/Proglib.h
 )
-
 
 ADD_LIBRARY(minctracc_files STATIC ${MINCTRACC_FILES})
 
@@ -86,14 +91,14 @@ ADD_LIBRARY(minctracc_numerical STATIC ${MINCTRACC_NUMERICAL})
 
 ADD_LIBRARY(minctracc_volume  STATIC ${MINCTRACC_VOLUME})
 
-ADD_LIBRARY(libminctracc ${LIBRARY_TYPE} 
-	${MINCTRACC_HEADERS} 
-	${MINCTRACC_FILES} 
-	${MINCTRACC_OPTIMIZE} 
-	${MINCTRACC_NUMERICAL} 
-	${MINCTRACC_VOLUME}
-	${MINCTRACC_PROGLIB}
-	${MINCTRACC_MAIN}
+ADD_LIBRARY(_minctracc ${LIBRARY_TYPE} 
+  ${MINCTRACC_HEADERS} 
+  ${MINCTRACC_FILES} 
+  ${MINCTRACC_OPTIMIZE} 
+  ${MINCTRACC_NUMERICAL} 
+  ${MINCTRACC_VOLUME}
+  ${MINCTRACC_PROGLIB}
+  ${MINCTRACC_MAIN}
 )
 
 ADD_EXECUTABLE(check_scale  Extra_progs/check_scale.c)
@@ -108,20 +113,27 @@ TARGET_LINK_LIBRARIES(check_scale
 
 ADD_EXECUTABLE(minctracc 
   Main/make_matlab_data_file.c 
-	Main/minctracc.c )
-
-
-TARGET_LINK_LIBRARIES(
-	libminctracc
-	${VOLUME_IO_LIBRARIES}
-	${LIBMINC_LIBRARIES}
-	${LBFGS_LIBRARY}
+  Main/minctracc.c 
 )
 
 
 TARGET_LINK_LIBRARIES(
-	minctracc
-	libminctracc
+  _minctracc
+  ${VOLUME_IO_LIBRARIES}
+  ${LIBMINC_LIBRARIES}
+)
+
+IF(LIBLBFGS_FOUND)
+  TARGET_LINK_LIBRARIES(
+    _minctracc
+    ${LIBLBFGS_LIBRARY}
+  )
+ENDIF(LIBLBFGS_FOUND)
+
+
+TARGET_LINK_LIBRARIES(
+  minctracc
+  _minctracc
 )
 
 ADD_EXECUTABLE(param2xfm    Extra_progs/param2xfm.c)
@@ -182,7 +194,7 @@ ADD_EXECUTABLE(cmpxfm       Extra_progs/cmpxfm.c)
 #  Proglib
 #  )
 
-INSTALL(TARGETS libminctracc ${LIBRARY_INSTALL} DESTINATION lib)
+INSTALL(TARGETS _minctracc ${LIBRARY_INSTALL} DESTINATION lib)
 INSTALL(FILES ${MINCTRACC_HEADERS} DESTINATION include)
 INSTALL(TARGETS minctracc RUNTIME DESTINATION bin) # TODO: rename
 

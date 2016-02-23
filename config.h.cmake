@@ -1,5 +1,3 @@
-/* config.h.in.  Generated from configure.ac by autoheader.  */
-
 /* Define to 1 if you have the <float.h> header file. */
 #cmakedefine HAVE_FLOAT_H 1
 
@@ -38,6 +36,9 @@
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #cmakedefine HAVE_UNISTD_H 1
+
+/* Define to 1 if liblbfgs is available */
+#cmakedefine HAVE_LIBLBFGS 1
 
 /*Old behaviour, to be compatible with old releases, affects output of optimization*/
 #cmakedefine MNI_AUTOREG_OLD_AMOEBA_INIT 1

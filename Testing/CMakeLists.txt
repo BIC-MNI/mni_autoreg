@@ -17,8 +17,6 @@ MACRO(add_minc_test name command )
  ENDIF(MINC_TEST_ENVIRONMENT)
 ENDMACRO(add_minc_test)
 
-SET(ENV{DYLD_LIBRARY_PATH} "/Users/vfonov/src/build/minc-toolkit-itk4/external/opt/minc-itk4/lib")
-
 add_custom_command(
   OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc
   DEPENDS mni_autoreg
@@ -197,3 +195,8 @@ add_custom_target(create_test_data ALL
 add_minc_test(param2xfm           ${CMAKE_CURRENT_SOURCE_DIR}/param2xfm.test.cmake)
 add_minc_test(minctracc_linear    ${CMAKE_CURRENT_SOURCE_DIR}/minctracc.test1.cmake)
 add_minc_test(minctracc_nonlinear ${CMAKE_CURRENT_SOURCE_DIR}/minctracc.test2.cmake)
+
+IF(HAVE_LIBLBFGS)
+  add_minc_test(minctracc_bfgs_linear ${CMAKE_CURRENT_SOURCE_DIR}/minctracc.bfgs1.cmake)
+  add_minc_test(minctracc_bfgs_nonlinear ${CMAKE_CURRENT_SOURCE_DIR}/minctracc.bfgs2.cmake)
+ENDIF(HAVE_LIBLBFGS)
