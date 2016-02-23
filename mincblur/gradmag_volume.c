@@ -568,10 +568,10 @@ void get_file_info(char              *filename,
 
    /* Get variable identifiers */
    file_info->imgid = ncvarid(file_info->mincid, MIimage);
-   ncopts = 0;
+   set_ncopts(0);
    file_info->maxid = ncvarid(file_info->mincid, MIimagemax);
    file_info->minid = ncvarid(file_info->mincid, MIimagemin);
-   ncopts = NC_VERBOSE | NC_FATAL;
+   set_ncopts(NC_VERBOSE | NC_FATAL);
 
    /* Get information about datatype dimensions of variable */
    (void) ncvarinq(file_info->mincid, file_info->imgid, NULL, 
@@ -582,7 +582,7 @@ void get_file_info(char              *filename,
       file_info->is_signed = FALSE;
    else
       file_info->is_signed = TRUE;
-   ncopts = 0;
+   set_ncopts(0);
    if ((miattgetstr(file_info->mincid, file_info->imgid, MIsigntype, 
                     MI_MAX_ATTSTR_LEN, attstr) != NULL)) {
       if (strcmp(attstr, MI_SIGNED) == 0)
@@ -590,10 +590,10 @@ void get_file_info(char              *filename,
       else if (strcmp(attstr, MI_UNSIGNED) == 0)
          file_info->is_signed = FALSE;
    }
-   ncopts = NC_VERBOSE | NC_FATAL;
+   set_ncopts(NC_VERBOSE | NC_FATAL);
 
    /* Get valid max and min */
-   ncopts = 0;
+   set_ncopts(0);
    status=miattget(file_info->mincid, file_info->imgid, MIvalid_range, 
                    NC_DOUBLE, 2, vrange, &length);
    if ((status!=MI_ERROR) && (length==2)) {
@@ -621,7 +621,7 @@ void get_file_info(char              *filename,
             get_default_range(MIvalid_min, file_info->datatype, 
                               file_info->is_signed);
    }
-   ncopts = NC_VERBOSE | NC_FATAL;
+   set_ncopts(NC_VERBOSE | NC_FATAL);
 
    /* Set variables for keeping track of spatial dimensions */
    axis_counter = 0;                   /* Keeps track of values for axes */
@@ -678,13 +678,13 @@ void get_file_info(char              *filename,
       volume_def->nelements[cur_axis] = file_info->nelements[idim];
 
       /* Check for existence of variable */
-      ncopts = 0;
+      set_ncopts(0);
       dimid = ncvarid(file_info->mincid, dimname);
-      ncopts = NC_VERBOSE | NC_FATAL;
+      set_ncopts(NC_VERBOSE | NC_FATAL);
       if (dimid == MI_ERROR) continue;
              
       /* Get attributes from variable */
-      ncopts = 0;
+      set_ncopts(0);
       (void) miattget1(file_info->mincid, dimid, MIstep, 
                        NC_DOUBLE, &volume_def->step[cur_axis]);
       (void) miattget1(file_info->mincid, dimid, MIstart, 
@@ -696,7 +696,7 @@ void get_file_info(char              *filename,
                          MI_MAX_ATTSTR_LEN, volume_def->units[cur_axis]);
       (void) miattgetstr(file_info->mincid, dimid, MIspacetype, 
                          MI_MAX_ATTSTR_LEN, volume_def->spacetype[cur_axis]);
-      ncopts = NC_VERBOSE | NC_FATAL;
+      set_ncopts(NC_VERBOSE | NC_FATAL);
 
    }   /* End of loop over dimensions */
 
@@ -751,7 +751,7 @@ void create_output_file(char *filename,
 
    /* Create the list of excluded variables */
    nexcluded = 0;
-   ncopts = 0;
+   set_ncopts(0);
    if ((varid=ncvarid(in_file->mincid, MIxspace)) != MI_ERROR)
       excluded_vars[nexcluded++] = varid;
    if ((varid=ncvarid(in_file->mincid, MIyspace)) != MI_ERROR)
@@ -764,7 +764,7 @@ void create_output_file(char *filename,
       excluded_vars[nexcluded++] = varid;
    if ((varid=ncvarid(in_file->mincid, MIimagemin)) != MI_ERROR)
       excluded_vars[nexcluded++] = varid;
-   ncopts = NC_VERBOSE | NC_FATAL;
+   set_ncopts(NC_VERBOSE | NC_FATAL);
 
    /* Create the file */
    out_file->mincid = nccreate(filename, NC_CLOBBER );
@@ -774,7 +774,7 @@ void create_output_file(char *filename,
                               nexcluded, excluded_vars);
 
    /* Add the time stamp */
-   ncopts=0;
+   set_ncopts(0);
    if ((ncattinq(out_file->mincid, NC_GLOBAL, MIhistory, &datatype,
                  &att_length) == MI_ERROR) ||
        (datatype != NC_CHAR))
@@ -784,7 +784,7 @@ void create_output_file(char *filename,
    string[0] = '\0';
    (void) miattgetstr(out_file->mincid, NC_GLOBAL, MIhistory, att_length, 
                       string);
-   ncopts=NC_VERBOSE | NC_FATAL;
+   set_ncopts(NC_VERBOSE | NC_FATAL);
    (void) strcat(string, tm_stamp);
    (void) miattputstr(out_file->mincid, NC_GLOBAL, MIhistory, string);
    FREE(string);
@@ -823,9 +823,9 @@ void create_output_file(char *filename,
       (void) ncdiminq(in_file->mincid, in_dims[in_index], dimname, NULL);
 
       /* Check to see if the dimension already exists */
-      ncopts = 0;
+      set_ncopts(0);
       out_dims[out_index] = ncdimid(out_file->mincid, dimname);
-      ncopts = NC_VERBOSE | NC_FATAL;
+      set_ncopts(NC_VERBOSE | NC_FATAL);
       dim_exists = (out_dims[out_index] != MI_ERROR);
 
       /* If we have a volume dimension and it exists already with the wrong
@@ -833,13 +833,13 @@ void create_output_file(char *filename,
       if (is_volume_dimension && dim_exists && 
           (out_file->nelements[out_index] != in_file->nelements[in_index])) {
          string = MALLOC(MAX_NC_NAME);
-         ncopts = 0;
+         set_ncopts(0);
          idim = 0;
          do {
             (void) sprintf(string, "%s%d", dimname, idim);
             idim++;
          } while (ncdimid(out_file->mincid, string) != MI_ERROR);
-         ncopts = NC_VERBOSE | NC_FATAL;
+         set_ncopts(NC_VERBOSE | NC_FATAL);
          (void) ncdimrename(out_file->mincid, out_dims[out_index], string);
          FREE(string);
          out_dims[out_index] = ncdimdef(out_file->mincid, dimname, 
@@ -901,10 +901,10 @@ void create_output_file(char *filename,
    /* To commit our subterfuge, we check for an error creating the variable
       (it is illegal). If there is an error, we rename MIimage, create the
       variable, restore MIimage and add the pointer */
-   ncopts = 0;
+   set_ncopts(0);
    out_file->maxid = micreate_std_variable(out_file->mincid, MIimagemax,
                                            NC_DOUBLE, ndims-2, out_dims);
-   ncopts = NC_VERBOSE | NC_FATAL;
+   set_ncopts(NC_VERBOSE | NC_FATAL);
    if (out_file->maxid == MI_ERROR) {
       (void) ncvarrename(out_file->mincid, out_file->imgid, TEMP_IMAGE_VAR);
       out_file->maxid = micreate_std_variable(out_file->mincid, MIimagemax,
@@ -917,10 +917,10 @@ void create_output_file(char *filename,
       (void) micopy_all_atts(in_file->mincid, in_file->maxid,
                              out_file->mincid, out_file->maxid);
    /* Repeat for min variable */
-   ncopts = 0;
+   set_ncopts(0);
    out_file->minid = micreate_std_variable(out_file->mincid, MIimagemin,
                                            NC_DOUBLE, ndims-2, out_dims);
-   ncopts = NC_VERBOSE | NC_FATAL;
+   set_ncopts(NC_VERBOSE | NC_FATAL);
    if (out_file->minid == MI_ERROR) {
       (void) ncvarrename(out_file->mincid, out_file->imgid, TEMP_IMAGE_VAR);
       out_file->minid = micreate_std_variable(out_file->mincid, MIimagemin,
@@ -933,7 +933,7 @@ void create_output_file(char *filename,
       (void) micopy_all_atts(in_file->mincid, in_file->minid,
                              out_file->mincid, out_file->minid);
 
-   ncopts = 0;
+   set_ncopts(0);
 
    /* Get id of processing variable (create it if needed) */
    varid = ncvarid(out_file->mincid, PROCESSING_VAR);

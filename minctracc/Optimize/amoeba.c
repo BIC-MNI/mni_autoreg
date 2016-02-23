@@ -144,9 +144,9 @@
 static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/minctracc/Optimize/amoeba.c,v 96.10 2006-11-30 09:07:32 rotor Exp $";
 #endif
 
-#ifdef HAVE_CONFOG_H
+#ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif //HAVE_CONFOG_H
+#endif //HAVE_CONFIG_H
 
 
 #include <volume_io.h>
