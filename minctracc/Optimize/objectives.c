@@ -111,7 +111,7 @@ static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/minctracc
 
 #include <volume_io.h>
 #include "constants.h"
-#include "arg_data.h"
+#include "minctracc_arg_data.h"
 #include "interpolation.h"
 #include "segment_table.h"
 #include "local_macros.h"

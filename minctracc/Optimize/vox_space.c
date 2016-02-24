@@ -18,7 +18,7 @@
 #include <config.h>
 #include <volume_io.h>
 #include "constants.h"
-#include "arg_data.h"
+#include "minctracc_arg_data.h"
 #include "vox_space.h"
 #include "local_macros.h"
 

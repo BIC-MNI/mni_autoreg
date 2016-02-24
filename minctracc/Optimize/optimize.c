@@ -175,7 +175,7 @@ static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/minctracc
 #include <amoeba.h>
 
 #include "constants.h"
-#include "arg_data.h"
+#include "minctracc_arg_data.h"
 #include "objectives.h"
 #include "make_rots.h"
 #include "segment_table.h"

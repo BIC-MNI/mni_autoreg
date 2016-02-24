@@ -102,10 +102,10 @@ static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/minctracc
 #include <config.h>
 #include <float.h>
 #include <volume_io.h>
-#include "point_vector.h"
+#include "minctracc_point_vector.h"
 #include "constants.h"
 #include <Proglib.h>
-#include <arg_data.h>                /* definition of the global data struct      */
+#include <minctracc_arg_data.h>                /* definition of the global data struct      */
 #include "local_macros.h"
 
 int point_not_masked(VIO_Volume volume, 

@@ -1,7 +1,7 @@
 #ifndef MINCTRACC_POINT_VECTOR_H
 #define MINCTRACC_POINT_VECTOR_H
 
-                                /* redefine Point and Vector */
+/* redefine Point and Vector */
 
 #define VIO_N_DIMENSIONS 3
 

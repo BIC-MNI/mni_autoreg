@@ -10,7 +10,7 @@
 #include "constants.h"
 #include "matrix_basics.h"
 #include "make_rots.h"
-#include "point_vector.h"
+#include "minctracc_point_vector.h"
 #include "interpolation.h"
 
 

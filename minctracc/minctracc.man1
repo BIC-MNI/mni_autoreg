@@ -285,6 +285,9 @@ equivalent to 1mm of translation.
 .I -w_shear
 <w_sa> <w_sb> <w_sc>: Optimization weight of shears a,b and c (default
 = 0.02 0.02 0.02)
+.P
+.I -use_bfgs
+Use BFGS optimizer instead of amoeba simplex
 .SH Options for 3D lattice definition.
 The objective function is estimated only on the nodes of a 3D lattice
 defined on the smallest of the two volumes.  In this way, the

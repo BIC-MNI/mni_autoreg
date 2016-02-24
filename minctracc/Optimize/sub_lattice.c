@@ -81,7 +81,7 @@
 
 #include <Proglib.h>
 #include "constants.h"
-#include "arg_data.h"                /* definition of the global data struct      */
+#include "minctracc_arg_data.h"                /* definition of the global data struct      */
 #include "sub_lattice.h"
 #include "init_lattice.h"
 

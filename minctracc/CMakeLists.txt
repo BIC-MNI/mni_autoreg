@@ -11,37 +11,37 @@ SET ( MINCTRACC_FILES
 )
 
 SET ( MINCTRACC_OPTIMIZE
-	Optimize/def_obj_functions.c 
-	Optimize/extras.c 
-	Optimize/sub_lattice.c
-	Optimize/amoeba.c 
-	Optimize/vox_space.c 
-	Optimize/objectives.c 
-	Optimize/optimize.c 
-	Optimize/segment_table.c 
-	Optimize/deform_support.c 
-	Optimize/super_sample_def.c 
-	Optimize/my_grid_support.c 
-	Optimize/obj_fn_mutual_info.c 
-	Optimize/do_nonlinear.c
-)	
+  Optimize/def_obj_functions.c 
+  Optimize/extras.c 
+  Optimize/sub_lattice.c
+  Optimize/amoeba.c 
+  Optimize/vox_space.c 
+  Optimize/objectives.c 
+  Optimize/optimize.c 
+  Optimize/segment_table.c 
+  Optimize/deform_support.c 
+  Optimize/super_sample_def.c 
+  Optimize/my_grid_support.c 
+  Optimize/obj_fn_mutual_info.c 
+  Optimize/do_nonlinear.c
+)
 
 SET (MINCTRACC_NUMERICAL
-	Numerical/cov_to_praxes.c 
-	Numerical/init_params.c 
-	Numerical/quaternion.c
-	Numerical/make_rots.c 
-	Numerical/matrix_basics.c 
-	Numerical/rotmat_to_ang.c 
-	Numerical/default_def.c 
-	Numerical/quad_max_fit.c 
-	Numerical/stats.c
+  Numerical/cov_to_praxes.c 
+  Numerical/init_params.c 
+  Numerical/quaternion.c
+  Numerical/make_rots.c 
+  Numerical/matrix_basics.c 
+  Numerical/rotmat_to_ang.c 
+  Numerical/default_def.c 
+  Numerical/quad_max_fit.c 
+  Numerical/stats.c
 )
 
 SET (MINCTRACC_VOLUME
-	Volume/init_lattice.c 
-	Volume/interpolation.c 
-	Volume/volume_functions.c
+  Volume/init_lattice.c 
+  Volume/interpolation.c 
+  Volume/volume_functions.c
 )
 
 SET (MINCTRACC_PROGLIB
@@ -55,10 +55,16 @@ SET (MINCTRACC_MAIN
   Main/make_matlab_data_file.c
 )
 
+SET ( LIB_MINCTRACC_HEADERS
+  Include/minctracc_point_vector.h
+  Include/minctracc_arg_data.h
+  Include/libminctracc.h
+)
+
+
 SET ( MINCTRACC_HEADERS
   Include/libminctracc.h
   Include/amoeba.h
-  Include/arg_data.h
   Include/constants.h
   Include/cov_to_praxes.h
   Include/deform_support.h
@@ -71,7 +77,6 @@ SET ( MINCTRACC_HEADERS
   Include/matrix_basics.h
   Include/minctracc.h
   Include/objectives.h
-  Include/point_vector.h
   Include/quad_max_fit.h
   Include/quaternion.h
   Include/rotmat_to_ang.h
@@ -81,15 +86,16 @@ SET ( MINCTRACC_HEADERS
   Include/super_sample_def.h
   Include/vox_space.h
   ../Proglib/Proglib.h
+  ${LIB_MINCTRACC_HEADERS}
 )
 
-ADD_LIBRARY(minctracc_files STATIC ${MINCTRACC_FILES})
+#ADD_LIBRARY(minctracc_files STATIC ${MINCTRACC_FILES})
 
-ADD_LIBRARY(minctracc_optimize STATIC ${MINCTRACC_OPTIMIZE})
+#ADD_LIBRARY(minctracc_optimize STATIC ${MINCTRACC_OPTIMIZE})
 
-ADD_LIBRARY(minctracc_numerical STATIC ${MINCTRACC_NUMERICAL})
+#ADD_LIBRARY(minctracc_numerical STATIC ${MINCTRACC_NUMERICAL})
 
-ADD_LIBRARY(minctracc_volume  STATIC ${MINCTRACC_VOLUME})
+#ADD_LIBRARY(minctracc_volume  STATIC ${MINCTRACC_VOLUME})
 
 ADD_LIBRARY(_minctracc ${LIBRARY_TYPE} 
   ${MINCTRACC_HEADERS} 
@@ -100,22 +106,6 @@ ADD_LIBRARY(_minctracc ${LIBRARY_TYPE}
   ${MINCTRACC_PROGLIB}
   ${MINCTRACC_MAIN}
 )
-
-ADD_EXECUTABLE(check_scale  Extra_progs/check_scale.c)
-
-TARGET_LINK_LIBRARIES(check_scale
- minctracc_files 
- minctracc_optimize 
- minctracc_numerical
- minctracc_volume
- Proglib
-)
-
-ADD_EXECUTABLE(minctracc 
-  Main/make_matlab_data_file.c 
-  Main/minctracc.c 
-)
-
 
 TARGET_LINK_LIBRARIES(
   _minctracc
@@ -130,6 +120,16 @@ IF(LIBLBFGS_FOUND)
   )
 ENDIF(LIBLBFGS_FOUND)
 
+ADD_EXECUTABLE(check_scale  Extra_progs/check_scale.c)
+
+TARGET_LINK_LIBRARIES(check_scale
+  _minctracc
+)
+
+ADD_EXECUTABLE(minctracc 
+  Main/make_matlab_data_file.c 
+  Main/minctracc.c 
+)
 
 TARGET_LINK_LIBRARIES(
   minctracc
@@ -139,11 +139,7 @@ TARGET_LINK_LIBRARIES(
 ADD_EXECUTABLE(param2xfm    Extra_progs/param2xfm.c)
 
 TARGET_LINK_LIBRARIES(param2xfm
- minctracc_files 
- minctracc_optimize 
- minctracc_numerical
- minctracc_volume
- Proglib
+ _minctracc 
 )
 
 
@@ -168,12 +164,9 @@ TARGET_LINK_LIBRARIES(param2xfm
 # 
 ADD_EXECUTABLE(xfm2param    Extra_progs/xfm2param.c)
  
- TARGET_LINK_LIBRARIES(xfm2param
-  minctracc_files 
-  minctracc_optimize 
-  minctracc_numerical
-  minctracc_volume
-  Proglib)
+TARGET_LINK_LIBRARIES(xfm2param
+  _minctracc
+  )
  
 # ADD_EXECUTABLE(zscore_vol    Extra_progs/zscore_vol.c)
 # 
@@ -195,8 +188,8 @@ ADD_EXECUTABLE(cmpxfm       Extra_progs/cmpxfm.c)
 #  )
 
 INSTALL(TARGETS _minctracc ${LIBRARY_INSTALL} DESTINATION lib)
-INSTALL(FILES ${MINCTRACC_HEADERS} DESTINATION include)
-INSTALL(TARGETS minctracc RUNTIME DESTINATION bin) # TODO: rename
+INSTALL(FILES   ${LIB_MINCTRACC_HEADERS} DESTINATION include)
+INSTALL(TARGETS minctracc RUNTIME DESTINATION bin) 
 
 INSTALL(TARGETS 
 # minctracc-e 
@@ -211,3 +204,8 @@ INSTALL(TARGETS
   cmpxfm
 #  make_lvv_vol
  RUNTIME DESTINATION bin)
+
+
+INSTALL_MAN_PAGES( ${CMAKE_INSTALL_PREFIX}/man
+  minctracc.man1
+)

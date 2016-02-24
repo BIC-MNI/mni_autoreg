@@ -179,6 +179,8 @@ ArgvInfo argTable[] = {
   {"-w_shear", ARGV_FLOAT, (char *) 3, 
      (char *) &main_argsX.trans_info.weights[9],
      "Optimization weight of shears a,b and c."},
+  {"-use_bfgs", ARGV_CONSTANT, (char *) FALSE, (char *) &main_argsX.trans_info.use_bfgs,
+     "use BFGS optimizer instead of amoeba "},
 
   {NULL, ARGV_HELP, NULL, NULL,
      "\nOptions for measurement comparison."},
@@ -236,8 +238,6 @@ ArgvInfo argTable[] = {
      "use optical flow to compute deformation."},
   {"-use_simplex", ARGV_CONSTANT, (char *) TRUE, (char *) &main_argsX.trans_info.use_simplex,
      "use 3D simplex optimization for local deformation (default)."},
-  {"-use_bfgs", ARGV_CONSTANT, (char *) FALSE, (char *) &main_argsX.trans_info.use_bfgs,
-     "use BFGS simplex optimization for local deformation "},
   {"-quadratic", ARGV_CONSTANT, (char *) FALSE, (char *) &main_argsX.trans_info.use_simplex,
      "use quadratic fit for local deformation."},
   {"-use_local", ARGV_CONSTANT, (char *) TRUE, (char *) &main_argsX.trans_info.use_local_smoothing,

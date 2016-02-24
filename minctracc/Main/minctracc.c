@@ -175,32 +175,11 @@ static char minctracc_rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg
 #endif /*HAVE_CONFIG_H*/
 
 #include <float.h>
-/*#include <ParseArgv.h>*/
 #include <volume_io.h>
 #include <minctracc.h>
 #include <globals.h>
 #include <objectives.h>
 #include "local_macros.h"
-
-/* objective function for nonlinear optimization.
- * Set in get_nonlinear_objective().
- */
-static int obj_func0 = -1;
-
-VIO_Real initial_corr, final_corr;
-static char *default_dim_names[VIO_N_DIMENSIONS] = 
-    { MIzspace, MIyspace, MIxspace };
-
-/* Why are these declared here?  They aren't apparently used.
- * -smr
- *
- * static   const VIO_STR      TRANSFORM_FILE_HEADER = "MNI VIO_Transform File";
- * static   const VIO_STR      LINEAR_TYPE = "Linear";
- * static   const VIO_STR      TYPE_STRING = "Transform_Type";
- * static   const VIO_STR      LINEAR_TRANSFORM_STRING = "Linear_Transform";
- * static   const VIO_STR      GRID_TRANSFORM_STRING = "Grid_Transform";
- * static   const VIO_STR      DISPLACEMENT_VOLUME = "Displacement_Volume";
- */
 
 /*************************************************************************/
 int main ( int argc, char* argv[] )

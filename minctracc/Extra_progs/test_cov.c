@@ -3,7 +3,7 @@
 #include "constants.h"
 #include "matrix_basics.h"
 #include "make_rots.h"
-#include "point_vector.h"
+#include "minctracc_point_vector.h"
 
 #define DO_TRANSFORM(result, transformation, coord) \
    general_transform_point(transformation, \

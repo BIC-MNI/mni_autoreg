@@ -1,7 +1,7 @@
 #ifndef MINCTRACC_INTERPOLATION_H
 #define MINCTRACC_INTERPOLATION_H
 
-#include "point_vector.h"
+#include "minctracc_point_vector.h"
 
 
 int trilinear_interpolant(VIO_Volume volume, 

@@ -114,7 +114,7 @@ static char rcsid[]="";
 #include <config.h>
 #include <volume_io.h>
 #include <Proglib.h>
-#include "arg_data.h"
+#include "minctracc_arg_data.h"
 #include "local_macros.h"
 #include "constants.h"
 

@@ -22,3 +22,9 @@ INSTALL(FILES
 	${CMAKE_CURRENT_BINARY_DIR}/mritotal.default.cfg 
 	${CMAKE_CURRENT_BINARY_DIR}/mritotal.icbm.cfg
   DESTINATION etc )
+
+
+INSTALL_MAN_PAGES( ${CMAKE_INSTALL_PREFIX}/man
+  autocrop.man1  mritoself.man1  mritotal.man1
+)
+

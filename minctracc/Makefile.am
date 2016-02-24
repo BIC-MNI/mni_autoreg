@@ -14,7 +14,7 @@ docs = Doc/doc
 
 includes = \
 	Include/amoeba.h \
-	Include/arg_data.h \
+	Include/minctracc_arg_data.h \
 	Include/constants.h \
 	Include/cov_to_praxes.h \
 	Include/deform_support.h \
@@ -27,7 +27,7 @@ includes = \
 	Include/matrix_basics.h \
 	Include/minctracc.h \
 	Include/objectives.h \
-	Include/point_vector.h \
+	Include/minctracc_point_vector.h \
 	Include/quad_max_fit.h \
 	Include/quaternion.h \
 	Include/rotmat_to_ang.h \

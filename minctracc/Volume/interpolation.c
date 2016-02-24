@@ -71,7 +71,7 @@ static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/minctracc
 #endif
 
 #include <volume_io.h>
-#include "point_vector.h"
+#include "minctracc_point_vector.h"
 
 #define VOL_NDIMS 3
 

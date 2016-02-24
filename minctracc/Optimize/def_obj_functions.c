@@ -55,7 +55,7 @@
 #include <config.h>                
 #include <volume_io.h>        
 #include "constants.h"
-#include <arg_data.h>           /* definition of the global data struct      */
+#include <minctracc_arg_data.h>           /* definition of the global data struct      */
 #include <Proglib.h>
 
 

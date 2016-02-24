@@ -1,7 +1,7 @@
 #ifndef MINCTRACC_INIT_LATTICE_H
 #define MINCTRACC_INIT_LATTICE_H
 
-#include "point_vector.h"
+#include "minctracc_point_vector.h"
 
 void get_volume_XYZV_indices(VIO_Volume data, int xyzv[]);
 

@@ -365,7 +365,7 @@ static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/minctracc
 #include <amoeba.h>                /* simplex optimization struct               */
 
 #include <stdlib.h>                /* to get header info for drand48()          */
-#include <arg_data.h>                /* definition of the global data struct      */
+#include <minctracc_arg_data.h>                /* definition of the global data struct      */
 #include <Proglib.h>        /* def of print_error_and_..                 */
 #include <deform_support.h>        /* prototypes for routines called
                                    from deformation procedures.              */

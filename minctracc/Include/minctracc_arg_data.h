@@ -1,7 +1,7 @@
-#ifndef ARG_DATA_H
-#define ARG_DATA_H
+#ifndef MINCTRACC_ARG_DATA_H
+#define MINCTRACC_ARG_DATA_H
 
-#include "point_vector.h"
+#include "minctracc_point_vector.h"
 
 typedef struct Arg_Data_struct Arg_Data;
 

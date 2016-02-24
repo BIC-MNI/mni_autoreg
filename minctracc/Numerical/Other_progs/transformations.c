@@ -75,7 +75,7 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 
 #include <volume_io.h>
 
-#include "arg_data.h"
+#include "minctracc_arg_data.h"
 
 extern Arg_Data *main_args;
 

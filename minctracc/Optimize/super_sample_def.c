@@ -108,7 +108,7 @@ static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/minctracc
 #include <volume_io.h>
 #include <Proglib.h>
 #include "constants.h"
-#include "point_vector.h"
+#include "minctracc_point_vector.h"
 
                                 /* prototypes called: */
 

@@ -117,7 +117,7 @@
 
 /* ------------------------  Types used in program  ------------------------ */
 
-#include "arg_data.h"
+#include "minctracc_arg_data.h"
 
 /*  ------------------------ Function prototypes  ------------------------ */
 
@@ -228,6 +228,9 @@ void add_a_feature_for_matching(Feature_volumes *features,
                                 VIO_Real weight,
                                 VIO_Real thresh_data,
                                 VIO_Real thresh_model);
+
+
+int minctraccOldFashioned ( int argc, char* argv[] );
 
 
 /*---------------------- functions relatives to quaternions-------------------------------------------*/
