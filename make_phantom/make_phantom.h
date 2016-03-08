@@ -18,6 +18,7 @@ VIO_Real   start[3]       = { 0.0, 0.0, 0.0 };
 int    count[3]       = { 128, 128, 128 };
 int    datatype       = NC_BYTE;
 int    is_signed      = FALSE;
+int    is_labels      = FALSE;
 
 int    object         = RECTANGLE;
 VIO_Real   center[3]      = { 128.0, 128.0, 128.0 };
@@ -121,6 +122,14 @@ static ArgvInfo argTable[] = {
      "Write signed integer data"},
   {"-unsigned", ARGV_CONSTANT, (char *) FALSE, (char *) &is_signed,
      "Write unsigned integer data (default)"},
+     
+  {"-labels", ARGV_CONSTANT, (char *) TRUE, (char *) &is_labels,
+      "integer operation on labels"},
+  {"-discrete", ARGV_CONSTANT, (char *) TRUE, (char *) &is_labels,
+      "integer operation on labels, synonym to -labels"},
+  {"-continuous", ARGV_CONSTANT, (char *) FALSE, (char *) &is_labels,
+      "continuous operation on labels, opposite to -labels"},
+
   {"-voxel_range", ARGV_FLOAT, (char *) 2, (char *) voxel_range,
      "Valid voxel range for output data"},
   {"-real_range", ARGV_FLOAT, (char *) 2, (char *) real_range,
