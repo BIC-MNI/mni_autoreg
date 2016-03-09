@@ -11,11 +11,11 @@ int  verbose      = TRUE;
 int  clobber_flag = FALSE;
 int  partial_flag  = TRUE;
 
-VIO_Real   voxel_range[2] = { 1.0,  255.0 };
-VIO_Real   real_range[2]  = { 0.0,    1.0 };
+VIO_Real   voxel_range[2] = { -1.0,  -1.0   };
+VIO_Real   real_range[2]  = { -1.0,  -1.0   };
 VIO_Real   step[3]        = { 2.0, 2.0, 2.0 };
 VIO_Real   start[3]       = { 0.0, 0.0, 0.0 };
-int    count[3]       = { 128, 128, 128 };
+int    count[3]           = { 128, 128, 128 };
 int    datatype       = NC_BYTE;
 int    is_signed      = FALSE;
 int    is_labels      = FALSE;

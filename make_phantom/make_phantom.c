@@ -201,6 +201,7 @@ int main (int argc, char *argv[] )
     data;
   VIO_Real
     fraction,zero, one,
+    edge,
     r2[3],
     coord[3],
     voxel[3];
@@ -266,7 +267,28 @@ int main (int argc, char *argv[] )
   /******************************************************************************/
   
   data = create_volume(3, default_dim_names, datatype, is_signed, 0.0, 0.0);
-  set_volume_labels(data,is_labels);
+  
+  /*Assume if user set these values, he knows what he is doing*/
+  if(voxel_range[0]==voxel_range[1] && voxel_range[0]==-1.0)
+  {
+    if(is_labels)
+    {
+      voxel_range[0]=MIN3(background,fill_value,edge_value);
+      voxel_range[1]=MAX3(background,fill_value,edge_value);
+    } else {
+      voxel_range[0]=0.0;
+      voxel_range[1]=255.0;
+    }
+  }
+  /*Assume if user set these values, he knows what he is doing*/
+  if(real_range[0]==real_range[1] && real_range[0]==-1.0)
+  {
+    real_range[0]=MIN3(background,fill_value,edge_value);
+    real_range[1]=MAX3(background,fill_value,edge_value);
+  }
+  
+  set_volume_labels(data, is_labels);
+  
   set_volume_voxel_range(data, voxel_range[0], voxel_range[1]);
   set_volume_real_range( data, real_range[0],  real_range[1]);
   set_volume_sizes(data, count);
@@ -280,11 +302,13 @@ int main (int argc, char *argv[] )
   alloc_volume_data(data);
 
   zero = CONVERT_VALUE_TO_VOXEL(data, background);
-  one = CONVERT_VALUE_TO_VOXEL(data, fill_value);
+  one  = CONVERT_VALUE_TO_VOXEL(data, fill_value);
+  edge = CONVERT_VALUE_TO_VOXEL(data, edge_value);
 
   if (debug) print ("zero: real = %f, voxel = %f\n", background, zero);
-  if (debug) print ("one: real = %f, voxel = %f\n", fill_value, one);
-
+  if (debug) print ("one:  real = %f, voxel = %f\n", fill_value, one);
+  if (debug) print ("edge: real = %f, voxel = %f\n", edge_value, edge);
+  
   /******************************************************************************/
   /*             write out background value                                     */
   /******************************************************************************/
@@ -452,7 +476,7 @@ int main (int argc, char *argv[] )
               }
               else {
                   if (in7) {
-                      SET_VOXEL_3D(data, i,j,k, one);
+                      SET_VOXEL_3D(data, i,j,k, edge);
                   }
               }
               
@@ -472,6 +496,5 @@ int main (int argc, char *argv[] )
   
   
   return(status);
-   
 }
 
