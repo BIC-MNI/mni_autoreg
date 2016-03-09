@@ -236,25 +236,37 @@ int main (int argc, char *argv[] )
   outfilename  = argv[1];
   
   if (!clobber_flag && file_exists(outfilename)) {
-    print ("File %s exists.\n",outfilename);
-    print ("Use -clobber to overwrite.\n");
+    fprintf(stderr, "File %s exists.\n",outfilename);
+    fprintf(stderr, "Use -clobber to overwrite.\n");
     return VIO_ERROR;
   }
 
   /* check to see if the output file can be written */
   status = open_file( outfilename , WRITE_FILE, BINARY_FORMAT,  &ofd );
   if ( status != VIO_OK ) {
-    print ("filename `%s' cannot be opened.", outfilename);
+    fprintf(stderr, "filename `%s' cannot be opened.\n", outfilename);
     return VIO_ERROR;
   }
   status = close_file(ofd);
   (void)remove(outfilename);   
+  
+  if(partial_flag && is_labels)
+  {
+    fprintf(stderr, "Warning: trying to produce labels file with partial volume effect!\n");
+    partial_flag = FALSE;
+  }
 
+  /*TODO: print warnings?*/
+  if(is_labels && voxel_range[0]!=real_range[0])
+    real_range[0]=voxel_range[0];
+  if(is_labels && voxel_range[1]!=real_range[1])
+    real_range[0]=voxel_range[1];
   /******************************************************************************/
   /*             create volume data                                             */
   /******************************************************************************/
   
   data = create_volume(3, default_dim_names, datatype, is_signed, 0.0, 0.0);
+  set_volume_labels(data,is_labels);
   set_volume_voxel_range(data, voxel_range[0], voxel_range[1]);
   set_volume_real_range( data, real_range[0],  real_range[1]);
   set_volume_sizes(data, count);
