@@ -97,7 +97,7 @@ static char *default_dim_names[VIO_N_DIMENSIONS] =
 
 char *prog_name;
 
-
+#if 0
 VIO_BOOL vol_to_cov(VIO_Volume d1, VIO_Volume m1, float *centroid, float **covar, double *step)
 {
 
@@ -266,7 +266,7 @@ VIO_BOOL vol_to_cov(VIO_Volume d1, VIO_Volume m1, float *centroid, float **covar
     return(FALSE);
   }
 }
-
+#endif
 
 
 VIO_BOOL get_cog(char *file, double *c1)
