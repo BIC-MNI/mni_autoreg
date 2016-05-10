@@ -8,11 +8,7 @@ LIST(APPEND MINC_TEST_ENVIRONMENT "MINCTRACC=${minctracc_bin}")
 
 STRING(REPLACE ";" " " MY_ENV "${MINC_TEST_ENVIRONMENT}")
 
-
 set_directory_properties( PROPERTIES ENVIRONMENT "${MINC_TEST_ENVIRONMENT}")
-message("MINC_TEST_ENVIRONMENT=${MINC_TEST_ENVIRONMENT}")
-
-
 
 configure_file(minc_wrapper.cmake ${CMAKE_CURRENT_BINARY_DIR}/minc_wrapper @ONLY)
 
