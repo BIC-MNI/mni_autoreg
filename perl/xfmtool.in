@@ -408,7 +408,7 @@ that allows you to extract a single part of a multipart transformation
 
 eg: 
 
-   xfmtool 'extract(1)in.xfm' out.xfm
+   xfmtool 'extract(1):in.xfm' out.xfm
 
 The above will extract the first xfm from in.xfm and put the result
 in out.xfm
