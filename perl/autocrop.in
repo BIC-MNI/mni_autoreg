@@ -388,6 +388,10 @@ sub ParseArgs
         "<xstep> <ystep> <zstep>"],
        ["-isostep", "call", undef, $get_isostep,
         "set the step (same in all three dimensions) for the output sampling"],
+       ["-keep_real_range", "copy", undef, \$Keep,
+        "Supply -keep to mincresample (if used)."],
+       ["-nearest_neighbour", "copy", undef, \$Near,
+        "Supply -near to mincresample (if used)."],
 
        ["Generic volume output options", "section"],
        ["-byte", "copy", undef, \$OutputType, ""],
@@ -443,6 +447,9 @@ sub ParseArgs
    push (@MincOptions, $Orientation) if defined $Orientation;
    $MincResample .= " " . join (" ", @MincOptions);
    $MincReshape .= " " . join (" ", @MincOptions);
+   push (@MincOptions, '-keep_real_range') if defined $Keep;
+   push (@MincOptions, '-nearest_neighbour') if defined $Near;
+   $MincResample .= " " . join (" ", @MincOptions);
 }
 
 
