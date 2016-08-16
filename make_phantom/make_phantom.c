@@ -493,7 +493,9 @@ int main (int argc, char *argv[] )
                          history, (minc_output_options *)NULL);  
   if (status != VIO_OK)
     print("problems writing volume data for %s.", outfilename);
-  
+
+  FREE(history);
+  delete_volume(data);
   
   return(status);
 }

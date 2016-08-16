@@ -741,8 +741,6 @@ int minctraccOldFashioned ( int argc, char* argv[] )
         DEBUG_PRINT( "This run will use optical flow.\n");
     }
 
-  ALLOC(data,1);
-
   status = input_volume( main_args->filenames.data, 3, default_dim_names, 
                          NC_DOUBLE, FALSE, 0.0, 0.0,
                          TRUE, &data, (minc_input_options *)NULL );
@@ -947,7 +945,6 @@ int minctraccOldFashioned ( int argc, char* argv[] )
                                 /* calculate the actual transformation now. */
 
     if (main_args->trans_info.transform_type == TRANS_NONLIN) {
-
       build_default_deformation_field(main_args);
       
 
@@ -1029,7 +1026,6 @@ int minctraccOldFashioned ( int argc, char* argv[] )
   FREE(main_args->trans_info.orig_transformation);
   free_features (&(main_args->features));
   FREE(main_args->trans_info.file_contents);
-  // Note: don't know how to free ALLOC(data) above. (Claude).
 
   return( status );
 }

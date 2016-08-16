@@ -105,7 +105,7 @@ void get_into_voxel_space(Arg_Data *globals,
                                  VIO_Volume v1, VIO_Volume v2) {
    VIO_Transform 
       *lin;
-   VIO_General_transform 
+   VIO_General_transform a, b, c,
       *reorder,
       *w2v;
    VIO_Real 
@@ -152,26 +152,30 @@ void get_into_voxel_space(Arg_Data *globals,
    ALLOC(w2v,1);
    ALLOC(reorder,1);
    create_linear_transform(reorder, (VIO_Transform *)NULL); /* build identity */
-   
 
    create_inverse_general_transform(get_voxel_to_world_transform( v2 ),
                                     w2v);
-
    
                                 /* go from voxel to xyz space */
    build_reorder_matrix_vox2xyz(reorder, v1);
    concat_general_transforms(reorder,
                              get_voxel_to_world_transform( v1 ), 
-                             vox->voxel_to_voxel_space );
-   concat_general_transforms(vox->voxel_to_voxel_space,
+                             &a );
+   concat_general_transforms(&a,
                              globals->trans_info.transformation,
-                             vox->voxel_to_voxel_space );
+                             &b );
 
-   concat_general_transforms(vox->voxel_to_voxel_space, w2v, 
-                             vox->voxel_to_voxel_space);
+   concat_general_transforms(&b, w2v, &c);
    build_reorder_matrix_xyz2vox(reorder, v2);
-   concat_general_transforms(vox->voxel_to_voxel_space, reorder, 
+   delete_general_transform(vox->voxel_to_voxel_space);
+   concat_general_transforms(&c, reorder,
                              vox->voxel_to_voxel_space);
+
+   delete_general_transform(&a);
+   delete_general_transform(&b);
+   delete_general_transform(&c);
+   delete_general_transform(w2v);
+   delete_general_transform(reorder);
    FREE(w2v);
    FREE(reorder);
 

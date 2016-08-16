@@ -60,6 +60,7 @@ static char rcsid[]="$Header: /private-cvsroot/registration/mni_autoreg/minctrac
 #include <float.h>
 
 #include <ParseArgv.h>
+#include <time_stamp.h>
 
 /*#include <globals.h>*/
 

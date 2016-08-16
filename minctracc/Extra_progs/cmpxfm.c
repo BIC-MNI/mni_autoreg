@@ -36,12 +36,8 @@ static ArgvInfo argTable[] = {
 /* Given a file name, check that it is a linear transform,
    return pointer to (linear) VIO_Transform structure, if so.
 */
-VIO_Transform* input_linear_transform( char* filename )
+VIO_Transform* input_linear_transform( char* filename, VIO_General_transform *gt )
 {
-    VIO_General_transform* gt;
-
-    ALLOC( gt, 1 );
-
     if ( input_transform_file( filename, gt ) != VIO_OK ) {
         fprintf( stderr, "%s: cannot read file %s\n",
                  ProgName, filename );
@@ -90,6 +86,9 @@ int do_compare( VIO_Transform* xfm1, VIO_Transform* xfm2,
 int main( int ac, char* av[] ) {
     VIO_Transform* xfm1;
     VIO_Transform* xfm2;
+    VIO_General_transform gt1;
+    VIO_General_transform gt2;
+    int r;
 
     /* Set defaults before parsing arguments */
     ProgName = av[0];
@@ -109,12 +108,16 @@ int main( int ac, char* av[] ) {
         return 1;
     }
 
-    xfm1 = input_linear_transform(av[1]);
-    xfm2 = input_linear_transform(av[2]);
+    xfm1 = input_linear_transform(av[1], &gt1);
+    xfm2 = input_linear_transform(av[2], &gt2);
 
     if ( xfm1 == NULL || xfm2 == NULL )
         return 1;
 
-    return do_compare( xfm1, xfm2, 0, 3, 0, 3, linear_tolerance )
+    r = do_compare( xfm1, xfm2, 0, 3, 0, 3, linear_tolerance )
         || do_compare( xfm1, xfm2, 0, 3, 3, 1, translation_tolerance );
+
+    delete_general_transform(&gt1);
+    delete_general_transform(&gt2);
+    return r;
 }

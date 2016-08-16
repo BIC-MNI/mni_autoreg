@@ -403,6 +403,8 @@ static void append_new_default_deformation_field(Arg_Data *globals)
   VIO_General_transform
     *grid_trans;
 
+  VIO_General_transform temp_trans;
+
    VectorR
     XYZdirections[ VIO_MAX_DIMENSIONS ];
 
@@ -538,12 +540,14 @@ static void append_new_default_deformation_field(Arg_Data *globals)
 
               /* append the deforamation to the current transformation */
   concat_general_transforms(globals->trans_info.transformation, grid_trans,
-                            globals->trans_info.transformation);
+                            &temp_trans);
 
   delete_volume(new_field);
   delete_general_transform(grid_trans);
+  delete_general_transform(globals->trans_info.transformation);
 
+  *globals->trans_info.transformation = temp_trans;
 
-
+  FREE(grid_trans);
 
 }
