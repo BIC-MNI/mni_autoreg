@@ -399,6 +399,8 @@ sub ParseArgs
        ["-long", "copy", undef, \$OutputType, ""],
        ["-float", "copy", undef, \$OutputType, ""],
        ["-double", "copy", undef, \$OutputType, ""],
+       ["-signed", "copy", undef, \$OutputType, ""],
+       ["-unsigned", "copy", undef, \$OutputType, ""],
        ["-transverse", "copy", undef, \$Orientation, ""],
        ["-coronal", "copy", undef, \$Orientation, ""],
        ["-sagittal", "copy", undef, \$Orientation, ""]
