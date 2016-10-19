@@ -1,4 +1,4 @@
-# CMakeFiles.txt for the bicpl library
+# CMakeFiles.txt for the mni_autoreg library
 #
 # Vladimir S. FONOV - vladimir.fonov@gmail.com
 
