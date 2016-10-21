@@ -153,15 +153,11 @@ TARGET_LINK_LIBRARIES(param2xfm
 #  Proglib
 # )
 # 
-# ADD_EXECUTABLE(volume_cog   Extra_progs/volume_cog.c)
-# 
-# TARGET_LINK_LIBRARIES(volume_cog
-#  minctracc_files 
-#  minctracc_optimize 
-#  minctracc_numerical
-#  minctracc_volume
-#  Proglib)
-# 
+ADD_EXECUTABLE(volume_cog   Extra_progs/volume_cog.c)
+ 
+TARGET_LINK_LIBRARIES(volume_cog
+  _minctracc )
+ 
 ADD_EXECUTABLE(xfm2param    Extra_progs/xfm2param.c)
  
 TARGET_LINK_LIBRARIES(xfm2param
@@ -196,7 +192,7 @@ INSTALL(TARGETS
  check_scale 
  crispify 
  param2xfm 
-#  volume_cog 
+ volume_cog 
 #  rand_param 
  xcorr_vol 
  xfm2param 
