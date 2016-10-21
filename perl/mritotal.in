@@ -610,7 +610,7 @@ sub Initialize
 
    &CreateInfoText;
 
-   @ConfigPath = ($ENV{"HOME"}, "$FindBin::Bin/../etc/mni_autoreg");
+   @ConfigPath = ($ENV{"HOME"}, "$FindBin::Bin/../etc");
    ($pref_tbl, $site_tbl, $protocol_tbl, $other_tbl) = 
       &SetupArgTables ($ok_levels);
    @all_args = (@$pref_tbl, @$site_tbl, @$protocol_tbl, @$other_tbl);
