@@ -2,7 +2,7 @@
 #include "interpolation.h"
 
 
-VIO_BOOL vol_cog(VIO_Volume d1, VIO_Volume m1, float *centroid)
+static VIO_BOOL vol_cog(VIO_Volume d1, VIO_Volume m1, float *centroid)
 {
 
   VIO_Real
