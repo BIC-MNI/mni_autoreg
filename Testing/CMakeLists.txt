@@ -204,5 +204,5 @@ add_minc_test(minctracc_nonlinear ${CMAKE_CURRENT_SOURCE_DIR}/minctracc.test2.cm
 
 IF(HAVE_LIBLBFGS)
   add_minc_test(minctracc_bfgs_linear ${CMAKE_CURRENT_SOURCE_DIR}/minctracc.bfgs1.cmake)
-  add_minc_test(minctracc_bfgs_nonlinear ${CMAKE_CURRENT_SOURCE_DIR}/minctracc.bfgs2.cmake)
+#  add_minc_test(minctracc_bfgs_nonlinear ${CMAKE_CURRENT_SOURCE_DIR}/minctracc.bfgs2.cmake)
 ENDIF(HAVE_LIBLBFGS)

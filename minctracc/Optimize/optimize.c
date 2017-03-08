@@ -2237,3 +2237,4 @@ VIO_BOOL optimize_non_linear_transformation(Arg_Data *globals)
   return(stat);
 }
 
+/* kate: indent-mode cstyle; indent-width 2; replace-tabs on; */

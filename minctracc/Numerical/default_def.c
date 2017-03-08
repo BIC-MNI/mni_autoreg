@@ -304,7 +304,7 @@ static void resample_the_deformation_field(Arg_Data *globals)
   }
 
   alloc_volume_data(new_field);
-
+  
   if (globals->flags.verbose>0)
     initialize_progress_report( &progress, FALSE, count[xyzv[VIO_X]],
                                "Interpolating new field" );
@@ -315,7 +315,8 @@ static void resample_the_deformation_field(Arg_Data *globals)
     voxel[i] = 0.0;
     index[i] = 0;
   }
-
+  
+  
   for(index[xyzv[VIO_X]]=0; index[xyzv[VIO_X]]<count[xyzv[VIO_X]]; index[xyzv[VIO_X]]++) {
     voxel[xyzv[VIO_X]] = (VIO_Real)index[xyzv[VIO_X]];
 
@@ -435,7 +436,6 @@ static void append_new_default_deformation_field(Arg_Data *globals)
      set_volume_voxel_range( new_field, -MY_MAX_VOX, MY_MAX_VOX);
      set_volume_real_range(  new_field, -1.0*globals->trans_info.max_def_magnitude, globals->trans_info.max_def_magnitude); no longer needed, now using floats */
 
-
   for(i=0; i<VIO_N_DIMENSIONS; i++) {
     dir[VIO_X][i]=globals->directions[VIO_X].coords[i];
     dir[VIO_Y][i]=globals->directions[VIO_Y].coords[i];
@@ -483,7 +483,7 @@ static void append_new_default_deformation_field(Arg_Data *globals)
   set_volume_sizes(new_field, count_extended);
   for(i=0; i<VIO_MAX_DIMENSIONS; i++) count[i] = count_extended[i];
 
-              /* reset the first voxel position with the new origin */
+  /* reset the first voxel position with the new origin */
   convert_voxel_to_world(new_field, voxel,
                          &(point[VIO_X]), &(point[VIO_Y]), &(point[VIO_Z]));
   for(i=0; i<VIO_MAX_DIMENSIONS; i++) voxel[i] = 0;
@@ -521,6 +521,7 @@ static void append_new_default_deformation_field(Arg_Data *globals)
               /* Initilize the field to zero deformation */
 
   /* zero = CONVERT_VALUE_TO_VOXEL(new_field, 0.0); not needed, defs are now doubles */
+  
 
   for(index[0]=0; index[0]<count[0]; index[0]++)
     for(index[1]=0; index[1]<count[1]; index[1]++)

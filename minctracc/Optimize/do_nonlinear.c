@@ -2982,3 +2982,5 @@ void map_def_from_grid_space(VIO_Real g0,
     }
   
 }
+
+/* kate: indent-mode cstyle; indent-width 2; replace-tabs on; */

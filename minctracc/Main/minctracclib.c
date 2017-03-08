@@ -237,7 +237,7 @@ void initializeArgs(Arg_Data *args) {
 	args->trans_info.use_magnitude = TRUE;
 	args->trans_info.max_def_magnitude = 50.0;
 	args->trans_info.use_simplex = TRUE;
-  args->trans_info.use_bfgs = FALSE;
+        args->trans_info.use_bfgs = FALSE;
 	args->trans_info.use_super = 2;
 	args->trans_info.use_local_smoothing = FALSE;
 	args->trans_info.use_local_isotropic = TRUE;
@@ -1366,3 +1366,5 @@ int get_feature_volumes(char *dst, char *key, int argc, char **argv)
   return (argc);                        /* VIO_OK */
   
 }
+
+/* kate: indent-mode cstyle; indent-width 2; replace-tabs on; */
