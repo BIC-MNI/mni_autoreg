@@ -22,9 +22,9 @@
 /* normalized height of 1.0,  given sigma, x and mu         */
 /*  all in mm                                               */
 /************************************************************/
-static float normal_height(float fwhm,float mu,float x)
+static double normal_height(double fwhm,double mu,double x)
 {
-   float sigma,t2,f;
+   double sigma,t2,f;
 
    sigma = fwhm/2.35482;
 
@@ -51,7 +51,7 @@ void apodize_data(VIO_Volume data, int xyzv[VIO_MAX_DIMENSIONS],
   int
     num_steps,
     row,col,slice;
-  float
+  double
     scale1,scale2, scale;
   
   VIO_Real
@@ -93,8 +93,8 @@ void apodize_data(VIO_Volume data, int xyzv[VIO_MAX_DIMENSIONS],
     
       for(slice=0; slice<num_steps; slice++) {
       
-        scale1 = normal_height( ramp1[dim0]*GWID1, 1.25*ramp1[dim0], (float)slice*ABS(step[xyzv[dim0]]));
-        scale2 = normal_height( ramp1[dim0]*GWID2, 0.0, (float)(num_steps - 1 - slice)*ABS(step[xyzv[dim0]]));
+        scale1 = normal_height( ramp1[dim0]*GWID1, 1.25*ramp1[dim0], (double)slice*ABS(step[xyzv[dim0]]));
+        scale2 = normal_height( ramp1[dim0]*GWID2, 0.0, (double)(num_steps - 1 - slice)*ABS(step[xyzv[dim0]]));
         scale = INTERPOLATE( slice/(num_steps-1.0) , scale1, scale2);
 
         for(row=0; row<sizes[xyzv[dim1]]; row++) {
@@ -125,8 +125,8 @@ void apodize_data(VIO_Volume data, int xyzv[VIO_MAX_DIMENSIONS],
     
       for(slice=0; slice<num_steps; slice++) {
       
-        scale1 = normal_height( ramp2[dim0]*GWID1, 1.25*ramp2[dim0], (float)slice*ABS(step[xyzv[dim0]]));
-        scale2 = normal_height( ramp2[dim0]*GWID2, 0.0, (float)(num_steps - 1 - slice)*ABS(step[xyzv[dim0]]));
+        scale1 = normal_height( ramp2[dim0]*GWID1, 1.25*ramp2[dim0], (double)slice*ABS(step[xyzv[dim0]]));
+        scale2 = normal_height( ramp2[dim0]*GWID2, 0.0, (double)(num_steps - 1 - slice)*ABS(step[xyzv[dim0]]));
         scale = INTERPOLATE( slice/(num_steps-1.0) , scale1, scale2);
 
         for(row=0; row<sizes[xyzv[dim1]]; row++) {

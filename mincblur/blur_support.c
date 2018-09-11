@@ -31,10 +31,10 @@
 @CREATED    : Wed Jun 23 09:04:34 EST 1993 Louis Collins
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-void muli_vects(float *r, float *s1, float *s2, int n)
+void muli_vects(double *r, double *s1, double *s2, int n)
 {
   int i;
-  float r1,i1,r2,i2;
+  double r1,i1,r2,i2;
 
   r++; s1++; s2++; /* all arrays start at r[1],s1[1] and s2[1], where the real
                       part is r[1] and the imag in r[2], and so on... */
@@ -114,9 +114,9 @@ int next_power_of_two(int x)
 /* return the value of the normal dist at x, given c,sigma  */
 /* and mu ----   all in mm                                  */
 /************************************************************/
-float normal_dist(float c, float fwhm, float mu, float x)
+double normal_dist(double c, double fwhm, double mu, double x)
 {
-  float sigma,t1,t2,t3,f;
+  double sigma,t1,t2,t3,f;
   
   sigma = fwhm/2.35482;
   
@@ -152,20 +152,20 @@ float normal_dist(float c, float fwhm, float mu, float x)
 /* return the value of the normal dist at x, given c,sigma  */
 /* and mu ----   all in mm                                  */
 /************************************************************/
-float rect_dist(float c, float fwhm, float mu, float x)
+double rect_dist(double c, double fwhm, double mu, double x)
 {
   
-  float t;
+  double t;
   
   t = x-mu;
   
 /*  t = t<0 ? -t : t ; */
   
   if ( t >= -fwhm/2  && t < fwhm/2 ) {
-    return(  (float) (c/fwhm) );
+    return(  (double) (c/fwhm) );
   }
   else
-    return ( (float) 0.0 );
+    return ( (double) 0.0 );
   
 }
 
@@ -185,16 +185,16 @@ float rect_dist(float c, float fwhm, float mu, float x)
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 /************************************************************/
-void make_kernel_FT(float *kern, int size, float vsize)
+void make_kernel_FT(double *kern, int size, double vsize)
 {
   
   int 
     kindex,k;
-  float
+  double
     factor,
     f_sample_size;
   
-  (void)memset(kern,(int)0,(size_t)((2*size+1)*sizeof(float)));
+  (void)memset(kern,(int)0,(size_t)((2*size+1)*sizeof(double)));
   
   f_sample_size = 1.0/(vsize*size);
   factor = -2.0 * PI * f_sample_size;
@@ -237,13 +237,13 @@ void make_kernel_FT(float *kern, int size, float vsize)
 @CREATED    : Wed Jun 23 09:04:34 EST 1993 Louis Collins
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
-void make_kernel(float *kern, float vsize, float fwhm, int size, int type)
+void make_kernel(double *kern, double vsize, double fwhm, int size, int type)
 {
 
   int kindex,k;
-  float c,r,max;
+  double c,r,max;
 
-  (void)memset(kern,(int)0,(size_t)((2*size+1)*sizeof(float)));
+  (void)memset(kern,(int)0,(size_t)((2*size+1)*sizeof(double)));
   
   for ( k = -size/2; k<size/2; ++k) {
 
@@ -251,8 +251,8 @@ void make_kernel(float *kern, float vsize, float fwhm, int size, int type)
 
 
     switch (type) {
-    case KERN_GAUSSIAN: kern[kindex] = normal_dist(1.0*vsize,fwhm,0.0,(float)(vsize*k)); break;
-    case KERN_RECT:     kern[kindex] = rect_dist(1.0*vsize,fwhm,0.0,(float)(vsize*k)); break;
+    case KERN_GAUSSIAN: kern[kindex] = normal_dist(1.0*vsize,fwhm,0.0,(double)(vsize*k)); break;
+    case KERN_RECT:     kern[kindex] = rect_dist(1.0*vsize,fwhm,0.0,(double)(vsize*k)); break;
     default: 
       {
         (void) fprintf (stderr,"Illegal kernel type = %d\n",type);

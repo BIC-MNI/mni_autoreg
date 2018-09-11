@@ -81,7 +81,7 @@ static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/mincblur/
 extern int debug;
 
 
-void fft1(float *signal, int numpoints, int direction);
+void fft1(double *signal, int numpoints, int direction);
 
 VIO_Status gradient3D_volume(FILE *ifd, 
                                 VIO_Volume data, 
@@ -93,7 +93,7 @@ VIO_Status gradient3D_volume(FILE *ifd,
                                 int curvature_flg)
 
 { 
-  float 
+  double 
     *fdata,                        /* floating point storage for blurred volume */
     *f_ptr,                        /* pointer to fdata */
     tmp,
@@ -161,7 +161,7 @@ VIO_Status gradient3D_volume(FILE *ifd,
          /* read in data of input file. */
 
   set_file_position(ifd,(long)0);
-  status = io_binary_data(ifd,READ_FILE, fdata, sizeof(float), total_voxels);
+  status = io_binary_data(ifd,READ_FILE, fdata, sizeof(double), total_voxels);
   if (status != VIO_OK)
     print_error_and_line_num("problems reading binary data...\n",__FILE__, __LINE__);
 
@@ -228,7 +228,7 @@ VIO_Status gradient3D_volume(FILE *ifd,
     for (row = 0; row < sizes[rcsv[VIO_Y]]; row++) {           /* for each row   */
       
       f_ptr = fdata + slice*slice_size + row*sizes[rcsv[VIO_X]];
-      memset(dat_vector,0,(2*array_size_pow2+1)*sizeof(float));
+      memset(dat_vector,0,(2*array_size_pow2+1)*sizeof(double));
       
       for (col=0; col< sizes[rcsv[VIO_X]]; col++) {        /* extract the row */
         dat_vector[1 +2*(col+data_offset)  ] = *f_ptr++;
@@ -307,7 +307,7 @@ VIO_Status gradient3D_volume(FILE *ifd,
   
 
   set_file_position(ifd,0);
-  status = io_binary_data(ifd,READ_FILE, fdata, sizeof(float), total_voxels);
+  status = io_binary_data(ifd,READ_FILE, fdata, sizeof(double), total_voxels);
   if (status != VIO_OK)
     print_error_and_line_num("problems reading binary data...\n",__FILE__, __LINE__);
 
@@ -357,12 +357,12 @@ VIO_Status gradient3D_volume(FILE *ifd,
     
     for (col = 0; col < sizes[rcsv[VIO_X]]; col++) {           /* for each col   */
       
-      /*         f_ptr = fdata + slice*slice_size + row*sizeof(float); */
+      /*         f_ptr = fdata + slice*slice_size + row*sizeof(double); */
       
       f_ptr = fdata + slice*slice_size + col;
       
       
-      memset(dat_vector,0,(2*array_size_pow2+1)*sizeof(float));
+      memset(dat_vector,0,(2*array_size_pow2+1)*sizeof(double));
       
       for (row=0; row< sizes[rcsv[VIO_Y]]; row++) {        /* extract the col */
         dat_vector[1 +2*(row+data_offset) ] = *f_ptr;
@@ -441,7 +441,7 @@ VIO_Status gradient3D_volume(FILE *ifd,
 
 
   set_file_position(ifd,0);
-  status = io_binary_data(ifd,READ_FILE, fdata, sizeof(float), total_voxels);
+  status = io_binary_data(ifd,READ_FILE, fdata, sizeof(double), total_voxels);
   if (status != VIO_OK)
     print_error_and_line_num("problems reading binary data...\n",__FILE__, __LINE__);
   f_ptr = fdata;
@@ -485,7 +485,7 @@ VIO_Status gradient3D_volume(FILE *ifd,
         
         f_ptr = fdata + col*col_size + row;
         
-        memset(dat_vector,0,(2*array_size_pow2+1)*sizeof(float));
+        memset(dat_vector,0,(2*array_size_pow2+1)*sizeof(double));
         
         for (slice=0; slice< sizes[rcsv[VIO_Z]]; slice++) {        /* extract the slice vector */
           dat_vector[1 +2*(slice+data_offset) ] = *f_ptr;

@@ -36,12 +36,12 @@
  *
 ---------------------------------------------------------------------------- */
 
-void  muli_vects(float *r, float *s1, float *s2, int n);
+void  muli_vects(double *r, double *s1, double *s2, int n);
 int   next_power_of_two(int x);
-float normal_dist(float c, float fwhm, float mu, float x);
-float rect_dist(float c, float fwhm, float mu, float x);
-void  make_kernel_FT(float *kern, int size, float vsize);
-void  make_kernel(float *kern, float vsize, float fwhm, int size, int type);
+double normal_dist(double c, double fwhm, double mu, double x);
+double rect_dist(double c, double fwhm, double mu, double x);
+void  make_kernel_FT(double *kern, int size, double vsize);
+void  make_kernel(double *kern, double vsize, double fwhm, int size, int type);
 
 
 /*

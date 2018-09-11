@@ -85,9 +85,9 @@ static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/mincblur/
 #include <config.h>
 #include <math.h>
 
-#define PI2 6.28318530717959
+#define PI2 6.2831853071795864769
 
-void fft1(float *signal, int numpoints, int direction)
+void fft1(double *signal, int numpoints, int direction)
 {
   int 
     n, m, mmax, 
@@ -97,7 +97,7 @@ void fft1(float *signal, int numpoints, int direction)
     wp_r,wp_i,
     w_r,w_i,
     angle;
-  float 
+  double 
     temp,
     temp_real,
     temp_imag;

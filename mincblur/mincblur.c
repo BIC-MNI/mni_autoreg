@@ -265,7 +265,7 @@ int main (int argc, char *argv[] )
   remove(output_basename);   
 
        /* if any gradient data is needed, then we have to save the blurred
-          volume in float representation, otherwise quantization errors can
+          volume in double representation, otherwise quantization errors can
           mess up the derivatives.  So get temporary file to save 'real data' */
 
   if ((do_partials_flag || do_gradient_flag)) {

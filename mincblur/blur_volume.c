@@ -98,7 +98,7 @@ extern int debug;
 
 int ms_volume_reals_flag;
 
-void fft1(float *signal, int numpoints, int direction);
+void fft1(double *signal, int numpoints, int direction);
 
 VIO_Status blur3D_volume(VIO_Volume data, int xyzv[VIO_MAX_DIMENSIONS],
                             double fwhmx, double fwhmy, double fwhmz, 
@@ -107,7 +107,7 @@ VIO_Status blur3D_volume(VIO_Volume data, int xyzv[VIO_MAX_DIMENSIONS],
                             FILE *reals_fp,
                             int kernel_type, char *history)
 { 
-  float 
+  double 
     *fdata,                        /* floating point storage for blurred volume */
     *f_ptr,                        /* pointer to fdata */
     tmp,
@@ -243,7 +243,7 @@ VIO_Status blur3D_volume(VIO_Volume data, int xyzv[VIO_MAX_DIMENSIONS],
   
   /*    1st calculate kern array for gaussian kernel*/
   
-  make_kernel(kern,(float)(VIO_ABS(steps[xyzv[VIO_X]])),fwhmx,array_size_pow2,kernel_type);
+  make_kernel(kern,(double)(VIO_ABS(steps[xyzv[VIO_X]])),fwhmx,array_size_pow2,kernel_type);
   fft1(kern,array_size_pow2,1);
   
   /*    calculate offset for original data to be placed in vector            */
@@ -259,7 +259,7 @@ VIO_Status blur3D_volume(VIO_Volume data, int xyzv[VIO_MAX_DIMENSIONS],
     for (row = 0; row < sizes[xyzv[VIO_Y]]; row++) {           /* for each row   */
       
       f_ptr = fdata + slice*slice_size + row*sizes[xyzv[VIO_X]];
-      memset(dat_vector,0,(2*array_size_pow2+1)*sizeof(float));
+      memset(dat_vector,0,(2*array_size_pow2+1)*sizeof(double));
       
       for (col=0; col< sizes[xyzv[VIO_X]]; col++) {        /* extract the row */
         dat_vector[1 +2*(col+data_offset)  ] = *f_ptr++;
@@ -321,7 +321,7 @@ VIO_Status blur3D_volume(VIO_Volume data, int xyzv[VIO_MAX_DIMENSIONS],
   
   /*    1st calculate kern array for gaussian kernel*/
   
-  make_kernel(kern,(float)(VIO_ABS(steps[xyzv[VIO_Y]])),fwhmy,array_size_pow2,kernel_type);
+  make_kernel(kern,(double)(VIO_ABS(steps[xyzv[VIO_Y]])),fwhmy,array_size_pow2,kernel_type);
   fft1(kern,array_size_pow2,1);
   
   /*    calculate offset for original data to be placed in vector            */
@@ -337,12 +337,12 @@ VIO_Status blur3D_volume(VIO_Volume data, int xyzv[VIO_MAX_DIMENSIONS],
     
     for (col = 0; col < sizes[xyzv[VIO_X]]; col++) {           /* for each col   */
       
-      /*         f_ptr = fdata + slice*slice_size + row*sizeof(float); */
+      /*         f_ptr = fdata + slice*slice_size + row*sizeof(double); */
       
       f_ptr = fdata + slice*slice_size + col;
       
       
-      memset(dat_vector,0,(2*array_size_pow2+1)*sizeof(float));
+      memset(dat_vector,0,(2*array_size_pow2+1)*sizeof(double));
       
       for (row=0; row< sizes[xyzv[VIO_Y]]; row++) {        /* extract the col */
         dat_vector[1 +2*(row+data_offset) ] = *f_ptr;
@@ -412,7 +412,7 @@ VIO_Status blur3D_volume(VIO_Volume data, int xyzv[VIO_MAX_DIMENSIONS],
     
     /*    1st calculate kern array for gaussian kernel*/
     
-    make_kernel(kern,(float)(VIO_ABS(steps[xyzv[VIO_Z]])),fwhmz,array_size_pow2,kernel_type);
+    make_kernel(kern,(double)(VIO_ABS(steps[xyzv[VIO_Z]])),fwhmz,array_size_pow2,kernel_type);
     fft1(kern,array_size_pow2,1);
     
     /*    calculate offset for original data to be placed in vector            */
@@ -428,7 +428,7 @@ VIO_Status blur3D_volume(VIO_Volume data, int xyzv[VIO_MAX_DIMENSIONS],
         
         f_ptr = fdata + col*col_size + row;
         
-        memset(dat_vector,0,(2*array_size_pow2+1)*sizeof(float));
+        memset(dat_vector,0,(2*array_size_pow2+1)*sizeof(double));
         
         for (slice=0; slice< sizes[xyzv[VIO_Z]]; slice++) {        /* extract the slice vector */
           dat_vector[1 +2*(slice+data_offset) ] = *f_ptr;
@@ -485,7 +485,7 @@ VIO_Status blur3D_volume(VIO_Volume data, int xyzv[VIO_MAX_DIMENSIONS],
   FREE(kern);
   
   if (reals_fp != (FILE *)NULL) {
-    status = io_binary_data(reals_fp,WRITE_FILE, fdata, sizeof(float), total_voxels);
+    status = io_binary_data(reals_fp,WRITE_FILE, fdata, sizeof(double), total_voxels);
     if (status != VIO_OK) 
       print_error_and_line_num("problems writing blurred reals data...",__FILE__, __LINE__);
   }
