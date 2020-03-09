@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "Proglib.h"
 #include <minc.h>
 #include <time_stamp.h>
 
