@@ -1,6 +1,7 @@
-#! /bin/sh
+#! /bin/bash
 # set -e 
 # set -v
+set -x 
 
 @MY_ENV@ $@
 
