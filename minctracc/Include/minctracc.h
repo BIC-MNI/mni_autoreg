@@ -155,6 +155,9 @@ float check_function(float *x);      /* calculate the squared error between poin
 
 void invertmatrix(int n, float **mat, float **mat_invert);
 
+VIO_BOOL vol_to_cov(VIO_Volume d1, VIO_Volume m1, float *centroid, float **covar, double *step);
+
+
 VIO_BOOL init_params(VIO_Volume d1,
                            VIO_Volume d2,
                            VIO_Volume m1,

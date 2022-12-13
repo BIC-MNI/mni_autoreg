@@ -12,6 +12,7 @@
 #include "make_rots.h"
 #include "minctracc_point_vector.h"
 #include "interpolation.h"
+#include "minctracc.h"
 
 
 #define DO_TRANSFORM(result, transformation, coord) \

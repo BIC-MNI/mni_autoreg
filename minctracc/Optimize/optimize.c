@@ -182,6 +182,7 @@ static char rcsid[]="$Header: /static-cvsroot/registration/mni_autoreg/minctracc
 #include "quaternion.h"
 
 #include "local_macros.h"
+#include "extras.h"
 
 #ifdef HAVE_LIBLBFGS
 #include <lbfgs.h>

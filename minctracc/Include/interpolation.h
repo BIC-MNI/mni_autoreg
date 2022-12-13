@@ -1,6 +1,7 @@
 #ifndef MINCTRACC_INTERPOLATION_H
 #define MINCTRACC_INTERPOLATION_H
 
+#include "minctracc_arg_data.h"
 #include "minctracc_point_vector.h"
 
 
@@ -29,4 +30,8 @@ int voxel_point_not_masked(VIO_Volume volume,
                                   VIO_Real vx, VIO_Real vy, VIO_Real vz);
 
 
+/*VF: not sure where to put this*/
+void normalize_data_to_match_target(VIO_Volume d1, VIO_Volume m1, VIO_Real thresh1,
+                                           VIO_Volume d2, VIO_Volume m2, VIO_Real thresh2,
+                                           Arg_Data *globals);
 #endif

@@ -86,6 +86,7 @@ static char rcsid[]="";
 #include "make_rots.h"
 #include "minctracc_point_vector.h"
 #include "interpolation.h"
+#include "minctracc.h"
 
 #define INTERPOLATE_TRUE_VALUE(volume, coord, result) \
    trilinear_interpolant(volume, coord, result)

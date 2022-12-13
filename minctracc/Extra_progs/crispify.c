@@ -14,6 +14,8 @@
 #include <ParseArgv.h>
 #include <time_stamp.h>
 
+#include <unistd.h>
+
 /* function prototypes */
 
 void parse_arguments(int argc, char* argv[]);
@@ -21,6 +23,7 @@ void load_volume(char *, VIO_Volume * );
 void create_empty_crisp_volume(VIO_Volume volume_example);
 void scan_fuzzy_volumes(VIO_Volume in_vol, char* label, VIO_Volume max_vol, VIO_Volume crisp_vol);
 void write_crisp_volume(void);
+int volume_size_is_ok( VIO_Volume loaded_volume);
 
 /* global variables */
 
