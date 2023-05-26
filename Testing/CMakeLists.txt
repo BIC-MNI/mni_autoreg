@@ -49,7 +49,9 @@ add_custom_command(
 
 add_custom_command(
   OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/ellipse2.mnc
-  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc ${CMAKE_CURRENT_BINARY_DIR}/test2.xfm mni_autoreg
+  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc 
+          ${CMAKE_CURRENT_BINARY_DIR}/test2.xfm 
+          mni_autoreg
   COMMAND ${CMAKE_CURRENT_BINARY_DIR}/minc_wrapper mincresample -clobber -transformation ${CMAKE_CURRENT_BINARY_DIR}/test2.xfm -like ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc ${CMAKE_CURRENT_BINARY_DIR}/ellipse2.mnc
 )
 add_custom_command(
@@ -59,7 +61,9 @@ add_custom_command(
 )
 add_custom_command(
   OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/ellipse3.mnc
-  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc ${CMAKE_CURRENT_BINARY_DIR}/test3.xfm mni_autoreg
+  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc 
+          ${CMAKE_CURRENT_BINARY_DIR}/test3.xfm 
+          mni_autoreg
   COMMAND ${CMAKE_CURRENT_BINARY_DIR}/minc_wrapper mincresample -clobber -transformation ${CMAKE_CURRENT_BINARY_DIR}/test3.xfm -like ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc  ${CMAKE_CURRENT_BINARY_DIR}/ellipse3.mnc
 )
 add_custom_command(
@@ -120,7 +124,9 @@ add_custom_command(
 
 add_custom_command(
   OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/ellipse0_slice_x.mnc
-  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc ${CMAKE_CURRENT_BINARY_DIR}/test4.xfm mni_autoreg
+  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc
+          ${CMAKE_CURRENT_BINARY_DIR}/test4.xfm
+          mni_autoreg
   COMMAND ${CMAKE_CURRENT_BINARY_DIR}/minc_wrapper mincresample -clobber -transformation ${CMAKE_CURRENT_BINARY_DIR}/test4.xfm -like ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc ${CMAKE_CURRENT_BINARY_DIR}/ellipse_tmp2.mnc
   COMMAND ${CMAKE_CURRENT_BINARY_DIR}/minc_wrapper mincreshape -clobber -dimrange xspace=32,1 ${CMAKE_CURRENT_BINARY_DIR}/ellipse_tmp2.mnc ${CMAKE_CURRENT_BINARY_DIR}/ellipse0_slice_x.mnc
   COMMAND rm -f ${CMAKE_CURRENT_BINARY_DIR}/ellipse_tmp2.mnc
@@ -128,7 +134,9 @@ add_custom_command(
 
 add_custom_command(
   OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/ellipse0_slice_y.mnc
-  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/ellipse1.mnc ${CMAKE_CURRENT_BINARY_DIR}/test4.xfm mni_autoreg
+  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc 
+          ${CMAKE_CURRENT_BINARY_DIR}/test4.xfm
+          mni_autoreg
   COMMAND ${CMAKE_CURRENT_BINARY_DIR}/minc_wrapper mincresample -clobber -transformation ${CMAKE_CURRENT_BINARY_DIR}/test4.xfm -like ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc ${CMAKE_CURRENT_BINARY_DIR}/ellipse_tmp3.mnc
   COMMAND ${CMAKE_CURRENT_BINARY_DIR}/minc_wrapper mincreshape -clobber -dimrange yspace=35,1 ${CMAKE_CURRENT_BINARY_DIR}/ellipse_tmp3.mnc ${CMAKE_CURRENT_BINARY_DIR}/ellipse0_slice_y.mnc
   COMMAND rm -f ${CMAKE_CURRENT_BINARY_DIR}/ellipse_tmp3.mnc
@@ -136,48 +144,54 @@ add_custom_command(
 
 add_custom_command(
   OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/ellipse0_slice_z.mnc
-  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/ellipse1.mnc ${CMAKE_CURRENT_BINARY_DIR}/test4.xfm mni_autoreg
+  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc 
+          ${CMAKE_CURRENT_BINARY_DIR}/test4.xfm 
+          mni_autoreg
   COMMAND ${CMAKE_CURRENT_BINARY_DIR}/minc_wrapper mincresample -clobber -transformation ${CMAKE_CURRENT_BINARY_DIR}/test4.xfm -like ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc ${CMAKE_CURRENT_BINARY_DIR}/ellipse_tmp4.mnc
   COMMAND ${CMAKE_CURRENT_BINARY_DIR}/minc_wrapper mincreshape -clobber -dimrange zspace=35,1 ${CMAKE_CURRENT_BINARY_DIR}/ellipse_tmp4.mnc ${CMAKE_CURRENT_BINARY_DIR}/ellipse0_slice_z.mnc
   COMMAND rm -f ${CMAKE_CURRENT_BINARY_DIR}/ellipse_tmp4.mnc
 )
 
 add_custom_command(
-  OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/object1.mnc 
+  OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/object1.mnc
   DEPENDS mni_autoreg
   COMMAND ${CMAKE_CURRENT_BINARY_DIR}/minc_wrapper make_phantom -nele 64 64 64 -step 2 2 2 -start -64 -64 -64 -ellipse -center 0 0 0 -clobber ${CMAKE_CURRENT_BINARY_DIR}/object1.mnc
 )
 
 add_custom_command(
- OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/test.xfm 
+ OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/test.xfm
  DEPENDS mni_autoreg
  COMMAND ${CMAKE_CURRENT_BINARY_DIR}/minc_wrapper param2xfm -center 0 0 0 -rot -4 7 10 -trans 5 2 -6 -clobber ${CMAKE_CURRENT_BINARY_DIR}/test.xfm
 )
 
 add_custom_command(
-  OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/object2.mnc 
-  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/object1.mnc  ${CMAKE_CURRENT_BINARY_DIR}/test.xfm mni_autoreg
+  OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/object2.mnc
+  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/object1.mnc  
+          ${CMAKE_CURRENT_BINARY_DIR}/test.xfm
+          mni_autoreg
   COMMAND ${CMAKE_CURRENT_BINARY_DIR}/minc_wrapper mincresample ${CMAKE_CURRENT_BINARY_DIR}/object1.mnc ${CMAKE_CURRENT_BINARY_DIR}/object2.mnc -like ${CMAKE_CURRENT_BINARY_DIR}/object1.mnc -transformation ${CMAKE_CURRENT_BINARY_DIR}/test.xfm -clobber
 )
 
 add_custom_command(
- OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/object1_dxyz.mnc 
- DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/object1.mnc mni_autoreg
+ OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/object1_dxyz.mnc
+ DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/object1.mnc
+         mni_autoreg
  COMMAND ${CMAKE_CURRENT_BINARY_DIR}/minc_wrapper mincblur -clobber -gradient -fwhm 6 ${CMAKE_CURRENT_BINARY_DIR}/object1.mnc ${CMAKE_CURRENT_BINARY_DIR}/object1
 )
  
 add_custom_command(
  OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/object2_dxyz.mnc
- DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/object2.mnc mni_autoreg
+ DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/object2.mnc 
+         mni_autoreg
  COMMAND ${CMAKE_CURRENT_BINARY_DIR}/minc_wrapper mincblur -clobber -gradient -fwhm 6 ${CMAKE_CURRENT_BINARY_DIR}/object2.mnc ${CMAKE_CURRENT_BINARY_DIR}/object2
 )
 
 add_custom_target(create_test_data ALL 
- DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc 
- DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/ellipse1.mnc 
+ DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/ellipse0.mnc
+ DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/ellipse1.mnc
  DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/ellipse2.mnc
- DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/ellipse3.mnc 
- DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/ellipse4.mnc 
+ DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/ellipse3.mnc
+ DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/ellipse4.mnc
  DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/warped_ellipse4.mnc 
  DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/ellipse0_dxyz.mnc 
  DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/ellipse1_dxyz.mnc 
@@ -195,7 +209,7 @@ add_custom_target(create_test_data ALL
  DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/object2.mnc 
  DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/object1_dxyz.mnc 
  DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/object2_dxyz.mnc
- DEPENDS mni_autoreg
+ DEPENDS  mni_autoreg
 )
 
 add_minc_test(param2xfm           ${CMAKE_CURRENT_SOURCE_DIR}/param2xfm.test.cmake)
