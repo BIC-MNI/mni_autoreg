@@ -1,0 +1,119 @@
+# Citation metadata for mni_autoreg (Citation File Format, https://citation-file-format.github.io/).
+# The author list comes from the commit history and from the history comments in the files.
+
+cff-version: 1.2.0
+title: mni_autoreg
+message: >-
+  If you use this software, please cite both the article from
+  preferred-citation and the software itself. COPYING also asks for a citation
+  of the article listed under references.
+type: software
+authors:
+  - given-names: D. Louis
+    family-names: Collins
+    affiliation: McGill University
+    orcid: "https://orcid.org/0000-0002-8432-7021"
+  - given-names: Greg
+    family-names: Ward
+  - given-names: Andrew L.
+    family-names: Janke
+    orcid: "https://orcid.org/0000-0003-0547-5171"
+  - given-names: Steve M.
+    family-names: Robbins
+  - given-names: Vladimir
+    family-names: Fonov
+    email: vladimir.fonov@gmail.com
+    affiliation: McGill University
+    orcid: "https://orcid.org/0000-0003-3402-7749"
+  - given-names: Patricia
+    family-names: Le Nezet
+  - given-names: Robert
+    family-names: Brown
+  - given-names: Peter
+    family-names: Neelin
+  - given-names: Claude
+    family-names: Lepage
+  - given-names: Gabriel A.
+    family-names: Devenyi
+    email: gdevenyi@gmail.com
+    affiliation: Douglas Mental Health University Institute
+    orcid: "https://orcid.org/0000-0002-7766-1187"
+  - given-names: David
+    family-names: MacDonald
+  - given-names: Robert D.
+    family-names: Vincent
+  - given-names: Andrew
+    family-names: Wood
+  - given-names: Weiqian
+    family-names: Dai
+  - given-names: Shyan
+    family-names: Ku
+  - given-names: Sean
+    family-names: Marrett
+    orcid: "https://orcid.org/0000-0001-8179-6511"
+  - given-names: Christina
+    family-names: Rossmanith
+  - given-names: Haz-Edine
+    family-names: Assemlal
+  - given-names: Ben
+    family-names: Darwin
+  - given-names: Vasken
+    family-names: Kollokian
+  - given-names: Dallas
+    family-names: Card
+  - given-names: Irina
+    family-names: Kezele
+  - given-names: Jim
+    family-names: Nikelski
+repository-code: "https://github.com/BIC-MNI/mni_autoreg"
+abstract: >-
+  MNI_AutoReg, the MNI Automated Registration Package: automatic linear and
+  non-linear registration of volumetric images (minctracc, mritotal and
+  related tools).
+keywords:
+  - MINC
+  - medical imaging
+  - neuroimaging
+  - MRI
+  - image registration
+  - stereotaxic space
+license-url: "https://github.com/BIC-MNI/mni_autoreg/blob/develop/COPYING"
+preferred-citation:
+  type: article
+  title: Automatic 3D Intersubject Registration of MR Volumetric Data in Standardized Talairach Space
+  authors:
+    - given-names: D. Louis
+      family-names: Collins
+    - given-names: Peter
+      family-names: Neelin
+    - given-names: Terrence M.
+      family-names: Peters
+    - given-names: Alan C.
+      family-names: Evans
+  journal: Journal of Computer Assisted Tomography
+  volume: 18
+  issue: 2
+  start: 192
+  end: 205
+  year: 1994
+  month: 3
+  doi: "10.1097/00004728-199403000-00005"
+references:
+  - type: article
+    title: Automatic 3-D model-based neuroanatomical segmentation
+    authors:
+      - given-names: D. Louis
+        family-names: Collins
+      - given-names: Colin J.
+        family-names: Holmes
+      - given-names: Terrence M.
+        family-names: Peters
+      - given-names: Alan C.
+        family-names: Evans
+    journal: Human Brain Mapping
+    volume: 3
+    issue: 3
+    start: 190
+    end: 208
+    year: 1995
+    doi: "10.1002/hbm.460030304"
